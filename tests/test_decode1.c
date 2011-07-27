@@ -90,22 +90,6 @@ bool print_person(pb_istream_t *stream)
     return true;
 }
 
-bool my_read(pb_istream_t *stream, char *buf, size_t count)
-{
-    char *source = (char*)stream->state;
-    
-    if (!stream->bytes_left)
-        return false;
-    
-    if (buf != NULL)
-    {
-        memcpy(buf, source, count);
-    }
-    
-    stream->state = source + count;
-    return true;
-}
-
 int main()
 {
     uint8_t buffer[512];
