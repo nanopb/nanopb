@@ -148,8 +148,8 @@ static bool read_raw_value(pb_istream_t *stream, int wire_type, uint8_t *buf, si
             {
                 (*size)++;
                 if (*size > max_size) return false;
-                if (!pb_read(stream, buf++, 1)) return false;
-            } while (*buf & 0x80);
+                if (!pb_read(stream, buf, 1)) return false;
+            } while (*buf++ & 0x80);
             return true;
             
         case WT_64BIT:
