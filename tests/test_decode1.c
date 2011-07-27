@@ -9,8 +9,6 @@ typedef enum {
     Person_PhoneType_MOBILE = 0,
     Person_PhoneType_HOME = 1,
     Person_PhoneType_WORK = 2,
-    
-    _Person_PhoneType_size = 0xFFFFFFFF // Force 32-bit enum
 } Person_PhoneType;
 
 typedef struct {
@@ -24,52 +22,71 @@ typedef struct {
     int32_t id;
     bool has_email;
     char email[40];
-
-    pb_callback_t phone;
+    size_t phone_size;
+    Person_PhoneNumber phone[5];
 } Person;
 
 /* Field descriptions */
 #define membersize(st, m) (sizeof ((st*)0)->m)
 
+const Person_PhoneType Person_PhoneType_type_default = Person_PhoneType_HOME;
+
 const pb_field_t Person_PhoneNumber_fields[] = {
-    {1, offsetof(Person_PhoneNumber, number), PB_ACT_STRING, membersize(Person_PhoneNumber, number)},
-    {2, offsetof(Person_PhoneNumber, has_type), PB_ACT_HAS, membersize(Person_PhoneNumber, has_type)},
-    {2, offsetof(Person_PhoneNumber, type), PB_ACT_UINT32, membersize(Person_PhoneNumber, type)},
+    {1, PB_HTYPE_REQUIRED | PB_LTYPE_STRING,
+        offsetof(Person_PhoneNumber, number), 0,
+        membersize(Person_PhoneNumber, number), 0, 0},
+        
+    {2, PB_HTYPE_OPTIONAL | PB_LTYPE_ENUM,
+        offsetof(Person_PhoneNumber, type),
+        offsetof(Person_PhoneNumber, has_type),
+        membersize(Person_PhoneNumber, type), 0,
+        &Person_PhoneType_type_default},
+    
     PB_LAST_FIELD
 };
 
 const pb_field_t Person_fields[] = {
-    {1, offsetof(Person, name), PB_ACT_STRING, membersize(Person, name)},
-    {2, offsetof(Person, id), PB_ACT_INT32, membersize(Person, id)},
-    {3, offsetof(Person, email), PB_ACT_STRING, membersize(Person, email)},
-    {4, offsetof(Person, phone), PB_ACT_SUBMESSAGE, membersize(Person, phone)}
+    {1, PB_HTYPE_REQUIRED | PB_LTYPE_STRING,
+        offsetof(Person, name), 0,
+        membersize(Person, name), 0, 0},
+    
+    {2, PB_HTYPE_REQUIRED | PB_LTYPE_INT32,
+        offsetof(Person, id), 0,
+        membersize(Person, id), 0, 0},
+    
+    {3, PB_HTYPE_OPTIONAL | PB_LTYPE_STRING,
+        offsetof(Person, email),
+        offsetof(Person, has_email),
+        membersize(Person, email), 0, 0},
+    
+    {4, PB_HTYPE_ARRAY | PB_LTYPE_SUBMESSAGE,
+        offsetof(Person, phone),
+        offsetof(Person, phone_size),
+        membersize(Person, phone[0]),
+        membersize(Person, phone) / membersize(Person, phone[0]),
+        Person_PhoneNumber_fields},
+    
+    PB_LAST_FIELD
 };
-
-/* Default value descriptions */
-#define Person_PhoneNumber_default {"", false, Person_PhoneType_HOME};
-#define Person_default {"", 0, false, "", {{0},0}};
 
 /* And now, the actual test program */
 
-bool print_phonenumber(pb_istream_t *stream, const pb_field_t *field, void *arg)
-{
-    Person_PhoneNumber x = Person_PhoneNumber_default;
-    if (!pb_decode(stream, Person_PhoneNumber_fields, &x))
-        return false;
-    
-    printf("PhoneNumber: number '%s' type '%d'\n", x.number, x.type);
-    return true;
-}
-
 bool print_person(pb_istream_t *stream)
 {
-    Person x = Person_default;
-    x.phone.funcs.decode = &print_phonenumber;
+    int i;
+    Person person;
     
-    if (!pb_decode(stream, Person_fields, &x))
+    if (!pb_decode(stream, Person_fields, &person))
         return false;
     
-    printf("Person: name '%s' id '%d' email '%s'\n", x.name, x.id, x.email);
+    printf("Person: name '%s' id '%d' email '%s'\n", person.name, person.id, person.email);
+    
+    for (i = 0; i < person.phone_size; i++)
+    {
+        Person_PhoneNumber *phone = &person.phone[i];
+        printf("PhoneNumber: number '%s' type '%d'\n", phone->number, phone->type);
+    }
+    
     return true;
 }
 
@@ -91,10 +108,10 @@ bool my_read(pb_istream_t *stream, char *buf, size_t count)
 
 int main()
 {
-    char buffer[512];
+    uint8_t buffer[512];
     size_t size = fread(buffer, 1, 512, stdin);
     
-    pb_istream_t stream = {&my_read, buffer, size};
+    pb_istream_t stream = pb_istream_from_buffer(buffer, size);
     if (!print_person(&stream))
         printf("Parsing failed.\n");
     
