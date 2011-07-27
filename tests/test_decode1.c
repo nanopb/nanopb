@@ -8,7 +8,7 @@
 typedef enum {
     Person_PhoneType_MOBILE = 0,
     Person_PhoneType_HOME = 1,
-    Person_PhoneType_WORK = 2,
+    Person_PhoneType_WORK = 2
 } Person_PhoneType;
 
 typedef struct {
