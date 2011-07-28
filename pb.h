@@ -43,35 +43,28 @@ typedef enum {
      * Field contents types *
      ************************/
     
-    /* Standard integer types */
-    PB_LTYPE_UINT32 = 0x00,
-    PB_LTYPE_INT32 = 0x00,
-    PB_LTYPE_SINT32 = 0x01,
-    PB_LTYPE_FIXED32 = 0x02,
-    PB_LTYPE_SFIXED32 = 0x02,
-    PB_LTYPE_UINT64 = 0x03,
-    PB_LTYPE_INT64 = 0x03,
-    PB_LTYPE_SINT64 = 0x04,
-    PB_LTYPE_FIXED64 = 0x05,
-    PB_LTYPE_SFIXED64 = 0x05,
-    PB_LTYPE_BOOL = 0x06,
-    PB_LTYPE_ENUM = 0x07,
+    /* Numeric types */
+    PB_LTYPE_VARINT = 0x00, /* int32, uint32, int64, uint64, bool, enum */
+    PB_LTYPE_SVARINT = 0x01, /* sint32, sint64 */
+    PB_LTYPE_FIXED = 0x02, /* fixed32, sfixed32, fixed64, sfixed64, float, double */
     
-    /* Standard float types */
-    PB_LTYPE_FLOAT = 0x08,
-    PB_LTYPE_DOUBLE = 0x09,
+    /* Marker for last packable field type. */
+    PB_LTYPE_LAST_PACKABLE = 0x02,
     
     /* Byte array with pre-allocated buffer.
      * data_size is the length of the allocated PB_BYTES_ARRAY structure. */
-    PB_LTYPE_BYTES = 0x0A,
+    PB_LTYPE_BYTES = 0x03,
     
     /* String with pre-allocated buffer.
      * data_size is the maximum length. */
-    PB_LTYPE_STRING = 0x0B,
+    PB_LTYPE_STRING = 0x04,
     
     /* Submessage
      * submsg_fields is pointer to field descriptions */
-    PB_LTYPE_SUBMESSAGE = 0x0C,
+    PB_LTYPE_SUBMESSAGE = 0x05,
+    
+    /* Number of declared LTYPES */
+    PB_LTYPES_COUNT = 6,
     
     /******************
      * Modifier flags *
@@ -108,8 +101,8 @@ typedef struct _pb_field_t pb_field_t;
 struct _pb_field_t {
     uint8_t tag;
     pb_type_t type;
-    uint8_t data_offset; /* Offset of actual data or array start */
-    uint8_t size_offset; /* Offset of array size or has-boolean */
+    uint8_t data_offset; /* Offset of field data, relative to previous field. */
+    int8_t size_offset; /* Offset of array size or has-boolean, relative to data */
     uint8_t data_size; /* Data size in bytes for a single item */
     uint8_t array_size; /* Maximum number of entries in array */
     

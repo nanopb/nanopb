@@ -45,17 +45,9 @@ bool pb_skip_string(pb_istream_t *stream);
  * For arrays, these functions are called repeatedly.
  */
 
-bool pb_dec_uint32(pb_istream_t *stream, const pb_field_t *field, uint32_t *dest);
-bool pb_dec_sint32(pb_istream_t *stream, const pb_field_t *field, int32_t *dest);
-bool pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, uint32_t *dest);
-bool pb_dec_uint64(pb_istream_t *stream, const pb_field_t *field, uint64_t *dest);
-bool pb_dec_sint64(pb_istream_t *stream, const pb_field_t *field, int64_t *dest);
-bool pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, uint64_t *dest);
-bool pb_dec_bool(pb_istream_t *stream, const pb_field_t *field, bool *dest);
-bool pb_dec_enum(pb_istream_t *stream, const pb_field_t *field, void *dest);
-
-bool pb_dec_float(pb_istream_t *stream, const pb_field_t *field, float *dest);
-bool pb_dec_double(pb_istream_t *stream, const pb_field_t *field, double *dest);
+bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
 bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, uint8_t *dest);
 bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, uint8_t *dest);
@@ -66,6 +58,6 @@ typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
-const pb_decoder_t PB_DECODERS[16];
+const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT];
 
 #endif
