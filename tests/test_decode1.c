@@ -37,8 +37,8 @@ const pb_field_t Person_PhoneNumber_fields[] = {
         membersize(Person_PhoneNumber, number), 0, 0},
         
     {2, PB_HTYPE_OPTIONAL | PB_LTYPE_VARINT,
-        offsetof(Person_PhoneNumber, type),
-        offsetof(Person_PhoneNumber, has_type),
+        offsetof(Person_PhoneNumber, type) - offsetof(Person_PhoneNumber, number),
+        (int)offsetof(Person_PhoneNumber, has_type) - (int)offsetof(Person_PhoneNumber, type),
         membersize(Person_PhoneNumber, type), 0,
         &Person_PhoneType_type_default},
     
@@ -51,17 +51,17 @@ const pb_field_t Person_fields[] = {
         membersize(Person, name), 0, 0},
     
     {2, PB_HTYPE_REQUIRED | PB_LTYPE_VARINT,
-        offsetof(Person, id), 0,
+        offsetof(Person, id) - offsetof(Person, name), 0,
         membersize(Person, id), 0, 0},
     
     {3, PB_HTYPE_OPTIONAL | PB_LTYPE_STRING,
-        offsetof(Person, email),
-        offsetof(Person, has_email),
+        offsetof(Person, email) - offsetof(Person, id),
+        (int)offsetof(Person, has_email) - (int)offsetof(Person, email),
         membersize(Person, email), 0, 0},
     
     {4, PB_HTYPE_ARRAY | PB_LTYPE_SUBMESSAGE,
-        offsetof(Person, phone),
-        offsetof(Person, phone_size),
+        offsetof(Person, phone) - offsetof(Person, email),
+        (int)offsetof(Person, phone_size) - (int)offsetof(Person, phone),
         membersize(Person, phone[0]),
         membersize(Person, phone) / membersize(Person, phone[0]),
         Person_PhoneNumber_fields},
