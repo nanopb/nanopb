@@ -23,13 +23,14 @@ const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
 
 bool pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
-    bool status;
     if (stream->bytes_left < count)
         return false;
     
-    status = stream->callback(stream, buf, count);
+    if (!stream->callback(stream, buf, count))
+        return false;
+    
     stream->bytes_left -= count;
-    return status;
+    return true;
 }
 
 static bool buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)

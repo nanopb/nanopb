@@ -112,8 +112,6 @@ struct _pb_field_t {
     const void *ptr;
 } pb_packed;
 
-#define PB_LAST_FIELD {0,0,0,0}
-
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array. */
 #define PB_BYTES_ARRAY(buffersize) \
@@ -151,5 +149,12 @@ struct _pb_callback_t {
     /* Free arg for use by callback */
     void *arg;
 };
+
+/* These macros are used to declare pb_field_t's in the constant array. */
+#define pb_membersize(st, m) (sizeof ((st*)0)->m)
+#define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
+#define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
+#define PB_LAST_FIELD {0,0,0,0}
+
 
 #endif

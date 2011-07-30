@@ -27,20 +27,20 @@ typedef struct {
 } Person;
 
 /* Field descriptions */
-#define membersize(st, m) (sizeof ((st*)0)->m)
 
-const Person_PhoneType Person_PhoneType_type_default = Person_PhoneType_HOME;
+
+const Person_PhoneType Person_PhoneNumber_type_default = Person_PhoneType_HOME;
 
 const pb_field_t Person_PhoneNumber_fields[] = {
     {1, PB_HTYPE_REQUIRED | PB_LTYPE_STRING,
         offsetof(Person_PhoneNumber, number), 0,
-        membersize(Person_PhoneNumber, number), 0, 0},
+        pb_membersize(Person_PhoneNumber, number), 0, 0},
         
     {2, PB_HTYPE_OPTIONAL | PB_LTYPE_VARINT,
-        offsetof(Person_PhoneNumber, type) - offsetof(Person_PhoneNumber, number),
-        (int)offsetof(Person_PhoneNumber, has_type) - (int)offsetof(Person_PhoneNumber, type),
-        membersize(Person_PhoneNumber, type), 0,
-        &Person_PhoneType_type_default},
+        pb_delta(Person_PhoneNumber, type, number),
+        pb_delta(Person_PhoneNumber, has_type, type),
+        pb_membersize(Person_PhoneNumber, type), 0,
+        &Person_PhoneNumber_type_default},
     
     PB_LAST_FIELD
 };
@@ -48,22 +48,22 @@ const pb_field_t Person_PhoneNumber_fields[] = {
 const pb_field_t Person_fields[] = {
     {1, PB_HTYPE_REQUIRED | PB_LTYPE_STRING,
         offsetof(Person, name), 0,
-        membersize(Person, name), 0, 0},
+        pb_membersize(Person, name), 0, 0},
     
     {2, PB_HTYPE_REQUIRED | PB_LTYPE_VARINT,
-        offsetof(Person, id) - offsetof(Person, name), 0,
-        membersize(Person, id), 0, 0},
+        pb_delta(Person, id, name), 0,
+        pb_membersize(Person, id), 0, 0},
     
     {3, PB_HTYPE_OPTIONAL | PB_LTYPE_STRING,
         offsetof(Person, email) - offsetof(Person, id),
-        (int)offsetof(Person, has_email) - (int)offsetof(Person, email),
-        membersize(Person, email), 0, 0},
+        pb_delta(Person, has_email, email),
+        pb_membersize(Person, email), 0, 0},
     
     {4, PB_HTYPE_ARRAY | PB_LTYPE_SUBMESSAGE,
         offsetof(Person, phone) - offsetof(Person, email),
-        (int)offsetof(Person, phone_size) - (int)offsetof(Person, phone),
-        membersize(Person, phone[0]),
-        membersize(Person, phone) / membersize(Person, phone[0]),
+        pb_delta(Person, phone_size, phone),
+        pb_membersize(Person, phone[0]),
+        pb_arraysize(Person, phone),
         Person_PhoneNumber_fields},
     
     PB_LAST_FIELD
