@@ -1,5 +1,5 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0
-DEPS=../pb_decode.c ../pb_decode.h ../pb.h
+DEPS=../pb_decode.c ../pb_decode.h ../pb.h person.h
 TESTS=test_decode1 decode_unittests
 
 all: $(TESTS)

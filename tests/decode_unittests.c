@@ -104,6 +104,31 @@ int main()
         TEST((s = S("\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 7))
     }
     
+    {
+        pb_istream_t s = S("\x01\xFF\xFF\x03");
+        pb_field_t f = {1, PB_LTYPE_VARINT, 0, 0, 4, 0, 0};
+        uint32_t d;
+        COMMENT("Test pb_dec_varint using uint32_t")
+        TEST(pb_dec_varint(&s, &f, &d) && d == 1)
+        
+        /* Verify that no more than data_size is written. */
+        d = 0;
+        f.data_size = 1;
+        TEST(pb_dec_varint(&s, &f, &d) && d == 0xFF)
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 4, 0, 0};
+        int32_t d;
+        
+        COMMENT("Test pb_dec_svarint using int32_t")
+        TEST((s = S("\x01"), pb_dec_svarint(&s, &f, &d) && d == -1))
+        TEST((s = S("\x02"), pb_dec_svarint(&s, &f, &d) && d == 1))
+        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d) && d == INT32_MAX))
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d) && d == INT32_MIN))
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     

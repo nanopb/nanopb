@@ -120,7 +120,7 @@ struct { \
     uint8_t bytes[buffersize]; \
 }
 
-typedef PB_BYTES_ARRAY(1) pb_bytes_array_t;
+typedef PB_BYTES_ARRAY() pb_bytes_array_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that

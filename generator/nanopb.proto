@@ -1,0 +1,18 @@
+// Custom options for defining:
+// - Maximum size of string/bytes
+// - Maximum number of elements in array
+//
+// These are used by nanopb to generate statically allocable structures
+// for memory-limited environments.
+
+import "google/protobuf/descriptor.proto";
+
+message NanoPBOptions {
+  optional int32 max_size = 1;
+  optional int32 max_count = 2;
+}
+
+extend google.protobuf.FieldOptions {
+    optional NanoPBOptions nanopb = 52001;
+}
+
