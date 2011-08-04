@@ -1,14 +1,14 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0
-DEPS=../pb_decode.c ../pb_decode.h ../pb.h person.h
-TESTS=test_decode1 decode_unittests
+DEPS=../pb_decode.c ../pb_decode.h ../pb_encode.c ../pb_encode.h ../pb.h person.h
+TESTS=test_decode1 test_encode1 decode_unittests
 
 all: $(TESTS)
 
 clean:
-	rm -f test_decode1
+	rm -f $(TESTS)
 
 %: %.c $(DEPS)
-	$(CC) $(CFLAGS) -o $@ $< ../pb_decode.c
+	$(CC) $(CFLAGS) -o $@ $< ../pb_decode.c ../pb_encode.c
 
 run_unittests: decode_unittests
 	./decode_unittests

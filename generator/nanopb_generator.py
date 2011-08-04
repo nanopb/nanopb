@@ -121,7 +121,7 @@ class Field:
             if self.max_size is None:
                 is_callback = True
             else:
-                self.ctype = 'PB_BYTES_ARRAY(%d)' % self.max_size
+                self.ctype = self.struct_name + self.name + 't'
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.ltype = 'PB_LTYPE_SUBMESSAGE'
             self.ctype = names_from_type_name(desc.type_name)
@@ -146,7 +146,18 @@ class Field:
         result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
     
-    def default_decl(self):
+    def types(self):
+        '''Return definitions for any special types this field might need.'''
+        if self.ltype == 'PB_LTYPE_BYTES' and self.max_size is not None:
+            result = 'typedef struct {\n'
+            result += '    size_t size;\n'
+            result += '    uint8_t bytes[%d];\n' % self.max_size
+            result += '} %s;\n' % self.ctype
+        else:
+            result = None
+        return result
+    
+    def default_decl(self, declaration_only = False):
         '''Return definition for this field's default value.'''
         if self.default is None:
             return None
@@ -154,7 +165,7 @@ class Field:
         if self.ltype == 'PB_LTYPE_STRING':
             ctype = 'char'
             if self.max_size is None:
-                array_decl = '[]'
+                return None # Not implemented
             else:
                 array_decl = '[%d]' % self.max_size
             default = self.default.encode('string_escape')
@@ -165,9 +176,9 @@ class Field:
             data = ['0x%02x' % ord(c) for c in data]
             
             if self.max_size is None:
-                ctype = 'PB_BYTES_ARRAY(%d)' % len(data)
+                return None # Not implemented
             else:
-                ctype = 'PB_BYTES_ARRAY(%d)' % self.max_size
+                ctype = self.ctype
             
             default = '{%d, {%s}}' % (len(data), ','.join(data))
             array_decl = ''
@@ -175,7 +186,10 @@ class Field:
             ctype, default = self.ctype, self.default
             array_decl = ''
         
-        return 'const %s %s_default%s = %s;' % (ctype, self.struct_name + self.name, array_decl, default)
+        if declaration_only:
+            return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
+        else:
+            return 'const %s %s_default%s = %s;' % (ctype, self.struct_name + self.name, array_decl, default)
     
     def pb_field_t(self, prev_field_name):
         '''Return the pb_field_t initializer to use in the constant array.
@@ -244,20 +258,32 @@ class Message:
     
     def __str__(self):
         result = 'typedef struct {\n'
-        result += '\n'.join([str(f) for f in self.fields])
+        result += '\n'.join([str(f) for f in self.ordered_fields])
         result += '\n} %s;' % self.name
         return result
     
-    def default_decl(self):
+    def types(self):
         result = ""
         for field in self.fields:
-            default = field.default_decl()
+            types = field.types()
+            if types is not None:
+                result += types + '\n'
+        return result
+    
+    def default_decl(self, declaration_only = False):
+        result = ""
+        for field in self.fields:
+            default = field.default_decl(declaration_only)
             if default is not None:
                 result += default + '\n'
         return result
 
-    def pb_field_t(self):
-        result = 'const pb_field_t %s_fields[] = {\n' % self.name
+    def fields_declaration(self):
+        result = 'extern const pb_field_t %s_fields[%d];' % (self.name, len(self.fields))
+        return result
+
+    def fields_definition(self):
+        result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, len(self.fields))
         
         prev = None
         for field in self.ordered_fields:
@@ -282,13 +308,8 @@ def iterate_messages(desc, names = Names()):
         for x in iterate_messages(submsg, sub_names):
             yield x
 
-def process_file(fdesc):
-    '''Takes a FileDescriptorProto and generate content for its header file.
-    Generates strings, which should be concatenated and stored to file.
-    '''
-    
-    yield '/* Automatically generated nanopb header */\n'
-    yield '#include <pb.h>\n\n'
+def parse_file(fdesc):
+    '''Takes a FileDescriptorProto and returns tuple (enum, messages).'''
     
     enums = []
     messages = []
@@ -297,10 +318,23 @@ def process_file(fdesc):
         enums.append(Enum(Names(), enum))
     
     for names, message in iterate_messages(fdesc):
+        messages.append(Message(names, message))
         for enum in message.enum_type:
             enums.append(Enum(names, enum))
-        
-        messages.append(Message(names, message))
+    
+    return enums, messages
+
+def generate_header(headername, enums, messages):
+    '''Generate content for a header file.
+    Generates strings, which should be concatenated and stored to file.
+    '''
+    
+    yield '/* Automatically generated nanopb header */\n'
+    
+    symbol = headername.replace('.', '_').upper()
+    yield '#ifndef _PB_%s_\n' % symbol
+    yield '#define _PB_%s_\n' % symbol
+    yield '#include <pb.h>\n\n'
     
     yield '/* Enum definitions */\n'
     for enum in enums:
@@ -309,17 +343,34 @@ def process_file(fdesc):
     yield '/* Struct definitions */\n'
     messages.sort()
     for msg in messages:
+        yield msg.types()
         yield str(msg) + '\n\n'
         
     yield '/* Default values for struct fields */\n'
     for msg in messages:
-        yield msg.default_decl()
+        yield msg.default_decl(True)
     yield '\n'
     
     yield '/* Struct field encoding specification for nanopb */\n'
     for msg in messages:
-        yield msg.pb_field_t() + '\n\n'
+        yield msg.fields_declaration() + '\n'
     
+    yield '\n#endif\n'
+
+def generate_source(headername, enums, messages):
+    '''Generate content for a source file.'''
+    
+    yield '/* Automatically generated nanopb constant definitions */\n'
+    yield '#include "%s"\n\n' % headername
+    
+    for msg in messages:
+        yield msg.default_decl(False)
+    
+    yield '\n\n'
+    
+    for msg in messages:
+        yield msg.fields_definition() + '\n\n'
+
 if __name__ == '__main__':
     import sys
     import os.path
@@ -328,17 +379,26 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " file.pb"
         print "where file.pb has been compiled from .proto by:"
         print "protoc -ofile.pb file.proto"
-        print "Output fill be written to file.h"
+        print "Output fill be written to file.h and file.c"
         sys.exit(1)
     
     data = open(sys.argv[1]).read()
     fdesc = descriptor.FileDescriptorSet.FromString(data)
+    enums, messages = parse_file(fdesc.file[0])
     
-    destfile = os.path.splitext(sys.argv[1])[0] + '.h'
+    noext = os.path.splitext(sys.argv[1])[0]
+    headername = noext + '.h'
+    sourcename = noext + '.c'
+    headerbasename = os.path.basename(headername)
     
-    print "Writing to " + destfile
+    print "Writing to " + headername + " and " + sourcename
     
-    destfile = open(destfile, 'w')
+    header = open(headername, 'w')
+    for part in generate_header(headerbasename, enums, messages):
+        header.write(part)
+
+    source = open(sourcename, 'w')
+    for part in generate_source(headerbasename, enums, messages):
+        source.write(part)
+
     
-    for part in process_file(fdesc.file[0]):
-        destfile.write(part)

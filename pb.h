@@ -12,21 +12,13 @@
 #define pb_packed
 #endif
 
-/* Lightweight output stream. */
-typedef struct _pb_ostream_t pb_ostream_t;
-struct _pb_ostream_t
-{
-    bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
-    void *state; /* Free field for use by callback implementation */
-    size_t bytes_written;
-};
-
-/*static inline bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
-{
-    bool status = stream->callback(stream, buf, count);
-    stream->bytes_written += count;
-    return status;
-}*/
+/* Wire types */
+typedef enum {
+    PB_WT_VARINT = 0,
+    PB_WT_64BIT  = 1,
+    PB_WT_STRING = 2,
+    PB_WT_32BIT  = 5
+} pb_wire_type_t;
 
 /* List of possible field types
  * Least-significant 4 bits tell the scalar type
@@ -83,7 +75,8 @@ typedef enum {
     
     /* Works for all required/optional/repeated fields.
      * data_offset points to pb_callback_t structure.
-     * LTYPE is ignored. */
+     * LTYPE should be 0 (it is ignored, but sometimes
+     * used to speculatively index an array). */
     PB_HTYPE_CALLBACK = 0x30
 } pb_packed pb_type_t;
 
@@ -113,14 +106,13 @@ struct _pb_field_t {
 } pb_packed;
 
 /* This structure is used for 'bytes' arrays.
- * It has the number of bytes in the beginning, and after that an array. */
-#define PB_BYTES_ARRAY(buffersize) \
-struct { \
-    size_t size; \
-    uint8_t bytes[buffersize]; \
-}
-
-typedef PB_BYTES_ARRAY() pb_bytes_array_t;
+ * It has the number of bytes in the beginning, and after that an array.
+ * Note that actual structs used will have a different length of bytes array.
+ */
+typedef struct {
+    size_t size;
+    uint8_t bytes[1];
+} pb_bytes_array_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
@@ -139,11 +131,12 @@ typedef PB_BYTES_ARRAY() pb_bytes_array_t;
  * wire type. It can write multiple fields.
  */
 typedef struct _pb_istream_t pb_istream_t;
+typedef struct _pb_ostream_t pb_ostream_t;
 typedef struct _pb_callback_t pb_callback_t;
 struct _pb_callback_t {
     union {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
-        bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void *arg);
+        bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
     } funcs;
     
     /* Free arg for use by callback */

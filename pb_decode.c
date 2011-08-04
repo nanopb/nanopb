@@ -7,14 +7,19 @@
 #include "pb_decode.h"
 #include <string.h>
 
-const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
-    (pb_decoder_t)&pb_dec_varint,
-    (pb_decoder_t)&pb_dec_svarint,
-    (pb_decoder_t)&pb_dec_fixed,
+typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest);
+
+/* --- Function pointers to field decoders ---
+ * Order in the array must match pb_action_t LTYPE numbering.
+ */
+static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
+    &pb_dec_varint,
+    &pb_dec_svarint,
+    &pb_dec_fixed,
     
-    (pb_decoder_t)&pb_dec_bytes,
-    (pb_decoder_t)&pb_dec_string,
-    (pb_decoder_t)&pb_dec_submessage
+    &pb_dec_bytes,
+    &pb_dec_string,
+    &pb_dec_submessage
 };
 
 /**************
@@ -108,33 +113,27 @@ bool pb_skip_string(pb_istream_t *stream)
  * to just assume the correct type and fail safely on corrupt message.
  */
 
-enum wire_type_t {
-    WT_VARINT = 0,
-    WT_64BIT  = 1,
-    WT_STRING = 2,
-    WT_32BIT  = 5
-};
-
 static bool skip(pb_istream_t *stream, int wire_type)
 {
     switch (wire_type)
     {
-        case WT_VARINT: return pb_skip_varint(stream);
-        case WT_64BIT: return pb_read(stream, NULL, 8);
-        case WT_STRING: return pb_skip_string(stream);
-        case WT_32BIT: return pb_read(stream, NULL, 4);
+        case PB_WT_VARINT: return pb_skip_varint(stream);
+        case PB_WT_64BIT: return pb_read(stream, NULL, 8);
+        case PB_WT_STRING: return pb_skip_string(stream);
+        case PB_WT_32BIT: return pb_read(stream, NULL, 4);
         default: return false;
     }
 }
 
-/* Read a raw value to buffer, for the purpose of passing it to callback.
- * Size is maximum size on call, and actual size on return. */
-static bool read_raw_value(pb_istream_t *stream, int wire_type, uint8_t *buf, size_t *size)
+/* Read a raw value to buffer, for the purpose of passing it to callback as
+ * a substream. Size is maximum size on call, and actual size on return.
+ */
+static bool read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, uint8_t *buf, size_t *size)
 {
     size_t max_size = *size;
     switch (wire_type)
     {
-        case WT_VARINT:
+        case PB_WT_VARINT:
             *size = 0;
             do
             {
@@ -144,11 +143,11 @@ static bool read_raw_value(pb_istream_t *stream, int wire_type, uint8_t *buf, si
             } while (*buf++ & 0x80);
             return true;
             
-        case WT_64BIT:
+        case PB_WT_64BIT:
             *size = 8;
             return pb_read(stream, buf, 8);
         
-        case WT_32BIT:
+        case PB_WT_32BIT:
             *size = 4;
             return pb_read(stream, buf, 4);
         
@@ -239,7 +238,7 @@ bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter
             return func(stream, iter->current, iter->pData);
     
         case PB_HTYPE_ARRAY:
-            if (wire_type == WT_STRING
+            if (wire_type == PB_WT_STRING
                 && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 /* Packed array */
@@ -270,7 +269,7 @@ bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter
             }
         
         case PB_HTYPE_CALLBACK:
-            if (wire_type == WT_STRING)
+            if (wire_type == PB_WT_STRING)
             {
                 pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
                 pb_istream_t substream;
@@ -419,7 +418,7 @@ bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
 #ifdef __BIG_ENDIAN__
     uint8_t bytes[8] = {0};
     bool status = pb_read(stream, bytes, field->data_size);
-    uint8_t lebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
+    uint8_t bebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
                           bytes[3], bytes[2], bytes[1], bytes[0]};
     endian_copy(dest, lebytes, field->data_size, 8);
     return status;
@@ -428,7 +427,7 @@ bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
 #endif
 }
 
-bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, uint8_t *dest)
+bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     pb_bytes_array_t *x = (pb_bytes_array_t*)dest;
     
@@ -445,7 +444,7 @@ bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, uint8_t *dest)
     return pb_read(stream, x->bytes, x->size);
 }
 
-bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, uint8_t *dest)
+bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
     bool status;

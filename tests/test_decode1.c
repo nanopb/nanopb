@@ -1,8 +1,9 @@
 #include <stdio.h>
-#include <string.h>
-#include <stddef.h>
 #include <pb_decode.h>
 #include "person.h"
+
+/* This test has only one source file anyway.. */
+#include "person.c"
 
 bool print_person(pb_istream_t *stream)
 {
