@@ -44,15 +44,17 @@ pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize)
 
 bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
+    if (stream->callback != NULL)
+    {
+        if (stream->bytes_written + count > stream->max_size)
+            return false;
+        
+        if (!stream->callback(stream, buf, count))
+            return false;
+    }
+    
     stream->bytes_written += count;
-    
-    if (stream->callback == NULL)
-        return true;
-    
-    if (stream->bytes_written > stream->max_size)
-        return false;
-    
-    return stream->callback(stream, buf, count);
+    return true;
 }
 
 /* Main encoding stuff */
@@ -231,7 +233,7 @@ bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field)
     return pb_encode_tag(stream, wiretype, field->tag);
 }
 
-bool pb_encode_string(pb_ostream_t *stream, uint8_t *buffer, size_t size)
+bool pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size)
 {
     if (!pb_encode_varint(stream, size))
         return false;
@@ -268,14 +270,17 @@ bool pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *s
 {
     uint64_t value = 0;
     uint64_t zigzagged;
-    uint64_t mask;
+    uint64_t signbitmask, xormask;
     endian_copy(&value, src, sizeof(value), field->data_size);
     
-    mask = 0x80 << (field->data_size * 8);
-    zigzagged = (value & ~mask) << 1;
-    if (value & mask) zigzagged |= 1;
+    signbitmask = (uint64_t)0x80 << (field->data_size * 8 - 8);
+    xormask = ((uint64_t)-1) >> (64 - field->data_size * 8);
+    if (value & signbitmask)
+        zigzagged = ((value ^ xormask) << 1) | 1;
+    else
+        zigzagged = value << 1;
     
-    return pb_encode_varint(stream, value);
+    return pb_encode_varint(stream, zigzagged);
 }
 
 bool pb_enc_fixed(pb_ostream_t *stream, const pb_field_t *field, const void *src)

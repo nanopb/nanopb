@@ -1,17 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "pb_decode.h"
-
-#define COMMENT(x) printf("\n----" x "----\n");
-#define STR(x) #x
-#define STR2(x) STR(x)
-#define TEST(x) \
-    if (!(x)) { \
-        fprintf(stderr, __FILE__ ":" STR2(__LINE__) " FAILED:" #x "\n"); \
-        status = 1; \
-    } else { \
-        printf("OK: " #x "\n"); \
-    }
+#include "unittests.h"
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x))
 
@@ -114,7 +104,7 @@ int main()
         /* Verify that no more than data_size is written. */
         d = 0;
         f.data_size = 1;
-        TEST(pb_dec_varint(&s, &f, &d) && d == 0xFF)
+        TEST(pb_dec_varint(&s, &f, &d) && (d == 0xFF || d == 0xFF000000))
     }
     
     {
@@ -127,6 +117,18 @@ int main()
         TEST((s = S("\x02"), pb_dec_svarint(&s, &f, &d) && d == 1))
         TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d) && d == INT32_MAX))
         TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d) && d == INT32_MIN))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 8, 0, 0};
+        uint64_t d;
+        
+        COMMENT("Test pb_dec_svarint using uint64_t")
+        TEST((s = S("\x01"), pb_dec_svarint(&s, &f, &d) && d == -1))
+        TEST((s = S("\x02"), pb_dec_svarint(&s, &f, &d) && d == 1))
+        TEST((s = S("\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MAX))
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MIN))
     }
     
     if (status != 0)

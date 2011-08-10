@@ -21,7 +21,7 @@
  * 
  * 2) You can use state to store your own data (e.g. buffer pointer).
  * 
- * 3) pb_write will update bytes_written before your callback runs.
+ * 3) pb_write will update bytes_written after your callback runs.
  * 
  * 4) Your callback will be always used with the same pb_ostream_t.
  * There are no substreams when encoding.
@@ -50,8 +50,10 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
 
 bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
 bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number);
+/* Encode tag based on LTYPE and field number defined in the field structure. */
 bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
-bool pb_encode_string(pb_ostream_t *stream, uint8_t *buffer, size_t size);
+/* Write length as varint and then the contents of buffer. */
+bool pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size);
 
 /* --- Field encoders ---
  * Each encoder writes the content for the field.
