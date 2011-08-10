@@ -12,7 +12,7 @@
 #define pb_packed
 #endif
 
-/* Wire types */
+/* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
     PB_WT_VARINT = 0,
     PB_WT_64BIT  = 1,
