@@ -89,4 +89,4 @@ Wishlist
 ========
 #) A specialized encoder for encoding to a memory buffer. Should serialize in reverse order to avoid having to determine submessage size beforehand.
 #) A cleaner rewrite of the source generator.
-#) Better performance for 16- and 8-bit platforms.
+#) Better performance for 16- and 8-bit platforms: use smaller datatypes where possible.

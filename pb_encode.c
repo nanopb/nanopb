@@ -309,16 +309,17 @@ bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *sr
 
 bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    pb_ostream_t sizestream = {0};
+    pb_ostream_t substream = {0};
     size_t size;
+    bool status;
     
     if (field->ptr == NULL)
         return false;
     
-    if (!pb_encode(&sizestream, (pb_field_t*)field->ptr, src))
+    if (!pb_encode(&substream, (pb_field_t*)field->ptr, src))
         return false;
     
-    size = sizestream.bytes_written;
+    size = substream.bytes_written;
     
     if (!pb_encode_varint(stream, size))
         return false;
@@ -326,6 +327,23 @@ bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void
     if (stream->callback == NULL)
         return pb_write(stream, NULL, size); /* Just sizing */
     
-    return pb_encode(stream, (pb_field_t*)field->ptr, src);
+    if (stream->bytes_written + size > stream->max_size)
+        return false;
+        
+    /* Use a substream to verify that a callback doesn't write more than
+     * what it did the first time. */
+    substream.callback = stream->callback;
+    substream.state = stream->state;
+    substream.max_size = size;
+    substream.bytes_written = 0;
+    
+    status = pb_encode(stream, (pb_field_t*)field->ptr, src);
+    
+    stream->bytes_written += substream.bytes_written;
+    
+    if (substream.bytes_written != size)
+        return false;
+    
+    return status;
 }
 

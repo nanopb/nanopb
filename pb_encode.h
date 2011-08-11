@@ -17,14 +17,14 @@
  * max_size is not checked.
  *
  * Rules for callback:
- * 1) Return false on IO errors. This will cause decoding to abort.
+ * 1) Return false on IO errors. This will cause encoding to abort.
  * 
  * 2) You can use state to store your own data (e.g. buffer pointer).
  * 
  * 3) pb_write will update bytes_written after your callback runs.
  * 
- * 4) Your callback will be always used with the same pb_ostream_t.
- * There are no substreams when encoding.
+ * 4) Substreams will modify max_size and bytes_written. Don't use them to
+ * calculate any pointers.
  */
 struct _pb_ostream_t
 {

@@ -349,7 +349,7 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
         uint32_t temp;
         int tag, wire_type;
         if (!pb_decode_varint32(stream, &temp))
-            return false;
+            return stream->bytes_left == 0; /* Was it EOF? */
         
         tag = temp >> 3;
         wire_type = temp & 7;

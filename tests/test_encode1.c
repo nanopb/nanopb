@@ -5,9 +5,10 @@
 /* This test has only one source file anyway.. */
 #include "person.c"
 
-bool callback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
-    return fwrite(buf, 1, count, stdout) == count;
+    FILE *file = (FILE*) stream->state;
+    return fwrite(buf, 1, count, file) == count;
 }
 
 int main()
@@ -15,7 +16,7 @@ int main()
     Person person = {"Test Person 99", 99, true, "test@person.com",
         1, {{"555-12345678", true, Person_PhoneType_MOBILE}}};
     
-    pb_ostream_t stream = {&callback, 0, SIZE_MAX, 0};
+    pb_ostream_t stream = {&streamcallback, stdout, SIZE_MAX, 0};
     
     pb_encode(&stream, Person_fields, &person);
     

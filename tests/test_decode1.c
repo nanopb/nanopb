@@ -24,12 +24,28 @@ bool print_person(pb_istream_t *stream)
     return true;
 }
 
+bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+{
+    FILE *file = (FILE*)stream->state;
+    bool status;
+    
+    if (buf == NULL)
+    {
+        while (count-- && fgetc(file) != EOF);
+        return count == 0;
+    }
+    
+    status = (fread(buf, 1, count, file) == count);
+    
+    if (feof(file))
+        stream->bytes_left = 0;
+    
+    return status;
+}
+
 int main()
 {
-    uint8_t buffer[512];
-    size_t size = fread(buffer, 1, 512, stdin);
-    
-    pb_istream_t stream = pb_istream_from_buffer(buffer, size);
+    pb_istream_t stream = {&callback, stdin, SIZE_MAX};
     if (!print_person(&stream))
         printf("Parsing failed.\n");
     
