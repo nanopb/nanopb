@@ -204,7 +204,7 @@ class Field:
         if prev_field_name is None:
             result += '    offsetof(%s, %s),' % (self.struct_name, self.name)
         else:
-            result += '    pb_delta(%s, %s, %s),' % (self.struct_name, self.name, prev_field_name)
+            result += '    pb_delta_end(%s, %s, %s),' % (self.struct_name, self.name, prev_field_name)
         
         if self.htype == 'PB_HTYPE_OPTIONAL':
             result += '\n    pb_delta(%s, has_%s, %s),' % (self.struct_name, self.name, self.name)
@@ -279,11 +279,11 @@ class Message:
         return result
 
     def fields_declaration(self):
-        result = 'extern const pb_field_t %s_fields[%d];' % (self.name, len(self.fields))
+        result = 'extern const pb_field_t %s_fields[%d];' % (self.name, len(self.fields) + 1)
         return result
 
     def fields_definition(self):
-        result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, len(self.fields))
+        result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, len(self.fields) + 1)
         
         prev = None
         for field in self.ordered_fields:
@@ -291,7 +291,7 @@ class Message:
             result += ',\n\n'
             prev = field.name
         
-        result = result[:-3] + '\n};'
+        result += '    PB_LAST_FIELD\n};'
         return result
 
 def iterate_messages(desc, names = Names()):

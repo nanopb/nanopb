@@ -83,7 +83,8 @@ em {
 
 pre {
   border-left: 3px double #aaa;
-  padding-left: 10px;
+  padding: 5px 10px;
+  background-color: #f6f6f6;
 }
 
 h1.title {
@@ -202,14 +203,18 @@ table.docutils td, table.docutils th {
   padding: 0.25em 0.5em;
 }
 
+th.field-name {
+   text-align: right;
+   width: 15em;
+}
+
 table.docutils th {
-  background-color: #dddddd;
+  font-family: monospace;
+  background-color: #f6f6f6;
 }
 
 div.sidebar {
-  width: 33%;
-  float: right;
-  margin: 0em 2em;
+  margin: 0em 2em 2em 0em;
   padding: 0em 1em;
   border-top: 1px solid #aaa;
   border-left: 1px solid #aaa;

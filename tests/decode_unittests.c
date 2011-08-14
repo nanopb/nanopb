@@ -50,32 +50,19 @@ int main()
     
     {
         pb_istream_t s;
-        uint32_t u;
-        int32_t i;
-        
-        COMMENT("Test pb_decode_varint32");
-        TEST((s = S("\x00"), pb_decode_varint32(&s, &u) && u == 0));
-        TEST((s = S("\x01"), pb_decode_varint32(&s, &u) && u == 1));
-        TEST((s = S("\xAC\x02"), pb_decode_varint32(&s, &u) && u == 300));
-        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint32(&s, &u) && u == UINT32_MAX));
-        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint32(&s, (uint32_t*)&i) && i == -1));
-    }
-    
-    {
-        pb_istream_t s;
         uint64_t u;
         int64_t i;
         
-        COMMENT("Test pb_decode_varint64");
-        TEST((s = S("\x00"), pb_decode_varint64(&s, &u) && u == 0));
-        TEST((s = S("\x01"), pb_decode_varint64(&s, &u) && u == 1));
-        TEST((s = S("\xAC\x02"), pb_decode_varint64(&s, &u) && u == 300));
-        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint64(&s, &u) && u == UINT32_MAX));
-        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint64(&s, (uint64_t*)&i) && i == UINT32_MAX));
+        COMMENT("Test pb_decode_varint");
+        TEST((s = S("\x00"), pb_decode_varint(&s, &u) && u == 0));
+        TEST((s = S("\x01"), pb_decode_varint(&s, &u) && u == 1));
+        TEST((s = S("\xAC\x02"), pb_decode_varint(&s, &u) && u == 300));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint(&s, &u) && u == UINT32_MAX));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint(&s, (uint64_t*)&i) && i == UINT32_MAX));
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"),
-              pb_decode_varint64(&s, (uint64_t*)&i) && i == -1));
+              pb_decode_varint(&s, (uint64_t*)&i) && i == -1));
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"),
-              pb_decode_varint64(&s, &u) && u == UINT64_MAX));
+              pb_decode_varint(&s, &u) && u == UINT64_MAX));
     }
     
     {

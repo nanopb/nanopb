@@ -124,11 +124,13 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
     const pb_field_t *field = fields;
     const void *pData = src_struct;
     const void *pSize;
+    size_t prev_size = 0;
     
     while (field->tag != 0)
     {
-        pData = (const char*)pData + field->data_offset;
+        pData = (const char*)pData + prev_size + field->data_offset;
         pSize = (const char*)pData + field->size_offset;
+        prev_size = field->data_size * field->array_size;
         
         pb_encoder_t func = PB_ENCODERS[PB_LTYPE(field->type)];
         

@@ -62,15 +62,15 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
  * Helper functions *
  ********************/
 
-bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+static bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 {
     uint64_t temp;
-    bool status = pb_decode_varint64(stream, &temp);
+    bool status = pb_decode_varint(stream, &temp);
     *dest = temp;
     return status;
 }
 
-bool pb_decode_varint64(pb_istream_t *stream, uint64_t *dest)
+bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
     int bitpos = 0;
@@ -108,7 +108,7 @@ bool pb_skip_string(pb_istream_t *stream)
     return pb_read(stream, NULL, length);
 }
 
-/* Currently all wire type related stuff is kept hidden from
+/* Currently the wire type related stuff is kept hidden from
  * callbacks. They shouldn't need it. It's better for performance
  * to just assume the correct type and fail safely on corrupt message.
  */
@@ -192,6 +192,7 @@ static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, v
 static bool pb_field_next(pb_field_iterator_t *iter)
 {
     bool notwrapped = true;
+    size_t prev_size = iter->current->data_size * iter->current->array_size;
     iter->current++;
     iter->field_index++;
     if (iter->current->tag == 0)
@@ -199,10 +200,11 @@ static bool pb_field_next(pb_field_iterator_t *iter)
         iter->current = iter->start;
         iter->field_index = 0;
         iter->pData = iter->dest_struct;
+        prev_size = 0;
         notwrapped = false;
     }
     
-    iter->pData = (char*)iter->pData + iter->current->data_offset;
+    iter->pData = (char*)iter->pData + prev_size + iter->current->data_offset;
     iter->pSize = (char*)iter->pData + iter->current->size_offset;
     return notwrapped;
 }
@@ -224,7 +226,7 @@ static bool pb_field_find(pb_field_iterator_t *iter, int tag)
  * Decode a single field *
  *************************/
 
-bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter)
+static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter)
 {
     pb_decoder_t func = PB_DECODERS[PB_LTYPE(iter->current->type)];
     
@@ -351,6 +353,9 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
         if (!pb_decode_varint32(stream, &temp))
             return stream->bytes_left == 0; /* Was it EOF? */
         
+        if (temp == 0)
+            return true; /* Special feature: allow 0-terminated messages. */
+        
         tag = temp >> 3;
         wire_type = temp & 7;
         
@@ -399,7 +404,7 @@ static void endian_copy(void *dest, void *src, size_t destsize, size_t srcsize)
 bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t temp;
-    bool status = pb_decode_varint64(stream, &temp);
+    bool status = pb_decode_varint(stream, &temp);
     endian_copy(dest, &temp, field->data_size, sizeof(temp));
     return status;
 }
@@ -407,7 +412,7 @@ bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t temp;
-    bool status = pb_decode_varint64(stream, &temp);
+    bool status = pb_decode_varint(stream, &temp);
     temp = (temp >> 1) ^ -(int64_t)(temp & 1);
     endian_copy(dest, &temp, field->data_size, sizeof(temp));
     return status;

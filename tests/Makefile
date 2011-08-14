@@ -10,6 +10,10 @@ clean:
 %: %.c $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $< ../pb_decode.c ../pb_encode.c
 
+person.h: person.proto
+	protoc -I. -I../generator -I/usr/include -operson.pb $<
+	python ../generator/nanopb_generator.py person.pb
+
 run_unittests: decode_unittests encode_unittests
 	./decode_unittests
 	./encode_unittests

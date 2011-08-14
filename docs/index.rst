@@ -44,6 +44,7 @@ Features and limitations
 #) Some speed has been sacrificed for code size. For example varint calculations are always done in 64 bits.
 #) Encoding is focused on writing to streams. For memory buffers only it could be made more efficient.
 #) The deprecated Protocol Buffers feature called "groups" is not supported.
+#) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
 
 Getting started
 ===============
