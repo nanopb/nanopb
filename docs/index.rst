@@ -2,6 +2,8 @@
 Nanopb: Protocol Buffers with small code size
 =============================================
 
+.. include :: menu.rst
+
 Nanopb is an ANSI-C library for encoding and decoding messages in Google's `Protocol Buffers`__ format with minimal requirements for RAM and code space.
 It is primarily suitable for 32-bit microcontrollers.
 
@@ -55,8 +57,12 @@ For starters, consider this simple message::
     required int32 value = 1;
  }
 
-Save this in *example.proto* and run it through *nanopb_generate.py*. You
-should now have in *example.h*::
+Save this in *example.proto* and compile it::
+
+    user@host:~$ protoc -omessage.pb message.proto
+    user@host:~$ python ../generator/nanopb_generator.py message.pb
+
+You should now have in *example.h*::
 
  typedef struct {
     int32_t value;
@@ -75,19 +81,8 @@ After that, buffer will contain the encoded message.
 The number of bytes in the message is stored in *stream.bytes_written*.
 You can feed the message to *protoc --decode=Example example.proto* to verify its validity.
 
-Library reference
-=================
-
-**Encoding**
-
-**Decoding**
-
-**Specifying field options**
-
-**Generated code**
-
 Wishlist
 ========
 #) A specialized encoder for encoding to a memory buffer. Should serialize in reverse order to avoid having to determine submessage size beforehand.
-#) A cleaner rewrite of the source generator.
+#) A cleaner rewrite of the Python-based source generator.
 #) Better performance for 16- and 8-bit platforms: use smaller datatypes where possible.
