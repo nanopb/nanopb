@@ -124,7 +124,7 @@ class Field:
                 self.ctype = self.struct_name + self.name + 't'
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.ltype = 'PB_LTYPE_SUBMESSAGE'
-            self.ctype = names_from_type_name(desc.type_name)
+            self.ctype = self.submsgname = names_from_type_name(desc.type_name)
         else:
             raise NotImplementedError(desc.type)
         
@@ -167,8 +167,8 @@ class Field:
             if self.max_size is None:
                 return None # Not implemented
             else:
-                array_decl = '[%d]' % self.max_size
-            default = self.default.encode('string_escape')
+                array_decl = '[%d]' % (self.max_size + 1)
+            default = str(self.default).encode('string_escape')
             default = default.replace('"', '\\"')
             default = '"' + default + '"'
         elif self.ltype == 'PB_LTYPE_BYTES':
@@ -223,7 +223,7 @@ class Field:
             result += ' 0,'
         
         if self.ltype == 'PB_LTYPE_SUBMESSAGE':
-            result += '\n    &%s_fields}' % self.ctype
+            result += '\n    &%s_fields}' % self.submsgname
         elif self.default is None or self.htype == 'PB_HTYPE_CALLBACK':
             result += ' 0}'
         else:

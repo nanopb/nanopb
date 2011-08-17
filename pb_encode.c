@@ -130,7 +130,10 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
     {
         pData = (const char*)pData + prev_size + field->data_offset;
         pSize = (const char*)pData + field->size_offset;
-        prev_size = field->data_size * field->array_size;
+        
+        prev_size = field->data_size;
+        if (PB_HTYPE(field->type) == PB_HTYPE_ARRAY)
+            prev_size *= field->array_size;
         
         pb_encoder_t func = PB_ENCODERS[PB_LTYPE(field->type)];
         
@@ -339,7 +342,7 @@ bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void
     substream.max_size = size;
     substream.bytes_written = 0;
     
-    status = pb_encode(stream, (pb_field_t*)field->ptr, src);
+    status = pb_encode(&substream, (pb_field_t*)field->ptr, src);
     
     stream->bytes_written += substream.bytes_written;
     

@@ -164,7 +164,7 @@ Field callbacks
 ===============
 When a field has dynamic length, nanopb cannot statically allocate storage for it. Instead, it allows you to handle the field in whatever way you want, using a callback function.
 
-The `pb_callback_t`_ structure contains a function pointer and a *void* pointer you can use for passing data to the callback. The actual behavior of the callback function is different in encoding and decoding modes.
+The `pb_callback_t`_ structure contains a function pointer and a *void* pointer you can use for passing data to the callback. If the function pointer is NULL, the field will be skipped. The actual behavior of the callback function is different in encoding and decoding modes.
 
 .. _`pb_callback_t`: reference.html#pb-callback-t
 
@@ -176,7 +176,7 @@ Encoding callbacks
 
 When encoding, the callback should write out complete fields, including the wire type and field number tag. It can write as many or as few fields as it likes. For example, if you want to write out an array as *repeated* field, you should do it all in a single call.
 
-The callback may be called multiple times during a single call to `pb_encode`_. It must produce the same amount of data every time.
+If the callback is used in a submessage, it will be called multiple times during a single call to `pb_encode`_. It must produce the same amount of data every time. If the callback is directly in the main message, it is called only once.
 
 .. _`pb_encode`: reference.html#pb-encode
 

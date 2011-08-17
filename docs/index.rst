@@ -42,7 +42,7 @@ Features and limitations
 
 **Limitations**
 
-#) User must provide callbacks when decoding arrays or strings without maximum size.
+#) User must provide callbacks when decoding arrays or strings without maximum size. Malloc support could be added as a separate module.
 #) Some speed has been sacrificed for code size. For example varint calculations are always done in 64 bits.
 #) Encoding is focused on writing to streams. For memory buffers only it could be made more efficient.
 #) The deprecated Protocol Buffers feature called "groups" is not supported.

@@ -2,9 +2,6 @@
 #include <pb_decode.h>
 #include "person.h"
 
-/* This test has only one source file anyway.. */
-#include "person.c"
-
 bool print_person(pb_istream_t *stream)
 {
     int i;
@@ -13,12 +10,33 @@ bool print_person(pb_istream_t *stream)
     if (!pb_decode(stream, Person_fields, &person))
         return false;
     
-    printf("Person: name '%s' id '%d' email '%s'\n", person.name, person.id, person.email);
+    printf("name: \"%s\"\n", person.name);
+    printf("id: %d\n", person.id);
+    
+    if (person.has_email)
+        printf("email: \"%s\"\n", person.email);
     
     for (i = 0; i < person.phone_count; i++)
     {
         Person_PhoneNumber *phone = &person.phone[i];
-        printf("PhoneNumber: number '%s' type '%d'\n", phone->number, phone->type);
+        printf("phone {\n");
+        printf("  number: \"%s\"\n", phone->number);
+        
+        switch (phone->type)
+        {
+            case Person_PhoneType_WORK:
+                printf("  type: WORK\n");
+                break;
+            
+            case Person_PhoneType_HOME:
+                printf("  type: HOME\n");
+                break;
+            
+            case Person_PhoneType_MOBILE:
+                printf("  type: MOBILE\n");
+                break;
+        }
+        printf("}\n");
     }
     
     return true;

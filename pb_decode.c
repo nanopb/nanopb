@@ -185,14 +185,19 @@ static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, v
 {
     iter->start = iter->current = fields;
     iter->field_index = 0;
-    iter->pData = dest_struct;
+    iter->pData = dest_struct + iter->current->data_offset;
+    iter->pSize = (char*)iter->pData + iter->current->size_offset;
     iter->dest_struct = dest_struct;
 }
 
 static bool pb_field_next(pb_field_iterator_t *iter)
 {
     bool notwrapped = true;
-    size_t prev_size = iter->current->data_size * iter->current->array_size;
+    size_t prev_size = iter->current->data_size;
+    
+    if (PB_HTYPE(iter->current->type) == PB_HTYPE_ARRAY)
+        prev_size *= iter->current->array_size;
+    
     iter->current++;
     iter->field_index++;
     if (iter->current->tag == 0)
@@ -271,9 +276,14 @@ static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_
             }
         
         case PB_HTYPE_CALLBACK:
+        {
+            pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
+            
+            if (pCallback->funcs.decode == NULL)
+                return skip(stream, wire_type);
+            
             if (wire_type == PB_WT_STRING)
             {
-                pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
                 pb_istream_t substream;
                 
                 if (!make_string_substream(stream, &substream))
@@ -293,7 +303,6 @@ static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_
                  * which in turn allows to use same callback for packed and
                  * not-packed fields. */
                 pb_istream_t substream;
-                pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
                 uint8_t buffer[10];
                 size_t size = sizeof(buffer);
                 
@@ -303,7 +312,8 @@ static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_
                 
                 return pCallback->funcs.decode(&substream, iter->current, pCallback->arg);
             }
-            
+        }
+        
         default:
             return false;
     }
@@ -344,6 +354,10 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
         {
             *(size_t*)iter.pSize = 0;
         }
+        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED)
+        {
+            memset(iter.pData, 0, iter.current->data_size);
+        }
     } while (pb_field_next(&iter));
     
     while (stream->bytes_left)
@@ -351,10 +365,15 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
         uint32_t temp;
         int tag, wire_type;
         if (!pb_decode_varint32(stream, &temp))
-            return stream->bytes_left == 0; /* Was it EOF? */
+        {
+            if (stream->bytes_left == 0)
+                break; /* It was EOF */
+            else
+                return false; /* It was error */
+        }
         
         if (temp == 0)
-            return true; /* Special feature: allow 0-terminated messages. */
+            break; /* Special feature: allow 0-terminated messages. */
         
         tag = temp >> 3;
         wire_type = temp & 7;

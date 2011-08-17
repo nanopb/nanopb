@@ -2,9 +2,6 @@
 #include <pb_encode.h>
 #include "person.h"
 
-/* This test has only one source file anyway.. */
-#include "person.c"
-
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*) stream->state;

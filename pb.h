@@ -126,6 +126,8 @@ typedef struct {
  * The encoding callback will receive the actual output stream.
  * It should write all the data in one call, including the field tag and
  * wire type. It can write multiple fields.
+ *
+ * The callback can be null if you want to skip a field.
  */
 typedef struct _pb_istream_t pb_istream_t;
 typedef struct _pb_ostream_t pb_ostream_t;

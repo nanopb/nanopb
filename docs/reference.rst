@@ -94,7 +94,7 @@ Part of a message structure, for fields with type PB_HTYPE_CALLBACK::
 
 The *arg* is passed to the callback when calling. It can be used to store any information that the callback might need.
 
-When calling `pb_encode`_, *funcs.encode* must be set, and similarly when calling `pb_decode`_, *funcs.decode* must be set. The function pointers are stored in the same memory location but are of incompatible types.
+When calling `pb_encode`_, *funcs.encode* is used, and similarly when calling `pb_decode`_, *funcs.decode* is used. The function pointers are stored in the same memory location but are of incompatible types. You can set the function pointer to NULL to skip the field.
 
 pb_wire_type_t
 --------------
