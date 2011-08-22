@@ -61,7 +61,7 @@ Describes a single structure field with memory position in relation to others. T
 :type:          LTYPE and HTYPE of the field.
 :data_offset:   Offset of field data, relative to the end of the previous field.
 :size_offset:   Offset of *bool* flag for optional fields or *size_t* count for arrays, relative to field data.
-:data_size:     Size of a single data entry, in bytes.
+:data_size:     Size of a single data entry, in bytes. For PB_LTYPE_BYTES, the size of the byte array inside the containing structure.
 :array_size:    Maximum number of entries in an array, if it is an array type.
 :ptr:           Pointer to default value for optional fields, or to submessage description for PB_LTYPE_SUBMESSAGE.
 
@@ -339,7 +339,7 @@ Read and decode all fields of a structure. Reads until EOF on input stream. ::
 :dest_struct:   Pointer to structure where data will be stored.
 :returns:       True on success, false on IO error, on detectable errors in field description, if a field encoder returns false or if a required field is missing.
 
-In Protocol Buffers binary format, EOF is only allowed between fields. If it happens anywhere else, pb_decode will return *false*.
+In Protocol Buffers binary format, EOF is only allowed between fields. If it happens anywhere else, pb_decode will return *false*. If pb_decode returns false, you cannot trust any of the data in the structure.
 
 In addition to EOF, the pb_decode implementation supports terminating a message with a 0 byte. This is compatible with the official Protocol Buffers because 0 is never a valid field tag.
 

@@ -3,7 +3,7 @@
 #include "pb_decode.h"
 #include "unittests.h"
 
-#define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x))
+#define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)
 
 bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
@@ -68,17 +68,17 @@ int main()
     {
         pb_istream_t s;
         COMMENT("Test pb_skip_varint");
-        TEST((s = S("\x00""foobar"), pb_skip_varint(&s) && s.bytes_left == 7))
-        TEST((s = S("\xAC\x02""foobar"), pb_skip_varint(&s) && s.bytes_left == 7))
+        TEST((s = S("\x00""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
+        TEST((s = S("\xAC\x02""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01""foobar"),
-              pb_skip_varint(&s) && s.bytes_left == 7))
+              pb_skip_varint(&s) && s.bytes_left == 6))
     }
     
     {
         pb_istream_t s;
         COMMENT("Test pb_skip_string")
-        TEST((s = S("\x00""foobar"), pb_skip_string(&s) && s.bytes_left == 7))
-        TEST((s = S("\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 7))
+        TEST((s = S("\x00""foobar"), pb_skip_string(&s) && s.bytes_left == 6))
+        TEST((s = S("\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 6))
     }
     
     {
@@ -116,6 +116,53 @@ int main()
         TEST((s = S("\x02"), pb_dec_svarint(&s, &f, &d) && d == 1))
         TEST((s = S("\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MAX))
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MIN))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_FIXED, 0, 0, 4, 0, 0};
+        float d;
+        
+        COMMENT("Test pb_dec_fixed using float (failures here may be caused by imperfect rounding)")
+        TEST((s = S("\x00\x00\x00\x00"), pb_dec_fixed(&s, &f, &d) && d == 0.0f))
+        TEST((s = S("\x00\x00\xc6\x42"), pb_dec_fixed(&s, &f, &d) && d == 99.0f))
+        TEST((s = S("\x4e\x61\x3c\xcb"), pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
+        TEST((s = S("\x00"), !pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_FIXED, 0, 0, 8, 0, 0};
+        double d;
+        
+        COMMENT("Test pb_dec_fixed using double (failures here may be caused by imperfect rounding)")
+        TEST((s = S("\x00\x00\x00\x00\x00\x00\x00\x00"), pb_dec_fixed(&s, &f, &d) && d == 0.0))
+        TEST((s = S("\x00\x00\x00\x00\x00\xc0\x58\x40"), pb_dec_fixed(&s, &f, &d) && d == 99.0))
+        TEST((s = S("\x00\x00\x00\xc0\x29\x8c\x67\xc1"), pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
+    }
+    
+    {
+        pb_istream_t s;
+        struct { size_t size; uint8_t bytes[5]; } d;
+        pb_field_t f = {1, PB_LTYPE_BYTES, 0, 0, 5, 0, 0};
+        
+        COMMENT("Test pb_dec_bytes")
+        TEST((s = S("\x00"), pb_dec_bytes(&s, &f, &d) && d.size == 0))
+        TEST((s = S("\x01\xFF"), pb_dec_bytes(&s, &f, &d) && d.size == 1 && d.bytes[0] == 0xFF))
+        TEST((s = S("\x06xxxxxx"), !pb_dec_bytes(&s, &f, &d)))
+        TEST((s = S("\x05xxxxx"), pb_dec_bytes(&s, &f, &d) && d.size == 5))
+        TEST((s = S("\x05xxxx"), !pb_dec_bytes(&s, &f, &d)))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_STRING, 0, 0, 5, 0, 0};
+        char d[5];
+        
+        COMMENT("Test pb_dec_string")
+        TEST((s = S("\x00"), pb_dec_string(&s, &f, &d) && d[0] == '\0'))
+        TEST((s = S("\x04xyzz"), pb_dec_string(&s, &f, &d) && strcmp(d, "xyzz") == 0))
+        TEST((s = S("\x05xyzzy"), !pb_dec_string(&s, &f, &d)))
     }
     
     if (status != 0)

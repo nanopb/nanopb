@@ -47,6 +47,7 @@ Features and limitations
 #) Encoding is focused on writing to streams. For memory buffers only it could be made more efficient.
 #) The deprecated Protocol Buffers feature called "groups" is not supported.
 #) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
+#) Unknown fields are not preserved when decoding and re-encoding a message.
 
 Getting started
 ===============

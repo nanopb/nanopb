@@ -73,7 +73,7 @@ static bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
-    int bitpos = 0;
+    uint8_t bitpos = 0;
     *dest = 0;
     
     while (bitpos < 64 && pb_read(stream, &byte, 1))
@@ -460,9 +460,7 @@ bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
         return false;
     x->size = temp;
     
-    /* Note: data_size includes the size of the x.size field, too.
-     * Calculate actual size starting from offset. */
-    if (x->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
+    if (x->size > field->data_size)
         return false;
     
     return pb_read(stream, x->bytes, x->size);
