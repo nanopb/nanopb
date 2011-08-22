@@ -21,28 +21,7 @@
 #include <pb_decode.h>
 
 #include "fileproto.h"
-
-bool write_callback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
-{
-    int fd = *(int*)stream->state;
-    return send(fd, buf, count, 0) == count;
-}
-
-bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
-{
-    int fd = *(int*)stream->state;
-    
-    if (buf == NULL)
-    {
-        /* Well, this is a really inefficient way to skip input. */
-        /* It is only used when there are unknown fields. */
-        char dummy;
-        while (count-- && recv(fd, &dummy, 1, 0) == 1);
-        return count == 0;
-    }
-    
-    return recv(fd, buf, count, MSG_WAITALL) == count;
-}
+#include "common.h"
 
 bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
 {
@@ -70,8 +49,8 @@ void handle_connection(int connfd)
 {
     ListFilesRequest request;
     ListFilesResponse response;
-    pb_istream_t input = {&read_callback, &connfd, SIZE_MAX};
-    pb_ostream_t output = {&write_callback, &connfd, SIZE_MAX, 0};
+    pb_istream_t input = pb_istream_from_socket(connfd);
+    pb_ostream_t output = pb_ostream_from_socket(connfd);
     DIR *directory;
     
     if (!pb_decode(&input, ListFilesRequest_fields, &request))
@@ -109,8 +88,11 @@ int main(int argc, char **argv)
 {
     int listenfd, connfd;
     struct sockaddr_in servaddr;
+    int reuse = 1;
     
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     
     memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
