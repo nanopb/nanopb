@@ -3,11 +3,19 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
+
+#ifdef __GNUC__
+/* Verify that we remember to check all return values for proper error propagation */
+#define checkreturn __attribute__((warn_unused_result))
+#else
+#define checkreturn
+#endif
+
 #include "pb.h"
 #include "pb_decode.h"
 #include <string.h>
 
-typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest);
+typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
 
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
@@ -26,7 +34,7 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
  * pb_istream *
  **************/
 
-bool pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     if (stream->bytes_left < count)
         return false;
@@ -38,7 +46,7 @@ bool pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
     return true;
 }
 
-static bool buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)
+static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     uint8_t *source = (uint8_t*)stream->state;
     
@@ -62,7 +70,7 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
  * Helper functions *
  ********************/
 
-static bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 {
     uint64_t temp;
     bool status = pb_decode_varint(stream, &temp);
@@ -70,7 +78,7 @@ static bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
     return status;
 }
 
-bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
+bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
     uint8_t bitpos = 0;
@@ -88,7 +96,7 @@ bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
     return false;
 }
 
-bool pb_skip_varint(pb_istream_t *stream)
+bool checkreturn pb_skip_varint(pb_istream_t *stream)
 {
     uint8_t byte;
     do
@@ -99,7 +107,7 @@ bool pb_skip_varint(pb_istream_t *stream)
     return true;
 }
 
-bool pb_skip_string(pb_istream_t *stream)
+bool checkreturn pb_skip_string(pb_istream_t *stream)
 {
     uint32_t length;
     if (!pb_decode_varint32(stream, &length))
@@ -113,7 +121,7 @@ bool pb_skip_string(pb_istream_t *stream)
  * to just assume the correct type and fail safely on corrupt message.
  */
 
-static bool skip(pb_istream_t *stream, int wire_type)
+static bool checkreturn skip(pb_istream_t *stream, int wire_type)
 {
     switch (wire_type)
     {
@@ -128,7 +136,7 @@ static bool skip(pb_istream_t *stream, int wire_type)
 /* Read a raw value to buffer, for the purpose of passing it to callback as
  * a substream. Size is maximum size on call, and actual size on return.
  */
-static bool read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, uint8_t *buf, size_t *size)
+static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, uint8_t *buf, size_t *size)
 {
     size_t max_size = *size;
     switch (wire_type)
@@ -156,7 +164,7 @@ static bool read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, uint8
 }
 
 /* Decode string length from stream and return a substream with limited length */
-static bool make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
+static bool checkreturn make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
     uint32_t size;
     if (!pb_decode_varint32(stream, &size))
@@ -214,7 +222,7 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     return notwrapped;
 }
 
-static bool pb_field_find(pb_field_iterator_t *iter, int tag)
+static bool checkreturn pb_field_find(pb_field_iterator_t *iter, int tag)
 {
     int start = iter->field_index;
     
@@ -231,7 +239,7 @@ static bool pb_field_find(pb_field_iterator_t *iter, int tag)
  * Decode a single field *
  *************************/
 
-static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter)
+static bool checkreturn decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter)
 {
     pb_decoder_t func = PB_DECODERS[PB_LTYPE(iter->current->type)];
     
@@ -323,7 +331,7 @@ static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_
  * Decode all fields *
  *********************/
 
-bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
+bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
     uint32_t fields_seen = 0; /* Used to check for required fields */
     pb_field_iterator_t iter;
@@ -421,7 +429,7 @@ static void endian_copy(void *dest, void *src, size_t destsize, size_t srcsize)
 #endif
 }
 
-bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t temp;
     bool status = pb_decode_varint(stream, &temp);
@@ -429,7 +437,7 @@ bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
     return status;
 }
 
-bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t temp;
     bool status = pb_decode_varint(stream, &temp);
@@ -438,7 +446,7 @@ bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
     return status;
 }
 
-bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
 #ifdef __BIG_ENDIAN__
     uint8_t bytes[8] = {0};
@@ -452,7 +460,7 @@ bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
 #endif
 }
 
-bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     pb_bytes_array_t *x = (pb_bytes_array_t*)dest;
     
@@ -467,7 +475,7 @@ bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
     return pb_read(stream, x->bytes, x->size);
 }
 
-bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
     bool status;
@@ -482,7 +490,7 @@ bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
     return status;
 }
 
-bool pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     pb_istream_t substream;
     
