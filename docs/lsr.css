@@ -191,7 +191,6 @@ table.docutils {
   text-align: left;
   border: 1px solid gray;
   border-collapse: collapse;
-  width: 100%;
   margin: 1.5em 0em;
 }
 
@@ -211,6 +210,11 @@ th.field-name {
 table.docutils th {
   font-family: monospace;
   background-color: #f6f6f6;
+  vertical-align: middle;
+}
+
+table.field-list {
+  border: none;  
 }
 
 div.sidebar {

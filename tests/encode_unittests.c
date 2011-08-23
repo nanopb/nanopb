@@ -15,6 +15,24 @@ bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
     return true;
 }
 
+bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+{
+    int value = 0x55;
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+    return pb_encode_varint(stream, value);
+}
+
+bool crazyfieldcallback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+{
+    /* This callback writes different amount of data the second time. */
+    uint32_t *state = (uint32_t*)arg;
+    *state <<= 8;
+    if (!pb_encode_tag_for_field(stream, field))
+        return false;
+    return pb_encode_varint(stream, *state);
+}
+
 /* Check that expression x writes data y.
  * Y is a string, which may contain null bytes. Null terminator is ignored.
  */
@@ -80,6 +98,17 @@ int main()
         
         COMMENT("Test pb_encode_tag_for_field")
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x50"));
+        
+        field.type = PB_LTYPE_FIXED;
+        field.data_size = 8;
+        TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x51"));
+        
+        field.type = PB_LTYPE_STRING;
+        TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x52"));
+        
+        field.type = PB_LTYPE_FIXED;
+        field.data_size = 4;
+        TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x55"));
     }
     
     {
@@ -181,8 +210,67 @@ int main()
     }
     
     {
+        uint8_t buffer[10];
+        pb_ostream_t s;
+        FloatArray msg = {1, {99.0f}};
         
+        COMMENT("Test pb_encode with float array")
         
+        TEST(WRITES(pb_encode(&s, FloatArray_fields, &msg),
+                    "\x0A\x04\x00\x00\xc6\x42"))
+        
+        msg.data_count = 0;
+        TEST(WRITES(pb_encode(&s, FloatArray_fields, &msg), ""))
+        
+        msg.data_count = 3;
+        TEST(!pb_encode(&s, FloatArray_fields, &msg))
+    }
+    
+    {
+        uint8_t buffer[10];
+        pb_ostream_t s;
+        CallbackArray msg;
+        
+        msg.data.funcs.encode = &fieldcallback;
+        
+        COMMENT("Test pb_encode with callback field.")
+        TEST(WRITES(pb_encode(&s, CallbackArray_fields, &msg), "\x08\x55"))
+    }
+    
+    {
+        uint8_t buffer[10];
+        pb_ostream_t s;
+        IntegerContainer msg = {{5, {1,2,3,4,5}}};
+        
+        COMMENT("Test pb_encode with packed array in a submessage.")
+        TEST(WRITES(pb_encode(&s, IntegerContainer_fields, &msg),
+                    "\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"))
+    }
+    
+    {
+        uint8_t buffer[10];
+        pb_ostream_t s;
+        CallbackContainer msg;
+        CallbackContainerContainer msg2;
+        uint32_t state = 1;
+        
+        msg.submsg.data.funcs.encode = &fieldcallback;
+        msg2.submsg.submsg.data.funcs.encode = &fieldcallback;
+        
+        COMMENT("Test pb_encode with callback field in a submessage.")
+        TEST(WRITES(pb_encode(&s, CallbackContainer_fields, &msg), "\x0A\x02\x08\x55"))
+        TEST(WRITES(pb_encode(&s, CallbackContainerContainer_fields, &msg2),
+                    "\x0A\x04\x0A\x02\x08\x55"))
+        
+        /* Misbehaving callback */
+        msg.submsg.data.funcs.encode = &crazyfieldcallback;
+        msg.submsg.data.arg = &state;
+        msg2.submsg.submsg.data.funcs.encode = &crazyfieldcallback;
+        msg2.submsg.submsg.data.arg = &state;
+        
+        TEST(!pb_encode(&s, CallbackContainer_fields, &msg))
+        state = 1;
+        TEST(!pb_encode(&s, CallbackContainerContainer_fields, &msg2))
     }
     
     if (status != 0)

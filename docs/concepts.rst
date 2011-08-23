@@ -176,9 +176,13 @@ Encoding callbacks
 
 When encoding, the callback should write out complete fields, including the wire type and field number tag. It can write as many or as few fields as it likes. For example, if you want to write out an array as *repeated* field, you should do it all in a single call.
 
-If the callback is used in a submessage, it will be called multiple times during a single call to `pb_encode`_. It must produce the same amount of data every time. If the callback is directly in the main message, it is called only once.
+Usually you can use `pb_encode_tag_for_field`_ to encode the wire type and tag number of the field. However, if you want to encode a repeated field as a packed array, you must call `pb_encode_tag`_ instead to specify a wire type of *PB_WT_STRING*.
+
+If the callback is used in a submessage, it will be called multiple times during a single call to `pb_encode`_. In this case, it must produce the same amount of data every time. If the callback is directly in the main message, it is called only once.
 
 .. _`pb_encode`: reference.html#pb-encode
+.. _`pb_encode_tag_for_field`: reference.html#pb-encode-tag-for-field
+.. _`pb_encode_tag`: reference.html#pb-encode-tag
 
 This callback writes out a dynamically sized string::
 
@@ -207,7 +211,7 @@ This callback reads multiple integers and prints them::
 
     bool read_ints(pb_istream_t *stream, const pb_field_t *field, void *arg)
     {
-        while (stream.bytes_left)
+        while (stream->bytes_left)
         {
             uint64_t value;
             if (!pb_decode_varint(stream, &value))

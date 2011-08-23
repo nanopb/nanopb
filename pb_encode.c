@@ -81,7 +81,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     if (count == 0)
         return true;
     
-    if (PB_LTYPE(field->type) < PB_LTYPE_LAST_PACKABLE)
+    if (PB_LTYPE(field->type) <= PB_LTYPE_LAST_PACKABLE)
     {
         if (!pb_encode_tag(stream, PB_WT_STRING, field->tag))
             return false;

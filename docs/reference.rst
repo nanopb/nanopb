@@ -37,6 +37,7 @@ PB_HTYPE_REQUIRED    0x00  Verify that field exists in decoded message.
 PB_HTYPE_OPTIONAL    0x10  Use separate *has_<field>* boolean to specify
                            whether the field is present.
 PB_HTYPE_ARRAY       0x20  A repeated field with preallocated array.
+                           Separate *<field>_count* for number of items.
 PB_HTYPE_CALLBACK    0x30  A field with dynamic storage size, data is
                            actually a pointer to a structure containing a
                            callback function.
@@ -182,6 +183,17 @@ Same as `pb_encode_tag`_, except takes the parameters from a *pb_field_t* struct
 :returns:       True on success, false on IO error or unknown field type.
 
 This function only considers the LTYPE of the field. You can use it from your field callbacks, because the source generator writes correct LTYPE also for callback type fields.
+
+Wire type mapping is as follows:
+
+========================= ============
+LTYPEs                    Wire type
+========================= ============
+VARINT, SVARINT           PB_WT_VARINT
+FIXED with data_size == 8 PB_WT_64BIT  
+STRING, BYTES, SUBMESSAGE PB_WT_STRING 
+FIXED with data_size == 4 PB_WT_32BIT
+========================= ============
 
 pb_encode_string
 ----------------
