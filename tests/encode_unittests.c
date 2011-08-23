@@ -116,6 +116,53 @@ int main()
         TEST(WRITES(pb_enc_svarint(&s, &field, &lmin), "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"));
     }
     
+    {
+        uint8_t buffer[30];
+        pb_ostream_t s;
+        pb_field_t field = {1, PB_LTYPE_FIXED, 0, 0, sizeof(float)};
+        float fvalue;
+        double dvalue;
+        
+        COMMENT("Test pb_enc_fixed using float")
+        fvalue = 0.0f;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x00\x00\x00\x00"))
+        fvalue = 99.0f;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x00\x00\xc6\x42"))
+        fvalue = -12345678.0f;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x4e\x61\x3c\xcb"))
+    
+        COMMENT("Test pb_enc_fixed using double")
+        field.data_size = sizeof(double);
+        dvalue = 0.0;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\x00\x00\x00\x00\x00"))
+        dvalue = 99.0;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\x00\x00\xc0\x58\x40"))
+        dvalue = -12345678.0;
+        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\xc0\x29\x8c\x67\xc1"))
+    }
+    
+    {
+        uint8_t buffer[30];
+        pb_ostream_t s;
+        struct { size_t size; uint8_t bytes[5]; } value = {5, {'x', 'y', 'z', 'z', 'y'}};
+    
+        COMMENT("Test pb_enc_bytes")
+        TEST(WRITES(pb_enc_bytes(&s, NULL, &value), "\x05xyzzy"))
+        value.size = 0;
+        TEST(WRITES(pb_enc_bytes(&s, NULL, &value), "\x00"))
+    }
+    
+    {
+        uint8_t buffer[30];
+        pb_ostream_t s;
+        char value[] = "xyzzy";
+        
+        COMMENT("Test pb_enc_string")
+        TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x05xyzzy"))
+        value[0] = '\0';
+        TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x00"))
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     

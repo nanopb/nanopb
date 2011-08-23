@@ -48,6 +48,7 @@ Features and limitations
 #) The deprecated Protocol Buffers feature called "groups" is not supported.
 #) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
 #) Unknown fields are not preserved when decoding and re-encoding a message.
+#) Numeric arrays are always encoded as packed, even if not marked as packed in .proto. This causes incompatibility with decoders that do not support packed format.
 
 Getting started
 ===============
@@ -81,6 +82,12 @@ Now in your main program do this to encode a message::
 After that, buffer will contain the encoded message.
 The number of bytes in the message is stored in *stream.bytes_written*.
 You can feed the message to *protoc --decode=Example example.proto* to verify its validity.
+
+Debugging and testing
+=====================
+Extensive unittests are included under the *tests* folder. Just type *make* there to run the tests.
+
+This also generates a file called *breakpoints* which includes all lines returning *false* in nanopb. You can use this in gdb by typing *source breakpoints*, after which gdb will break on first nanopb error.
 
 Wishlist
 ========

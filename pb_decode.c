@@ -257,7 +257,7 @@ static bool decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_
                 while (substream.bytes_left && *size < iter->current->array_size)
                 {
                     void *pItem = (uint8_t*)iter->pData + iter->current->data_size * (*size);
-                    if (!func(stream, iter->current, pItem))
+                    if (!func(&substream, iter->current, pItem))
                         return false;
                     (*size)++;
                 }
@@ -381,7 +381,8 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
         if (!pb_field_find(&iter, tag))
         {
             /* No match found, skip data */
-            skip(stream, wire_type);
+            if (!skip(stream, wire_type))
+                return false;
             continue;
         }
         

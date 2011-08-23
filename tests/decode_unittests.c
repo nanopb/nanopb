@@ -15,6 +15,43 @@ bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     return true;
 }
 
+typedef struct { size_t data_count; int32_t data[10]; } IntegerArray;
+const pb_field_t IntegerArray_fields[] = {
+    {1, PB_HTYPE_ARRAY | PB_LTYPE_VARINT, offsetof(IntegerArray, data),
+    pb_delta(IntegerArray, data_count, data),
+    pb_membersize(IntegerArray, data[0]),
+    pb_membersize(IntegerArray, data) / pb_membersize(IntegerArray, data[0])},
+    
+    PB_LAST_FIELD
+};
+
+typedef struct { pb_callback_t data; } CallbackArray;
+const pb_field_t CallbackArray_fields[] = {
+    {1, PB_HTYPE_CALLBACK | PB_LTYPE_VARINT, offsetof(CallbackArray, data),
+    0, pb_membersize(CallbackArray, data), 0},
+    
+    PB_LAST_FIELD
+};
+
+/* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
+bool callback_check(pb_istream_t *stream, const pb_field_t *field, void *arg)
+{
+    int i;
+    uint8_t byte;
+    pb_bytes_array_t *ref = (pb_bytes_array_t*) arg;
+    
+    for (i = 0; i < ref->size; i++)
+    {
+        if (!pb_read(stream, &byte, 1))
+            return false;
+        
+        if (byte != ref->bytes[i])
+            return false;
+    }
+    
+    return true;
+}
+
 int main()
 {
     int status = 0;
@@ -72,6 +109,7 @@ int main()
         TEST((s = S("\xAC\x02""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01""foobar"),
               pb_skip_varint(&s) && s.bytes_left == 6))
+        TEST((s = S("\xFF"), !pb_skip_varint(&s)))
     }
     
     {
@@ -79,6 +117,8 @@ int main()
         COMMENT("Test pb_skip_string")
         TEST((s = S("\x00""foobar"), pb_skip_string(&s) && s.bytes_left == 6))
         TEST((s = S("\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 6))
+        TEST((s = S("\x04"), !pb_skip_string(&s)))
+        TEST((s = S("\xFF"), !pb_skip_string(&s)))
     }
     
     {
@@ -163,6 +203,83 @@ int main()
         TEST((s = S("\x00"), pb_dec_string(&s, &f, &d) && d[0] == '\0'))
         TEST((s = S("\x04xyzz"), pb_dec_string(&s, &f, &d) && strcmp(d, "xyzz") == 0))
         TEST((s = S("\x05xyzzy"), !pb_dec_string(&s, &f, &d)))
+    }
+    
+    {
+        pb_istream_t s;
+        IntegerArray dest;
+        
+        COMMENT("Testing pb_decode with repeated int32 field")
+        TEST((s = S(""), pb_decode(&s, IntegerArray_fields, &dest) && dest.data_count == 0))
+        TEST((s = S("\x08\x01\x08\x02"), pb_decode(&s, IntegerArray_fields, &dest)
+             && dest.data_count == 2 && dest.data[0] == 1 && dest.data[1] == 2))
+        s = S("\x08\x01\x08\x02\x08\x03\x08\x04\x08\x05\x08\x06\x08\x07\x08\x08\x08\x09\x08\x0A");
+        TEST(pb_decode(&s, IntegerArray_fields, &dest) && dest.data_count == 10 && dest.data[9] == 10)
+        s = S("\x08\x01\x08\x02\x08\x03\x08\x04\x08\x05\x08\x06\x08\x07\x08\x08\x08\x09\x08\x0A\x08\x0B");
+        TEST(!pb_decode(&s, IntegerArray_fields, &dest))
+    }
+    
+    {
+        pb_istream_t s;
+        IntegerArray dest;
+        
+        COMMENT("Testing pb_decode with packed int32 field")
+        TEST((s = S("\x0A\x01\x01"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 1 && dest.data[0] == 1))
+        TEST((s = S("\x0A\x0A\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 10 && dest.data[0] == 1 && dest.data[9] == 10))
+        TEST((s = S("\x0A\x0B\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B"), !pb_decode(&s, IntegerArray_fields, &dest)))
+        
+        /* Test invalid wire data */
+        TEST((s = S("\x0A\xFF"), !pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x0A\x01"), !pb_decode(&s, IntegerArray_fields, &dest)))
+    }
+    
+    {
+        pb_istream_t s;
+        IntegerArray dest;
+        
+        COMMENT("Testing pb_decode with unknown fields")
+        TEST((s = S("\x18\x0F\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 1 && dest.data[0] == 1))
+        TEST((s = S("\x19\x00\x00\x00\x00\x00\x00\x00\x00\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 1 && dest.data[0] == 1))
+        TEST((s = S("\x1A\x00\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 1 && dest.data[0] == 1))
+        TEST((s = S("\x1B\x08\x01"), !pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x1D\x00\x00\x00\x00\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 1 && dest.data[0] == 1))
+    }
+    
+    {
+        pb_istream_t s;
+        CallbackArray dest;
+        struct { size_t size; uint8_t bytes[10]; } ref;
+        dest.data.funcs.decode = &callback_check;
+        dest.data.arg = &ref;
+        
+        COMMENT("Testing pb_decode with callbacks")
+        /* Single varint */
+        ref.size = 1; ref.bytes[0] = 0x55;
+        TEST((s = S("\x08\x55"), pb_decode(&s, CallbackArray_fields, &dest)))
+        /* Packed varint */
+        ref.size = 3; ref.bytes[0] = ref.bytes[1] = ref.bytes[2] = 0x55;
+        TEST((s = S("\x0A\x03\x55\x55\x55"), pb_decode(&s, CallbackArray_fields, &dest)))
+        /* Packed varint with loop */
+        ref.size = 1; ref.bytes[0] = 0x55;
+        TEST((s = S("\x0A\x03\x55\x55\x55"), pb_decode(&s, CallbackArray_fields, &dest)))
+        /* Single fixed32 */
+        ref.size = 4; ref.bytes[0] = ref.bytes[1] = ref.bytes[2] = ref.bytes[3] = 0xAA;
+        TEST((s = S("\x0D\xAA\xAA\xAA\xAA"), pb_decode(&s, CallbackArray_fields, &dest)))
+        /* Single fixed64 */
+        ref.size = 8; memset(ref.bytes, 0xAA, 8);
+        TEST((s = S("\x09\xAA\xAA\xAA\xAA\xAA\xAA\xAA\xAA"), pb_decode(&s, CallbackArray_fields, &dest)))
+        /* Unsupported field type */
+        TEST((s = S("\x0B\x00"), !pb_decode(&s, CallbackArray_fields, &dest)))
+        
+        /* Just make sure that our test function works */
+        ref.size = 1; ref.bytes[0] = 0x56;
+        TEST((s = S("\x08\x55"), !pb_decode(&s, CallbackArray_fields, &dest)))
     }
     
     if (status != 0)
