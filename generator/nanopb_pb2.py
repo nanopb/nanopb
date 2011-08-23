@@ -10,13 +10,13 @@ from google.protobuf import descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='nanopb.proto',
   package='',
-  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"4\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05:?\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xa1\x96\x03 \x01(\x0b\x32\x0e.NanoPBOptions')
+  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"4\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05:>\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions')
 
 
-NANOPB_FIELD_NUMBER = 52001
+NANOPB_FIELD_NUMBER = 1010
 nanopb = descriptor.FieldDescriptor(
   name='nanopb', full_name='nanopb', index=0,
-  number=52001, type=11, cpp_type=10, label=1,
+  number=1010, type=11, cpp_type=10, label=1,
   has_default_value=False, default_value=None,
   message_type=None, enum_type=None, containing_type=None,
   is_extension=True, extension_scope=None,

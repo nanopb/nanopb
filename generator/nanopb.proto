@@ -12,7 +12,15 @@ message NanoPBOptions {
   optional int32 max_count = 2;
 }
 
+// Protocol Buffers extension number registry
+// --------------------------------                                                                                                            
+// Project:  Nanopb                                                                                                                            
+// Contact:  Petteri Aimonen <jpa@kapsi.fi>                                                                                                    
+// Web site: http://kapsi.fi/~jpa/nanopb                                                                                                       
+// Extensions: 1010 (all types)                                                                                                                
+// --------------------------------   
+
 extend google.protobuf.FieldOptions {
-    optional NanoPBOptions nanopb = 52001;
+    optional NanoPBOptions nanopb = 1010;
 }
 
