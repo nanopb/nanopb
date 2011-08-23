@@ -382,7 +382,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " file.pb"
         print "where file.pb has been compiled from .proto by:"
         print "protoc -ofile.pb file.proto"
-        print "Output fill be written to file.h and file.c"
+        print "Output fill be written to file.pb.h and file.pb.c"
         sys.exit(1)
     
     data = open(sys.argv[1]).read()
@@ -390,8 +390,8 @@ if __name__ == '__main__':
     enums, messages = parse_file(fdesc.file[0])
     
     noext = os.path.splitext(sys.argv[1])[0]
-    headername = noext + '.h'
-    sourcename = noext + '.c'
+    headername = noext + '.pb.h'
+    sourcename = noext + '.pb.c'
     headerbasename = os.path.basename(headername)
     
     print "Writing to " + headername + " and " + sourcename

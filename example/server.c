@@ -20,7 +20,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-#include "fileproto.h"
+#include "fileproto.pb.h"
 #include "common.h"
 
 bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)

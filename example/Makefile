@@ -3,9 +3,12 @@ DEPS=../pb_decode.c ../pb_decode.h ../pb_encode.c ../pb_encode.h ../pb.h
 
 all: server client
 
-%: %.c $(DEPS) fileproto.h
-	$(CC) $(CFLAGS) -o $@ $< ../pb_decode.c ../pb_encode.c fileproto.c common.c
+clean:
+	rm -f server client fileproto.pb.c fileproto.pb.h
 
-fileproto.h: fileproto.proto ../generator/nanopb_generator.py
+%: %.c $(DEPS) fileproto.pb.h fileproto.pb.c
+	$(CC) $(CFLAGS) -o $@ $< ../pb_decode.c ../pb_encode.c fileproto.pb.c common.c
+
+fileproto.pb.c fileproto.pb.h: fileproto.proto ../generator/nanopb_generator.py
 	protoc -I. -I../generator -I/usr/include -ofileproto.pb $<
 	python ../generator/nanopb_generator.py fileproto.pb

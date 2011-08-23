@@ -67,12 +67,19 @@ bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count
 
 /* Main encoding stuff */
 
+/* Callbacks don't need this function because they usually know the data type
+ * without examining the field structure.
+ * Therefore it is static for now.
+ */
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
                          const void *pData, size_t count, pb_encoder_t func)
 {
     int i;
     const void *p;
     size_t size;
+    
+    if (count == 0)
+        return true;
     
     if (PB_LTYPE(field->type) < PB_LTYPE_LAST_PACKABLE)
     {

@@ -2,6 +2,7 @@
 #include <string.h>
 #include "pb_encode.h"
 #include "unittests.h"
+#include "unittestproto.pb.h"
 
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
@@ -161,6 +162,27 @@ int main()
         TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x05xyzzy"))
         value[0] = '\0';
         TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x00"))
+    }
+    
+    {
+        uint8_t buffer[10];
+        pb_ostream_t s;
+        IntegerArray msg = {5, {1, 2, 3, 4, 5}};
+        
+        COMMENT("Test pb_encode with int32 array")
+        
+        TEST(WRITES(pb_encode(&s, IntegerArray_fields, &msg), "\x0A\x05\x01\x02\x03\x04\x05"))
+        
+        msg.data_count = 0;
+        TEST(WRITES(pb_encode(&s, IntegerArray_fields, &msg), ""))
+        
+        msg.data_count = 10;
+        TEST(!pb_encode(&s, IntegerArray_fields, &msg))
+    }
+    
+    {
+        
+        
     }
     
     if (status != 0)

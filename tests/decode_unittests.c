@@ -2,6 +2,7 @@
 #include <string.h>
 #include "pb_decode.h"
 #include "unittests.h"
+#include "unittestproto.pb.h"
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)
 
@@ -14,24 +15,6 @@ bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
         memset(buf, 'x', count);
     return true;
 }
-
-typedef struct { size_t data_count; int32_t data[10]; } IntegerArray;
-const pb_field_t IntegerArray_fields[] = {
-    {1, PB_HTYPE_ARRAY | PB_LTYPE_VARINT, offsetof(IntegerArray, data),
-    pb_delta(IntegerArray, data_count, data),
-    pb_membersize(IntegerArray, data[0]),
-    pb_membersize(IntegerArray, data) / pb_membersize(IntegerArray, data[0])},
-    
-    PB_LAST_FIELD
-};
-
-typedef struct { pb_callback_t data; } CallbackArray;
-const pb_field_t CallbackArray_fields[] = {
-    {1, PB_HTYPE_CALLBACK | PB_LTYPE_VARINT, offsetof(CallbackArray, data),
-    0, pb_membersize(CallbackArray, data), 0},
-    
-    PB_LAST_FIELD
-};
 
 /* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
 bool callback_check(pb_istream_t *stream, const pb_field_t *field, void *arg)
@@ -224,6 +207,8 @@ int main()
         IntegerArray dest;
         
         COMMENT("Testing pb_decode with packed int32 field")
+        TEST((s = S("\x0A\x00"), pb_decode(&s, IntegerArray_fields, &dest)
+            && dest.data_count == 0))
         TEST((s = S("\x0A\x01\x01"), pb_decode(&s, IntegerArray_fields, &dest)
             && dest.data_count == 1 && dest.data[0] == 1))
         TEST((s = S("\x0A\x0A\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A"), pb_decode(&s, IntegerArray_fields, &dest)
