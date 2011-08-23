@@ -337,17 +337,14 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
     pb_field_iterator_t iter;
     int i;
     
-    if (fields[0].tag == 0)
-    {
-        /* No fields -> nothing to do */
-        return pb_read(stream, NULL, stream->bytes_left);
-    }
-    
     pb_field_init(&iter, fields, dest_struct);
     
     /* Initialize size/has fields and apply default values */
     do
     {
+        if (iter.current->tag == 0)
+            continue;
+        
         if (PB_HTYPE(iter.current->type) == PB_HTYPE_OPTIONAL)
         {
             *(bool*)iter.pSize = false;

@@ -282,6 +282,18 @@ int main()
         TEST((s = S("\x08\x55"), !pb_decode(&s, CallbackArray_fields, &dest)))
     }
     
+    {
+        pb_istream_t s;
+        IntegerArray dest;
+        
+        COMMENT("Testing pb_decode message termination")
+        TEST((s = S(""), pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x08\x01\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
+        TEST((s = S("\x08"), !pb_decode(&s, IntegerArray_fields, &dest)))
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     
