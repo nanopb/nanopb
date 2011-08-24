@@ -63,7 +63,10 @@ bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 
 int main()
 {
-    pb_istream_t stream = {&callback, stdin, SIZE_MAX};
+    /* Maximum size is specified to prevent infinite length messages from
+     * hanging this in the fuzz test.
+     */
+    pb_istream_t stream = {&callback, stdin, 10000};
     if (!print_person(&stream))
         printf("Parsing failed.\n");
     
