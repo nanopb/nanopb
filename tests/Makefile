@@ -8,6 +8,7 @@ all: $(TESTS) run_unittests breakpoints
 clean:
 	rm -f $(TESTS) person.pb* *.o *.gcda *.gcno
 
+%.o: %.c
 %.o: %.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
