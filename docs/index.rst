@@ -49,6 +49,7 @@ Features and limitations
 #) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
 #) Unknown fields are not preserved when decoding and re-encoding a message.
 #) Numeric arrays are always encoded as packed, even if not marked as packed in .proto. This causes incompatibility with decoders that do not support packed format.
+#) Cyclic references between messages are not supported. They could be supported in callback-mode if there was an option in the generator to set the mode.
 
 Getting started
 ===============
