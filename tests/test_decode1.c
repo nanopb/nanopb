@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <pb_decode.h>
-#include "person.h"
+#include "person.pb.h"
 
 bool print_person(pb_istream_t *stream)
 {

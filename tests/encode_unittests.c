@@ -262,7 +262,7 @@ int main()
         TEST(WRITES(pb_encode(&s, CallbackContainerContainer_fields, &msg2),
                     "\x0A\x04\x0A\x02\x08\x55"))
         
-        /* Misbehaving callback */
+        /* Misbehaving callback: varying output between calls */
         msg.submsg.data.funcs.encode = &crazyfieldcallback;
         msg.submsg.data.arg = &state;
         msg2.submsg.submsg.data.funcs.encode = &crazyfieldcallback;

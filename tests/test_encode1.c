@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <pb_encode.h>
-#include "person.h"
+#include "person.pb.h"
 
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
