@@ -1,0 +1,16 @@
+/* Todo: write tests for the rest of these fields, currently only stringvalue
+ * is tested.
+ */
+
+message SubMessage {
+    optional int32 int32value = 1;
+}
+
+message TestMessage {
+    optional string stringvalue = 1;
+    optional int32 int32value = 2;
+    optional fixed32 fixed32value = 3;
+    optional fixed64 fixed64value = 4;
+    optional SubMessage submsg = 5;
+}
+

@@ -201,7 +201,7 @@ Decoding callbacks
 
     bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
 
-When decoding, the callback receives a length-limited substring that reads the contents of a single field. The field tag has already been read.
+When decoding, the callback receives a length-limited substring that reads the contents of a single field. The field tag has already been read. For *string* and *bytes*, the length value has already been parsed, and is available at *stream->bytes_left*.
 
 The callback will be called multiple times for repeated fields. For packed fields, you can either read multiple values until the stream ends, or leave it to `pb_decode`_ to call your function over and over until all values have been read.
 

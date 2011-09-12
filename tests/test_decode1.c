@@ -1,3 +1,7 @@
+/* A very simple decoding test case, using person.proto.
+ * Produces output compatible with protoc --decode.
+ */
+
 #include <stdio.h>
 #include <pb_decode.h>
 #include "person.pb.h"

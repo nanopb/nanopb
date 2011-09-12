@@ -1,3 +1,7 @@
+/* A very simple encoding test case using person.proto.
+ * Just puts constant data in the fields.
+ */
+
 #include <stdio.h>
 #include <pb_encode.h>
 #include "person.pb.h"
