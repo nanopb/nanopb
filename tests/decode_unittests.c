@@ -143,25 +143,25 @@ int main()
     
     {
         pb_istream_t s;
-        pb_field_t f = {1, PB_LTYPE_FIXED, 0, 0, 4, 0, 0};
+        pb_field_t f = {1, PB_LTYPE_FIXED32, 0, 0, 4, 0, 0};
         float d;
         
-        COMMENT("Test pb_dec_fixed using float (failures here may be caused by imperfect rounding)")
-        TEST((s = S("\x00\x00\x00\x00"), pb_dec_fixed(&s, &f, &d) && d == 0.0f))
-        TEST((s = S("\x00\x00\xc6\x42"), pb_dec_fixed(&s, &f, &d) && d == 99.0f))
-        TEST((s = S("\x4e\x61\x3c\xcb"), pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
-        TEST((s = S("\x00"), !pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
+        COMMENT("Test pb_dec_fixed32 using float (failures here may be caused by imperfect rounding)")
+        TEST((s = S("\x00\x00\x00\x00"), pb_dec_fixed32(&s, &f, &d) && d == 0.0f))
+        TEST((s = S("\x00\x00\xc6\x42"), pb_dec_fixed32(&s, &f, &d) && d == 99.0f))
+        TEST((s = S("\x4e\x61\x3c\xcb"), pb_dec_fixed32(&s, &f, &d) && d == -12345678.0f))
+        TEST((s = S("\x00"), !pb_dec_fixed32(&s, &f, &d) && d == -12345678.0f))
     }
     
     {
         pb_istream_t s;
-        pb_field_t f = {1, PB_LTYPE_FIXED, 0, 0, 8, 0, 0};
+        pb_field_t f = {1, PB_LTYPE_FIXED64, 0, 0, 8, 0, 0};
         double d;
         
-        COMMENT("Test pb_dec_fixed using double (failures here may be caused by imperfect rounding)")
-        TEST((s = S("\x00\x00\x00\x00\x00\x00\x00\x00"), pb_dec_fixed(&s, &f, &d) && d == 0.0))
-        TEST((s = S("\x00\x00\x00\x00\x00\xc0\x58\x40"), pb_dec_fixed(&s, &f, &d) && d == 99.0))
-        TEST((s = S("\x00\x00\x00\xc0\x29\x8c\x67\xc1"), pb_dec_fixed(&s, &f, &d) && d == -12345678.0f))
+        COMMENT("Test pb_dec_fixed64 using double (failures here may be caused by imperfect rounding)")
+        TEST((s = S("\x00\x00\x00\x00\x00\x00\x00\x00"), pb_dec_fixed64(&s, &f, &d) && d == 0.0))
+        TEST((s = S("\x00\x00\x00\x00\x00\xc0\x58\x40"), pb_dec_fixed64(&s, &f, &d) && d == 99.0))
+        TEST((s = S("\x00\x00\x00\xc0\x29\x8c\x67\xc1"), pb_dec_fixed64(&s, &f, &d) && d == -12345678.0f))
     }
     
     {

@@ -23,7 +23,8 @@ typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void
 static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_varint,
     &pb_dec_svarint,
-    &pb_dec_fixed,
+    &pb_dec_fixed32,
+    &pb_dec_fixed64,
     
     &pb_dec_bytes,
     &pb_dec_string,
@@ -163,7 +164,10 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
     }
 }
 
-/* Decode string length from stream and return a substream with limited length */
+/* Decode string length from stream and return a substream with limited length.
+ * Before disposing the substream, remember to copy the substream->state back
+ * to stream->state.
+ */
 static bool checkreturn make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
     uint32_t size;
@@ -302,6 +306,8 @@ static bool checkreturn decode_field(pb_istream_t *stream, int wire_type, pb_fie
                     if (!pCallback->funcs.decode(&substream, iter->current, pCallback->arg))
                         return false;
                 }
+                
+                stream->state = substream.state;
                 return true;
             }
             else
@@ -327,6 +333,49 @@ static bool checkreturn decode_field(pb_istream_t *stream, int wire_type, pb_fie
     }
 }
 
+/* Initialize message fields to default values, recursively */
+static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct)
+{
+    pb_field_iterator_t iter;
+    pb_field_init(&iter, fields, dest_struct);
+    
+    /* Initialize size/has fields and apply default values */
+    do
+    {
+        if (iter.current->tag == 0)
+            continue;
+        
+        /* Initialize the size field for optional/repeated fields to 0. */
+        if (PB_HTYPE(iter.current->type) == PB_HTYPE_OPTIONAL)
+        {
+            *(bool*)iter.pSize = false;
+        }
+        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_ARRAY)
+        {
+            *(size_t*)iter.pSize = 0;
+            continue; /* Array is empty, no need to initialize contents */
+        }
+        
+        /* Initialize field contents to default value */
+        if (PB_HTYPE(iter.current->type) == PB_HTYPE_CALLBACK)
+        {
+            continue; /* Don't overwrite callback */
+        }
+        else if (PB_LTYPE(iter.current->type) == PB_LTYPE_SUBMESSAGE)
+        {
+            pb_message_set_to_defaults(iter.current->ptr, iter.pData);
+        }
+        else if (iter.current->ptr != NULL)
+        {
+            memcpy(iter.pData, iter.current->ptr, iter.current->data_size);
+        }
+        else
+        {
+            memset(iter.pData, 0, iter.current->data_size);
+        }
+    } while (pb_field_next(&iter));
+}
+
 /*********************
  * Decode all fields *
  *********************/
@@ -337,33 +386,9 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
     pb_field_iterator_t iter;
     int i;
     
-    pb_field_init(&iter, fields, dest_struct);
+    pb_message_set_to_defaults(fields, dest_struct);
     
-    /* Initialize size/has fields and apply default values */
-    do
-    {
-        if (iter.current->tag == 0)
-            continue;
-        
-        if (PB_HTYPE(iter.current->type) == PB_HTYPE_OPTIONAL)
-        {
-            *(bool*)iter.pSize = false;
-            
-            /* Initialize to default value */
-            if (iter.current->ptr != NULL)
-                memcpy(iter.pData, iter.current->ptr, iter.current->data_size);
-            else
-                memset(iter.pData, 0, iter.current->data_size);
-        }
-        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_ARRAY)
-        {
-            *(size_t*)iter.pSize = 0;
-        }
-        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED)
-        {
-            memset(iter.pData, 0, iter.current->data_size);
-        }
-    } while (pb_field_next(&iter));
+    pb_field_init(&iter, fields, dest_struct);
     
     while (stream->bytes_left)
     {
@@ -443,17 +468,30 @@ bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, v
     return status;
 }
 
-bool checkreturn pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest)
+bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
+{
+#ifdef __BIG_ENDIAN__
+    uint8_t bytes[4] = {0};
+    bool status = pb_read(stream, bytes, 4);
+    uint8_t bebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
+    memcpy(dest, bebytes, 4);
+    return status;
+#else
+    return pb_read(stream, (uint8_t*)dest, 4);
+#endif
+}
+
+bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
 #ifdef __BIG_ENDIAN__
     uint8_t bytes[8] = {0};
-    bool status = pb_read(stream, bytes, field->data_size);
+    bool status = pb_read(stream, bytes, 8);
     uint8_t bebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
                           bytes[3], bytes[2], bytes[1], bytes[0]};
-    endian_copy(dest, lebytes, field->data_size, 8);
+    memcpy(dest, bebytes, 8);
     return status;
 #else
-    return pb_read(stream, (uint8_t*)dest, field->data_size);
+    return pb_read(stream, (uint8_t*)dest, 8);
 #endif
 }
 
@@ -489,6 +527,7 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
 
 bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
+    bool status;
     pb_istream_t substream;
     
     if (!make_string_substream(stream, &substream))
@@ -497,5 +536,7 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
     if (field->ptr == NULL)
         return false;
     
-    return pb_decode(&substream, (pb_field_t*)field->ptr, dest);
+    status = pb_decode(&substream, (pb_field_t*)field->ptr, dest);
+    stream->state = substream.state;
+    return status;
 }

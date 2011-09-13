@@ -62,7 +62,8 @@ bool pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size);
 
 bool pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_fixed(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+bool pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+bool pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
 bool pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);

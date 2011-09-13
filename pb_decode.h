@@ -61,7 +61,8 @@ bool pb_skip_string(pb_istream_t *stream);
 
 bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
+bool pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
+bool pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
 bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);

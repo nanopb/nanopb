@@ -99,15 +99,13 @@ int main()
         COMMENT("Test pb_encode_tag_for_field")
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x50"));
         
-        field.type = PB_LTYPE_FIXED;
-        field.data_size = 8;
+        field.type = PB_LTYPE_FIXED64;
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x51"));
         
         field.type = PB_LTYPE_STRING;
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x52"));
         
-        field.type = PB_LTYPE_FIXED;
-        field.data_size = 4;
+        field.type = PB_LTYPE_FIXED32;
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x55"));
     }
     
@@ -149,26 +147,24 @@ int main()
     {
         uint8_t buffer[30];
         pb_ostream_t s;
-        pb_field_t field = {1, PB_LTYPE_FIXED, 0, 0, sizeof(float)};
         float fvalue;
         double dvalue;
         
-        COMMENT("Test pb_enc_fixed using float")
+        COMMENT("Test pb_enc_fixed32 using float")
         fvalue = 0.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x00\x00\x00\x00"))
+        TEST(WRITES(pb_enc_fixed32(&s, NULL, &fvalue), "\x00\x00\x00\x00"))
         fvalue = 99.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x00\x00\xc6\x42"))
+        TEST(WRITES(pb_enc_fixed32(&s, NULL, &fvalue), "\x00\x00\xc6\x42"))
         fvalue = -12345678.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &fvalue), "\x4e\x61\x3c\xcb"))
+        TEST(WRITES(pb_enc_fixed32(&s, NULL, &fvalue), "\x4e\x61\x3c\xcb"))
     
-        COMMENT("Test pb_enc_fixed using double")
-        field.data_size = sizeof(double);
+        COMMENT("Test pb_enc_fixed64 using double")
         dvalue = 0.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\x00\x00\x00\x00\x00"))
+        TEST(WRITES(pb_enc_fixed64(&s, NULL, &dvalue), "\x00\x00\x00\x00\x00\x00\x00\x00"))
         dvalue = 99.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\x00\x00\xc0\x58\x40"))
+        TEST(WRITES(pb_enc_fixed64(&s, NULL, &dvalue), "\x00\x00\x00\x00\x00\xc0\x58\x40"))
         dvalue = -12345678.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field, &dvalue), "\x00\x00\x00\xc0\x29\x8c\x67\xc1"))
+        TEST(WRITES(pb_enc_fixed64(&s, NULL, &dvalue), "\x00\x00\x00\xc0\x29\x8c\x67\xc1"))
     }
     
     {

@@ -8,10 +8,10 @@ import os.path
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
     FieldD.TYPE_BOOL: ('bool', 'PB_LTYPE_VARINT'),
-    FieldD.TYPE_DOUBLE: ('double', 'PB_LTYPE_FIXED'),
-    FieldD.TYPE_FIXED32: ('uint32_t', 'PB_LTYPE_FIXED'),
-    FieldD.TYPE_FIXED64: ('uint64_t', 'PB_LTYPE_FIXED'),
-    FieldD.TYPE_FLOAT: ('float', 'PB_LTYPE_FIXED'),
+    FieldD.TYPE_DOUBLE: ('double', 'PB_LTYPE_FIXED64'),
+    FieldD.TYPE_FIXED32: ('uint32_t', 'PB_LTYPE_FIXED32'),
+    FieldD.TYPE_FIXED64: ('uint64_t', 'PB_LTYPE_FIXED64'),
+    FieldD.TYPE_FLOAT: ('float', 'PB_LTYPE_FIXED32'),
     FieldD.TYPE_INT32: ('int32_t', 'PB_LTYPE_VARINT'),
     FieldD.TYPE_INT64: ('int64_t', 'PB_LTYPE_VARINT'),
     FieldD.TYPE_SFIXED32: ('int32_t', 'PB_LTYPE_FIXED'),

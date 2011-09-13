@@ -3,7 +3,7 @@ LDFLAGS=--coverage
 DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests
 
-all: $(TESTS) run_unittests breakpoints
+all: breakpoints $(TESTS) run_unittests
 
 clean:
 	rm -f $(TESTS) person.pb* *.o *.gcda *.gcno
@@ -27,7 +27,7 @@ encode_unittests: encode_unittests.o pb_encode.o unittestproto.pb.o
 %.pb: %.proto
 	protoc -I. -I../generator -I/usr/include -o$@ $<
 
-%.pb.c %.pb.h: %.pb
+%.pb.c %.pb.h: %.pb ../generator/nanopb_generator.py
 	python ../generator/nanopb_generator.py $<
 
 breakpoints: ../*.c *.c

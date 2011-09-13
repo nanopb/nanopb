@@ -23,7 +23,8 @@ typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, cons
 static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_varint,
     &pb_enc_svarint,
-    &pb_enc_fixed,
+    &pb_enc_fixed32,
+    &pb_enc_fixed64,
     
     &pb_enc_bytes,
     &pb_enc_string,
@@ -87,9 +88,13 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
             return false;
         
         /* Determine the total size of packed array. */
-        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED)
+        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
         {
-            size = field->data_size * count;
+            size = 4 * count;
+        }
+        else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+        {
+            size = 8 * count;
         }
         else
         {
@@ -232,13 +237,12 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
             wiretype = PB_WT_VARINT;
             break;
         
-        case PB_LTYPE_FIXED:
-            if (field->data_size == 4)
-                wiretype = PB_WT_32BIT;
-            else if (field->data_size == 8)
-                wiretype = PB_WT_64BIT;
-            else
-                return false;
+        case PB_LTYPE_FIXED32:
+            wiretype = PB_WT_32BIT;
+            break;
+        
+        case PB_LTYPE_FIXED64:
+            wiretype = PB_WT_64BIT;
             break;
         
         case PB_LTYPE_BYTES:
@@ -304,16 +308,28 @@ bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, c
     return pb_encode_varint(stream, zigzagged);
 }
 
-bool checkreturn pb_enc_fixed(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     #ifdef __BIG_ENDIAN__
     uint8_t bytes[8] = {0};
-    endian_copy(bytes, src, sizeof(bytes), field->data_size);
+    memcpy(bytes, src, 8);
     uint8_t lebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
                           bytes[3], bytes[2], bytes[1], bytes[0]};
-    return pb_write(stream, lebytes, field->data_size);
+    return pb_write(stream, lebytes, 8);
     #else
-    return pb_write(stream, (uint8_t*)src, field->data_size);
+    return pb_write(stream, (uint8_t*)src, 8);
+    #endif
+}
+
+bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    #ifdef __BIG_ENDIAN__
+    uint8_t bytes[4] = {0};
+    memcpy(bytes, src, 4);
+    uint8_t lebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
+    return pb_write(stream, lebytes, 4);
+    #else
+    return pb_write(stream, (uint8_t*)src, 4);
     #endif
 }
 

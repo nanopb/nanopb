@@ -35,25 +35,26 @@ typedef enum {
     /* Numeric types */
     PB_LTYPE_VARINT = 0x00, /* int32, uint32, int64, uint64, bool, enum */
     PB_LTYPE_SVARINT = 0x01, /* sint32, sint64 */
-    PB_LTYPE_FIXED = 0x02, /* fixed32, sfixed32, fixed64, sfixed64, float, double */
+    PB_LTYPE_FIXED32 = 0x02, /* fixed32, sfixed32, float */
+    PB_LTYPE_FIXED64 = 0x03, /* fixed64, sfixed64, double */
     
     /* Marker for last packable field type. */
-    PB_LTYPE_LAST_PACKABLE = 0x02,
+    PB_LTYPE_LAST_PACKABLE = 0x03,
     
     /* Byte array with pre-allocated buffer.
      * data_size is the length of the allocated PB_BYTES_ARRAY structure. */
-    PB_LTYPE_BYTES = 0x03,
+    PB_LTYPE_BYTES = 0x04,
     
     /* String with pre-allocated buffer.
      * data_size is the maximum length. */
-    PB_LTYPE_STRING = 0x04,
+    PB_LTYPE_STRING = 0x05,
     
     /* Submessage
      * submsg_fields is pointer to field descriptions */
-    PB_LTYPE_SUBMESSAGE = 0x05,
+    PB_LTYPE_SUBMESSAGE = 0x06,
     
     /* Number of declared LTYPES */
-    PB_LTYPES_COUNT = 6,
+    PB_LTYPES_COUNT = 7,
     
     /******************
      * Modifier flags *

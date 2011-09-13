@@ -62,7 +62,7 @@ Describes a single structure field with memory position in relation to others. T
 :type:          LTYPE and HTYPE of the field.
 :data_offset:   Offset of field data, relative to the end of the previous field.
 :size_offset:   Offset of *bool* flag for optional fields or *size_t* count for arrays, relative to field data.
-:data_size:     Size of a single data entry, in bytes. For PB_LTYPE_BYTES, the size of the byte array inside the containing structure.
+:data_size:     Size of a single data entry, in bytes. For PB_LTYPE_BYTES, the size of the byte array inside the containing structure. For PB_HTYPE_CALLBACK, size of the C data type if known.
 :array_size:    Maximum number of entries in an array, if it is an array type.
 :ptr:           Pointer to default value for optional fields, or to submessage description for PB_LTYPE_SUBMESSAGE.
 
@@ -190,9 +190,9 @@ Wire type mapping is as follows:
 LTYPEs                    Wire type
 ========================= ============
 VARINT, SVARINT           PB_WT_VARINT
-FIXED with data_size == 8 PB_WT_64BIT  
+FIXED64                   PB_WT_64BIT  
 STRING, BYTES, SUBMESSAGE PB_WT_STRING 
-FIXED with data_size == 4 PB_WT_32BIT
+FIXED32                   PB_WT_32BIT
 ========================= ============
 
 pb_encode_string
@@ -214,7 +214,7 @@ Writes the length of a string as varint and then contents of the string. Used fo
 
     Each field encoder only encodes the contents of the field. The tag must be encoded separately with `pb_encode_tag_for_field`_.
 
-    You can use the field encoders from your callbacks.
+    You can use the field encoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the encoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *src.
 
 pb_enc_varint
 -------------
@@ -237,15 +237,26 @@ Field encoder for PB_LTYPE_SVARINT. Similar to `pb_enc_varint`_, except first zi
 
 The number is considered negative if the high-order bit of the value is set. On big endian computers, it is the highest bit of *\*src*. On little endian computers, it is the highest bit of *\*(src + field->data_size - 1)*.
 
-pb_enc_fixed
-------------
-Field encoder for PB_LTYPE_FIXED. Writes the data in little endian order. On big endian computers, reverses the order of bytes. ::
+pb_enc_fixed32
+--------------
+Field encoder for PB_LTYPE_FIXED32. Writes the data in little endian order. On big endian computers, reverses the order of bytes. ::
 
-    bool pb_enc_fixed(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+    bool pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
-(parameters are the same as for `pb_enc_varint`_)
+:stream:        Output stream to write to.
+:field:         Not used.
+:src:           Pointer to start of the field data.
+:returns:       True on success, false on IO error.
 
-The same function is used for both integers, floats and doubles. This break encoding of double values on architectures where they are mixed endian (primarily some arm processors with hardware FPU).
+pb_enc_fixed64
+--------------
+Field encoder for PB_LTYPE_FIXED64. Writes the data in little endian order. On big endian computers, reverses the order of bytes. ::
+
+    bool pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+
+(parameters are the same as for `pb_enc_fixed32`_)
+
+The same function is used for both integers and doubles. This breaks encoding of double values on architectures where they are mixed endian (primarily some arm processors with hardware FPU).
 
 pb_enc_bytes
 ------------
@@ -365,7 +376,7 @@ Because of memory concerns, the detection of missing required fields is not perf
 
     Each field decoder reads and decodes a single value. For arrays, the decoder is called repeatedly.
 
-    You can use the decoders from your callbacks.
+    You can use the decoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the field decoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *dest.
 
 pb_dec_varint
 -------------
@@ -388,17 +399,28 @@ Field decoder for PB_LTYPE_SVARINT. Similar to `pb_dec_varint`_, except that it 
 
 (parameters are the same as `pb_dec_varint`_)
 
-pb_dec_fixed
-------------
-Field decoder for PB_LTYPE_FIXED. ::
+pb_dec_fixed32
+--------------
+Field decoder for PB_LTYPE_FIXED32. ::
 
     bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
-(parameters are the same as `pb_dec_varint`_)
+:stream:        Input stream to read from. 1-10 bytes will be read.
+:field:         Not used.
+:dest:          Pointer to destination integer. Must have size of *field->data_size* bytes.
+:returns:       True on success, false on IO errors or if `pb_decode_varint`_ fails.
 
-This function reads *field->data_size* bytes from the input stream.
+This function reads 4 bytes from the input stream.
 On big endian architectures, it then reverses the order of the bytes.
 Finally, it writes the bytes to *dest*.
+
+pb_dec_fixed64
+--------------
+Field decoder for PB_LTYPE_FIXED64. ::
+
+    bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
+
+Same as `pb_dec_fixed32`_, except this reads 8 bytes.
 
 pb_dec_bytes
 ------------
