@@ -214,7 +214,7 @@ Writes the length of a string as varint and then contents of the string. Used fo
 
     Each field encoder only encodes the contents of the field. The tag must be encoded separately with `pb_encode_tag_for_field`_.
 
-    You can use the field encoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the encoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *src.
+    You can use the field encoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the encoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *src*.
 
 pb_enc_varint
 -------------
@@ -376,7 +376,7 @@ Because of memory concerns, the detection of missing required fields is not perf
 
     Each field decoder reads and decodes a single value. For arrays, the decoder is called repeatedly.
 
-    You can use the decoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the field decoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *dest.
+    You can use the decoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the field decoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *dest*.
 
 pb_dec_varint
 -------------
