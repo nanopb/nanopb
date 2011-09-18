@@ -1,11 +1,17 @@
 /* A very simple decoding test case, using person.proto.
  * Produces output compatible with protoc --decode.
+ * Reads the encoded data from stdin and prints the values
+ * to stdout as text.
+ *
+ * Run e.g. ./test_encode1 | ./test_decode1
  */
 
 #include <stdio.h>
 #include <pb_decode.h>
 #include "person.pb.h"
 
+/* This function is called once from main(), it handles
+   the decoding and printing. */
 bool print_person(pb_istream_t *stream)
 {
     int i;
@@ -14,6 +20,8 @@ bool print_person(pb_istream_t *stream)
     if (!pb_decode(stream, Person_fields, &person))
         return false;
     
+    /* Now the decoding is done, rest is just to print stuff out. */
+
     printf("name: \"%s\"\n", person.name);
     printf("id: %d\n", person.id);
     
@@ -46,6 +54,7 @@ bool print_person(pb_istream_t *stream)
     return true;
 }
 
+/* This binds the pb_istream_t to stdin */
 bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*)stream->state;
@@ -53,6 +62,7 @@ bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     
     if (buf == NULL)
     {
+       /* Skipping data */
         while (count-- && fgetc(file) != EOF);
         return count == 0;
     }
@@ -72,7 +82,10 @@ int main()
      */
     pb_istream_t stream = {&callback, stdin, 10000};
     if (!print_person(&stream))
+    {
         printf("Parsing failed.\n");
-    
-    return 0;
+        return 1;
+    } else {
+        return 0;
+    }
 }
