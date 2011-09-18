@@ -4,7 +4,7 @@ Nanopb: Basic concepts
 
 .. include :: menu.rst
 
-The things outlined here are common to both the encoder and the decoder part.
+The things outlined here are the underlying concepts of the nanopb design.
 
 .. contents::
 
