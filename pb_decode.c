@@ -122,7 +122,7 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
  * to just assume the correct type and fail safely on corrupt message.
  */
 
-static bool checkreturn skip(pb_istream_t *stream, int wire_type)
+static bool checkreturn skip(pb_istream_t *stream, pb_wire_type_t wire_type)
 {
     switch (wire_type)
     {
@@ -197,7 +197,7 @@ static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, v
 {
     iter->start = iter->current = fields;
     iter->field_index = 0;
-    iter->pData = dest_struct + iter->current->data_offset;
+    iter->pData = (char*)dest_struct + iter->current->data_offset;
     iter->pSize = (char*)iter->pData + iter->current->size_offset;
     iter->dest_struct = dest_struct;
 }
@@ -243,7 +243,7 @@ static bool checkreturn pb_field_find(pb_field_iterator_t *iter, int tag)
  * Decode a single field *
  *************************/
 
-static bool checkreturn decode_field(pb_istream_t *stream, int wire_type, pb_field_iterator_t *iter)
+static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
 {
     pb_decoder_t func = PB_DECODERS[PB_LTYPE(iter->current->type)];
     
@@ -393,7 +393,8 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
     while (stream->bytes_left)
     {
         uint32_t temp;
-        int tag, wire_type;
+        int tag;
+        pb_wire_type_t wire_type;
         if (!pb_decode_varint32(stream, &temp))
         {
             if (stream->bytes_left == 0)
@@ -406,7 +407,7 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
             break; /* Special feature: allow 0-terminated messages. */
         
         tag = temp >> 3;
-        wire_type = temp & 7;
+        wire_type = (pb_wire_type_t)(temp & 7);
         
         if (!pb_field_find(&iter, tag))
         {
