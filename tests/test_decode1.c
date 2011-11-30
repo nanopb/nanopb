@@ -23,7 +23,7 @@ bool print_person(pb_istream_t *stream)
     /* Now the decoding is done, rest is just to print stuff out. */
 
     printf("name: \"%s\"\n", person.name);
-    printf("id: %d\n", person.id);
+    printf("id: %ld\n", (long)person.id);
     
     if (person.has_email)
         printf("email: \"%s\"\n", person.email);

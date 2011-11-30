@@ -30,7 +30,7 @@ bool print_int32(pb_istream_t *stream, const pb_field_t *field, void *arg)
     if (!pb_decode_varint(stream, &value))
         return false;
     
-    printf((char*)arg, (int32_t)value);
+    printf((char*)arg, (long)value);
     return true;
 }
 
@@ -40,7 +40,7 @@ bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void *arg)
     if (!pb_dec_fixed32(stream, NULL, &value))
         return false;
     
-    printf((char*)arg, value);
+    printf((char*)arg, (long)value);
     return true;
 }
 
@@ -50,7 +50,7 @@ bool print_fixed64(pb_istream_t *stream, const pb_field_t *field, void *arg)
     if (!pb_dec_fixed64(stream, NULL, &value))
         return false;
     
-    printf((char*)arg, value);
+    printf((char*)arg, (long long)value);
     return true;
 }
 
@@ -69,18 +69,18 @@ int main()
     testmessage.submsg.stringvalue.funcs.decode = &print_string;
     testmessage.submsg.stringvalue.arg = "submsg {\n  stringvalue: \"%s\"\n";
     testmessage.submsg.int32value.funcs.decode = &print_int32;
-    testmessage.submsg.int32value.arg = "  int32value: %d\n";
+    testmessage.submsg.int32value.arg = "  int32value: %ld\n";
     testmessage.submsg.fixed32value.funcs.decode = &print_fixed32;
-    testmessage.submsg.fixed32value.arg = "  fixed32value: %d\n";
+    testmessage.submsg.fixed32value.arg = "  fixed32value: %ld\n";
     testmessage.submsg.fixed64value.funcs.decode = &print_fixed64;
     testmessage.submsg.fixed64value.arg = "  fixed64value: %lld\n}\n";
     
     testmessage.stringvalue.funcs.decode = &print_string;
     testmessage.stringvalue.arg = "stringvalue: \"%s\"\n";
     testmessage.int32value.funcs.decode = &print_int32;
-    testmessage.int32value.arg = "int32value: %d\n";
+    testmessage.int32value.arg = "int32value: %ld\n";
     testmessage.fixed32value.funcs.decode = &print_fixed32;
-    testmessage.fixed32value.arg = "fixed32value: %d\n";
+    testmessage.fixed32value.arg = "fixed32value: %ld\n";
     testmessage.fixed64value.funcs.decode = &print_fixed64;
     testmessage.fixed64value.arg = "fixed64value: %lld\n";
     
