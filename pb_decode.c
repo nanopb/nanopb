@@ -474,8 +474,10 @@ bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, v
 #ifdef __BIG_ENDIAN__
     uint8_t bytes[4] = {0};
     bool status = pb_read(stream, bytes, 4);
-    uint8_t bebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
-    memcpy(dest, bebytes, 4);
+    if (status) {
+      uint8_t bebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
+      memcpy(dest, bebytes, 4);
+    }
     return status;
 #else
     return pb_read(stream, (uint8_t*)dest, 4);
@@ -487,9 +489,11 @@ bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, v
 #ifdef __BIG_ENDIAN__
     uint8_t bytes[8] = {0};
     bool status = pb_read(stream, bytes, 8);
-    uint8_t bebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
-                          bytes[3], bytes[2], bytes[1], bytes[0]};
-    memcpy(dest, bebytes, 8);
+    if (status) {
+      uint8_t bebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
+                            bytes[3], bytes[2], bytes[1], bytes[0]};
+      memcpy(dest, bebytes, 8);
+    }
     return status;
 #else
     return pb_read(stream, (uint8_t*)dest, 8);
