@@ -34,19 +34,22 @@ bool print_person(pb_istream_t *stream)
         printf("phone {\n");
         printf("  number: \"%s\"\n", phone->number);
         
-        switch (phone->type)
+        if (phone->has_type)
         {
-            case Person_PhoneType_WORK:
-                printf("  type: WORK\n");
-                break;
-            
-            case Person_PhoneType_HOME:
-                printf("  type: HOME\n");
-                break;
-            
-            case Person_PhoneType_MOBILE:
-                printf("  type: MOBILE\n");
-                break;
+            switch (phone->type)
+            {
+                case Person_PhoneType_WORK:
+                    printf("  type: WORK\n");
+                    break;
+                
+                case Person_PhoneType_HOME:
+                    printf("  type: HOME\n");
+                    break;
+                
+                case Person_PhoneType_MOBILE:
+                    printf("  type: MOBILE\n");
+                    break;
+            }
         }
         printf("}\n");
     }

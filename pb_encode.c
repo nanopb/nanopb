@@ -376,6 +376,7 @@ bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field
     status = pb_encode(&substream, (pb_field_t*)field->ptr, src);
     
     stream->bytes_written += substream.bytes_written;
+    stream->state = substream.state;
     
     if (substream.bytes_written != size)
         return false;
