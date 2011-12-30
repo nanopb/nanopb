@@ -57,5 +57,5 @@ run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_
 	[ "`./test_encode_callbacks | ./test_decode_callbacks`" = \
 	"`./test_encode_callbacks | protoc --decode=TestMessage callbacks.proto`" ]
 
-run_fuzztest: test_decode1
-	bash -c 'I=1; while cat /dev/urandom | ./test_decode1 > /dev/null; do I=$$(($$I+1)); echo -en "\r$$I"; done'
+run_fuzztest: test_decode2
+	bash -c 'I=1; while true; do cat /dev/urandom | ./test_decode2 > /dev/null; I=$$(($$I+1)); echo -en "\r$$I"; done'
