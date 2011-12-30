@@ -18,6 +18,7 @@ pb_decode.o: ../pb_decode.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 test_decode1: test_decode1.o pb_decode.o person.pb.o
+test_decode2: test_decode2.o pb_decode.o person.pb.o
 test_encode1: test_encode1.o pb_encode.o person.pb.o
 test_encode2: test_encode2.o pb_encode.o person.pb.o
 test_decode_callbacks: test_decode_callbacks.o pb_decode.o callbacks.pb.o
@@ -38,7 +39,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_decode1 test_encode_callbacks test_decode_callbacks
+run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_decode1 test_decode2 test_encode_callbacks test_decode_callbacks
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null
@@ -48,6 +49,9 @@ run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_
 	"`./test_encode1 | protoc --decode=Person -I. -I../generator -I/usr/include person.proto`" ]
 
 	[ "`./test_encode2 | ./test_decode1`" = \
+	"`./test_encode2 | protoc --decode=Person -I. -I../generator -I/usr/include person.proto`" ]
+
+	[ "`./test_encode2 | ./test_decode2`" = \
 	"`./test_encode2 | protoc --decode=Person -I. -I../generator -I/usr/include person.proto`" ]
 	
 	[ "`./test_encode_callbacks | ./test_decode_callbacks`" = \

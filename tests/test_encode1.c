@@ -22,7 +22,7 @@ int main()
     /* Now encode it and check if we succeeded. */
     if (pb_encode(&stream, Person_fields, &person))
     {
-        fwrite(buffer, stream.bytes_written, 1, stdout);
+        fwrite(buffer, 1, stream.bytes_written, stdout);
         return 0; /* Success */
     }
     else

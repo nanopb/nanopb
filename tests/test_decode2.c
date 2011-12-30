@@ -1,9 +1,4 @@
-/* A very simple decoding test case, using person.proto.
- * Produces output compatible with protoc --decode.
- * Reads the encoded data from stdin and prints the values
- * to stdout as text.
- *
- * Run e.g. ./test_encode1 | ./test_decode1
+/* Same as test_decode1 but reads from stdin directly.
  */
 
 #include <stdio.h>
@@ -11,7 +6,8 @@
 #include "person.pb.h"
 
 /* This function is called once from main(), it handles
-   the decoding and printing. */
+   the decoding and printing.
+   Ugly copy-paste from test_decode1.c. */
 bool print_person(pb_istream_t *stream)
 {
     int i;
@@ -57,16 +53,33 @@ bool print_person(pb_istream_t *stream)
     return true;
 }
 
+/* This binds the pb_istream_t to stdin */
+bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+{
+    FILE *file = (FILE*)stream->state;
+    bool status;
+    
+    if (buf == NULL)
+    {
+       /* Skipping data */
+        while (count-- && fgetc(file) != EOF);
+        return count == 0;
+    }
+    
+    status = (fread(buf, 1, count, file) == count);
+    
+    if (feof(file))
+        stream->bytes_left = 0;
+    
+    return status;
+}
+
 int main()
 {
-    /* Read the data into buffer */
-    uint8_t buffer[512];
-    size_t count = fread(buffer, 1, sizeof(buffer), stdin);
-    
-    /* Construct a pb_istream_t for reading from the buffer */
-    pb_istream_t stream = pb_istream_from_buffer(buffer, count);
-    
-    /* Decode and print out the stuff */
+    /* Maximum size is specified to prevent infinite length messages from
+     * hanging this in the fuzz test.
+     */
+    pb_istream_t stream = {&callback, stdin, 10000};
     if (!print_person(&stream))
     {
         printf("Parsing failed.\n");
