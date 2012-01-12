@@ -219,9 +219,6 @@ class Field:
             result += '\n    pb_membersize(%s, %s[0]),' % (self.struct_name, self.name)
             result += ('\n    pb_membersize(%s, %s) / pb_membersize(%s, %s[0]),'
                        % (self.struct_name, self.name, self.struct_name, self.name))
-        elif self.htype != 'PB_HTYPE_CALLBACK' and self.ltype == 'PB_LTYPE_BYTES':
-            result += '\n    pb_membersize(%s, bytes),' % self.ctype
-            result += ' 0,'
         else:
             result += '\n    pb_membersize(%s, %s),' % (self.struct_name, self.name)
             result += ' 0,'

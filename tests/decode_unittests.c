@@ -167,14 +167,22 @@ int main()
     {
         pb_istream_t s;
         struct { size_t size; uint8_t bytes[5]; } d;
-        pb_field_t f = {1, PB_LTYPE_BYTES, 0, 0, 5, 0, 0};
+        pb_field_t f = {1, PB_LTYPE_BYTES, 0, 0, sizeof(d), 0, 0};
         
         COMMENT("Test pb_dec_bytes")
         TEST((s = S("\x00"), pb_dec_bytes(&s, &f, &d) && d.size == 0))
         TEST((s = S("\x01\xFF"), pb_dec_bytes(&s, &f, &d) && d.size == 1 && d.bytes[0] == 0xFF))
-        TEST((s = S("\x06xxxxxx"), !pb_dec_bytes(&s, &f, &d)))
         TEST((s = S("\x05xxxxx"), pb_dec_bytes(&s, &f, &d) && d.size == 5))
         TEST((s = S("\x05xxxx"), !pb_dec_bytes(&s, &f, &d)))
+        
+        /* Note: the size limit on bytes-fields is not strictly obeyed, as
+         * the compiler may add some padding to the struct. Using this padding
+         * is not a very good thing to do, but it is difficult to avoid when
+         * we use only a single uint8_t to store the size of the field.
+         * Therefore this tests against a 10-byte string, while otherwise even
+         * 6 bytes should error out.
+         */
+        TEST((s = S("\x10xxxxxxxxxx"), !pb_dec_bytes(&s, &f, &d)))
     }
     
     {

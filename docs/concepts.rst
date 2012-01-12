@@ -158,7 +158,10 @@ required bytes data = 1 [(nanopb).max_size = 40];                               
                                                                                 | Person_data_t data;
 =============================================================================== =======================
 
-The maximum lengths are checked in runtime. If string/bytes/array exceeds the allocated length, *pb_decode* will return false. 
+The maximum lengths are checked in runtime. If string/bytes/array exceeds the allocated length, *pb_decode* will return false.
+
+Note: for the *bytes* datatype, the field length checking may not be exact.
+The compiler may add some padding to the *pb_bytes_t* structure, and the nanopb runtime doesn't know how much of the structure size is padding. Therefore it uses the whole length of the structure for storing data, which is not very smart but shouldn't cause problems. In practise, this means that if you specify *(nanopb).max_size=5* on a *bytes* field, you may be able to store 6 bytes there. For the *string* field type, the length limit is exact.
 
 Field callbacks
 ===============

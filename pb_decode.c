@@ -509,7 +509,8 @@ bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, voi
         return false;
     x->size = temp;
     
-    if (x->size > field->data_size)
+    /* Check length, noting the space taken by the size_t header. */
+    if (x->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
         return false;
     
     return pb_read(stream, x->bytes, x->size);
@@ -522,6 +523,7 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
     if (!pb_decode_varint32(stream, &size))
         return false;
     
+    /* Check length, noting the null terminator */
     if (size > field->data_size - 1)
         return false;
     
