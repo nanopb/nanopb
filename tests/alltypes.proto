@@ -1,0 +1,40 @@
+import "nanopb.proto";
+
+message SubMessage {
+    required string substuff1 = 1 [(nanopb).max_size = 16];
+    required int32 substuff2 = 2;
+}
+
+enum MyEnum {
+    First = 1;
+    Second = 2;
+    Truth = 42;
+}
+
+message AllTypes {
+    required int32      req_int32   = 1;
+    required int64      req_int64   = 2;
+    required uint32     req_uint32  = 3;
+    required uint64     req_uint64  = 4;
+    required sint32     req_sint32  = 5;
+    required sint64     req_sint64  = 6;
+    required bool       req_bool    = 7;
+    
+    required fixed32    req_fixed32 = 8;
+    required sfixed32   req_sfixed32= 9;
+    required float      req_float   = 10;
+    
+    required fixed64    req_fixed64 = 11;
+    required sfixed64   req_sfixed64= 12;
+    required double     req_double  = 13;
+    
+    required string     req_string  = 14 [(nanopb).max_size = 16];
+    required bytes      req_bytes   = 15 [(nanopb).max_size = 16];
+    required SubMessage req_submsg  = 16;
+    required MyEnum     req_enum    = 17;
+    
+    // Just to make sure that the size of the fields has been calculated
+    // properly, i.e. otherwise a bug in last field might not be detected.
+    required int32      end = 99;
+}
+

@@ -1,12 +1,12 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0 --coverage
 LDFLAGS=--coverage
-DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h
+DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests
 
 all: breakpoints $(TESTS) run_unittests
 
 clean:
-	rm -f $(TESTS) person.pb* *.o *.gcda *.gcno
+	rm -f $(TESTS) person.pb* alltypes.pb* *.o *.gcda *.gcno
 
 %.o: %.c
 %.o: %.c $(DEPS)
@@ -19,8 +19,10 @@ pb_decode.o: ../pb_decode.c $(DEPS)
 
 test_decode1: test_decode1.o pb_decode.o person.pb.o
 test_decode2: test_decode2.o pb_decode.o person.pb.o
+test_decode3: test_decode3.o pb_decode.o alltypes.pb.o
 test_encode1: test_encode1.o pb_encode.o person.pb.o
 test_encode2: test_encode2.o pb_encode.o person.pb.o
+test_encode3: test_encode3.o pb_encode.o alltypes.pb.o
 test_decode_callbacks: test_decode_callbacks.o pb_decode.o callbacks.pb.o
 test_encode_callbacks: test_encode_callbacks.o pb_encode.o callbacks.pb.o
 decode_unittests: decode_unittests.o pb_decode.o unittestproto.pb.o
@@ -39,7 +41,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_decode1 test_decode2 test_encode_callbacks test_decode_callbacks
+run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null
@@ -56,6 +58,9 @@ run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_
 	
 	[ "`./test_encode_callbacks | ./test_decode_callbacks`" = \
 	"`./test_encode_callbacks | protoc --decode=TestMessage callbacks.proto`" ]
+
+	./test_encode3 | ./test_decode3
+	./test_encode3 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
 
 run_fuzztest: test_decode2
 	bash -c 'I=1; while true; do cat /dev/urandom | ./test_decode2 > /dev/null; I=$$(($$I+1)); echo -en "\r$$I"; done'
