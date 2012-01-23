@@ -376,7 +376,12 @@ Because of memory concerns, the detection of missing required fields is not perf
 
     Each field decoder reads and decodes a single value. For arrays, the decoder is called repeatedly.
 
-    You can use the decoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the field decoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *dest*.
+    You can use the decoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible 
+    with the *varint* field decoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type 
+    you pass to *dest*, e.g. *field.data_size = sizeof(int);*. Other fields in the *pb_field_t* don't matter.
+
+    The field decoder interface is a bit messy as a result of the interface required inside the nanopb library.
+    Eventually they may be replaced by separate wrapper functions with a more friendly interface.
 
 pb_dec_varint
 -------------
@@ -403,12 +408,12 @@ pb_dec_fixed32
 --------------
 Field decoder for PB_LTYPE_FIXED32. ::
 
-    bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
+    bool pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
-:stream:        Input stream to read from. 1-10 bytes will be read.
+:stream:        Input stream to read from. 4 bytes will be read.
 :field:         Not used.
-:dest:          Pointer to destination integer. Must have size of *field->data_size* bytes.
-:returns:       True on success, false on IO errors or if `pb_decode_varint`_ fails.
+:dest:          Pointer to destination *int32_t*, *uint32_t* or *float*.
+:returns:       True on success, false on IO errors.
 
 This function reads 4 bytes from the input stream.
 On big endian architectures, it then reverses the order of the bytes.
@@ -420,6 +425,11 @@ Field decoder for PB_LTYPE_FIXED64. ::
 
     bool pb_dec_fixed(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
+:stream:        Input stream to read from. 8 bytes will be read.
+:field:         Not used.
+:dest:          Pointer to destination *int64_t*, *uint64_t* or *double*.
+:returns:       True on success, false on IO errors.
+
 Same as `pb_dec_fixed32`_, except this reads 8 bytes.
 
 pb_dec_bytes
@@ -427,6 +437,9 @@ pb_dec_bytes
 Field decoder for PB_LTYPE_BYTES. Reads a length-prefixed block of bytes. ::
 
     bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
+
+**Note:** This is an internal function that is not useful in decoder callbacks. To read bytes fields in callbacks, use 
+*stream->bytes_left* and `pb_read`_.
 
 :stream:        Input stream to read from.
 :field:         Field description structure. Only *field->data_size* matters.
@@ -441,6 +454,9 @@ Field decoder for PB_LTYPE_STRING. Reads a length-prefixed string. ::
 
     bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
 
+**Note:** This is an internal function that is not useful in decoder callbacks. To read string fields in callbacks, use 
+*stream->bytes_left* and `pb_read`_.
+
 :stream:        Input stream to read from.
 :field:         Field description structure. Only *field->data_size* matters.
 :dest:          Pointer to a character array of size *field->data_size*.
@@ -453,6 +469,9 @@ pb_dec_submessage
 Field decoder for PB_LTYPE_SUBMESSAGE. Calls `pb_decode`_ to perform the actual decoding. ::
 
     bool pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
+
+**Note:** This is an internal function that is not useful in decoder callbacks. To read submessage fields in callbacks, use 
+`pb_decode`_ directly.
 
 :stream:        Input stream to read from.
 :field:         Field description structure. Only *field->ptr* matters.
