@@ -404,7 +404,7 @@ if __name__ == '__main__':
         print "Output fill be written to file.pb.h and file.pb.c"
         sys.exit(1)
     
-    data = open(sys.argv[1]).read()
+    data = open(sys.argv[1], 'rb').read()
     fdesc = descriptor.FileDescriptorSet.FromString(data)
     enums, messages = parse_file(fdesc.file[0])
     
