@@ -347,7 +347,7 @@ def sort_dependencies(messages):
         if msgname in message_by_name:
             yield message_by_name[msgname]
 
-def generate_header(headername, enums, messages):
+def generate_header(dependencies, headername, enums, messages):
     '''Generate content for a header file.
     Generates strings, which should be concatenated and stored to file.
     '''
@@ -358,6 +358,11 @@ def generate_header(headername, enums, messages):
     yield '#ifndef _PB_%s_\n' % symbol
     yield '#define _PB_%s_\n' % symbol
     yield '#include <pb.h>\n\n'
+    
+    for dependency in dependencies:
+        noext = os.path.splitext(dependency)[0]
+        yield '#include "%s.pb.h"\n' % noext
+    yield '\n'
     
     yield '/* Enum definitions */\n'
     for enum in enums:
@@ -415,8 +420,13 @@ if __name__ == '__main__':
     
     print "Writing to " + headername + " and " + sourcename
     
+    # List of .proto files that should not be included in the C header file
+    # even if they are mentioned in the source .proto.
+    excludes = ['nanopb.proto']
+    dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
+    
     header = open(headername, 'w')
-    for part in generate_header(headerbasename, enums, messages):
+    for part in generate_header(dependencies, headerbasename, enums, messages):
         header.write(part)
 
     source = open(sourcename, 'w')
