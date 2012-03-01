@@ -3,6 +3,7 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
+#define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_encode.h"
 #include <string.h>
@@ -220,6 +221,40 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
     return pb_write(stream, buffer, i);
 }
 
+bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
+{
+    uint64_t zigzagged;
+    if (value < 0)
+        zigzagged = ~(value << 1);
+    else
+        zigzagged = value << 1;
+    
+    return pb_encode_varint(stream, zigzagged);
+}
+
+bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
+{
+    #ifdef __BIG_ENDIAN__
+    uint8_t *bytes = value;
+    uint8_t lebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
+    return pb_write(stream, lebytes, 4);
+    #else
+    return pb_write(stream, (uint8_t*)value, 4);
+    #endif
+}
+
+bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
+{
+    #ifdef __BIG_ENDIAN__
+    uint8_t *bytes[8] = value;
+    uint8_t lebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
+                          bytes[3], bytes[2], bytes[1], bytes[0]};
+    return pb_write(stream, lebytes, 8);
+    #else
+    return pb_write(stream, (uint8_t*)value, 8);
+    #endif
+}
+
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number)
 {
     int tag = wiretype | (field_number << 3);
@@ -265,94 +300,14 @@ bool checkreturn pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, s
     return pb_write(stream, buffer, size);
 }
 
-/* Field encoders */
-
-/* Copy srcsize bytes from src so that values are casted properly.
- * On little endian machine, copy to start of dest
- * On big endian machine, copy to end of dest
- * destsize must always be larger than srcsize
- * 
- * Note: This is the reverse of the endian_copy in pb_decode.c.
- */
-static void endian_copy(void *dest, const void *src, size_t destsize, size_t srcsize)
+bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
-#ifdef __BIG_ENDIAN__
-    memcpy((char*)dest + (destsize - srcsize), src, srcsize);
-#else
-    memcpy(dest, src, srcsize);
-#endif
-}
-
-bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    uint64_t value = 0;
-    endian_copy(&value, src, sizeof(value), field->data_size);
-    return pb_encode_varint(stream, value);
-}
-
-bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    uint64_t value = 0;
-    uint64_t zigzagged;
-    uint64_t signbitmask, xormask;
-    endian_copy(&value, src, sizeof(value), field->data_size);
-    
-    signbitmask = (uint64_t)0x80 << (field->data_size * 8 - 8);
-    xormask = ((uint64_t)-1) >> (64 - field->data_size * 8);
-    if (value & signbitmask)
-        zigzagged = ((value ^ xormask) << 1) | 1;
-    else
-        zigzagged = value << 1;
-    
-    return pb_encode_varint(stream, zigzagged);
-}
-
-bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    #ifdef __BIG_ENDIAN__
-    uint8_t bytes[8] = {0};
-    memcpy(bytes, src, 8);
-    uint8_t lebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
-                          bytes[3], bytes[2], bytes[1], bytes[0]};
-    return pb_write(stream, lebytes, 8);
-    #else
-    return pb_write(stream, (uint8_t*)src, 8);
-    #endif
-}
-
-bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    #ifdef __BIG_ENDIAN__
-    uint8_t bytes[4] = {0};
-    memcpy(bytes, src, 4);
-    uint8_t lebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
-    return pb_write(stream, lebytes, 4);
-    #else
-    return pb_write(stream, (uint8_t*)src, 4);
-    #endif
-}
-
-bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    pb_bytes_array_t *bytes = (pb_bytes_array_t*)src;
-    return pb_encode_string(stream, bytes->bytes, bytes->size);
-}
-
-bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
-    return pb_encode_string(stream, (uint8_t*)src, strlen((char*)src));
-}
-
-bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
-{
+    /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = {0};
     size_t size;
     bool status;
     
-    if (field->ptr == NULL)
-        return false;
-    
-    if (!pb_encode(&substream, (pb_field_t*)field->ptr, src))
+    if (!pb_encode(&substream, fields, src_struct))
         return false;
     
     size = substream.bytes_written;
@@ -373,7 +328,7 @@ bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field
     substream.max_size = size;
     substream.bytes_written = 0;
     
-    status = pb_encode(&substream, (pb_field_t*)field->ptr, src);
+    status = pb_encode(&substream, fields, src_struct);
     
     stream->bytes_written += substream.bytes_written;
     stream->state = substream.state;
@@ -382,5 +337,66 @@ bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field
         return false;
     
     return status;
+}
+
+/* Field encoders */
+
+bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    uint64_t value = 0;
+    
+    switch (field->data_size)
+    {
+        case 1: value = *(uint8_t*)src; break;
+        case 2: value = *(uint16_t*)src; break;
+        case 4: value = *(uint32_t*)src; break;
+        case 8: value = *(uint64_t*)src; break;
+        default: return false;
+    }
+    
+    return pb_encode_varint(stream, value);
+}
+
+bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    uint64_t value = 0;
+    
+    switch (field->data_size)
+    {
+        case 4: value = *(int32_t*)src; break;
+        case 8: value = *(int64_t*)src; break;
+        default: return false;
+    }
+    
+    return pb_encode_svarint(stream, value);
+}
+
+bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    return pb_encode_fixed64(stream, src);
+}
+
+bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    return pb_encode_fixed32(stream, src);
+}
+
+bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    pb_bytes_array_t *bytes = (pb_bytes_array_t*)src;
+    return pb_encode_string(stream, bytes->bytes, bytes->size);
+}
+
+bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    return pb_encode_string(stream, (uint8_t*)src, strlen((char*)src));
+}
+
+bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    if (field->ptr == NULL)
+        return false;
+    
+    return pb_encode_submessage(stream, (pb_field_t*)field->ptr, src);
 }
 

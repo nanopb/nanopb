@@ -149,17 +149,13 @@ Encodes the contents of a structure as a protocol buffers message and writes it 
 
 Normally pb_encode simply walks through the fields description array and serializes each field in turn. However, submessages must be serialized twice: first to calculate their size and then to actually write them to output. This causes some constraints for callback fields, which must return the same data on every call.
 
-pb_encode_varint
-----------------
-Encodes an unsigned integer in the varint_ format. ::
+.. sidebar:: Encoding fields manually
 
-    bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
+    The functions with names *pb_encode_\** are used when dealing with callback fields. The typical reason for using callbacks is to have an array of unlimited size. In that case, `pb_encode`_ will call your callback function, which in turn will call *pb_encode_\** functions repeatedly to write out values.
 
-:stream:        Output stream to write to. 1-10 bytes will be written.
-:value:         Value to encode.
-:returns:       True on success, false on IO error.
+    The tag of a field must be encoded separately with `pb_encode_tag_for_field`_. After that, you can call exactly one of the content-writing functions to encode the payload of the field. For repeated fields, you can repeat this process multiple times.
 
-.. _varint: http://code.google.com/apis/protocolbuffers/docs/encoding.html#varints
+    Writing packed arrays is a little bit more involved: you need to use `pb_encode_tag` and specify `PB_WT_STRING` as the wire type. Then you need to know exactly how much data you are going to write, and use `pb_encode_varint`_ to write out the number of bytes before writing the actual data. Substreams can be used to determine the number of bytes beforehand; see `pb_encode_submessage`_ source code for an example.
 
 pb_encode_tag
 -------------
@@ -169,7 +165,7 @@ Starts a field in the Protocol Buffers binary format: encodes the field number a
 
 :stream:        Output stream to write to. 1-5 bytes will be written.
 :wiretype:      PB_WT_VARINT, PB_WT_64BIT, PB_WT_STRING or PB_WT_32BIT
-:field_number:  Identifier for the field, defined in the .proto file.
+:field_number:  Identifier for the field, defined in the .proto file. You can get it from field->tag.
 :returns:       True on success, false on IO error.
 
 pb_encode_tag_for_field
@@ -195,107 +191,71 @@ STRING, BYTES, SUBMESSAGE PB_WT_STRING
 FIXED32                   PB_WT_32BIT
 ========================= ============
 
+pb_encode_varint
+----------------
+Encodes a signed or unsigned integer in the varint_ format. Works for fields of type `bool`, `enum`, `int32`, `int64`, `uint32` and `uint64`::
+
+    bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
+
+:stream:        Output stream to write to. 1-10 bytes will be written.
+:value:         Value to encode. Just cast e.g. int32_t directly to uint64_t.
+:returns:       True on success, false on IO error.
+
+.. _varint: http://code.google.com/apis/protocolbuffers/docs/encoding.html#varints
+
+pb_encode_svarint
+-----------------
+Encodes a signed integer in the 'zig-zagged' format. Works for fields of type `sint32` and `sint64`::
+
+    bool pb_encode_svarint(pb_ostream_t *stream, int64_t value);
+
+(parameters are the same as for `pb_encode_varint`_
+
 pb_encode_string
 ----------------
-Writes the length of a string as varint and then contents of the string. Used for writing fields with wire type PB_WT_STRING. ::
+Writes the length of a string as varint and then contents of the string. Works for fields of type `bytes` and `string`::
 
     bool pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size);
 
 :stream:        Output stream to write to.
 :buffer:        Pointer to string data.
-:size:          Number of bytes in the string.
+:size:          Number of bytes in the string. Pass `strlen(s)` for strings.
 :returns:       True on success, false on IO error.
 
-.. sidebar:: Field encoders
-
-    The functions with names beginning with *pb_enc_* are called field encoders. Each PB_LTYPE has an own field encoder, which handles translating from C data into Protocol Buffers data.
-
-    By using the *data_size* in the field description and by taking advantage of C casting rules, it has been possible to combine many data types to a single LTYPE. For example, *int32*, *uint32*, *int64*, *uint64*, *bool* and *enum* are all handled by *pb_enc_varint*.
-
-    Each field encoder only encodes the contents of the field. The tag must be encoded separately with `pb_encode_tag_for_field`_.
-
-    You can use the field encoders from your callbacks. Just be aware that the pb_field_t passed to the callback is not directly compatible with most of the encoders. Instead, you must create a new pb_field_t structure and set the data_size according to the data type you pass to *src*.
-
-pb_enc_varint
--------------
-Field encoder for PB_LTYPE_VARINT. Takes the first *field->data_size* bytes from src, casts them as *uint64_t* and calls `pb_encode_varint`_. ::
-
-    bool pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-:stream:        Output stream to write to.
-:field:         Field description structure. Only *data_size* matters.
-:src:           Pointer to start of the field data.
-:returns:       True on success, false on IO error.
-
-pb_enc_svarint
---------------
-Field encoder for PB_LTYPE_SVARINT. Similar to `pb_enc_varint`_, except first zig-zag encodes the value for more efficient negative number encoding. ::
-
-    bool pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-(parameters are the same as for `pb_enc_varint`_)
-
-The number is considered negative if the high-order bit of the value is set. On big endian computers, it is the highest bit of *\*src*. On little endian computers, it is the highest bit of *\*(src + field->data_size - 1)*.
-
-pb_enc_fixed32
---------------
-Field encoder for PB_LTYPE_FIXED32. Writes the data in little endian order. On big endian computers, reverses the order of bytes. ::
-
-    bool pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-:stream:        Output stream to write to.
-:field:         Not used.
-:src:           Pointer to start of the field data.
-:returns:       True on success, false on IO error.
-
-pb_enc_fixed64
---------------
-Field encoder for PB_LTYPE_FIXED64. Writes the data in little endian order. On big endian computers, reverses the order of bytes. ::
-
-    bool pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-(parameters are the same as for `pb_enc_fixed32`_)
-
-The same function is used for both integers and doubles. This breaks encoding of double values on architectures where they are mixed endian (primarily some arm processors with hardware FPU).
-
-pb_enc_bytes
-------------
-Field encoder for PB_LTYPE_BYTES. Just calls `pb_encode_string`_. ::
-
-    bool pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-:stream:        Output stream to write to.
-:field:         Not used.
-:src:           Pointer to a structure similar to pb_bytes_array_t.
-:returns:       True on success, false on IO error.
-
-This function expects a pointer to a structure with a *size_t* field at start, and a variable sized byte array after it. The platform-specific field offset is inferred from *pb_bytes_array_t*, which has a byte array of size 1.
-
-pb_enc_string
--------------
-Field encoder for PB_LTYPE_STRING. Determines size of string with strlen() and then calls `pb_encode_string`_. ::
-
-    bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
-:stream:        Output stream to write to.
-:field:         Not used.
-:src:           Pointer to a null-terminated string.
-:returns:       True on success, false on IO error.
-
-pb_enc_submessage
+pb_encode_fixed32
 -----------------
-Field encoder for PB_LTYPE_SUBMESSAGE. Calls `pb_encode`_ to perform the actual encoding. ::
+Writes 4 bytes to stream and swaps bytes on big-endian architectures. Works for fields of type `fixed32`, `sfixed32` and `float`::
 
-    bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+    bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
+
+:stream:    Output stream to write to.
+:value:     Pointer to a 4-bytes large C variable, for example `uint32_t foo;`.
+:returns:   True on success, false on IO error.
+
+pb_encode_fixed64
+-----------------
+Writes 8 bytes to stream and swaps bytes on big-endian architecture. Works for fields of type `fixed64`, `sfixed64` and `double`::
+
+    bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
+
+:stream:    Output stream to write to.
+:value:     Pointer to a 8-bytes large C variable, for example `uint64_t foo;`.
+:returns:   True on success, false on IO error.
+
+pb_encode_submessage
+--------------------
+Encodes a submessage field, including the size header for it. Works for fields of any message type::
+
+    bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
 :stream:        Output stream to write to.
-:field:         Field description structure. The *ptr* field must be a pointer to a field description array for the submessage.
+:fields:        Pointer to the autogenerated field description array for the submessage type, e.g. `MyMessage_fields`.
 :src:           Pointer to the structure where submessage data is.
 :returns:       True on success, false on IO errors, pb_encode errors or if submessage size changes between calls.
 
 In Protocol Buffers format, the submessage size must be written before the submessage contents. Therefore, this function has to encode the submessage twice in order to know the size beforehand.
 
-If the submessage contains callback fields, the callback function might misbehave and write out a different amount of data on the second call. This situation is recognized and *false* is returned, but it is up to the caller to ensure that the receiver of the message does not interpret it as valid data.
+If the submessage contains callback fields, the callback function might misbehave and write out a different amount of data on the second call. This situation is recognized and *false* is returned, but garbage will be written to the output before the problem is detected.
 
 pb_decode.h
 ===========

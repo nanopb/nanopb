@@ -1,3 +1,5 @@
+#define NANOPB_INTERNALS
+
 #include <stdio.h>
 #include <string.h>
 #include "pb_encode.h"
@@ -123,7 +125,6 @@ int main()
         uint8_t buffer[30];
         pb_ostream_t s;
         uint8_t value = 1;
-        int8_t svalue = -1;
         int32_t max = INT32_MAX;
         int32_t min = INT32_MIN;
         int64_t lmax = INT64_MAX;
@@ -132,8 +133,6 @@ int main()
         
         COMMENT("Test pb_enc_varint and pb_enc_svarint")
         TEST(WRITES(pb_enc_varint(&s, &field, &value), "\x01"));
-        TEST(WRITES(pb_enc_svarint(&s, &field, &svalue), "\x01"));
-        TEST(WRITES(pb_enc_svarint(&s, &field, &value), "\x02"));
         
         field.data_size = sizeof(max);
         TEST(WRITES(pb_enc_svarint(&s, &field, &max), "\xfe\xff\xff\xff\x0f"));

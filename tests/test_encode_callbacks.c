@@ -29,7 +29,7 @@ bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *a
         return false;
     
     uint32_t value = 42;
-    return pb_enc_fixed32(stream, field, &value);
+    return pb_encode_fixed32(stream, &value);
 }
 
 bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
@@ -38,7 +38,7 @@ bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *a
         return false;
     
     uint64_t value = 42;
-    return pb_enc_fixed64(stream, field, &value);
+    return pb_encode_fixed64(stream, &value);
 }
 
 int main()

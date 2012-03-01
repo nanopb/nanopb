@@ -48,25 +48,56 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
  * You may want to use these from your caller or callbacks.
  */
 
-bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
-bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number);
-/* Encode tag based on LTYPE and field number defined in the field structure. */
+/* Encode field header based on LTYPE and field number defined in the field structure.
+ * Call this from the callback before writing out field contents. */
 bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
-/* Write length as varint and then the contents of buffer. */
+
+/* Encode field header by manually specifing wire type. You need to use this if
+ * you want to write out packed arrays from a callback field. */
+bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number);
+
+/* Encode an integer in the varint format.
+ * This works for bool, enum, int32, int64, uint32 and uint64 field types. */
+bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
+
+/* Encode an integer in the zig-zagged svarint format.
+ * This works for sint32 and sint64. */
+bool pb_encode_svarint(pb_ostream_t *stream, int64_t value);
+
+/* Encode a string or bytes type field. For strings, pass strlen(s) as size. */
 bool pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size);
 
-/* --- Field encoders ---
- * Each encoder writes the content for the field.
- * The tag/wire type has been written already.
+/* Encode a fixed32, sfixed32 or float value.
+ * You need to pass a pointer to a 4-byte wide C variable. */
+bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
+
+/* Encode a fixed64, sfixed64 or double value.
+ * You need to pass a pointer to a 8-byte wide C variable. */
+bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
+
+/* Encode a submessage field.
+ * You need to pass the pb_field_t array and pointer to struct, just like with pb_encode().
+ * This internally encodes the submessage twice, first to calculate message size and then to actually write it out.
+ */
+bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+
+/* --- Internal functions ---
+ * These functions are not terribly useful for the average library user, but
+ * are exported to make the unit testing and extending nanopb easier.
  */
 
+#ifdef NANOPB_INTERNALS
 bool pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
 bool pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+#endif
+
+/* This function is not recommended for new programs. Use pb_encode_submessage()
+ * instead, it has the same functionality with a less confusing interface. */
 bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+
 
 #endif

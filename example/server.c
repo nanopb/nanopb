@@ -38,7 +38,7 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, const void 
         if (!pb_encode_tag_for_field(stream, field))
             return false;
         
-        if (!pb_enc_submessage(stream, field, &fileinfo))
+        if (!pb_encode_submessage(stream, FileInfo_fields, &fileinfo))
             return false;
     }
     
