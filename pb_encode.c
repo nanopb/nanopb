@@ -76,7 +76,7 @@ bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
                          const void *pData, size_t count, pb_encoder_t func)
 {
-    int i;
+    size_t i;
     const void *p;
     size_t size;
     
@@ -212,7 +212,7 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
     
     while (value)
     {
-        buffer[i] = (value & 0x7F) | 0x80;
+        buffer[i] = (uint8_t)((value & 0x7F) | 0x80);
         value >>= 7;
         i++;
     }
@@ -373,22 +373,26 @@ bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, c
 
 bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
+    UNUSED(field);
     return pb_encode_fixed64(stream, src);
 }
 
 bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
+    UNUSED(field);
     return pb_encode_fixed32(stream, src);
 }
 
 bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     pb_bytes_array_t *bytes = (pb_bytes_array_t*)src;
+    UNUSED(field);
     return pb_encode_string(stream, bytes->bytes, bytes->size);
 }
 
 bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
+    UNUSED(field);
     return pb_encode_string(stream, (uint8_t*)src, strlen((char*)src));
 }
 

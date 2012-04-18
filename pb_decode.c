@@ -75,7 +75,7 @@ static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 {
     uint64_t temp;
     bool status = pb_decode_varint(stream, &temp);
-    *dest = temp;
+    *dest = (uint32_t)temp;
     return status;
 }
 
@@ -448,6 +448,7 @@ static void endian_copy(void *dest, void *src, size_t destsize, size_t srcsize)
 #ifdef __BIG_ENDIAN__
     memcpy(dest, (char*)src + (srcsize - destsize), destsize);
 #else
+    UNUSED(srcsize);
     memcpy(dest, src, destsize);
 #endif
 }
@@ -480,6 +481,7 @@ bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, v
     }
     return status;
 #else
+    UNUSED(field);
     return pb_read(stream, (uint8_t*)dest, 4);
 #endif
 }
@@ -496,6 +498,7 @@ bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, v
     }
     return status;
 #else
+    UNUSED(field);
     return pb_read(stream, (uint8_t*)dest, 8);
 #endif
 }
@@ -524,7 +527,7 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
         return false;
     
     /* Check length, noting the null terminator */
-    if (size > field->data_size - 1)
+    if (size + 1 > field->data_size)
         return false;
     
     status = pb_read(stream, (uint8_t*)dest, size);
