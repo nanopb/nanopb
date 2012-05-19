@@ -30,7 +30,7 @@ bool printfile_callback(pb_istream_t *stream, const pb_field_t *field, void *arg
     if (!pb_decode(stream, FileInfo_fields, &fileinfo))
         return false;
     
-    printf("%-10lld %s\n", fileinfo.inode, fileinfo.name);
+    printf("%-10lld %s\n", (long long)fileinfo.inode, fileinfo.name);
     
     return true;
 }
