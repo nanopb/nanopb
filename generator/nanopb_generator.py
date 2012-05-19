@@ -1,7 +1,27 @@
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
 
-import google.protobuf.descriptor_pb2 as descriptor
-import nanopb_pb2
+try:
+    import google.protobuf.descriptor_pb2 as descriptor
+except:
+    print
+    print "*************************************************************"
+    print "*** Could not import the Google protobuf Python libraries ***"
+    print "*** Try installing package 'python-protobuf' or similar.  ***"
+    print "*************************************************************"
+    print
+    raise
+
+try:
+    import nanopb_pb2
+except:
+    print
+    print "***************************************************************"
+    print "*** Could not import the precompiled nanopb_pb2.py.         ***"
+    print "*** Run 'make' in the 'generator' folder to update the file.***"
+    print "***************************************************************"
+    print
+    raise
+
 import os.path
 
 # Values are tuple (c type, pb ltype)
