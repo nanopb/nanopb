@@ -442,7 +442,7 @@ if __name__ == '__main__':
     
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
-    excludes = ['nanopb.proto']
+    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto']
     dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
     
     header = open(headername, 'w')
