@@ -236,7 +236,11 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
     #ifdef __BIG_ENDIAN__
     uint8_t *bytes = value;
-    uint8_t lebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
+    uint8_t lebytes[4];
+    lebytes[0] = bytes[3];
+    lebytes[1] = bytes[2];
+    lebytes[2] = bytes[1];
+    lebytes[3] = bytes[0];
     return pb_write(stream, lebytes, 4);
     #else
     return pb_write(stream, (uint8_t*)value, 4);
@@ -247,8 +251,15 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
     #ifdef __BIG_ENDIAN__
     uint8_t *bytes[8] = value;
-    uint8_t lebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
-                          bytes[3], bytes[2], bytes[1], bytes[0]};
+    uint8_t lebytes[8];
+    lebytes[0] = bytes[7];
+    lebytes[1] = bytes[6];
+    lebytes[2] = bytes[5];
+    lebytes[3] = bytes[4];
+    lebytes[4] = bytes[3];
+    lebytes[5] = bytes[2];
+    lebytes[6] = bytes[1];
+    lebytes[7] = bytes[0];
     return pb_write(stream, lebytes, 8);
     #else
     return pb_write(stream, (uint8_t*)value, 8);

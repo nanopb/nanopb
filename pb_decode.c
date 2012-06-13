@@ -476,8 +476,11 @@ bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, v
     uint8_t bytes[4] = {0};
     bool status = pb_read(stream, bytes, 4);
     if (status) {
-      uint8_t bebytes[4] = {bytes[3], bytes[2], bytes[1], bytes[0]};
-      memcpy(dest, bebytes, 4);
+        uint8_t *d = (uint8_t*)dest;
+        d[0] = bytes[3];
+        d[1] = bytes[2];
+        d[2] = bytes[1];
+        d[3] = bytes[0];
     }
     return status;
 #else
@@ -492,9 +495,15 @@ bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, v
     uint8_t bytes[8] = {0};
     bool status = pb_read(stream, bytes, 8);
     if (status) {
-      uint8_t bebytes[8] = {bytes[7], bytes[6], bytes[5], bytes[4], 
-                            bytes[3], bytes[2], bytes[1], bytes[0]};
-      memcpy(dest, bebytes, 8);
+        uint8_t *d = (uint8_t*)dest;
+        d[0] = bytes[7];
+        d[1] = bytes[6];
+        d[2] = bytes[5]; 
+        d[3] = bytes[4];
+        d[4] = bytes[3];
+        d[5] = bytes[2];
+        d[6] = bytes[1];
+        d[7] = bytes[0];
     }
     return status;
 #else
