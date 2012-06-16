@@ -117,12 +117,33 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
     return pb_read(stream, NULL, length);
 }
 
-/* Currently the wire type related stuff is kept hidden from
- * callbacks. They shouldn't need it. It's better for performance
- * to just assume the correct type and fail safely on corrupt message.
- */
+bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, int *tag, bool *eof)
+{
+    uint32_t temp;
+    *eof = false;
+    *wire_type = 0;
+    *tag = 0;
+    
+    if (!pb_decode_varint32(stream, &temp))
+    {
+        if (stream->bytes_left == 0)
+            *eof = true;
 
-static bool checkreturn skip(pb_istream_t *stream, pb_wire_type_t wire_type)
+        return false;
+    }
+    
+    if (temp == 0)
+    {
+        *eof = true; /* Special feature: allow 0-terminated messages. */
+        return false;
+    }
+    
+    *tag = temp >> 3;
+    *wire_type = (pb_wire_type_t)(temp & 7);
+    return true;
+}
+
+bool checkreturn pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type)
 {
     switch (wire_type)
     {
@@ -292,7 +313,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
             pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
             
             if (pCallback->funcs.decode == NULL)
-                return skip(stream, wire_type);
+                return pb_skip_field(stream, wire_type);
             
             if (wire_type == PB_WT_STRING)
             {
@@ -392,27 +413,22 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
     
     while (stream->bytes_left)
     {
-        uint32_t temp;
         int tag;
         pb_wire_type_t wire_type;
-        if (!pb_decode_varint32(stream, &temp))
+        bool eof;
+        
+        if (!pb_decode_tag(stream, &wire_type, &tag, &eof))
         {
-            if (stream->bytes_left == 0)
-                break; /* It was EOF */
+            if (eof)
+                break;
             else
-                return false; /* It was error */
+                return false;
         }
-        
-        if (temp == 0)
-            break; /* Special feature: allow 0-terminated messages. */
-        
-        tag = temp >> 3;
-        wire_type = (pb_wire_type_t)(temp & 7);
         
         if (!pb_field_find(&iter, tag))
         {
             /* No match found, skip data */
-            if (!skip(stream, wire_type))
+            if (!pb_skip_field(stream, wire_type))
                 return false;
             continue;
         }

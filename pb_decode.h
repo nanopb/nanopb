@@ -48,6 +48,9 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
  * You may want to use these from your caller or callbacks.
  */
 
+bool pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, int *tag, bool *eof);
+bool pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type);
+
 bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest);
 
 bool pb_skip_varint(pb_istream_t *stream);
