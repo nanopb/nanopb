@@ -6,6 +6,12 @@ Nanopb: API reference
 
 .. contents ::
 
+Compilation options
+===================
+The following options can be specified using -D switch given to the C compiler:
+
+:__BIG_ENDIAN__: Set this if your platform stores integers and floats in big-endian format. Mixed-endian systems (different layout for ints and floats) are currently not supported.
+
 pb.h
 ====
 
