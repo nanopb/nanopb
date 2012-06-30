@@ -10,11 +10,12 @@ Compilation options
 ===================
 The following options can be specified using -D switch given to the C compiler:
 
-==================  ==============================================================================================
-__BIG_ENDIAN__       Set this if your platform stores integers and floats in big-endian format.
-                     Mixed-endian systems (different layout for ints and floats) are currently not supported.
-NANOPB_INTERNALS     Set this to expose the field encoder functions that are hidden since nanopb-0.1.3.
-==================  ==============================================================================================
+============================  ==============================================================================================
+__BIG_ENDIAN__                 Set this if your platform stores integers and floats in big-endian format.
+                               Mixed-endian systems (different layout for ints and floats) are currently not supported.
+NANOPB_INTERNALS               Set this to expose the field encoder functions that are hidden since nanopb-0.1.3.
+PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for presence. Default value is 64.
+============================  ==============================================================================================
 
 pb.h
 ====
@@ -309,8 +310,6 @@ In Protocol Buffers binary format, EOF is only allowed between fields. If it hap
 In addition to EOF, the pb_decode implementation supports terminating a message with a 0 byte. This is compatible with the official Protocol Buffers because 0 is never a valid field tag.
 
 For optional fields, this function applies the default value and sets *has_<field>* to false if the field is not present.
-
-Because of memory concerns, the detection of missing required fields is not perfect if the structure contains more than 32 fields.
 
 pb_decode_varint
 ----------------

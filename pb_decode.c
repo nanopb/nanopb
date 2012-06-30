@@ -206,18 +206,20 @@ static bool checkreturn make_string_substream(pb_istream_t *stream, pb_istream_t
 
 /* Iterator for pb_field_t list */
 typedef struct {
-    const pb_field_t *start;
-    const pb_field_t *current;
-    int field_index;
-    void *dest_struct;
-    void *pData;
-    void *pSize;
+    const pb_field_t *start; /* Start of the pb_field_t array */
+    const pb_field_t *current; /* Current position of the iterator */
+    int field_index; /* Zero-based index of the field. */
+    int required_field_index; /* Zero-based index that counts only the required fields */
+    void *dest_struct; /* Pointer to the destination structure to decode to */
+    void *pData; /* Pointer where to store current field value */
+    void *pSize; /* Pointer where to store the size of current array field */
 } pb_field_iterator_t;
 
 static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, void *dest_struct)
 {
     iter->start = iter->current = fields;
     iter->field_index = 0;
+    iter->required_field_index = 0;
     iter->pData = (char*)dest_struct + iter->current->data_offset;
     iter->pSize = (char*)iter->pData + iter->current->size_offset;
     iter->dest_struct = dest_struct;
@@ -231,12 +233,16 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     if (PB_HTYPE(iter->current->type) == PB_HTYPE_ARRAY)
         prev_size *= iter->current->array_size;
     
+    if (PB_HTYPE(iter->current->type) == PB_HTYPE_REQUIRED)
+        iter->required_field_index++;
+    
     iter->current++;
     iter->field_index++;
     if (iter->current->tag == 0)
     {
         iter->current = iter->start;
         iter->field_index = 0;
+        iter->required_field_index = 0;
         iter->pData = iter->dest_struct;
         prev_size = 0;
         notwrapped = false;
@@ -403,9 +409,8 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
 
 bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
-    uint32_t fields_seen = 0; /* Used to check for required fields */
+    uint8_t fields_seen[(PB_MAX_REQUIRED_FIELDS + 7) / 8] = {}; /* Used to check for required fields */
     pb_field_iterator_t iter;
-    int i;
     
     pb_message_set_to_defaults(fields, dest_struct);
     
@@ -433,21 +438,26 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
             continue;
         }
         
-        fields_seen |= 1 << (iter.field_index & 31);
+        if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED
+            && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
+        {
+            fields_seen[iter.required_field_index >> 3] |= 1 << (iter.required_field_index & 7);
+        }
             
         if (!decode_field(stream, wire_type, &iter))
             return false;
     }
     
-    /* Check that all required fields (mod 31) were present. */
-    for (i = 0; fields[i].tag != 0; i++)
-    {
-        if (PB_HTYPE(fields[i].type) == PB_HTYPE_REQUIRED &&
-            !(fields_seen & (1 << (i & 31))))
+    /* Check that all required fields were present. */
+    pb_field_init(&iter, fields, dest_struct);
+    do {
+        if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED &&
+            iter.required_field_index < PB_MAX_REQUIRED_FIELDS &&
+            !(fields_seen[iter.required_field_index >> 3] & (1 << (iter.required_field_index & 7))))
         {
             return false;
         }
-    }
+    } while (pb_field_next(&iter));
     
     return true;
 }
