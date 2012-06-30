@@ -22,6 +22,11 @@
 #define UNUSED(x) (void)(x)
 #endif
 
+/* Compile-time assertion, used for checking compatible compilation options. */
+#ifndef STATIC_ASSERT
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1];
+#endif
+
 /* Number of required fields to keep track of
  * (change here or on compiler command line). */
 #ifndef PB_MAX_REQUIRED_FIELDS
@@ -101,12 +106,22 @@ typedef enum {
  */
 typedef struct _pb_field_t pb_field_t;
 struct _pb_field_t {
+
+#ifndef PB_MANY_FIELDS
     uint8_t tag;
     pb_type_t type;
     uint8_t data_offset; /* Offset of field data, relative to previous field. */
     int8_t size_offset; /* Offset of array size or has-boolean, relative to data */
     uint8_t data_size; /* Data size in bytes for a single item */
     uint8_t array_size; /* Maximum number of entries in array */
+#else
+    uint32_t tag;
+    pb_type_t type;
+    uint8_t data_offset;
+    int8_t size_offset;
+    uint32_t data_size;
+    uint32_t array_size;
+#endif
     
     /* Field definitions for submessage
      * OR default value for all other non-array, non-callback types

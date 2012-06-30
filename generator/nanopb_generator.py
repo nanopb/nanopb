@@ -251,6 +251,20 @@ class Field:
             result += '\n    &%s_default}' % (self.struct_name + self.name)
         
         return result
+    
+    def needs_32bit_pb_field_t(self):
+        '''Determine if this field needs 32bit pb_field_t structure to compile properly.
+        Returns True, False or a C-expression for assert.'''
+        if self.tag > 255 or self.max_size > 255:
+            return True
+        
+        if self.ltype == 'PB_LTYPE_SUBMESSAGE':
+            if self.htype == 'PB_HTYPE_ARRAY':
+                return 'pb_membersize(%s, %s[0]) > 255' % (self.struct_name, self.name)
+            else:
+                return 'pb_membersize(%s, %s) > 255' % (self.struct_name, self.name)
+        
+        return False
 
 class Message:
     def __init__(self, names, desc):
@@ -412,6 +426,30 @@ def generate_header(dependencies, headername, enums, messages):
         yield '         setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
         yield '#endif\n'
     
+    worst = False
+    worst_field = ''
+    for msg in messages:
+        for field in msg.fields:
+            status = field.needs_32bit_pb_field_t()
+            if status == True:
+                worst = True
+                worst_field = str(field.struct_name) + '.' + str(field.name)
+            elif status != False:
+                if worst == False:
+                    worst = status
+                elif worst != True:
+                    worst += ' || ' + status
+
+    if worst != False:
+        yield '\n/* Check that field information fits in pb_field_t */\n'
+        yield '#ifndef PB_MANY_FIELDS\n'
+        if worst == True:
+            yield '#error Field descriptor for %s is too large. Define PB_MANY_FIELDS to fix this.\n' % worst_field
+        else:
+            yield 'STATIC_ASSERT(!(%s), YOU_MUST_DEFINE_PB_MANY_FIELDS)\n' % worst
+        yield '#endif\n'
+    
+    # End of header
     yield '\n#endif\n'
 
 def generate_source(headername, enums, messages):

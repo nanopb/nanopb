@@ -15,6 +15,8 @@ __BIG_ENDIAN__                 Set this if your platform stores integers and flo
                                Mixed-endian systems (different layout for ints and floats) are currently not supported.
 NANOPB_INTERNALS               Set this to expose the field encoder functions that are hidden since nanopb-0.1.3.
 PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for presence. Default value is 64.
+PB_MANY_FIELDS                 Add support for tag numbers > 255 and fields larger than 255 bytes or 255 array entries.
+                               Increases code size 9 bytes per each field. Compiler error will tell if you need this.
 ============================  ==============================================================================================
 
 pb.h
@@ -77,7 +79,7 @@ Describes a single structure field with memory position in relation to others. T
 :array_size:    Maximum number of entries in an array, if it is an array type.
 :ptr:           Pointer to default value for optional fields, or to submessage description for PB_LTYPE_SUBMESSAGE.
 
-The *uint8_t* datatypes limit the maximum size of a single item to 255 bytes and arrays to 255 items. Compiler will warn "Initializer too large for type" if the limits are exceeded. The types can be changed to larger ones if necessary.
+The *uint8_t* datatypes limit the maximum size of a single item to 255 bytes and arrays to 255 items. Compiler will give error if the values are too large. The types can be changed to larger ones by defining *PB_MANY_FIELDS*.
 
 pb_bytes_array_t
 ----------------
