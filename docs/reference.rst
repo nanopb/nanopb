@@ -10,14 +10,21 @@ Compilation options
 ===================
 The following options can be specified using -D switch given to the C compiler:
 
-============================  ==============================================================================================
+============================  ================================================================================================
 __BIG_ENDIAN__                 Set this if your platform stores integers and floats in big-endian format.
                                Mixed-endian systems (different layout for ints and floats) are currently not supported.
 NANOPB_INTERNALS               Set this to expose the field encoder functions that are hidden since nanopb-0.1.3.
-PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for presence. Default value is 64.
-PB_MANY_FIELDS                 Add support for tag numbers > 255 and fields larger than 255 bytes or 255 array entries.
+PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for presence. Default value is 64. Increases stack
+                               usage 1 byte per every 8 fields. Compiler warning will tell if you need this.
+PB_FIELD_16BIT                 Add support for tag numbers > 255 and fields larger than 255 bytes or 255 array entries.
+                               Increases code size 3 bytes per each field. Compiler error will tell if you need this.
+PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields larger than 65535 bytes or 65535 array entries.
                                Increases code size 9 bytes per each field. Compiler error will tell if you need this.
-============================  ==============================================================================================
+============================  ================================================================================================
+
+The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow raising some datatype limits to suit larger messages.
+Their need is recognized automatically by C-preprocessor #if-directives in the generated .pb.h files. The default setting is to use
+the smallest datatypes (least resources used).
 
 pb.h
 ====
@@ -79,7 +86,7 @@ Describes a single structure field with memory position in relation to others. T
 :array_size:    Maximum number of entries in an array, if it is an array type.
 :ptr:           Pointer to default value for optional fields, or to submessage description for PB_LTYPE_SUBMESSAGE.
 
-The *uint8_t* datatypes limit the maximum size of a single item to 255 bytes and arrays to 255 items. Compiler will give error if the values are too large. The types can be changed to larger ones by defining *PB_MANY_FIELDS*.
+The *uint8_t* datatypes limit the maximum size of a single item to 255 bytes and arrays to 255 items. Compiler will give error if the values are too large. The types can be changed to larger ones by defining *PB_FIELD_16BIT*.
 
 pb_bytes_array_t
 ----------------

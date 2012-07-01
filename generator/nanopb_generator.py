@@ -252,19 +252,17 @@ class Field:
         
         return result
     
-    def needs_32bit_pb_field_t(self):
-        '''Determine if this field needs 32bit pb_field_t structure to compile properly.
-        Returns True, False or a C-expression for assert.'''
-        if self.tag > 255 or self.max_size > 255:
-            return True
-        
+    def largest_field_value(self):
+        '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
+        Returns numeric value or a C-expression for assert.'''
         if self.ltype == 'PB_LTYPE_SUBMESSAGE':
             if self.htype == 'PB_HTYPE_ARRAY':
-                return 'pb_membersize(%s, %s[0]) > 255' % (self.struct_name, self.name)
+                return 'pb_membersize(%s, %s[0])' % (self.struct_name, self.name)
             else:
-                return 'pb_membersize(%s, %s) > 255' % (self.struct_name, self.name)
-        
-        return False
+                return 'pb_membersize(%s, %s)' % (self.struct_name, self.name)
+
+        return max(self.tag, self.max_size, self.max_count)        
+
 
 class Message:
     def __init__(self, names, desc):
@@ -426,28 +424,41 @@ def generate_header(dependencies, headername, enums, messages):
         yield '         setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
         yield '#endif\n'
     
-    worst = False
+    worst = 0
     worst_field = ''
+    checks = []
     for msg in messages:
         for field in msg.fields:
-            status = field.needs_32bit_pb_field_t()
-            if status == True:
-                worst = True
+            status = field.largest_field_value()
+            if isinstance(status, (str, unicode)):
+                checks.append(status)
+            elif status > worst:
+                worst = status
                 worst_field = str(field.struct_name) + '.' + str(field.name)
-            elif status != False:
-                if worst == False:
-                    worst = status
-                elif worst != True:
-                    worst += ' || ' + status
 
-    if worst != False:
+    if worst > 255 or checks:
         yield '\n/* Check that field information fits in pb_field_t */\n'
-        yield '#ifndef PB_MANY_FIELDS\n'
-        if worst == True:
-            yield '#error Field descriptor for %s is too large. Define PB_MANY_FIELDS to fix this.\n' % worst_field
-        else:
-            yield 'STATIC_ASSERT(!(%s), YOU_MUST_DEFINE_PB_MANY_FIELDS)\n' % worst
-        yield '#endif\n'
+        yield '/* (Largest message has %d fields' % worst
+        if checks: yield ' and submessages have to be checked at compile-time.'
+        yield ') */\n'
+        
+        if worst < 65536:
+            yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
+            if worst > 255:
+                yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
+            else:
+                assertion = ' && '.join(str(c) + ' < 256' for c in checks)
+                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT)\n' % assertion
+            yield '#endif\n\n'
+        
+        if worst > 65535 or checks:
+            yield '#if !defined(PB_FIELD_32BIT)\n'
+            if worst > 65535:
+                yield '#error Field descriptor for %s is too large. Define PB_FIELD_32BIT to fix this.\n' % worst_field
+            else:
+                assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
+                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT)\n' % assertion
+            yield '#endif\n'
     
     # End of header
     yield '\n#endif\n'
