@@ -195,7 +195,7 @@ typedef enum {
 #define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 #define pb_delta_end(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
-#define PB_LAST_FIELD {0,0,0,0}
+#define PB_LAST_FIELD {0,(pb_type_t) 0,0,0}
 
 
 #endif

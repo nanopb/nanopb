@@ -217,10 +217,10 @@ class Field:
         prev_field_name is the name of the previous field or None.
         '''
         result = '    {%d, ' % self.tag
-        result += self.htype
+        result += '(pb_type_t) ((int) ' + self.htype
         if self.ltype is not None:
-            result += ' | ' + self.ltype
-        result += ',\n'
+            result += ' | (int) ' + self.ltype
+        result += '),\n'
         
         if prev_field_name is None:
             result += '    offsetof(%s, %s),' % (self.struct_name, self.name)
