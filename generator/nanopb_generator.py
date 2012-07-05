@@ -420,8 +420,8 @@ def generate_header(dependencies, headername, enums, messages):
     if largest_count > 64:
         yield '\n/* Check that missing required fields will be properly detected */\n'
         yield '#if PB_MAX_REQUIRED_FIELDS < %d\n' % largest_count
-        yield '#warning Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
-        yield '         setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
+        yield '#error Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
+        yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
         yield '#endif\n'
     
     worst = 0
@@ -438,9 +438,6 @@ def generate_header(dependencies, headername, enums, messages):
 
     if worst > 255 or checks:
         yield '\n/* Check that field information fits in pb_field_t */\n'
-        yield '/* (Largest message has %d fields' % worst
-        if checks: yield ' and submessages have to be checked at compile-time.'
-        yield ') */\n'
         
         if worst < 65536:
             yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
