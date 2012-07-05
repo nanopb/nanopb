@@ -110,7 +110,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
             size = sizestream.bytes_written;
         }
         
-        if (!pb_encode_varint(stream, size))
+        if (!pb_encode_varint(stream, (uint64_t)size))
             return false;
         
         if (stream->callback == NULL)
@@ -269,7 +269,7 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number)
 {
     int tag = wiretype | (field_number << 3);
-    return pb_encode_varint(stream, tag);
+    return pb_encode_varint(stream, (uint64_t)tag);
 }
 
 bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field)
@@ -305,7 +305,7 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
 
 bool checkreturn pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size)
 {
-    if (!pb_encode_varint(stream, size))
+    if (!pb_encode_varint(stream, (uint64_t)size))
         return false;
     
     return pb_write(stream, buffer, size);
@@ -323,7 +323,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
     
     size = substream.bytes_written;
     
-    if (!pb_encode_varint(stream, size))
+    if (!pb_encode_varint(stream, (uint64_t)size))
         return false;
     
     if (stream->callback == NULL)
