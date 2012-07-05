@@ -235,7 +235,7 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
 bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
     #ifdef __BIG_ENDIAN__
-    uint8_t *bytes = value;
+    const uint8_t *bytes = value;
     uint8_t lebytes[4];
     lebytes[0] = bytes[3];
     lebytes[1] = bytes[2];
@@ -250,7 +250,7 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
     #ifdef __BIG_ENDIAN__
-    uint8_t *bytes[8] = value;
+    const uint8_t *bytes = value;
     uint8_t lebytes[8];
     lebytes[0] = bytes[7];
     lebytes[1] = bytes[6];
