@@ -1,7 +1,7 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0 --coverage
 LDFLAGS=--coverage
 DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
-TESTS=test_decode1 test_encode1 decode_unittests encode_unittests
+TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
 
 all: breakpoints $(TESTS) run_unittests
 
@@ -28,6 +28,7 @@ test_encode_callbacks: test_encode_callbacks.o pb_encode.o callbacks.pb.o
 test_missing_fields: test_missing_fields.o pb_encode.o pb_decode.o missing_fields.pb.o
 decode_unittests: decode_unittests.o pb_decode.o unittestproto.pb.o
 encode_unittests: encode_unittests.o pb_encode.o unittestproto.pb.o
+test_no_messages: no_messages.pb.h no_messages.pb.c no_messages.pb.o
 
 %.pb: %.proto
 	protoc -I. -I../generator -I/usr/include -o$@ $<

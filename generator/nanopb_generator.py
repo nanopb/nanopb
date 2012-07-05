@@ -414,15 +414,16 @@ def generate_header(dependencies, headername, enums, messages):
     for msg in messages:
         yield msg.fields_declaration() + '\n'
     
-    count_required_fields = lambda m: len([f for f in msg.fields if f.htype == 'PB_HTYPE_REQUIRED'])
-    largest_msg = max(messages, key = count_required_fields)
-    largest_count = count_required_fields(largest_msg)
-    if largest_count > 64:
-        yield '\n/* Check that missing required fields will be properly detected */\n'
-        yield '#if PB_MAX_REQUIRED_FIELDS < %d\n' % largest_count
-        yield '#error Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
-        yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
-        yield '#endif\n'
+    if messages:
+        count_required_fields = lambda m: len([f for f in msg.fields if f.htype == 'PB_HTYPE_REQUIRED'])
+        largest_msg = max(messages, key = count_required_fields)
+        largest_count = count_required_fields(largest_msg)
+        if largest_count > 64:
+            yield '\n/* Check that missing required fields will be properly detected */\n'
+            yield '#if PB_MAX_REQUIRED_FIELDS < %d\n' % largest_count
+            yield '#error Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
+            yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
+            yield '#endif\n'
     
     worst = 0
     worst_field = ''
