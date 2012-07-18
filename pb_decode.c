@@ -117,7 +117,7 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
     return pb_read(stream, NULL, length);
 }
 
-bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, int *tag, bool *eof)
+bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof)
 {
     uint32_t temp;
     *eof = false;
@@ -418,7 +418,7 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
     
     while (stream->bytes_left)
     {
-        int tag;
+        uint32_t tag;
         pb_wire_type_t wire_type;
         bool eof;
         
