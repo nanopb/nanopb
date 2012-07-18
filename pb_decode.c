@@ -409,7 +409,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
 
 bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
-    uint8_t fields_seen[(PB_MAX_REQUIRED_FIELDS + 7) / 8] = {}; /* Used to check for required fields */
+    uint8_t fields_seen[(PB_MAX_REQUIRED_FIELDS + 7) / 8] = {0}; /* Used to check for required fields */
     pb_field_iterator_t iter;
     
     pb_message_set_to_defaults(fields, dest_struct);

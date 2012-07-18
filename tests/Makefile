@@ -3,6 +3,9 @@ LDFLAGS=--coverage
 DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
 
+# More strict checks for the core part of nanopb
+CFLAGS_CORE=-pedantic -Wextra
+
 all: breakpoints $(TESTS) run_unittests
 
 clean:
@@ -13,9 +16,9 @@ clean:
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 pb_encode.o: ../pb_encode.c $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
 pb_decode.o: ../pb_decode.c $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
 
 test_decode1: test_decode1.o pb_decode.o person.pb.o
 test_decode2: test_decode2.o pb_decode.o person.pb.o
