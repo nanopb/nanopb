@@ -253,7 +253,7 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     return notwrapped;
 }
 
-static bool checkreturn pb_field_find(pb_field_iterator_t *iter, int tag)
+static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag)
 {
     int start = iter->field_index;
     
