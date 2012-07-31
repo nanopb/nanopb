@@ -6,6 +6,7 @@ message SubMessage {
 }
 
 enum MyEnum {
+    Zero = 0;
     First = 1;
     Second = 2;
     Truth = 42;
@@ -32,6 +33,29 @@ message AllTypes {
     required bytes      req_bytes   = 15 [(nanopb).max_size = 16];
     required SubMessage req_submsg  = 16;
     required MyEnum     req_enum    = 17;
+    
+    
+    repeated int32      rep_int32   = 21 [(nanopb).max_count = 5];
+    repeated int64      rep_int64   = 22 [(nanopb).max_count = 5];
+    repeated uint32     rep_uint32  = 23 [(nanopb).max_count = 5];
+    repeated uint64     rep_uint64  = 24 [(nanopb).max_count = 5];
+    repeated sint32     rep_sint32  = 25 [(nanopb).max_count = 5];
+    repeated sint64     rep_sint64  = 26 [(nanopb).max_count = 5];
+    repeated bool       rep_bool    = 27 [(nanopb).max_count = 5];
+    
+    repeated fixed32    rep_fixed32 = 28 [(nanopb).max_count = 5];
+    repeated sfixed32   rep_sfixed32= 29 [(nanopb).max_count = 5];
+    repeated float      rep_float   = 30 [(nanopb).max_count = 5];
+    
+    repeated fixed64    rep_fixed64 = 31 [(nanopb).max_count = 5];
+    repeated sfixed64   rep_sfixed64= 32 [(nanopb).max_count = 5];
+    repeated double     rep_double  = 33 [(nanopb).max_count = 5];
+    
+    repeated string     rep_string  = 34 [(nanopb).max_size = 16, (nanopb).max_count = 5];
+    repeated bytes      rep_bytes   = 35 [(nanopb).max_size = 16, (nanopb).max_count = 5];
+    repeated SubMessage rep_submsg  = 36 [(nanopb).max_count = 5];
+    repeated MyEnum     rep_enum    = 37 [(nanopb).max_count = 5];
+    
     
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.
