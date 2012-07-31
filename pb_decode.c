@@ -288,6 +288,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 /* Packed array */
+                bool status;
                 size_t *size = (size_t*)iter->pSize;
                 pb_istream_t substream;
                 if (!make_string_substream(stream, &substream))
@@ -300,7 +301,9 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                         return false;
                     (*size)++;
                 }
-                return (substream.bytes_left == 0);
+                status = (substream.bytes_left == 0);
+                stream->state = substream.state;
+                return status;
             }
             else
             {
