@@ -17,7 +17,7 @@
 const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
 {
     pb_wire_type_t wire_type;
-    int tag;
+    uint32_t tag;
     bool eof;
 
     while (pb_decode_tag(stream, &wire_type, &tag, &eof))
