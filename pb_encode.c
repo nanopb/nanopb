@@ -8,13 +8,13 @@
 #include "pb_encode.h"
 #include <string.h>
 
-#ifdef __GNUC__
-/* Verify that we remember to check all return values for proper error propagation */
-#define checkreturn __attribute__((warn_unused_result))
+/* The warn_unused_result attribute appeared first in gcc-3.4.0 */
+#if !defined(__GNUC__) || ( __GNUC__ < 3) || (__GNUC__ == 3 && __GNUC_MINOR__ < 4)
+    #define checkreturn
 #else
-#define checkreturn
+    /* Verify that we remember to check all return values for proper error propagation */
+    #define checkreturn __attribute__((warn_unused_result))
 #endif
-
 
 typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
 
