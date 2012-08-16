@@ -121,7 +121,7 @@ bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, 
 {
     uint32_t temp;
     *eof = false;
-    *wire_type = 0;
+    *wire_type = (pb_wire_type_t) 0;
     *tag = 0;
     
     if (!pb_decode_varint32(stream, &temp))
@@ -393,7 +393,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
         }
         else if (PB_LTYPE(iter.current->type) == PB_LTYPE_SUBMESSAGE)
         {
-            pb_message_set_to_defaults(iter.current->ptr, iter.pData);
+            pb_message_set_to_defaults((const pb_field_t *) iter.current->ptr, iter.pData);
         }
         else if (iter.current->ptr != NULL)
         {
