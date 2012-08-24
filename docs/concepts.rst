@@ -50,6 +50,7 @@ There are a few generic rules for callback functions:
 #) Use state to store your own data, such as a file descriptor.
 #) *bytes_written* and *bytes_left* are updated by pb_write and pb_read.
 #) Your callback may be used with substreams. In this case *bytes_left*, *bytes_written* and *max_size* have smaller values than the original stream. Don't use these values to calculate pointers.
+#) Always read or write the full requested length of data. For example, POSIX *recv()* needs the *MSG_WAITALL* parameter to accomplish this.
 
 Output streams
 --------------
