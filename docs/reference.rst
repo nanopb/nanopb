@@ -428,4 +428,16 @@ Decode the length for a field with wire type *PB_WT_STRING* and create a substre
 :substream:     New substream that has limited length. Filled in by the function.
 :returns:       True on success, false if reading the length fails.
 
-This function uses `pb_decode_varint`_ to read an integer from the stream. This is interpreted as a number of bytes, and the substream is set up so that its `bytes_left` is initially the same as the length. The substream has a wrapper callback that in turn reads from the parent stream.
+This function uses `pb_decode_varint`_ to read an integer from the stream. This is interpreted as a number of bytes, and the substream is set up so that its `bytes_left` is initially the same as the length, and its callback function and state the same as the parent stream.
+
+pb_close_string_substream
+------------------------
+Close the substream created with `pb_make_string_substream`_. ::
+
+    void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+
+:stream:        Original input stream to read the length and data from.
+:substream:     Substream to close
+
+This function copies back the state from the substream to the parent stream.
+It must be called after done with the substream.
