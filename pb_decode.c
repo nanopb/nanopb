@@ -185,22 +185,26 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
     }
 }
 
-/* Decode string length from stream and return a substream with limited length.
- * Before disposing the substream, remember to copy the substream->state back
- * to stream->state.
- */
+/* Decode string length from stream and return a substream with limited length. */
+static bool substream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+{
+    pb_istream_t *parent = (pb_istream_t*)stream->state;
+    return pb_read(parent, buf, count);
+}
+
 static bool checkreturn make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
     uint32_t size;
     if (!pb_decode_varint32(stream, &size))
         return false;
     
-    *substream = *stream;
-    if (substream->bytes_left < size)
+    if (stream->bytes_left < size)
         return false;
     
+    substream->callback = &substream_callback;
+    substream->state = stream;
     substream->bytes_left = size;
-    stream->bytes_left -= size;
+    
     return true;
 }
 
@@ -288,7 +292,6 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 /* Packed array */
-                bool status;
                 size_t *size = (size_t*)iter->pSize;
                 pb_istream_t substream;
                 if (!make_string_substream(stream, &substream))
@@ -301,9 +304,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                         return false;
                     (*size)++;
                 }
-                status = (substream.bytes_left == 0);
-                stream->state = substream.state;
-                return status;
+                return (substream.bytes_left == 0);
             }
             else
             {
@@ -337,7 +338,6 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                         return false;
                 }
                 
-                stream->state = substream.state;
                 return true;
             }
             else
@@ -575,7 +575,6 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
 
 bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    bool status;
     pb_istream_t substream;
     
     if (!make_string_substream(stream, &substream))
@@ -584,7 +583,5 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
     if (field->ptr == NULL)
         return false;
     
-    status = pb_decode(&substream, (pb_field_t*)field->ptr, dest);
-    stream->state = substream.state;
-    return status;
+    return pb_decode(&substream, (pb_field_t*)field->ptr, dest);
 }

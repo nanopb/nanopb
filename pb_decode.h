@@ -23,10 +23,6 @@
  * 
  * 3) You can use state to store your own data (e.g. buffer pointer),
  * and rely on pb_read to verify that no-body reads past bytes_left.
- * 
- * 4) Your callback may be used with substreams, in which case bytes_left
- * is different than from the main stream. Don't use bytes_left to compute
- * any pointers.
  */
 struct _pb_istream_t
 {
