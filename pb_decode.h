@@ -3,7 +3,7 @@
 
 /* pb_decode.h: Functions to decode protocol buffers. Depends on pb_decode.c.
  * The main function is pb_decode. You will also need to create an input
- * stream, which is easiest to do with pb_istream_t.
+ * stream, which is easiest to do with pb_istream_from_buffer().
  * 
  * You also need structures and their corresponding pb_field_t descriptions.
  * These are usually generated from .proto-files with a script.
