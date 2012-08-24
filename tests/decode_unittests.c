@@ -1,3 +1,5 @@
+#define NANOPB_INTERNALS
+
 #include <stdio.h>
 #include <string.h>
 #include "pb_decode.h"

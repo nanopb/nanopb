@@ -44,10 +44,11 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
 
 bool decode_unionmessage_contents(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
-    pb_field_t field = {}; /* NB: Could get rid of this wrapper by fixing issue #2. */
-    field.ptr = fields;
+    pb_istream_t substream;
+    if (!pb_make_string_substream(stream, &substream))
+        return false;
     
-    return pb_dec_submessage(stream, &field, dest_struct);
+    return pb_decode(&substream, fields, dest_struct);
 }
 
 int main()

@@ -44,20 +44,38 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
  * You may want to use these from your caller or callbacks.
  */
 
+/* Decode the tag for the next field in the stream. Gives the wire type and
+ * field tag. At end of the message, returns false and sets eof to true. */
 bool pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof);
+
+/* Skip the field payload data, given the wire type. */
 bool pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type);
 
+/* Decode an integer in the varint format. This works for bool, enum, int32,
+ * int64, uint32 and uint64 field types. */
 bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest);
 
-bool pb_skip_varint(pb_istream_t *stream);
-bool pb_skip_string(pb_istream_t *stream);
+/* Decode an integer in the zig-zagged svarint format. This works for sint32
+ * and sint64. */
+bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest);
 
-/* --- Field decoders ---
- * Each decoder takes stream and field description, and a pointer to the field
- * in the destination struct (dest = struct_addr + field->data_offset).
- * For arrays, these functions are called repeatedly.
+/* Decode a fixed32, sfixed32 or float value. You need to pass a pointer to
+ * a 4-byte wide C variable. */
+bool pb_decode_fixed32(pb_istream_t *stream, void *dest);
+
+/* Decode a fixed64, sfixed64 or double value. You need to pass a pointer to
+ * a 8-byte wide C variable. */
+bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
+
+/* Make a limited-length substream for reading a PB_WT_STRING field. */
+bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+
+/* --- Internal functions ---
+ * These functions are not terribly useful for the average library user, but
+ * are exported to make the unit testing and extending nanopb easier.
  */
 
+#ifdef NANOPB_INTERNALS
 bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
@@ -66,5 +84,9 @@ bool pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
 bool pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest);
+
+bool pb_skip_varint(pb_istream_t *stream);
+bool pb_skip_string(pb_istream_t *stream);
+#endif
 
 #endif

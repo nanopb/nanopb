@@ -37,7 +37,7 @@ bool print_int32(pb_istream_t *stream, const pb_field_t *field, void *arg)
 bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void *arg)
 {
     uint32_t value;
-    if (!pb_dec_fixed32(stream, NULL, &value))
+    if (!pb_decode_fixed32(stream, &value))
         return false;
     
     printf((char*)arg, (long)value);
@@ -47,7 +47,7 @@ bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void *arg)
 bool print_fixed64(pb_istream_t *stream, const pb_field_t *field, void *arg)
 {
     uint64_t value;
-    if (!pb_dec_fixed64(stream, NULL, &value))
+    if (!pb_decode_fixed64(stream, &value))
         return false;
     
     printf((char*)arg, (long long)value);

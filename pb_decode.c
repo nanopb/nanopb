@@ -11,6 +11,7 @@
     #define checkreturn __attribute__((warn_unused_result))
 #endif
 
+#define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_decode.h"
 #include <string.h>
@@ -192,7 +193,7 @@ static bool substream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     return pb_read(parent, buf, count);
 }
 
-static bool checkreturn make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
+bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
     uint32_t size;
     if (!pb_decode_varint32(stream, &size))
@@ -294,7 +295,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 /* Packed array */
                 size_t *size = (size_t*)iter->pSize;
                 pb_istream_t substream;
-                if (!make_string_substream(stream, &substream))
+                if (!pb_make_string_substream(stream, &substream))
                     return false;
                 
                 while (substream.bytes_left && *size < iter->current->array_size)
@@ -329,7 +330,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
             {
                 pb_istream_t substream;
                 
-                if (!make_string_substream(stream, &substream))
+                if (!pb_make_string_substream(stream, &substream))
                     return false;
                 
                 while (substream.bytes_left)
@@ -467,78 +468,104 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
 
 /* Field decoders */
 
-/* Copy destsize bytes from src so that values are casted properly.
- * On little endian machine, copy first n bytes of src
- * On big endian machine, copy last n bytes of src
- * srcsize must always be larger than destsize
- */
-static void endian_copy(void *dest, void *src, size_t destsize, size_t srcsize)
+bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest)
 {
-#ifdef __BIG_ENDIAN__
-    memcpy(dest, (char*)src + (srcsize - destsize), destsize);
-#else
-    UNUSED(srcsize);
-    memcpy(dest, src, destsize);
-#endif
+    uint64_t value;
+    if (!pb_decode_varint(stream, &value))
+        return false;
+    
+    if (value & 1)
+        *dest = ~(value >> 1);
+    else
+        *dest = value >> 1;
+    
+    return true;
+}
+
+bool pb_decode_fixed32(pb_istream_t *stream, void *dest)
+{
+    #ifdef __BIG_ENDIAN__
+    uint8_t *bytes = (uint8_t*)dest;
+    uint8_t lebytes[4];
+    
+    if (!pb_read(stream, lebytes, 4))
+        return false;
+    
+    bytes[0] = lebytes[3];
+    bytes[1] = lebytes[2];
+    bytes[2] = lebytes[1];
+    bytes[3] = lebytes[0];
+    return true;
+    #else
+    return pb_read(stream, (uint8_t*)dest, 4);
+    #endif   
+}
+
+bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
+{
+    #ifdef __BIG_ENDIAN__
+    uint8_t *bytes = (uint8_t*)dest;
+    uint8_t lebytes[8];
+    
+    if (!pb_read(stream, lebytes, 8))
+        return false;
+    
+    bytes[0] = lebytes[7];
+    bytes[1] = lebytes[6];
+    bytes[2] = lebytes[5];
+    bytes[3] = lebytes[4];
+    bytes[4] = lebytes[3];
+    bytes[5] = lebytes[2];
+    bytes[6] = lebytes[1];
+    bytes[7] = lebytes[0];
+    return true;
+    #else
+    return pb_read(stream, (uint8_t*)dest, 8);
+    #endif   
 }
 
 bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    uint64_t temp;
-    bool status = pb_decode_varint(stream, &temp);
-    endian_copy(dest, &temp, field->data_size, sizeof(temp));
+    uint64_t value;
+    bool status = pb_decode_varint(stream, &value);
+    
+    switch (field->data_size)
+    {
+        case 1: *(uint8_t*)dest = value; break;
+        case 2: *(uint16_t*)dest = value; break;
+        case 4: *(uint32_t*)dest = value; break;
+        case 8: *(uint64_t*)dest = value; break;
+        default: return false;
+    }
+    
     return status;
 }
 
 bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    uint64_t temp;
-    bool status = pb_decode_varint(stream, &temp);
-    temp = (temp >> 1) ^ -(int64_t)(temp & 1);
-    endian_copy(dest, &temp, field->data_size, sizeof(temp));
+    int64_t value;
+    bool status = pb_decode_svarint(stream, &value);
+    
+    switch (field->data_size)
+    {
+        case 4: *(int32_t*)dest = value; break;
+        case 8: *(int64_t*)dest = value; break;
+        default: return false;
+    }
+    
     return status;
 }
 
 bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-#ifdef __BIG_ENDIAN__
-    uint8_t bytes[4] = {0};
-    bool status = pb_read(stream, bytes, 4);
-    if (status) {
-        uint8_t *d = (uint8_t*)dest;
-        d[0] = bytes[3];
-        d[1] = bytes[2];
-        d[2] = bytes[1];
-        d[3] = bytes[0];
-    }
-    return status;
-#else
     UNUSED(field);
-    return pb_read(stream, (uint8_t*)dest, 4);
-#endif
+    return pb_decode_fixed32(stream, dest);
 }
 
 bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-#ifdef __BIG_ENDIAN__
-    uint8_t bytes[8] = {0};
-    bool status = pb_read(stream, bytes, 8);
-    if (status) {
-        uint8_t *d = (uint8_t*)dest;
-        d[0] = bytes[7];
-        d[1] = bytes[6];
-        d[2] = bytes[5]; 
-        d[3] = bytes[4];
-        d[4] = bytes[3];
-        d[5] = bytes[2];
-        d[6] = bytes[1];
-        d[7] = bytes[0];
-    }
-    return status;
-#else
     UNUSED(field);
-    return pb_read(stream, (uint8_t*)dest, 8);
-#endif
+    return pb_decode_fixed64(stream, dest);
 }
 
 bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
@@ -577,7 +604,7 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
 {
     pb_istream_t substream;
     
-    if (!make_string_substream(stream, &substream))
+    if (!pb_make_string_substream(stream, &substream))
         return false;
     
     if (field->ptr == NULL)
