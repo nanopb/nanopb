@@ -69,7 +69,7 @@ int main()
     /* Decode and print out the stuff */
     if (!print_person(&stream))
     {
-        printf("Parsing failed.\n");
+        printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     } else {
         return 0;

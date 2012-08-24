@@ -55,7 +55,7 @@ void handle_connection(int connfd)
     
     if (!pb_decode(&input, ListFilesRequest_fields, &request))
     {
-        printf("Decoding failed.\n");
+        printf("Decode failed: %s\n", PB_GET_ERROR(&input));
         return;
     }
     

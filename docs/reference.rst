@@ -20,6 +20,8 @@ PB_FIELD_16BIT                 Add support for tag numbers > 255 and fields larg
                                Increases code size 3 bytes per each field. Compiler error will tell if you need this.
 PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields larger than 65535 bytes or 65535 array entries.
                                Increases code size 9 bytes per each field. Compiler error will tell if you need this.
+PB_NO_ERRMSG                   Disables the support for error messages; only error information is the true/false return value.
+                               Decreases the code size by a few hundred bytes.
 ============================  ================================================================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow raising some datatype limits to suit larger messages.
@@ -431,7 +433,7 @@ Decode the length for a field with wire type *PB_WT_STRING* and create a substre
 This function uses `pb_decode_varint`_ to read an integer from the stream. This is interpreted as a number of bytes, and the substream is set up so that its `bytes_left` is initially the same as the length, and its callback function and state the same as the parent stream.
 
 pb_close_string_substream
-------------------------
+-------------------------
 Close the substream created with `pb_make_string_substream`_. ::
 
     void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);

@@ -82,7 +82,7 @@ int main()
     pb_istream_t stream = {&callback, stdin, 10000};
     if (!print_person(&stream))
     {
-        printf("Parsing failed.\n");
+        printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     } else {
         return 0;

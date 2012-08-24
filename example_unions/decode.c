@@ -85,7 +85,7 @@ int main()
     
     if (!status)
     {
-        printf("Decoding failed.\n");
+        printf("Decode failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     }
     

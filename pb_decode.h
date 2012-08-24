@@ -33,6 +33,10 @@ struct _pb_istream_t
     bool (*callback)(pb_istream_t *stream, uint8_t *buf, size_t count);
     void *state; /* Free field for use by callback implementation */
     size_t bytes_left;
+    
+#ifndef PB_NO_ERRMSG
+    const char *errmsg;
+#endif
 };
 
 pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize);

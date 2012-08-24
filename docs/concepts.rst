@@ -258,18 +258,14 @@ generates this field description array for the structure *Person_PhoneNumber*::
 Return values and error handling
 ================================
 
-Most functions in nanopb return bool: *true* means success, *false* means failure. If this is enough for you, skip this section.
+Most functions in nanopb return bool: *true* means success, *false* means failure. There is also some support for error messages for debugging purposes: the error messages go in *stream->errmsg*.
 
-For simplicity, nanopb doesn't define it's own error codes. This might be added if there is a compelling need for it. You can however deduce something about the error causes:
+The error messages help in guessing what is the underlying cause of the error. The most common error conditions are:
 
 1) Running out of memory. Because everything is allocated from the stack, nanopb can't detect this itself. Encoding or decoding the same type of a message always takes the same amount of stack space. Therefore, if it works once, it works always.
 2) Invalid field description. These are usually stored as constants, so if it works under the debugger, it always does.
-3) IO errors in your own stream callbacks. Because encoding/decoding stops at the first error, you can overwrite the *state* field in the struct and store your own error code there.
-4) Errors that happen in your callback functions. You can use the state field in the callback structure.
+3) IO errors in your own stream callbacks.
+4) Errors that happen in your callback functions.
 5) Exceeding the max_size or bytes_left of a stream.
 6) Exceeding the max_size of a string or array field
-7) Invalid protocol buffers binary message. It's not like you could recover from it anyway, so a simple failure should be enough.
-
-In my opinion, it is enough that 1. and 2. can be resolved using a debugger.
-
-However, you may be interested which of the remaining conditions caused the error. For 3. and 4., you can set and check the state. If you have to detect 5. and 6., you should convert the fields to callback type. Any remaining problem is of type 7.
+7) Invalid protocol buffers binary message.

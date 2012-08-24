@@ -27,7 +27,7 @@ int main()
         
         if (!pb_decode(&stream, MissingField_fields, &msg))
         {
-            printf("Decode failed.\n");
+            printf("Decode failed: %s\n", PB_GET_ERROR(&stream));
             return 2;
         }
     }

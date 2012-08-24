@@ -72,7 +72,7 @@ bool listdir(int fd, char *path)
     
     if (!pb_decode(&input, ListFilesResponse_fields, &response))
     {
-        fprintf(stderr, "Decoding failed.\n");
+        fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&input));
         return false;
     }
     

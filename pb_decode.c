@@ -39,10 +39,10 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
 bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     if (stream->bytes_left < count)
-        return false;
+        PB_RETURN_ERROR(stream, "end-of-stream");
     
     if (!stream->callback(stream, buf, count))
-        return false;
+        PB_RETURN_ERROR(stream, "io error");
     
     stream->bytes_left -= count;
     return true;
@@ -95,7 +95,7 @@ bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
             return true;
     }
     
-    return false;
+    PB_RETURN_ERROR(stream, "varint overflow");
 }
 
 bool checkreturn pb_skip_varint(pb_istream_t *stream)
@@ -152,7 +152,7 @@ bool checkreturn pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type)
         case PB_WT_64BIT: return pb_read(stream, NULL, 8);
         case PB_WT_STRING: return pb_skip_string(stream);
         case PB_WT_32BIT: return pb_read(stream, NULL, 4);
-        default: return false;
+        default: PB_RETURN_ERROR(stream, "invalid wire_type");
     }
 }
 
@@ -182,7 +182,7 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
             *size = 4;
             return pb_read(stream, buf, 4);
         
-        default: return false;
+        default: PB_RETURN_ERROR(stream, "invalid wire_type");
     }
 }
 
@@ -197,7 +197,7 @@ bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *su
     
     *substream = *stream;
     if (substream->bytes_left < size)
-        return false;
+        PB_RETURN_ERROR(stream, "parent stream too short");
     
     substream->bytes_left = size;
     stream->bytes_left -= size;
@@ -316,7 +316,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 size_t *size = (size_t*)iter->pSize;
                 void *pItem = (uint8_t*)iter->pData + iter->current->data_size * (*size);
                 if (*size >= iter->current->array_size)
-                    return false;
+                    PB_RETURN_ERROR(stream, "array overflow");
                 
                 (*size)++;
                 return func(stream, iter->current, pItem);
@@ -339,7 +339,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 while (substream.bytes_left)
                 {
                     if (!pCallback->funcs.decode(&substream, iter->current, pCallback->arg))
-                        return false;
+                        PB_RETURN_ERROR(stream, "callback failed");
                 }
                 
                 pb_close_string_substream(stream, &substream);
@@ -364,7 +364,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
         }
         
         default:
-            return false;
+            PB_RETURN_ERROR(stream, "invalid field type");
     }
 }
 
@@ -463,7 +463,7 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void
             iter.required_field_index < PB_MAX_REQUIRED_FIELDS &&
             !(fields_seen[iter.required_field_index >> 3] & (1 << (iter.required_field_index & 7))))
         {
-            return false;
+            PB_RETURN_ERROR(stream, "missing required field");
         }
     } while (pb_field_next(&iter));
     
@@ -539,7 +539,7 @@ bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, vo
         case 2: *(uint16_t*)dest = value; break;
         case 4: *(uint32_t*)dest = value; break;
         case 8: *(uint64_t*)dest = value; break;
-        default: return false;
+        default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
     
     return status;
@@ -554,7 +554,7 @@ bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, v
     {
         case 4: *(int32_t*)dest = value; break;
         case 8: *(int64_t*)dest = value; break;
-        default: return false;
+        default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
     
     return status;
@@ -583,7 +583,7 @@ bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, voi
     
     /* Check length, noting the space taken by the size_t header. */
     if (x->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
-        return false;
+        PB_RETURN_ERROR(stream, "bytes overflow");
     
     return pb_read(stream, x->bytes, x->size);
 }
@@ -597,7 +597,7 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
     
     /* Check length, noting the null terminator */
     if (size + 1 > field->data_size)
-        return false;
+        PB_RETURN_ERROR(stream, "string overflow");
     
     status = pb_read(stream, (uint8_t*)dest, size);
     *((uint8_t*)dest + size) = 0;
@@ -613,7 +613,7 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
         return false;
     
     if (field->ptr == NULL)
-        return false;
+        PB_RETURN_ERROR(stream, "invalid field descriptor");
     
     status = pb_decode(&substream, (pb_field_t*)field->ptr, dest);
     pb_close_string_substream(stream, &substream);

@@ -196,5 +196,23 @@ typedef enum {
 #define pb_delta_end(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
 #define PB_LAST_FIELD {0,(pb_type_t) 0,0,0}
 
+/* These macros are used for giving out error messages.
+ * They are mostly a debugging aid; the main error information
+ * is the true/false return value from functions.
+ * Some code space can be saved by disabling the error
+ * messages if not used.
+ */
+#ifdef PB_NO_ERRMSG
+#define PB_RETURN_ERROR(stream,msg) return false
+#define PB_GET_ERROR(stream) "(errmsg disabled)"
+#else
+#define PB_RETURN_ERROR(stream,msg) \
+    do {\
+        if ((stream)->errmsg == NULL) \
+            (stream)->errmsg = (msg); \
+        return false; \
+    } while(0)
+#define PB_GET_ERROR(stream) ((stream)->errmsg ? (stream)->errmsg : "(none)")
+#endif
 
 #endif

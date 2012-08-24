@@ -89,7 +89,7 @@ int main()
     /* Decode and print out the stuff */
     if (!check_alltypes(&stream))
     {
-        printf("Parsing failed.\n");
+        printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     } else {
         return 0;
