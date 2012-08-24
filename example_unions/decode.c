@@ -45,10 +45,13 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
 bool decode_unionmessage_contents(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
     pb_istream_t substream;
+    bool status;
     if (!pb_make_string_substream(stream, &substream))
         return false;
     
-    return pb_decode(&substream, fields, dest_struct);
+    status = pb_decode(&substream, fields, dest_struct);
+    pb_close_string_substream(stream, &substream);
+    return status;
 }
 
 int main()

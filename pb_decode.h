@@ -23,6 +23,10 @@
  * 
  * 3) You can use state to store your own data (e.g. buffer pointer),
  * and rely on pb_read to verify that no-body reads past bytes_left.
+ * 
+ * 4) Your callback may be used with substreams, in which case bytes_left
+ * is different than from the main stream. Don't use bytes_left to compute
+ * any pointers.
  */
 struct _pb_istream_t
 {
@@ -69,6 +73,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
 
 /* Make a limited-length substream for reading a PB_WT_STRING field. */
 bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 
 /* --- Internal functions ---
  * These functions are not terribly useful for the average library user, but
