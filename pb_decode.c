@@ -415,10 +415,12 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
  * Decode all fields *
  *********************/
 
-bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
+bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
     uint8_t fields_seen[(PB_MAX_REQUIRED_FIELDS + 7) / 8] = {0}; /* Used to check for required fields */
     pb_field_iterator_t iter;
+    
+    pb_message_set_to_defaults(fields, dest_struct);
     
     pb_field_init(&iter, fields, dest_struct);
     
@@ -466,12 +468,6 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
     } while (pb_field_next(&iter));
     
     return true;
-}
-
-bool checkreturn pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
-{
-    pb_message_set_to_defaults(fields, dest_struct);
-    return pb_decode_noinit(stream, fields, dest_struct);
 }
 
 /* Field decoders */
@@ -619,7 +615,7 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
     if (field->ptr == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
     
-    status = pb_decode_noinit(&substream, (pb_field_t*)field->ptr, dest);
+    status = pb_decode(&substream, (pb_field_t*)field->ptr, dest);
     pb_close_string_substream(stream, &substream);
     return status;
 }
