@@ -1,8 +1,9 @@
 import "nanopb.proto";
 
 message SubMessage {
-    required string substuff1 = 1 [(nanopb).max_size = 16];
-    required int32 substuff2 = 2;
+    required string substuff1 = 1 [(nanopb).max_size = 16, default = "1"];
+    required int32 substuff2 = 2 [default = 2];
+    optional fixed32 substuff3 = 3 [default = 3];
 }
 
 enum MyEnum {
@@ -56,7 +57,27 @@ message AllTypes {
     repeated SubMessage rep_submsg  = 36 [(nanopb).max_count = 5];
     repeated MyEnum     rep_enum    = 37 [(nanopb).max_count = 5];
     
+    optional int32      opt_int32   = 41 [default = 4041];
+    optional int64      opt_int64   = 42 [default = 4042];
+    optional uint32     opt_uint32  = 43 [default = 4043];
+    optional uint64     opt_uint64  = 44 [default = 4044];
+    optional sint32     opt_sint32  = 45 [default = 4045];
+    optional sint64     opt_sint64  = 46 [default = 4046];
+    optional bool       opt_bool    = 47 [default = false];
     
+    optional fixed32    opt_fixed32 = 48 [default = 4048];
+    optional sfixed32   opt_sfixed32= 49 [default = 4049];
+    optional float      opt_float   = 50 [default = 4050];
+    
+    optional fixed64    opt_fixed64 = 51 [default = 4051];
+    optional sfixed64   opt_sfixed64= 52 [default = 4052];
+    optional double     opt_double  = 53 [default = 4053];
+    
+    optional string     opt_string  = 54 [(nanopb).max_size = 16, default = "4054"];
+    optional bytes      opt_bytes   = 55 [(nanopb).max_size = 16, default = "4055"];
+    optional SubMessage opt_submsg  = 56;
+    optional MyEnum     opt_enum    = 57 [default = Second];
+
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.
     required int32      end = 99;

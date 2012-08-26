@@ -65,7 +65,8 @@ run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_
 	"`./test_encode_callbacks | protoc --decode=TestMessage callbacks.proto`" ]
 
 	./test_encode3 | ./test_decode3
-	./test_encode3 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
+	./test_encode3 1 | ./test_decode3 1
+	./test_encode3 1 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
 	
 	./test_missing_fields
 
