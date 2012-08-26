@@ -48,6 +48,12 @@ bool pb_read(pb_istream_t *stream, uint8_t *buf, size_t count);
  */
 bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
 
+/* Same as pb_decode, except does not initialize the destination structure
+ * to default values. This is slightly faster if you need no default values
+ * and just do memset(struct, 0, sizeof(struct)) yourself.
+ */
+bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+
 /* --- Helper functions ---
  * You may want to use these from your caller or callbacks.
  */

@@ -322,6 +322,16 @@ In addition to EOF, the pb_decode implementation supports terminating a message 
 
 For optional fields, this function applies the default value and sets *has_<field>* to false if the field is not present.
 
+pb_decode_noinit
+----------------
+Same as `pb_decode`_, except does not apply the default values to fields. ::
+
+    bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+
+(parameters are the same as for `pb_decode`_.)
+
+The destination structure should be filled with zeros before calling this function. Doing a *memset* manually can be slightly faster than using `pb_decode`_ if you don't need any default values.
+
 pb_skip_varint
 --------------
 Skip a varint_ encoded integer without decoding it. ::
