@@ -168,7 +168,7 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
                 break;
             
             case PB_HTYPE_OPTIONAL:
-                if (*(bool*)pSize)
+                if (*(const bool*)pSize)
                 {
                     if (!pb_encode_tag_for_field(stream, field))
                         return false;
@@ -179,13 +179,13 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
                 break;
             
             case PB_HTYPE_ARRAY:
-                if (!encode_array(stream, field, pData, *(size_t*)pSize, func))
+                if (!encode_array(stream, field, pData, *(const size_t*)pSize, func))
                     return false;
                 break;
             
             case PB_HTYPE_CALLBACK:
             {
-                pb_callback_t *callback = (pb_callback_t*)pData;
+                const pb_callback_t *callback = (const pb_callback_t*)pData;
                 if (callback->funcs.encode != NULL)
                 {
                     if (!callback->funcs.encode(stream, field, callback->arg))
@@ -243,7 +243,7 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
     lebytes[3] = bytes[0];
     return pb_write(stream, lebytes, 4);
     #else
-    return pb_write(stream, (uint8_t*)value, 4);
+    return pb_write(stream, (const uint8_t*)value, 4);
     #endif
 }
 
@@ -262,7 +262,7 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
     lebytes[7] = bytes[0];
     return pb_write(stream, lebytes, 8);
     #else
-    return pb_write(stream, (uint8_t*)value, 8);
+    return pb_write(stream, (const uint8_t*)value, 8);
     #endif
 }
 
@@ -358,10 +358,10 @@ bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, co
     
     switch (field->data_size)
     {
-        case 1: value = *(uint8_t*)src; break;
-        case 2: value = *(uint16_t*)src; break;
-        case 4: value = *(uint32_t*)src; break;
-        case 8: value = *(uint64_t*)src; break;
+        case 1: value = *(const uint8_t*)src; break;
+        case 2: value = *(const uint16_t*)src; break;
+        case 4: value = *(const uint32_t*)src; break;
+        case 8: value = *(const uint64_t*)src; break;
         default: return false;
     }
     
@@ -374,8 +374,8 @@ bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, c
     
     switch (field->data_size)
     {
-        case 4: value = *(int32_t*)src; break;
-        case 8: value = *(int64_t*)src; break;
+        case 4: value = *(const int32_t*)src; break;
+        case 8: value = *(const int64_t*)src; break;
         default: return false;
     }
     
@@ -396,7 +396,7 @@ bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, c
 
 bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    pb_bytes_array_t *bytes = (pb_bytes_array_t*)src;
+    const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
     UNUSED(field);
     return pb_encode_string(stream, bytes->bytes, bytes->size);
 }
@@ -404,7 +404,7 @@ bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, con
 bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     UNUSED(field);
-    return pb_encode_string(stream, (uint8_t*)src, strlen((char*)src));
+    return pb_encode_string(stream, (const uint8_t*)src, strlen((const char*)src));
 }
 
 bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
@@ -412,6 +412,6 @@ bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field
     if (field->ptr == NULL)
         return false;
     
-    return pb_encode_submessage(stream, (pb_field_t*)field->ptr, src);
+    return pb_encode_submessage(stream, (const pb_field_t*)field->ptr, src);
 }
 

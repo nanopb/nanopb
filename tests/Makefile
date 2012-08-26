@@ -4,7 +4,7 @@ DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
 
 # More strict checks for the core part of nanopb
-CFLAGS_CORE=-pedantic -Wextra
+CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op
 
 all: breakpoints $(TESTS) run_unittests
 
@@ -20,6 +20,12 @@ pb_encode.o: ../pb_encode.c $(DEPS)
 pb_decode.o: ../pb_decode.c $(DEPS)
 	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
 
+pb_encode.cxx.o: ../pb_encode.c $(DEPS)
+	$(CXX) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+pb_decode.cxx.o: ../pb_decode.c $(DEPS)
+	$(CXX) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+
+test_cxxcompile: pb_encode.cxx.o pb_decode.cxx.o
 test_decode1: test_decode1.o pb_decode.o person.pb.o
 test_decode2: test_decode2.o pb_decode.o person.pb.o
 test_decode3: test_decode3.o pb_decode.o alltypes.pb.o
@@ -46,7 +52,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields
+run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null
