@@ -11,6 +11,9 @@ all: breakpoints $(TESTS) run_unittests
 clean:
 	rm -f $(TESTS) person.pb* alltypes.pb* *.o *.gcda *.gcno
 
+%.pb.o: %.pb.c %.pb.h
+	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+
 %.o: %.c
 %.o: %.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
