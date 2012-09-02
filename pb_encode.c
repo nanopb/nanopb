@@ -268,8 +268,8 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number)
 {
-    int tag = wiretype | (field_number << 3);
-    return pb_encode_varint(stream, (uint64_t)tag);
+    uint64_t tag = wiretype | (field_number << 3);
+    return pb_encode_varint(stream, tag);
 }
 
 bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field)
