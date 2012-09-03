@@ -83,7 +83,7 @@ static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
-    uint8_t bitpos = 0;
+    int bitpos = 0;
     *dest = 0;
     
     while (bitpos < 64 && pb_read(stream, &byte, 1))
@@ -447,7 +447,7 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
         if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED
             && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
         {
-            fields_seen[iter.required_field_index >> 3] |= 1 << (iter.required_field_index & 7);
+            fields_seen[iter.required_field_index >> 3] |= (uint8_t)(1 << (iter.required_field_index & 7));
         }
             
         if (!decode_field(stream, wire_type, &iter))
@@ -483,9 +483,9 @@ bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest)
         return false;
     
     if (value & 1)
-        *dest = ~(value >> 1);
+        *dest = (int64_t)(~(value >> 1));
     else
-        *dest = value >> 1;
+        *dest = (int64_t)(value >> 1);
     
     return true;
 }

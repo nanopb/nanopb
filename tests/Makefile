@@ -4,7 +4,7 @@ DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
 
 # More strict checks for the core part of nanopb
-CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op
+CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op -Wconversion
 
 all: breakpoints $(TESTS) run_unittests
 

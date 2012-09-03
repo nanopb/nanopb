@@ -75,6 +75,7 @@ typedef enum {
     
     /* Number of declared LTYPES */
     PB_LTYPES_COUNT = 7,
+    PB_LTYPE_MASK = 0x0F,
     
     /******************
      * Modifier flags *
@@ -95,11 +96,13 @@ typedef enum {
      * data_offset points to pb_callback_t structure.
      * LTYPE should be 0 (it is ignored, but sometimes
      * used to speculatively index an array). */
-    PB_HTYPE_CALLBACK = 0x30
+    PB_HTYPE_CALLBACK = 0x30,
+    
+    PB_HTYPE_MASK = 0xF0
 } pb_packed pb_type_t;
 
-#define PB_HTYPE(x) ((x) & 0xF0)
-#define PB_LTYPE(x) ((x) & 0x0F)
+#define PB_HTYPE(x) ((x) & PB_HTYPE_MASK)
+#define PB_LTYPE(x) ((x) & PB_LTYPE_MASK)
 
 /* This structure is used in auto-generated constants
  * to specify struct fields.

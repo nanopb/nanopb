@@ -205,7 +205,7 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
 {
     uint8_t buffer[10];
-    int i = 0;
+    size_t i = 0;
     
     if (value == 0)
         return pb_write(stream, (uint8_t*)&value, 1);
@@ -225,9 +225,9 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
 {
     uint64_t zigzagged;
     if (value < 0)
-        zigzagged = ~(value << 1);
+        zigzagged = (uint64_t)(~(value << 1));
     else
-        zigzagged = value << 1;
+        zigzagged = (uint64_t)(value << 1);
     
     return pb_encode_varint(stream, zigzagged);
 }
@@ -266,7 +266,7 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
     #endif
 }
 
-bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, int field_number)
+bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number)
 {
     uint64_t tag = wiretype | (field_number << 3);
     return pb_encode_varint(stream, tag);
@@ -370,7 +370,7 @@ bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, co
 
 bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    uint64_t value = 0;
+    int64_t value = 0;
     
     switch (field->data_size)
     {
