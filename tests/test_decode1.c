@@ -63,6 +63,12 @@ int main()
     uint8_t buffer[512];
     size_t count = fread(buffer, 1, sizeof(buffer), stdin);
     
+    if (!feof(stdin))
+    {
+    	printf("Message does not fit in buffer\n");
+    	return 1;
+    }
+    
     /* Construct a pb_istream_t for reading from the buffer */
     pb_istream_t stream = pb_istream_from_buffer(buffer, count);
     
