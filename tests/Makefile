@@ -70,6 +70,9 @@ run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 te
 	[ "`./test_encode2 | ./test_decode2`" = \
 	"`./test_encode2 | protoc --decode=Person -I. -I../generator -I/usr/include person.proto`" ]
 	
+	[ "`./test_decode2 < person_with_extra_field.pb`" = \
+	"`cat person_with_extra_field.txt`" ]
+	
 	[ "`./test_encode_callbacks | ./test_decode_callbacks`" = \
 	"`./test_encode_callbacks | protoc --decode=TestMessage callbacks.proto`" ]
 

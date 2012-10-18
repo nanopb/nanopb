@@ -19,12 +19,10 @@
  * Rules for callback:
  * 1) Return false on IO errors. This will cause decoding to abort.
  * 
- * 2) If buf is NULL, read but don't store bytes ("skip input").
- * 
- * 3) You can use state to store your own data (e.g. buffer pointer),
+ * 2) You can use state to store your own data (e.g. buffer pointer),
  * and rely on pb_read to verify that no-body reads past bytes_left.
  * 
- * 4) Your callback may be used with substreams, in which case bytes_left
+ * 3) Your callback may be used with substreams, in which case bytes_left
  * is different than from the main stream. Don't use bytes_left to compute
  * any pointers.
  */

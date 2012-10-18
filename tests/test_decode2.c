@@ -59,13 +59,6 @@ bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     FILE *file = (FILE*)stream->state;
     bool status;
     
-    if (buf == NULL)
-    {
-       /* Skipping data */
-        while (count-- && fgetc(file) != EOF);
-        return count == 0;
-    }
-    
     status = (fread(buf, 1, count, file) == count);
     
     if (feof(file))

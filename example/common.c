@@ -19,15 +19,6 @@ static bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     int fd = (intptr_t)stream->state;
     int result;
     
-    if (buf == NULL)
-    {
-        /* Well, this is a really inefficient way to skip input. */
-        /* It is only used when there are unknown fields. */
-        char dummy;
-        while (count-- && recv(fd, &dummy, 1, 0) == 1);
-        return count == 0;
-    }
-    
     result = recv(fd, buf, count, MSG_WAITALL);
     
     if (result == 0)

@@ -36,18 +36,6 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
  * pb_istream *
  **************/
 
-bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
-{
-    if (stream->bytes_left < count)
-        PB_RETURN_ERROR(stream, "end-of-stream");
-    
-    if (!stream->callback(stream, buf, count))
-        PB_RETURN_ERROR(stream, "io error");
-    
-    stream->bytes_left -= count;
-    return true;
-}
-
 static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     uint8_t *source = (uint8_t*)stream->state;
@@ -56,6 +44,33 @@ static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t coun
         memcpy(buf, source, count);
     
     stream->state = source + count;
+    return true;
+}
+
+bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
+{
+	if (buf == NULL && stream->callback != buf_read)
+	{
+		/* Skip input bytes */
+		uint8_t tmp[16];
+		while (count > 16)
+		{
+			if (!pb_read(stream, tmp, 16))
+				return false;
+			
+			count -= 16;
+		}
+		
+		return pb_read(stream, tmp, count);
+	}
+
+    if (stream->bytes_left < count)
+        PB_RETURN_ERROR(stream, "end-of-stream");
+    
+    if (!stream->callback(stream, buf, count))
+        PB_RETURN_ERROR(stream, "io error");
+    
+    stream->bytes_left -= count;
     return true;
 }
 

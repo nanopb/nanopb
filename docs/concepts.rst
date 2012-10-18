@@ -92,9 +92,8 @@ Writing to stdout::
 
 Input streams
 -------------
-For input streams, there are a few extra rules:
+For input streams, there is one extra rule:
 
-#) If buf is NULL, read from stream but don't store the data. This is used to skip unknown input.
 #) You don't need to know the length of the message in advance. After getting EOF error when reading, set bytes_left to 0 and return false. Pb_decode will detect this and if the EOF was in a proper position, it will return true.
 
 Here is the structure::
