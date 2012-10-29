@@ -1,0 +1,28 @@
+/* Test nanopb option parsing.
+ * options.expected lists the patterns that are searched for in the output.
+ */
+
+import "nanopb.proto";
+
+// File level options
+option (nanopb_fileopt).max_size = 20;
+
+message Message1
+{
+    required string filesize = 1;
+}
+
+// Message level options
+message Message2
+{
+    option (nanopb_msgopt).max_size = 30;
+    required string msgsize = 1;
+}
+
+// Field level options
+message Message3
+{
+    required string fieldsize = 1 [(nanopb).max_size = 40];
+}
+
+

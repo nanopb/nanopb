@@ -55,7 +55,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields
+run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields test_options
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null
@@ -81,6 +81,14 @@ run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 te
 	./test_encode3 1 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
 	
 	./test_missing_fields
+
+test_options: options.pb.h options.expected
+	for p in $$(grep . options.expected); do \
+	    if ! grep -qF "$$p" $<; then \
+	        echo Expected: $$p; \
+	        exit 1; \
+	    fi \
+	done
 
 run_fuzztest: test_decode2
 	bash -c 'I=1; while true; do cat /dev/urandom | ./test_decode2 > /dev/null; I=$$(($$I+1)); echo -en "\r$$I"; done'

@@ -1,0 +1,3 @@
+char filesize[20];
+char msgsize[30];
+char fieldsize[40];

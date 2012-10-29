@@ -79,7 +79,7 @@ def names_from_type_name(type_name):
     return Names(type_name[1:].split('.'))
 
 class Enum:
-    def __init__(self, names, desc):
+    def __init__(self, names, desc, enum_options):
         '''desc is EnumDescriptorProto'''
         self.names = names + desc.name
         self.values = [(self.names + x.name, x.number) for x in desc.value]
@@ -91,7 +91,7 @@ class Enum:
         return result
 
 class Field:
-    def __init__(self, struct_name, desc):
+    def __init__(self, struct_name, desc, field_options):
         '''desc is FieldDescriptorProto'''
         self.tag = desc.number
         self.struct_name = struct_name
@@ -101,13 +101,12 @@ class Field:
         self.max_count = None
         self.array_decl = ""
         
-        # Parse nanopb-specific field options
-        if desc.options.HasExtension(nanopb_pb2.nanopb):
-            ext = desc.options.Extensions[nanopb_pb2.nanopb]
-            if ext.HasField("max_size"):
-                self.max_size = ext.max_size
-            if ext.HasField("max_count"):
-                self.max_count = ext.max_count
+        # Parse field options
+        if field_options.HasField("max_size"):
+            self.max_size = field_options.max_size
+        
+        if field_options.HasField("max_count"):
+            self.max_count = field_options.max_count
         
         if desc.HasField('default_value'):
             self.default = desc.default_value
@@ -284,9 +283,9 @@ class Field:
 
 
 class Message:
-    def __init__(self, names, desc):
+    def __init__(self, names, desc, message_options):
         self.name = names
-        self.fields = [Field(self.name, f) for f in desc.field]
+        self.fields = [Field(self.name, f, get_nanopb_suboptions(f, message_options)) for f in desc.field]
         self.ordered_fields = self.fields[:]
         self.ordered_fields.sort()
 
@@ -356,7 +355,7 @@ def iterate_messages(desc, names = Names()):
         for x in iterate_messages(submsg, sub_names):
             yield x
 
-def parse_file(fdesc):
+def parse_file(fdesc, file_options):
     '''Takes a FileDescriptorProto and returns tuple (enum, messages).'''
     
     enums = []
@@ -368,12 +367,13 @@ def parse_file(fdesc):
         base_name = Names()
     
     for enum in fdesc.enum_type:
-        enums.append(Enum(base_name, enum))
+        enums.append(Enum(base_name, enum, file_options))
     
     for names, message in iterate_messages(fdesc, base_name):
-        messages.append(Message(names, message))
+        message_options = get_nanopb_suboptions(message, file_options)
+        messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
-            enums.append(Enum(names, enum))
+            enums.append(Enum(names, enum, message_options))
     
     return enums, messages
 
@@ -513,6 +513,7 @@ def generate_source(headername, enums, messages):
 import sys
 import os.path    
 from optparse import OptionParser
+import google.protobuf.text_format as text_format
 
 optparser = OptionParser(
     usage = "Usage: nanopb_generator.py [options] file.pb ...",
@@ -522,6 +523,30 @@ optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", defa
     help="Exclude file from generated #include list.")
 optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
     help="Don't print anything except errors.")
+optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
+    help="Print more information.")
+optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
+    help="Set generator option (max_size, max_count etc.).")
+
+def get_nanopb_suboptions(subdesc, options):
+    '''Get copy of options, and merge information from subdesc.'''
+    new_options = nanopb_pb2.NanoPBOptions()
+    new_options.CopyFrom(options)
+    
+    if isinstance(subdesc.options, descriptor.FieldOptions):
+        ext_type = nanopb_pb2.nanopb
+    elif isinstance(subdesc.options, descriptor.FileOptions):
+        ext_type = nanopb_pb2.nanopb_fileopt
+    elif isinstance(subdesc.options, descriptor.MessageOptions):
+        ext_type = nanopb_pb2.nanopb_msgopt
+    else:
+        raise Exception("Unknown options type")
+    
+    if subdesc.options.HasExtension(ext_type):
+        ext = subdesc.options.Extensions[ext_type]
+        new_options.MergeFrom(ext)
+    
+    return new_options
 
 def process(filenames, options):
     '''Process the files given on the command line.'''
@@ -530,10 +555,24 @@ def process(filenames, options):
         optparser.print_help()
         return False
     
+    if options.quiet:
+        options.verbose = False
+    
+    toplevel_options = nanopb_pb2.NanoPBOptions()
+    for s in options.settings:
+        text_format.Merge(s, toplevel_options)
+    
     for filename in filenames:
         data = open(filename, 'rb').read()
         fdesc = descriptor.FileDescriptorSet.FromString(data)
-        enums, messages = parse_file(fdesc.file[0])
+        
+        file_options = get_nanopb_suboptions(fdesc.file[0], toplevel_options)
+        
+        if options.verbose:
+            print "Options for " + filename + ":"
+            print text_format.MessageToString(file_options)
+        
+        enums, messages = parse_file(fdesc.file[0], file_options)
         
         noext = os.path.splitext(filename)[0]
         headername = noext + '.pb.h'
@@ -545,7 +584,7 @@ def process(filenames, options):
         
         # List of .proto files that should not be included in the C header file
         # even if they are mentioned in the source .proto.
-        excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto']
+        excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
         dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
         
         header = open(headername, 'w')

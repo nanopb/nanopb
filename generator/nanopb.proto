@@ -20,6 +20,14 @@ message NanoPBOptions {
 // Extensions: 1010 (all types)                                                                                                                
 // --------------------------------   
 
+extend google.protobuf.FileOptions {
+    optional NanoPBOptions nanopb_fileopt = 1010;
+}
+
+extend google.protobuf.MessageOptions {
+    optional NanoPBOptions nanopb_msgopt = 1010;
+}
+
 extend google.protobuf.FieldOptions {
     optional NanoPBOptions nanopb = 1010;
 }
