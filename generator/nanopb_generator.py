@@ -22,6 +22,16 @@ except:
     print
     raise
 
+
+
+
+
+
+# ---------------------------------------------------------------------------
+#                     Generation of single fields
+# ---------------------------------------------------------------------------
+
+
 import os.path
 
 # Values are tuple (c type, pb ltype)
@@ -264,6 +274,15 @@ class Field:
         return max(self.tag, self.max_size, self.max_count)        
 
 
+
+
+
+
+# ---------------------------------------------------------------------------
+#                   Generation of messages (structures)
+# ---------------------------------------------------------------------------
+
+
 class Message:
     def __init__(self, names, desc):
         self.name = names
@@ -312,6 +331,16 @@ class Message:
         
         result += '    PB_LAST_FIELD\n};'
         return result
+
+
+
+
+
+
+# ---------------------------------------------------------------------------
+#                    Processing of entire .proto files
+# ---------------------------------------------------------------------------
+
 
 def iterate_messages(desc, names = Names()):
     '''Recursively find all messages. For each, yield name, DescriptorProto.'''
@@ -475,39 +504,64 @@ def generate_source(headername, enums, messages):
     for msg in messages:
         yield msg.fields_definition() + '\n\n'
 
+
+
+# ---------------------------------------------------------------------------
+#                         Command line interface
+# ---------------------------------------------------------------------------
+
+import sys
+import os.path    
+from optparse import OptionParser
+
+optparser = OptionParser(
+    usage = "Usage: nanopb_generator.py [options] file.pb ...",
+    epilog = "Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. " +
+             "Output will be written to file.pb.h and file.pb.c.")
+optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
+    help="Exclude file from generated #include list.")
+optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
+    help="Don't print anything except errors.")
+
+def process(filenames, options):
+    '''Process the files given on the command line.'''
+    
+    if not filenames:
+        optparser.print_help()
+        return False
+    
+    for filename in filenames:
+        data = open(filename, 'rb').read()
+        fdesc = descriptor.FileDescriptorSet.FromString(data)
+        enums, messages = parse_file(fdesc.file[0])
+        
+        noext = os.path.splitext(filename)[0]
+        headername = noext + '.pb.h'
+        sourcename = noext + '.pb.c'
+        headerbasename = os.path.basename(headername)
+        
+        if not options.quiet:
+            print "Writing to " + headername + " and " + sourcename
+        
+        # List of .proto files that should not be included in the C header file
+        # even if they are mentioned in the source .proto.
+        excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto']
+        dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
+        
+        header = open(headername, 'w')
+        for part in generate_header(dependencies, headerbasename, enums, messages):
+            header.write(part)
+
+        source = open(sourcename, 'w')
+        for part in generate_source(headerbasename, enums, messages):
+            source.write(part)
+
+    return True
+
 if __name__ == '__main__':
-    import sys
-    import os.path
+    options, filenames = optparser.parse_args()
+    status = process(filenames, options)
     
-    if len(sys.argv) != 2:
-        print "Usage: " + sys.argv[0] + " file.pb"
-        print "where file.pb has been compiled from .proto by:"
-        print "protoc -ofile.pb file.proto"
-        print "Output fill be written to file.pb.h and file.pb.c"
+    if not status:
         sys.exit(1)
-    
-    data = open(sys.argv[1], 'rb').read()
-    fdesc = descriptor.FileDescriptorSet.FromString(data)
-    enums, messages = parse_file(fdesc.file[0])
-    
-    noext = os.path.splitext(sys.argv[1])[0]
-    headername = noext + '.pb.h'
-    sourcename = noext + '.pb.c'
-    headerbasename = os.path.basename(headername)
-    
-    print "Writing to " + headername + " and " + sourcename
-    
-    # List of .proto files that should not be included in the C header file
-    # even if they are mentioned in the source .proto.
-    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto']
-    dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
-    
-    header = open(headername, 'w')
-    for part in generate_header(dependencies, headerbasename, enums, messages):
-        header.write(part)
-
-    source = open(sourcename, 'w')
-    for part in generate_source(headerbasename, enums, messages):
-        source.write(part)
-
     
