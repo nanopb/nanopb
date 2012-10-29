@@ -9,6 +9,10 @@
 #include <stdbool.h>
 #include "pb.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Lightweight output stream.
  * You can provide callback for writing or use pb_ostream_from_buffer.
  * 
@@ -99,5 +103,8 @@ bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *sr
  * instead, it has the same functionality with a less confusing interface. */
 bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif

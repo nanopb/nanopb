@@ -438,7 +438,10 @@ def generate_header(dependencies, headername, enums, messages):
     for dependency in dependencies:
         noext = os.path.splitext(dependency)[0]
         yield '#include "%s.pb.h"\n' % noext
-    yield '\n'
+    
+    yield '#ifdef __cplusplus\n'
+    yield 'extern "C" {\n'
+    yield '#endif\n\n'
     
     yield '/* Enum definitions */\n'
     for enum in enums:
@@ -501,6 +504,10 @@ def generate_header(dependencies, headername, enums, messages):
                 assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
                 yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT)\n' % assertion
             yield '#endif\n'
+    
+    yield '\n#ifdef __cplusplus\n'
+    yield '} /* extern "C" */\n'
+    yield '#endif\n'
     
     # End of header
     yield '\n#endif\n'
