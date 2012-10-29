@@ -6,6 +6,8 @@
  * see pb_encode.h or pb_decode.h
  */
 
+#define NANOPB_VERSION nanopb-0.1.7-dev
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
