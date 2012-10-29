@@ -12,7 +12,7 @@ import google.protobuf.descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='nanopb.proto',
   package='',
-  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"Z\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05\x12$\n\x04type\x18\x03 \x01(\x0e\x32\n.FieldType:\nFT_DEFAULT*;\n\tFieldType\x12\x0e\n\nFT_DEFAULT\x10\x00\x12\x0f\n\x0b\x46T_CALLBACK\x10\x01\x12\r\n\tFT_STATIC\x10\x02:E\n\x0enanopb_fileopt\x12\x1c.google.protobuf.FileOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:G\n\rnanopb_msgopt\x12\x1f.google.protobuf.MessageOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:>\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions')
+  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"t\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05\x12$\n\x04type\x18\x03 \x01(\x0e\x32\n.FieldType:\nFT_DEFAULT\x12\x18\n\nlong_names\x18\x04 \x01(\x08:\x04true*;\n\tFieldType\x12\x0e\n\nFT_DEFAULT\x10\x00\x12\x0f\n\x0b\x46T_CALLBACK\x10\x01\x12\r\n\tFT_STATIC\x10\x02:E\n\x0enanopb_fileopt\x12\x1c.google.protobuf.FileOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:G\n\rnanopb_msgopt\x12\x1f.google.protobuf.MessageOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:E\n\x0enanopb_enumopt\x12\x1c.google.protobuf.EnumOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:>\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions')
 
 _FIELDTYPE = descriptor.EnumDescriptor(
   name='FieldType',
@@ -35,8 +35,8 @@ _FIELDTYPE = descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=142,
-  serialized_end=201,
+  serialized_start=168,
+  serialized_end=227,
 )
 
 
@@ -60,9 +60,17 @@ nanopb_msgopt = descriptor.FieldDescriptor(
   message_type=None, enum_type=None, containing_type=None,
   is_extension=True, extension_scope=None,
   options=None)
+NANOPB_ENUMOPT_FIELD_NUMBER = 1010
+nanopb_enumopt = descriptor.FieldDescriptor(
+  name='nanopb_enumopt', full_name='nanopb_enumopt', index=2,
+  number=1010, type=11, cpp_type=10, label=1,
+  has_default_value=False, default_value=None,
+  message_type=None, enum_type=None, containing_type=None,
+  is_extension=True, extension_scope=None,
+  options=None)
 NANOPB_FIELD_NUMBER = 1010
 nanopb = descriptor.FieldDescriptor(
-  name='nanopb', full_name='nanopb', index=2,
+  name='nanopb', full_name='nanopb', index=3,
   number=1010, type=11, cpp_type=10, label=1,
   has_default_value=False, default_value=None,
   message_type=None, enum_type=None, containing_type=None,
@@ -98,6 +106,13 @@ _NANOPBOPTIONS = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='long_names', full_name='NanoPBOptions.long_names', index=3,
+      number=4, type=8, cpp_type=7, label=1,
+      has_default_value=True, default_value=True,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -108,7 +123,7 @@ _NANOPBOPTIONS = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=50,
-  serialized_end=140,
+  serialized_end=166,
 )
 
 _NANOPBOPTIONS.fields_by_name['type'].enum_type = _FIELDTYPE
@@ -124,6 +139,8 @@ nanopb_fileopt.message_type = _NANOPBOPTIONS
 google.protobuf.descriptor_pb2.FileOptions.RegisterExtension(nanopb_fileopt)
 nanopb_msgopt.message_type = _NANOPBOPTIONS
 google.protobuf.descriptor_pb2.MessageOptions.RegisterExtension(nanopb_msgopt)
+nanopb_enumopt.message_type = _NANOPBOPTIONS
+google.protobuf.descriptor_pb2.EnumOptions.RegisterExtension(nanopb_enumopt)
 nanopb.message_type = _NANOPBOPTIONS
 google.protobuf.descriptor_pb2.FieldOptions.RegisterExtension(nanopb)
 # @@protoc_insertion_point(module_scope)

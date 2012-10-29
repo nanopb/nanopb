@@ -81,7 +81,12 @@ def names_from_type_name(type_name):
 class Enum:
     def __init__(self, names, desc, enum_options):
         '''desc is EnumDescriptorProto'''
-        self.names = names + desc.name
+        
+        if enum_options.long_names:
+            self.names = names + desc.name
+        else:
+            self.names = names
+        
         self.values = [(self.names + x.name, x.number) for x in desc.value]
     
     def __str__(self):
@@ -376,7 +381,8 @@ def parse_file(fdesc, file_options):
         base_name = Names()
     
     for enum in fdesc.enum_type:
-        enums.append(Enum(base_name, enum, file_options))
+        enum_options = get_nanopb_suboptions(enum, file_options)
+        enums.append(Enum(base_name, enum, enum_options))
     
     for names, message in iterate_messages(fdesc, base_name):
         message_options = get_nanopb_suboptions(message, file_options)
@@ -548,6 +554,8 @@ def get_nanopb_suboptions(subdesc, options):
         ext_type = nanopb_pb2.nanopb_fileopt
     elif isinstance(subdesc.options, descriptor.MessageOptions):
         ext_type = nanopb_pb2.nanopb_msgopt
+    elif isinstance(subdesc.options, descriptor.EnumOptions):
+        ext_type = nanopb_pb2.nanopb_enumopt
     else:
         raise Exception("Unknown options type")
     

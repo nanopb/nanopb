@@ -14,9 +14,17 @@ enum FieldType {
 }
 
 message NanoPBOptions {
+  // Allocated size for 'bytes' and 'string' fields.
   optional int32 max_size = 1;
+  
+  // Allocated number of entries in arrays ('repeated' fields)
   optional int32 max_count = 2;
+  
+  // Force type of field (callback or static allocation)
   optional FieldType type = 3 [default = FT_DEFAULT];
+  
+  // Use long names for enums, i.e. EnumName_EnumValue.
+  optional bool long_names = 4 [default = true];
 }
 
 // Protocol Buffers extension number registry
@@ -35,7 +43,12 @@ extend google.protobuf.MessageOptions {
     optional NanoPBOptions nanopb_msgopt = 1010;
 }
 
+extend google.protobuf.EnumOptions {
+    optional NanoPBOptions nanopb_enumopt = 1010;
+}
+
 extend google.protobuf.FieldOptions {
     optional NanoPBOptions nanopb = 1010;
 }
+
 

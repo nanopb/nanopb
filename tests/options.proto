@@ -31,3 +31,9 @@ message Message4
     required int32 int32_callback = 1 [(nanopb).type = FT_CALLBACK];
 }
 
+// Short enum names
+enum Enum1
+{
+    option (nanopb_enumopt).long_names = false;
+    EnumValue1 = 1;
+}
