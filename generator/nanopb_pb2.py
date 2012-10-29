@@ -12,8 +12,37 @@ import google.protobuf.descriptor_pb2
 DESCRIPTOR = descriptor.FileDescriptor(
   name='nanopb.proto',
   package='',
-  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"4\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05:E\n\x0enanopb_fileopt\x12\x1c.google.protobuf.FileOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:G\n\rnanopb_msgopt\x12\x1f.google.protobuf.MessageOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:>\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions')
+  serialized_pb='\n\x0cnanopb.proto\x1a google/protobuf/descriptor.proto\"Z\n\rNanoPBOptions\x12\x10\n\x08max_size\x18\x01 \x01(\x05\x12\x11\n\tmax_count\x18\x02 \x01(\x05\x12$\n\x04type\x18\x03 \x01(\x0e\x32\n.FieldType:\nFT_DEFAULT*;\n\tFieldType\x12\x0e\n\nFT_DEFAULT\x10\x00\x12\x0f\n\x0b\x46T_CALLBACK\x10\x01\x12\r\n\tFT_STATIC\x10\x02:E\n\x0enanopb_fileopt\x12\x1c.google.protobuf.FileOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:G\n\rnanopb_msgopt\x12\x1f.google.protobuf.MessageOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions:>\n\x06nanopb\x12\x1d.google.protobuf.FieldOptions\x18\xf2\x07 \x01(\x0b\x32\x0e.NanoPBOptions')
 
+_FIELDTYPE = descriptor.EnumDescriptor(
+  name='FieldType',
+  full_name='FieldType',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    descriptor.EnumValueDescriptor(
+      name='FT_DEFAULT', index=0, number=0,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='FT_CALLBACK', index=1, number=1,
+      options=None,
+      type=None),
+    descriptor.EnumValueDescriptor(
+      name='FT_STATIC', index=2, number=2,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=142,
+  serialized_end=201,
+)
+
+
+FT_DEFAULT = 0
+FT_CALLBACK = 1
+FT_STATIC = 2
 
 NANOPB_FILEOPT_FIELD_NUMBER = 1010
 nanopb_fileopt = descriptor.FieldDescriptor(
@@ -62,6 +91,13 @@ _NANOPBOPTIONS = descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    descriptor.FieldDescriptor(
+      name='type', full_name='NanoPBOptions.type', index=2,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=True, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -72,9 +108,10 @@ _NANOPBOPTIONS = descriptor.Descriptor(
   is_extendable=False,
   extension_ranges=[],
   serialized_start=50,
-  serialized_end=102,
+  serialized_end=140,
 )
 
+_NANOPBOPTIONS.fields_by_name['type'].enum_type = _FIELDTYPE
 DESCRIPTOR.message_types_by_name['NanoPBOptions'] = _NANOPBOPTIONS
 
 class NanoPBOptions(message.Message):

@@ -7,9 +7,16 @@
 
 import "google/protobuf/descriptor.proto";
 
+enum FieldType {
+    FT_DEFAULT = 0; // Automatically decide field type, generate static field if possible.
+    FT_CALLBACK = 1; // Always generate a callback field.
+    FT_STATIC = 2; // Generate a static field or raise an exception if not possible.
+}
+
 message NanoPBOptions {
   optional int32 max_size = 1;
   optional int32 max_count = 2;
+  optional FieldType type = 3 [default = FT_DEFAULT];
 }
 
 // Protocol Buffers extension number registry

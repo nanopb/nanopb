@@ -110,18 +110,18 @@ class Field:
         
         if desc.HasField('default_value'):
             self.default = desc.default_value
-        
+           
         # Decide HTYPE
         # HTYPE is the high-order nibble of nanopb field description,
         # defining whether value is required/optional/repeated.
-        is_callback = False
+        can_be_static = True
         if desc.label == FieldD.LABEL_REQUIRED:
             self.htype = 'PB_HTYPE_REQUIRED'
         elif desc.label == FieldD.LABEL_OPTIONAL:
             self.htype = 'PB_HTYPE_OPTIONAL'
         elif desc.label == FieldD.LABEL_REPEATED:
             if self.max_count is None:
-                is_callback = True
+                can_be_static = False
             else:
                 self.htype = 'PB_HTYPE_ARRAY'
                 self.array_decl = '[%d]' % self.max_count
@@ -142,14 +142,14 @@ class Field:
         elif desc.type == FieldD.TYPE_STRING:
             self.ltype = 'PB_LTYPE_STRING'
             if self.max_size is None:
-                is_callback = True
+                can_be_static = False
             else:
                 self.ctype = 'char'
                 self.array_decl += '[%d]' % self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
             self.ltype = 'PB_LTYPE_BYTES'
             if self.max_size is None:
-                is_callback = True
+                can_be_static = False
             else:
                 self.ctype = self.struct_name + self.name + 't'
         elif desc.type == FieldD.TYPE_MESSAGE:
@@ -158,7 +158,16 @@ class Field:
         else:
             raise NotImplementedError(desc.type)
         
-        if is_callback:
+        if field_options.type == nanopb_pb2.FT_DEFAULT:
+            if can_be_static:
+                field_options.type = nanopb_pb2.FT_STATIC
+            else:
+                field_options.type = nanopb_pb2.FT_CALLBACK
+        
+        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
+            raise Exception("Field %s is defined as static, but max_size or max_count is not given." % self.name)
+        
+        if field_options.type == nanopb_pb2.FT_CALLBACK:
             self.htype = 'PB_HTYPE_CALLBACK'
             self.ctype = 'pb_callback_t'
             self.array_decl = ''
