@@ -38,6 +38,20 @@ This file, in turn, requires the file *google/protobuf/descriptor.proto*. This i
 
     protoc -I/usr/include -Inanopb/generator -I. -omessage.pb message.proto
 
+The options can be defined in file, message and field scopes::
+
+    option (nanopb_fileopt).max_size = 20; // File scope
+    message Message
+    {
+        option (nanopb_msgopt).max_size = 30; // Message scope
+        required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
+    }
+
+It is also possible to give the options on command line, but then they will affect the whole file. For example::
+
+    user@host:~$ python ../generator/nanopb_generator.py -s 'max_size: 20' message.pb
+
+
 Streams
 =======
 

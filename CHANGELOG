@@ -1,3 +1,13 @@
+nanopb-0.1.7 (not yet released)
+ Remove "skip" mode from pb_istream_t callbacks. Example implementation had a bug. (issue 37)
+ Add option to use shorter names for enum values (issue 38)
+ Improve options support in generator (issues 12, 30)
+ Add nanopb version number to generated files (issue 36)
+ Add extern "C" to generated headers (issue 35)
+ Add names for structs to allow forward declaration (issue 39)
+ Add buffer size check in example (issue 34)
+ Fix build warnings on MS compilers (issue 33)
+
 nanopb-0.1.6
  Reorganize the field decoder interface (issue 2)
  Improve performance in submessage decoding (issue 28)
