@@ -75,7 +75,7 @@ class Enum:
         self.values = [(self.names + x.name, x.number) for x in desc.value]
     
     def __str__(self):
-        result = 'typedef enum {\n'
+        result = 'typedef enum _%s {\n' % self.names
         result += ',\n'.join(["    %s = %d" % x for x in self.values])
         result += '\n} %s;' % self.names
         return result
@@ -276,7 +276,7 @@ class Message:
         return [str(field.ctype) for field in self.fields]
     
     def __str__(self):
-        result = 'typedef struct {\n'
+        result = 'typedef struct _%s {\n' % self.name
         result += '\n'.join([str(f) for f in self.ordered_fields])
         result += '\n} %s;' % self.name
         return result

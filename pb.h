@@ -148,10 +148,12 @@ struct _pb_field_t {
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
  */
-typedef struct {
+struct _pb_bytes_array_t {
     size_t size;
     uint8_t bytes[1];
-} pb_bytes_array_t;
+};
+
+typedef struct _pb_bytes_array_t pb_bytes_array_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
