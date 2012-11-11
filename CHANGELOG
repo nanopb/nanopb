@@ -1,4 +1,4 @@
-nanopb-0.1.7 (not yet released)
+nanopb-0.1.7
  Remove "skip" mode from pb_istream_t callbacks. Example implementation had a bug. (issue 37)
  Add option to use shorter names for enum values (issue 38)
  Improve options support in generator (issues 12, 30)
