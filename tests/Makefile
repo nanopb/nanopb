@@ -1,8 +1,13 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0
-DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks2.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
-TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
-TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages test_multiple_files
-
+DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h \
+	callbacks2.pb.h callbacks.pb.h unittests.h unittestproto.pb.h \
+	alltypes.pb.h missing_fields.pb.h
+TESTS=  decode_unittests encode_unittests \
+	test_decode1 test_decode2 test_decode3 \
+	test_encode1 test_encode2 test_encode3 \
+	test_decode_callbacks test_encode_callbacks \
+	test_missing_fields test_no_messages \
+	test_multiple_files test_cxxcompile test_options
 
 # More strict checks for the core part of nanopb
 CC_VERSION=$(shell $(CC) -v 2>&1)
@@ -19,7 +24,7 @@ endif
 all: breakpoints $(TESTS) run_unittests
 
 clean:
-	rm -f $(TESTS) person.pb* alltypes.pb* *.o *.gcda *.gcno
+	rm -f $(TESTS) person.pb* alltypes.pb* *.o *.gcda *.gcno *.pb.h *.pb.c
 
 %.pb.o: %.pb.c %.pb.h
 	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
@@ -66,7 +71,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_cxxcompile test_multiple_files test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields test_options
+run_unittests: $(TESTS)
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null
