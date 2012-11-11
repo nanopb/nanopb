@@ -493,7 +493,9 @@ def generate_header(dependencies, headername, enums, messages):
     worst = 0
     worst_field = ''
     checks = []
+    checks_msgnames = []
     for msg in messages:
+        checks_msgnames.append(msg.name)
         for field in msg.fields:
             status = field.largest_field_value()
             if isinstance(status, (str, unicode)):
@@ -511,7 +513,8 @@ def generate_header(dependencies, headername, enums, messages):
                 yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
             else:
                 assertion = ' && '.join(str(c) + ' < 256' for c in checks)
-                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT)\n' % assertion
+                msgs = '_'.join(str(n) for n in checks_msgnames)
+                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
             yield '#endif\n\n'
         
         if worst > 65535 or checks:
@@ -520,7 +523,8 @@ def generate_header(dependencies, headername, enums, messages):
                 yield '#error Field descriptor for %s is too large. Define PB_FIELD_32BIT to fix this.\n' % worst_field
             else:
                 assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
-                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT)\n' % assertion
+                msgs = '_'.join(str(n) for n in checks_msgnames)
+                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
             yield '#endif\n'
     
     yield '\n#ifdef __cplusplus\n'

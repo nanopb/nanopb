@@ -1,7 +1,9 @@
 CFLAGS=-ansi -Wall -Werror -I .. -g -O0 --coverage
 LDFLAGS=--coverage
-DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
+DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks2.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
+TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages test_compiles
+
 
 # More strict checks for the core part of nanopb
 CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op -Wconversion
@@ -35,6 +37,7 @@ test_decode3: test_decode3.o pb_decode.o alltypes.pb.o
 test_encode1: test_encode1.o pb_encode.o person.pb.o
 test_encode2: test_encode2.o pb_encode.o person.pb.o
 test_encode3: test_encode3.o pb_encode.o alltypes.pb.o
+test_compiles: test_compiles.o pb_encode.o callbacks2.pb.o callbacks.pb.o
 test_decode_callbacks: test_decode_callbacks.o pb_decode.o callbacks.pb.o
 test_encode_callbacks: test_encode_callbacks.o pb_encode.o callbacks.pb.o
 test_missing_fields: test_missing_fields.o pb_encode.o pb_decode.o missing_fields.pb.o
@@ -55,7 +58,7 @@ coverage: run_unittests
 	gcov pb_encode.gcda
 	gcov pb_decode.gcda
 
-run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields test_options
+run_unittests: decode_unittests encode_unittests test_cxxcompile test_compiles test_encode1 test_encode2 test_encode3 test_decode1 test_decode2 test_decode3 test_encode_callbacks test_decode_callbacks test_missing_fields test_options
 	rm -f *.gcda
 	
 	./decode_unittests > /dev/null

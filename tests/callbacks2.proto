@@ -1,0 +1,9 @@
+// Test if including generated header file for this file + implicit include of
+// callbacks.pb.h still compiles. Used with test_compiles.c.
+import "callbacks.proto";
+
+message Callback2Message {
+    required TestMessage tstmsg = 1;
+    required SubMessage submsg = 2;
+}
+
