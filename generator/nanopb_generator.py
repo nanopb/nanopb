@@ -92,9 +92,9 @@ class Enum:
         if enum_options.long_names:
             self.values = [(self.names + x.name, x.number) for x in desc.value]            
         else:
-            self.values = [(x.name, x.number) for x in desc.value] 
+            self.values = [(names + x.name, x.number) for x in desc.value] 
         
-        self.value_longnames = [names + desc.name + x.name for x in desc.value]
+        self.value_longnames = [self.names + x.name for x in desc.value]
     
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
@@ -395,7 +395,8 @@ def parse_file(fdesc, file_options):
         message_options = get_nanopb_suboptions(message, file_options)
         messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
-            enums.append(Enum(names, enum, message_options))
+            enum_options = get_nanopb_suboptions(enum, message_options)
+            enums.append(Enum(names, enum, enum_options))
     
     # Fix field default values where enum short names are used.
     for enum in enums:

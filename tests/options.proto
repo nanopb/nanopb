@@ -43,3 +43,14 @@ message EnumTest
 {
     required Enum1 field = 1 [default = EnumValue2];
 }
+
+// Short enum names inside message
+message Message5
+{
+    enum Enum2
+    {
+       option (nanopb_enumopt).long_names = false;
+       EnumValue1 = 1;
+    }
+    required Enum2 field = 1 [default = EnumValue1];
+}
