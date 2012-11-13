@@ -82,7 +82,7 @@ run_unittests: decode_unittests encode_unittests test_cxxcompile test_encode1 te
 	
 	./test_missing_fields
 
-test_options: options.pb.h options.expected
+test_options: options.pb.h options.expected options.pb.o
 	cat options.expected | while read -r p; do \
 	    if ! grep -q "$$p" $<; then \
 	        echo Expected: "$$p"; \

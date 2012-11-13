@@ -2,4 +2,4 @@ char filesize\[20\];
 char msgsize\[30\];
 char fieldsize\[40\];
 pb_callback_t int32_callback;
-[^_]EnumValue1 = 1
+\sEnumValue1 = 1

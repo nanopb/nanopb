@@ -73,6 +73,9 @@ class Names:
         else:
             raise ValueError("Name parts should be of type str")
     
+    def __eq__(self, other):
+        return isinstance(other, Names) and self.parts == other.parts
+    
 def names_from_type_name(type_name):
     '''Parse Names() from FieldDescriptorProto type_name'''
     if type_name[0] != '.':
@@ -83,12 +86,15 @@ class Enum:
     def __init__(self, names, desc, enum_options):
         '''desc is EnumDescriptorProto'''
         
-        if enum_options.long_names:
-            self.names = names + desc.name
-        else:
-            self.names = names
+        self.options = enum_options
+        self.names = names + desc.name
         
-        self.values = [(self.names + x.name, x.number) for x in desc.value]
+        if enum_options.long_names:
+            self.values = [(self.names + x.name, x.number) for x in desc.value]            
+        else:
+            self.values = [(x.name, x.number) for x in desc.value] 
+        
+        self.value_longnames = [names + desc.name + x.name for x in desc.value]
     
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
@@ -390,6 +396,15 @@ def parse_file(fdesc, file_options):
         messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
             enums.append(Enum(names, enum, message_options))
+    
+    # Fix field default values where enum short names are used.
+    for enum in enums:
+        if not enum.options.long_names:
+            for message in messages:
+                for field in message.fields:
+                    if field.default in enum.value_longnames:
+                        idx = enum.value_longnames.index(field.default)
+                        field.default = enum.values[idx][0]
     
     return enums, messages
 

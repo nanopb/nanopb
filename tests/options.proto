@@ -36,4 +36,10 @@ enum Enum1
 {
     option (nanopb_enumopt).long_names = false;
     EnumValue1 = 1;
+    EnumValue2 = 2;
+}
+
+message EnumTest
+{
+    required Enum1 field = 1 [default = EnumValue2];
 }
