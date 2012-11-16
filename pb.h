@@ -24,7 +24,9 @@
 #define UNUSED(x) (void)(x)
 #endif
 
-/* Compile-time assertion, used for checking compatible compilation options. */
+/* Compile-time assertion, used for checking compatible compilation options.
+ * If this fails on your compiler for some reason, use #define STATIC_ASSERT
+ * to disable it. */
 #ifndef STATIC_ASSERT
 #define STATIC_ASSERT(COND,MSG) typedef char STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
 #define STATIC_ASSERT_MSG(MSG, LINE, COUNTER) STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
