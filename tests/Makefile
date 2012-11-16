@@ -1,12 +1,20 @@
-CFLAGS=-ansi -Wall -Werror -I .. -g -O0 --coverage
-LDFLAGS=--coverage
+CFLAGS=-ansi -Wall -Werror -I .. -g -O0
 DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h callbacks2.pb.h callbacks.pb.h unittests.h unittestproto.pb.h alltypes.pb.h missing_fields.pb.h
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages
 TESTS=test_decode1 test_encode1 decode_unittests encode_unittests test_no_messages test_multiple_files
 
 
 # More strict checks for the core part of nanopb
-CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op -Wconversion
+CC_VERSION=$(shell $(CC) -v 2>&1)
+CFLAGS_CORE=
+ifneq (,$(findstring gcc,$(CC_VERSION)))
+	CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wlogical-op -Wconversion
+        CFLAGS+=--coverage
+        LDFLAGS+=--coverage
+endif
+ifneq (,$(findstring clang,$(CC_VERSION)))
+	CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wconversion
+endif
 
 all: breakpoints $(TESTS) run_unittests
 
