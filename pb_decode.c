@@ -80,6 +80,9 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
     stream.callback = &buf_read;
     stream.state = buf;
     stream.bytes_left = bufsize;
+#ifndef PB_NO_ERRMSG
+    stream.errmsg = NULL;
+#endif
     return stream;
 }
 
