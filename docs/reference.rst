@@ -381,7 +381,7 @@ Remove the data for a field from the stream, without actually decoding it::
 
     For decoding numeric (including enumerated and boolean) values, use `pb_decode_varint`_, `pb_decode_svarint`_, `pb_decode_fixed32`_ and `pb_decode_fixed64`_. They take a pointer to a 32- or 64-bit C variable, which you may then cast to smaller datatype for storage.
 
-    For decoding strings and bytes fields, the length has already been decoded. You can therefore check the total length in *stream->state* and read the data using `pb_read`_.
+    For decoding strings and bytes fields, the length has already been decoded. You can therefore check the total length in *stream->bytes_left* and read the data using `pb_read`_.
 
     Finally, for decoding submessages in a callback, simply use `pb_decode`_ and pass it the *SubMessage_fields* descriptor array.
 
