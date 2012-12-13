@@ -1,3 +1,9 @@
+nanopb-0.1.8
+ Fix bugs in the enum short names introduced in 0.1.7 (issues 42, 43)
+ Fix STATIC_ASSERT macro when using multiple .proto files. (issue 41)
+ Fix missing initialization of istream.errmsg
+ Make tests/Makefile work for non-gcc compilers (issue 40)
+
 nanopb-0.1.7
  Remove "skip" mode from pb_istream_t callbacks. Example implementation had a bug. (issue 37)
  Add option to use shorter names for enum values (issue 38)
