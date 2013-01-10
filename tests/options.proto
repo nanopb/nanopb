@@ -54,3 +54,11 @@ message Message5
     }
     required Enum2 field = 1 [default = EnumValue1];
 }
+
+// Packed structure
+message my_packed_struct
+{
+    option (nanopb_msgopt).packed_struct = true;
+    optional int32 myfield = 1;
+}
+

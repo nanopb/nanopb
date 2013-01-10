@@ -25,6 +25,9 @@ message NanoPBOptions {
   
   // Use long names for enums, i.e. EnumName_EnumValue.
   optional bool long_names = 4 [default = true];
+  
+  // Add 'packed' attribute to generated structs.
+  optional bool packed_struct = 5 [default = false];
 }
 
 // Protocol Buffers extension number registry

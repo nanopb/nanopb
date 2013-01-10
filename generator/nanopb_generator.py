@@ -307,6 +307,7 @@ class Message:
     def __init__(self, names, desc, message_options):
         self.name = names
         self.fields = [Field(self.name, f, get_nanopb_suboptions(f, message_options)) for f in desc.field]
+        self.packed = message_options.packed_struct
         self.ordered_fields = self.fields[:]
         self.ordered_fields.sort()
 
@@ -317,7 +318,12 @@ class Message:
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
         result += '\n'.join([str(f) for f in self.ordered_fields])
-        result += '\n} %s;' % self.name
+        result += '\n}'
+        
+        if self.packed:
+            result += ' pb_packed'
+        
+        result += ' %s;' % self.name
         return result
     
     def types(self):

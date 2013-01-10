@@ -4,3 +4,4 @@ char fieldsize\[40\];
 pb_callback_t int32_callback;
 \sEnumValue1 = 1
 Message5_EnumValue1
+} pb_packed my_packed_struct;
