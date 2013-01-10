@@ -28,12 +28,12 @@ message NanoPBOptions {
 }
 
 // Protocol Buffers extension number registry
-// --------------------------------                                                                                                            
-// Project:  Nanopb                                                                                                                            
-// Contact:  Petteri Aimonen <jpa@kapsi.fi>                                                                                                    
-// Web site: http://kapsi.fi/~jpa/nanopb                                                                                                       
-// Extensions: 1010 (all types)                                                                                                                
-// --------------------------------   
+// --------------------------------
+// Project:  Nanopb
+// Contact:  Petteri Aimonen <jpa@kapsi.fi>
+// Web site: http://kapsi.fi/~jpa/nanopb
+// Extensions: 1010 (all types)
+// --------------------------------
 
 extend google.protobuf.FileOptions {
     optional NanoPBOptions nanopb_fileopt = 1010;
