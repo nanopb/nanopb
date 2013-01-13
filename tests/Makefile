@@ -7,7 +7,8 @@ TESTS=  decode_unittests encode_unittests \
 	test_encode1 test_encode2 test_encode3 \
 	test_decode_callbacks test_encode_callbacks \
 	test_missing_fields test_no_messages \
-	test_multiple_files test_cxxcompile test_options
+	test_multiple_files test_cxxcompile test_options \
+	bc_encode bc_decode
 
 # More strict checks for the core part of nanopb
 CC_VERSION=$(shell $(CC) -v 2>&1)
@@ -57,6 +58,8 @@ test_missing_fields: test_missing_fields.o pb_encode.o pb_decode.o missing_field
 decode_unittests: decode_unittests.o pb_decode.o unittestproto.pb.o
 encode_unittests: encode_unittests.o pb_encode.o unittestproto.pb.o
 test_no_messages: no_messages.pb.h no_messages.pb.c no_messages.pb.o
+bc_encode: bc_alltypes.pb.o pb_encode.o bc_encode.o
+bc_decode: bc_alltypes.pb.o pb_decode.o bc_decode.o
 
 %.pb: %.proto
 	protoc -I. -I../generator -I/usr/include -o$@ $<
@@ -95,6 +98,7 @@ run_unittests: $(TESTS)
 	./test_encode3 | ./test_decode3
 	./test_encode3 1 | ./test_decode3 1
 	./test_encode3 1 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
+	./bc_encode | ./bc_decode
 	
 	./test_missing_fields
 
