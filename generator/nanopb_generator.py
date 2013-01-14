@@ -306,7 +306,13 @@ class Field:
 class Message:
     def __init__(self, names, desc, message_options):
         self.name = names
-        self.fields = [Field(self.name, f, get_nanopb_suboptions(f, message_options)) for f in desc.field]
+        self.fields = []
+        
+        for f in desc.field:
+            field_options = get_nanopb_suboptions(f, message_options)
+            if field_options.type != nanopb_pb2.FT_IGNORE:
+                self.fields.append(Field(self.name, f, field_options))
+        
         self.packed = message_options.packed_struct
         self.ordered_fields = self.fields[:]
         self.ordered_fields.sort()

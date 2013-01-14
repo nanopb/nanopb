@@ -11,6 +11,7 @@ enum FieldType {
     FT_DEFAULT = 0; // Automatically decide field type, generate static field if possible.
     FT_CALLBACK = 1; // Always generate a callback field.
     FT_STATIC = 2; // Generate a static field or raise an exception if not possible.
+    FT_IGNORE = 3; // Ignore the field completely.
 }
 
 message NanoPBOptions {

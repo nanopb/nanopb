@@ -62,3 +62,12 @@ message my_packed_struct
     optional int32 myfield = 1;
 }
 
+// Message with ignored field
+// Note: doesn't really test if the field is missing in the output,
+// but atleast tests that the output compiles.
+message Message6
+{
+    required int32 field1 = 1;
+    optional int32 field2 = 2 [(nanopb).type = FT_IGNORE];
+}
+
