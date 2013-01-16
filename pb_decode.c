@@ -225,7 +225,10 @@ bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *su
 void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
     stream->state = substream->state;
+
+#ifdef PB_NO_ERRMSG
     stream->errmsg = substream->errmsg;
+#endif
 }
 
 /* Iterator for pb_field_t list */
