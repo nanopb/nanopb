@@ -95,10 +95,20 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
 
 static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 {
-    uint64_t temp;
-    bool status = pb_decode_varint(stream, &temp);
-    *dest = (uint32_t)temp;
-    return status;
+    uint8_t byte;
+    int bitpos = 0;
+    *dest = 0;
+    
+    while (bitpos < 32 && pb_read(stream, &byte, 1))
+    {
+        *dest |= (uint32_t)(byte & 0x7F) << bitpos;
+        bitpos += 7;
+        
+        if (!(byte & 0x80))
+            return true;
+    }
+    
+    PB_RETURN_ERROR(stream, "varint overflow");
 }
 
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
