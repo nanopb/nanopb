@@ -37,8 +37,11 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
 static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
     uint8_t *dest = (uint8_t*)stream->state;
-    memcpy(dest, buf, count);
     stream->state = dest + count;
+    
+    while (count--)
+        *dest++ = *buf++;
+    
     return true;
 }
 
