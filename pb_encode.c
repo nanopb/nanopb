@@ -48,7 +48,11 @@ static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size
 pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize)
 {
     pb_ostream_t stream;
+#ifdef PB_BUFFER_ONLY
+    stream.callback = (void*)1; /* Just some marker value */
+#else
     stream.callback = &buf_write;
+#endif
     stream.state = buf;
     stream.max_size = bufsize;
     stream.bytes_written = 0;
@@ -61,9 +65,14 @@ bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count
     {
         if (stream->bytes_written + count > stream->max_size)
             return false;
-        
+
+#ifdef PB_BUFFER_ONLY
+        if (!buf_write(stream, buf, count))
+            return false;
+#else        
         if (!stream->callback(stream, buf, count))
             return false;
+#endif
     }
     
     stream->bytes_written += count;

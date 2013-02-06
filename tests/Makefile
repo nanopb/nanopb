@@ -3,8 +3,8 @@ DEPS=../pb_decode.h ../pb_encode.h ../pb.h person.pb.h \
 	callbacks2.pb.h callbacks.pb.h unittests.h unittestproto.pb.h \
 	alltypes.pb.h missing_fields.pb.h
 TESTS=  decode_unittests encode_unittests \
-	test_decode1 test_decode2 test_decode3 \
-	test_encode1 test_encode2 test_encode3 \
+	test_decode1 test_decode2 test_decode3 test_decode3_buf \
+	test_encode1 test_encode2 test_encode3 test_encode3_buf \
 	test_decode_callbacks test_encode_callbacks \
 	test_missing_fields test_no_messages \
 	test_multiple_files test_cxxcompile test_options \
@@ -39,10 +39,25 @@ pb_encode.o: ../pb_encode.c $(DEPS)
 pb_decode.o: ../pb_decode.c $(DEPS)
 	$(CC) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
 
+# Test for compilability with c++ compiler
+
 pb_encode.cxx.o: ../pb_encode.c $(DEPS)
 	$(CXX) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
 pb_decode.cxx.o: ../pb_decode.c $(DEPS)
 	$(CXX) $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+
+# Test for PB_BUF_ONLY compilation option
+
+pb_encode.buf.o: ../pb_encode.c $(DEPS)
+	$(CC) -DPB_BUFFER_ONLY $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+pb_decode.buf.o: ../pb_decode.c $(DEPS)
+	$(CC) -DPB_BUFFER_ONLY $(CFLAGS) $(CFLAGS_CORE) -c -o $@ $<
+%.buf.o: %.c $(DEPS)
+	$(CC) -DPB_BUFFER_ONLY $(CFLAGS) -c -o $@ $<	
+test_encode3_buf: test_encode3.buf.o pb_encode.buf.o alltypes.pb.o
+	$(CC) $(LDFLAGS) $^ -o $@
+test_decode3_buf: test_decode3.buf.o pb_decode.buf.o alltypes.pb.o
+	$(CC) $(LDFLAGS) $^ -o $@
 
 test_cxxcompile: pb_encode.cxx.o pb_decode.cxx.o
 test_decode1: test_decode1.o pb_decode.o person.pb.o
@@ -98,6 +113,7 @@ run_unittests: $(TESTS)
 	./test_encode3 | ./test_decode3
 	./test_encode3 1 | ./test_decode3 1
 	./test_encode3 1 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
+	./test_encode3_buf 1 | ./test_decode3_buf 1
 	./bc_encode | ./bc_decode
 	
 	./test_missing_fields

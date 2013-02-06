@@ -32,7 +32,17 @@ extern "C" {
  */
 struct _pb_ostream_t
 {
+#ifdef PB_BUFFER_ONLY
+    /* Callback pointer is not used in buffer-only configuration.
+     * Having an int pointer here allows binary compatibility but
+     * gives an error if someone tries to assign callback function.
+     * Also, NULL pointer marks a 'sizing stream' that does not
+     * write anything.
+     */
+    int *callback;
+#else
     bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+#endif
     void *state; /* Free field for use by callback implementation */
     size_t max_size; /* Limit number of output bytes written (or use SIZE_MAX). */
     size_t bytes_written;

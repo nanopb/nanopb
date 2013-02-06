@@ -22,6 +22,8 @@ PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields la
                                Increases code size 9 bytes per each field. Compiler error will tell if you need this.
 PB_NO_ERRMSG                   Disables the support for error messages; only error information is the true/false return value.
                                Decreases the code size by a few hundred bytes.
+PB_BUFFER_ONLY                 Disables the support for custom streams. Only supports encoding to memory buffers.
+                               Speeds up execution and decreases code size slightly.
 ============================  ================================================================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow raising some datatype limits to suit larger messages.

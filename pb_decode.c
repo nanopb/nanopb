@@ -52,6 +52,7 @@ static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t coun
 
 bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
+#ifndef PB_BUFFER_ONLY
 	if (buf == NULL && stream->callback != buf_read)
 	{
 		/* Skip input bytes */
@@ -66,12 +67,18 @@ bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 		
 		return pb_read(stream, tmp, count);
 	}
+#endif
 
     if (stream->bytes_left < count)
         PB_RETURN_ERROR(stream, "end-of-stream");
     
+#ifndef PB_BUFFER_ONLY
     if (!stream->callback(stream, buf, count))
         PB_RETURN_ERROR(stream, "io error");
+#else
+    if (!buf_read(stream, buf, count))
+        return false;
+#endif
     
     stream->bytes_left -= count;
     return true;
@@ -80,7 +87,11 @@ bool checkreturn pb_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
 {
     pb_istream_t stream;
+#ifdef PB_BUFFER_ONLY
+    stream.callback = NULL;
+#else
     stream.callback = &buf_read;
+#endif
     stream.state = buf;
     stream.bytes_left = bufsize;
 #ifndef PB_NO_ERRMSG
