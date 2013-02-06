@@ -501,15 +501,34 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
     }
     
     /* Check that all required fields were present. */
-    pb_field_init(&iter, fields, dest_struct);
-    do {
-        if (PB_HTYPE(iter.current->type) == PB_HTYPE_REQUIRED &&
-            iter.required_field_index < PB_MAX_REQUIRED_FIELDS &&
-            !(fields_seen[iter.required_field_index >> 3] & (1 << (iter.required_field_index & 7))))
+    {
+        /* First figure out the number of required fields by
+         * seeking to the end of the field array. Usually we
+         * are already close to end after decoding.
+         */
+        int req_field_count;
+        uint8_t last_type;
+        int i;
+        do {
+            req_field_count = iter.required_field_index;
+            last_type = iter.current->type;
+        } while (pb_field_next(&iter));
+        
+        /* Fixup if last field was also required. */
+        if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED)
+            req_field_count++;
+        
+        /* Check the whole bytes */
+        for (i = 0; i < (req_field_count >> 3); i++)
         {
-            PB_RETURN_ERROR(stream, "missing required field");
+            if (fields_seen[i] != 0xFF)
+                PB_RETURN_ERROR(stream, "missing required field");
         }
-    } while (pb_field_next(&iter));
+        
+        /* Check the remaining bits */
+        if (fields_seen[req_field_count >> 3] != (0xFF >> (8 - (req_field_count & 7))))
+            PB_RETURN_ERROR(stream, "missing required field");
+    }
     
     return true;
 }
