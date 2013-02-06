@@ -120,7 +120,7 @@ static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
     else
     {
         /* Multibyte case */
-        int bitpos = 7;
+        uint8_t bitpos = 7;
         result = byte & 0x7F;
         
         do
@@ -132,7 +132,7 @@ static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
                 return false;
             
             result |= (uint32_t)(byte & 0x7F) << bitpos;
-            bitpos += 7;
+            bitpos = (uint8_t)(bitpos + 7);
         } while (byte & 0x80);
    }
    
@@ -143,7 +143,7 @@ static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
-    int bitpos = 0;
+    uint8_t bitpos = 0;
     uint64_t result = 0;
     
     do
@@ -155,7 +155,7 @@ bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
             return false;
 
         result |= (uint64_t)(byte & 0x7F) << bitpos;
-        bitpos += 7;
+        bitpos = (uint8_t)(bitpos + 7);
     } while (byte & 0x80);
     
     *dest = result;
@@ -281,8 +281,8 @@ void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 typedef struct {
     const pb_field_t *start; /* Start of the pb_field_t array */
     const pb_field_t *current; /* Current position of the iterator */
-    int field_index; /* Zero-based index of the field. */
-    int required_field_index; /* Zero-based index that counts only the required fields */
+    unsigned field_index; /* Zero-based index of the field. */
+    unsigned required_field_index; /* Zero-based index that counts only the required fields */
     void *dest_struct; /* Pointer to the destination structure to decode to */
     void *pData; /* Pointer where to store current field value */
     void *pSize; /* Pointer where to store the size of current array field */
@@ -328,7 +328,7 @@ static bool pb_field_next(pb_field_iterator_t *iter)
 
 static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag)
 {
-    int start = iter->field_index;
+    unsigned start = iter->field_index;
     
     do {
         if (iter->current->tag == tag)
@@ -528,9 +528,9 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
          * seeking to the end of the field array. Usually we
          * are already close to end after decoding.
          */
-        int req_field_count;
+        unsigned req_field_count;
         uint8_t last_type;
-        int i;
+        unsigned i;
         do {
             req_field_count = iter.required_field_index;
             last_type = iter.current->type;
