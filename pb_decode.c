@@ -107,37 +107,59 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
 static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
 {
     uint8_t byte;
-    int bitpos = 0;
-    *dest = 0;
+    uint32_t result;
     
-    while (bitpos < 32 && pb_read(stream, &byte, 1))
+    if (!pb_read(stream, &byte, 1))
+        return false;
+    
+    if (!(byte & 0x80))
     {
-        *dest |= (uint32_t)(byte & 0x7F) << bitpos;
-        bitpos += 7;
-        
-        if (!(byte & 0x80))
-            return true;
+        /* Quick case, 1 byte value */
+        result = byte;
     }
-    
-    PB_RETURN_ERROR(stream, "varint overflow");
+    else
+    {
+        /* Multibyte case */
+        int bitpos = 7;
+        result = byte & 0x7F;
+        
+        do
+        {
+            if (bitpos >= 32)
+                PB_RETURN_ERROR(stream, "varint overflow");
+            
+            if (!pb_read(stream, &byte, 1))
+                return false;
+            
+            result |= (uint32_t)(byte & 0x7F) << bitpos;
+            bitpos += 7;
+        } while (byte & 0x80);
+   }
+   
+   *dest = result;
+   return true;
 }
 
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     uint8_t byte;
     int bitpos = 0;
-    *dest = 0;
+    uint64_t result = 0;
     
-    while (bitpos < 64 && pb_read(stream, &byte, 1))
+    do
     {
-        *dest |= (uint64_t)(byte & 0x7F) << bitpos;
-        bitpos += 7;
+        if (bitpos >= 64)
+            PB_RETURN_ERROR(stream, "varint overflow");
         
-        if (!(byte & 0x80))
-            return true;
-    }
+        if (!pb_read(stream, &byte, 1))
+            return false;
+
+        result |= (uint64_t)(byte & 0x7F) << bitpos;
+        bitpos += 7;
+    } while (byte & 0x80);
     
-    PB_RETURN_ERROR(stream, "varint overflow");
+    *dest = result;
+    return true;
 }
 
 bool checkreturn pb_skip_varint(pb_istream_t *stream)
