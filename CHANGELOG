@@ -1,3 +1,14 @@
+git master
+ Fixed error message bugs (issues 52, 56)
+ Sanitize #ifndef filename (issue 50)
+ Performance improvements
+ Add compile-time option PB_BUFFER_ONLY
+ Add Java package name to nanopb.proto
+ Check for sizeof(double) == 8 (issue 54)
+ Added generator option to ignore some fields. (issue 51)
+ Added generator option to make message structs packed. (issue 49)
+ Add more test cases.
+
 nanopb-0.1.8
  Fix bugs in the enum short names introduced in 0.1.7 (issues 42, 43)
  Fix STATIC_ASSERT macro when using multiple .proto files. (issue 41)
