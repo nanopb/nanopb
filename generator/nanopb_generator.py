@@ -512,6 +512,7 @@ def generate_header(dependencies, headername, enums, messages):
             yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
             yield '#endif\n'
     
+    # Add checks for numeric limits
     worst = 0
     worst_field = ''
     checks = []
@@ -548,6 +549,20 @@ def generate_header(dependencies, headername, enums, messages):
                 msgs = '_'.join(str(n) for n in checks_msgnames)
                 yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
             yield '#endif\n'
+    
+    # Add check for sizeof(double)
+    has_double = False
+    for msg in messages:
+        for field in msg.fields:
+            if field.ctype == 'double':
+                has_double = True
+    
+    if has_double:
+        yield '\n'
+        yield '/* On some platforms (such as AVR), double is really float.\n'
+        yield ' * These are not directly supported by nanopb, but see example_avr_double.\n'
+        yield ' */\n'
+        yield 'STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
     
     yield '\n#ifdef __cplusplus\n'
     yield '} /* extern "C" */\n'
