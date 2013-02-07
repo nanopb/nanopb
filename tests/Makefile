@@ -6,7 +6,7 @@ TESTS=  decode_unittests encode_unittests \
 	test_decode1 test_decode2 test_decode3 test_decode3_buf \
 	test_encode1 test_encode2 test_encode3 test_encode3_buf \
 	test_decode_callbacks test_encode_callbacks \
-	test_missing_fields test_no_messages \
+	test_missing_fields test_no_messages test_funny_name \
 	test_multiple_files test_cxxcompile test_options \
 	bc_encode bc_decode
 
@@ -73,6 +73,7 @@ test_missing_fields: test_missing_fields.o pb_encode.o pb_decode.o missing_field
 decode_unittests: decode_unittests.o pb_decode.o unittestproto.pb.o
 encode_unittests: encode_unittests.o pb_encode.o unittestproto.pb.o
 test_no_messages: no_messages.pb.h no_messages.pb.c no_messages.pb.o
+test_funny_name: funny-proto+name.pb.h funny-proto+name.pb.o
 bc_encode: bc_alltypes.pb.o pb_encode.o bc_encode.o
 bc_decode: bc_alltypes.pb.o pb_decode.o bc_decode.o
 
