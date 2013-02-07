@@ -529,7 +529,7 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
          * are already close to end after decoding.
          */
         unsigned req_field_count;
-        uint8_t last_type;
+        pb_type_t last_type;
         unsigned i;
         do {
             req_field_count = iter.required_field_index;
