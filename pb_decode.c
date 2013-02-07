@@ -361,7 +361,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 /* Packed array */
-                bool status;
+                bool status = true;
                 size_t *size = (size_t*)iter->pSize;
                 pb_istream_t substream;
                 if (!pb_make_string_substream(stream, &substream))
@@ -371,11 +371,17 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 {
                     void *pItem = (uint8_t*)iter->pData + iter->current->data_size * (*size);
                     if (!func(&substream, iter->current, pItem))
-                        return false;
+                    {
+                        status = false;
+                        break;
+                    }
                     (*size)++;
                 }
-                status = (substream.bytes_left == 0);
                 pb_close_string_substream(stream, &substream);
+                
+                if (substream.bytes_left != 0)
+                    PB_RETURN_ERROR(stream, "array overflow");
+                
                 return status;
             }
             else
