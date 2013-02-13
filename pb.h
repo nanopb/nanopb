@@ -6,7 +6,7 @@
  * see pb_encode.h or pb_decode.h
  */
 
-#define NANOPB_VERSION nanopb-0.1.9
+#define NANOPB_VERSION nanopb-0.1.9.1-dev
 
 #include <stdint.h>
 #include <stddef.h>
