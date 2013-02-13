@@ -1,4 +1,4 @@
-git master
+nanopb-0.1.9
  Fixed error message bugs (issues 52, 56)
  Sanitize #ifndef filename (issue 50)
  Performance improvements
