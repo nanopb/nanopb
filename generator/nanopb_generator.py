@@ -35,22 +35,22 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb ltype)
+# Values are tuple (c type, pb type)
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
-    FieldD.TYPE_BOOL: ('bool', 'PB_LTYPE_VARINT'),
-    FieldD.TYPE_DOUBLE: ('double', 'PB_LTYPE_FIXED64'),
-    FieldD.TYPE_FIXED32: ('uint32_t', 'PB_LTYPE_FIXED32'),
-    FieldD.TYPE_FIXED64: ('uint64_t', 'PB_LTYPE_FIXED64'),
-    FieldD.TYPE_FLOAT: ('float', 'PB_LTYPE_FIXED32'),
-    FieldD.TYPE_INT32: ('int32_t', 'PB_LTYPE_VARINT'),
-    FieldD.TYPE_INT64: ('int64_t', 'PB_LTYPE_VARINT'),
-    FieldD.TYPE_SFIXED32: ('int32_t', 'PB_LTYPE_FIXED32'),
-    FieldD.TYPE_SFIXED64: ('int64_t', 'PB_LTYPE_FIXED64'),
-    FieldD.TYPE_SINT32: ('int32_t', 'PB_LTYPE_SVARINT'),
-    FieldD.TYPE_SINT64: ('int64_t', 'PB_LTYPE_SVARINT'),
-    FieldD.TYPE_UINT32: ('uint32_t', 'PB_LTYPE_VARINT'),
-    FieldD.TYPE_UINT64: ('uint64_t', 'PB_LTYPE_VARINT')
+    FieldD.TYPE_BOOL:       ('bool',     'BOOL'),
+    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE'),
+    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32'),
+    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64'),
+    FieldD.TYPE_FLOAT:      ('float',    'FLOAT'),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32'),
+    FieldD.TYPE_INT64:      ('int64_t',  'INT64'),
+    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32'),
+    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64'),
+    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32'),
+    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64'),
+    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32'),
+    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64')
 }
 
 class Names:
@@ -123,49 +123,44 @@ class Field:
         if desc.HasField('default_value'):
             self.default = desc.default_value
            
-        # Decide HTYPE
-        # HTYPE is the high-order nibble of nanopb field description,
-        # defining whether value is required/optional/repeated.
+        # Check field rules, i.e. required/optional/repeated.
         can_be_static = True
         if desc.label == FieldD.LABEL_REQUIRED:
-            self.htype = 'PB_HTYPE_REQUIRED'
+            self.rules = 'REQUIRED'
         elif desc.label == FieldD.LABEL_OPTIONAL:
-            self.htype = 'PB_HTYPE_OPTIONAL'
+            self.rules = 'OPTIONAL'
         elif desc.label == FieldD.LABEL_REPEATED:
+            self.rules = 'REPEATED'
             if self.max_count is None:
                 can_be_static = False
             else:
-                self.htype = 'PB_HTYPE_ARRAY'
                 self.array_decl = '[%d]' % self.max_count
         else:
             raise NotImplementedError(desc.label)
         
-        # Decide LTYPE and CTYPE
-        # LTYPE is the low-order nibble of nanopb field description,
-        # defining how to decode an individual value.
-        # CTYPE is the name of the c type to use in the struct.
+        # Decide the C data type to use in the struct.
         if datatypes.has_key(desc.type):
-            self.ctype, self.ltype = datatypes[desc.type]
+            self.ctype, self.pbtype = datatypes[desc.type]
         elif desc.type == FieldD.TYPE_ENUM:
-            self.ltype = 'PB_LTYPE_VARINT'
+            self.pbtype = 'ENUM'
             self.ctype = names_from_type_name(desc.type_name)
             if self.default is not None:
                 self.default = self.ctype + self.default
         elif desc.type == FieldD.TYPE_STRING:
-            self.ltype = 'PB_LTYPE_STRING'
+            self.pbtype = 'STRING'
             if self.max_size is None:
                 can_be_static = False
             else:
                 self.ctype = 'char'
                 self.array_decl += '[%d]' % self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
-            self.ltype = 'PB_LTYPE_BYTES'
+            self.pbtype = 'BYTES'
             if self.max_size is None:
                 can_be_static = False
             else:
                 self.ctype = self.struct_name + self.name + 't'
         elif desc.type == FieldD.TYPE_MESSAGE:
-            self.ltype = 'PB_LTYPE_SUBMESSAGE'
+            self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
         else:
             raise NotImplementedError(desc.type)
@@ -179,18 +174,22 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field %s is defined as static, but max_size or max_count is not given." % self.name)
         
-        if field_options.type == nanopb_pb2.FT_CALLBACK:
-            self.htype = 'PB_HTYPE_CALLBACK'
+        if field_options.type == nanopb_pb2.FT_STATIC:
+            self.allocation = 'STATIC'
+        elif field_options.type == nanopb_pb2.FT_CALLBACK:
+            self.allocation = 'CALLBACK'
             self.ctype = 'pb_callback_t'
             self.array_decl = ''
+        else:
+            raise NotImplementedError(field_options.type)
     
     def __cmp__(self, other):
         return cmp(self.tag, other.tag)
     
     def __str__(self):
-        if self.htype == 'PB_HTYPE_OPTIONAL':
+        if self.rules == 'OPTIONAL':
             result = '    bool has_' + self.name + ';\n'
-        elif self.htype == 'PB_HTYPE_ARRAY':
+        elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
             result = '    size_t ' + self.name + '_count;\n'
         else:
             result = ''
@@ -199,7 +198,7 @@ class Field:
     
     def types(self):
         '''Return definitions for any special types this field might need.'''
-        if self.ltype == 'PB_LTYPE_BYTES' and self.max_size is not None:
+        if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
             result = 'typedef struct {\n'
             result += '    size_t size;\n'
             result += '    uint8_t bytes[%d];\n' % self.max_size
@@ -212,30 +211,25 @@ class Field:
         '''Return definition for this field's default value.'''
         if self.default is None:
             return None
+
+        ctype, default = self.ctype, self.default
+        array_decl = ''
         
-        if self.ltype == 'PB_LTYPE_STRING':
-            ctype = 'char'
-            if self.max_size is None:
+        if self.pbtype == 'STRING':
+            if self.allocation != 'STATIC':
                 return None # Not implemented
-            else:
-                array_decl = '[%d]' % (self.max_size + 1)
+        
+            array_decl = '[%d]' % self.max_size
             default = str(self.default).encode('string_escape')
             default = default.replace('"', '\\"')
             default = '"' + default + '"'
-        elif self.ltype == 'PB_LTYPE_BYTES':
+        elif self.pbtype == 'BYTES':
+            if self.allocation != 'STATIC':
+                return None # Not implemented
+
             data = self.default.decode('string_escape')
             data = ['0x%02x' % ord(c) for c in data]
-            
-            if self.max_size is None:
-                return None # Not implemented
-            else:
-                ctype = self.ctype
-            
             default = '{%d, {%s}}' % (len(data), ','.join(data))
-            array_decl = ''
-        else:
-            ctype, default = self.ctype, self.default
-            array_decl = ''
         
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
@@ -246,47 +240,30 @@ class Field:
         '''Return the pb_field_t initializer to use in the constant array.
         prev_field_name is the name of the previous field or None.
         '''
-        result = '    {%d, ' % self.tag
-        result += '(pb_type_t) ((int) ' + self.htype
-        if self.ltype is not None:
-            result += ' | (int) ' + self.ltype
-        result += '),\n'
+        result  = '    PB_FIELD(%3d, ' % self.tag
+        result += '%-8s, ' % self.pbtype
+        result += '%s, ' % self.rules
+        result += '%s, ' % self.allocation
+        result += '%s, ' % self.struct_name
+        result += '%s, ' % self.name
+        result += '%s, ' % (prev_field_name or self.name)
         
-        if prev_field_name is None:
-            result += '    offsetof(%s, %s),' % (self.struct_name, self.name)
+        if self.pbtype == 'MESSAGE':
+            result += '&%s_fields)' % self.submsgname
+        elif self.default is None:
+            result += '0)'
+        elif self.pbtype in ['BYTES', 'STRING'] and self.allocation != 'STATIC':
+            result += '0)' # Arbitrary size default values not implemented
         else:
-            result += '    pb_delta_end(%s, %s, %s),' % (self.struct_name, self.name, prev_field_name)
-        
-        if self.htype == 'PB_HTYPE_OPTIONAL':
-            result += '\n    pb_delta(%s, has_%s, %s),' % (self.struct_name, self.name, self.name)
-        elif self.htype == 'PB_HTYPE_ARRAY':
-            result += '\n    pb_delta(%s, %s_count, %s),' % (self.struct_name, self.name, self.name)
-        else:
-            result += ' 0,'
-        
-        
-        if self.htype == 'PB_HTYPE_ARRAY':
-            result += '\n    pb_membersize(%s, %s[0]),' % (self.struct_name, self.name)
-            result += ('\n    pb_membersize(%s, %s) / pb_membersize(%s, %s[0]),'
-                       % (self.struct_name, self.name, self.struct_name, self.name))
-        else:
-            result += '\n    pb_membersize(%s, %s),' % (self.struct_name, self.name)
-            result += ' 0,'
-        
-        if self.ltype == 'PB_LTYPE_SUBMESSAGE':
-            result += '\n    &%s_fields}' % self.submsgname
-        elif self.default is None or self.htype == 'PB_HTYPE_CALLBACK':
-            result += ' 0}'
-        else:
-            result += '\n    &%s_default}' % (self.struct_name + self.name)
+            result += '&%s_default)' % (self.struct_name + self.name)
         
         return result
     
     def largest_field_value(self):
         '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
         Returns numeric value or a C-expression for assert.'''
-        if self.ltype == 'PB_LTYPE_SUBMESSAGE':
-            if self.htype == 'PB_HTYPE_ARRAY':
+        if self.pbtype == 'MESSAGE':
+            if self.rules == 'REPEATED' and self.allocation == 'STATIC':
                 return 'pb_membersize(%s, %s[0])' % (self.struct_name, self.name)
             else:
                 return 'pb_membersize(%s, %s)' % (self.struct_name, self.name)
@@ -358,7 +335,7 @@ class Message:
         prev = None
         for field in self.ordered_fields:
             result += field.pb_field_t(prev)
-            result += ',\n\n'
+            result += ',\n'
             prev = field.name
         
         result += '    PB_LAST_FIELD\n};'
@@ -502,7 +479,7 @@ def generate_header(dependencies, headername, enums, messages):
         yield msg.fields_declaration() + '\n'
     
     if messages:
-        count_required_fields = lambda m: len([f for f in msg.fields if f.htype == 'PB_HTYPE_REQUIRED'])
+        count_required_fields = lambda m: len([f for f in msg.fields if f.rules == 'REQUIRED'])
         largest_msg = max(messages, key = count_required_fields)
         largest_count = count_required_fields(largest_msg)
         if largest_count > 64:

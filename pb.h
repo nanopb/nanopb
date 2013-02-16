@@ -204,8 +204,83 @@ typedef enum {
 #define pb_membersize(st, m) (sizeof ((st*)0)->m)
 #define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
-#define pb_delta_end(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
+#define pb_delta_end(st, m1, m2) (offsetof(st, m1) == offsetof(st, m2) \
+                                  ? offsetof(st, m1) \
+                                  : offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
 #define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
+
+/* Required fields are the simplest. They just have delta (padding) from
+ * previous field end, and the size of the field. Pointer is used for
+ * submessages and default values.
+ */
+#define PB_REQUIRED_STATIC(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_REQUIRED | ltype, \
+    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+
+/* Optional fields add the delta to the has_ variable. */
+#define PB_OPTIONAL_STATIC(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_OPTIONAL | ltype, \
+    pb_delta_end(st, m, pm), \
+    pb_delta(st, has_ ## m, m), \
+    pb_membersize(st, m), 0, ptr}
+
+/* Repeated fields have a _count field and also the maximum number of entries. */
+#define PB_REPEATED_STATIC(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_ARRAY | ltype, \
+    pb_delta_end(st, m, pm), \
+    pb_delta(st, m ## _count, m), \
+    pb_membersize(st, m[0]), \
+    pb_arraysize(st, m), ptr}
+
+/* Callbacks are much like required fields except with special datatype. */
+#define PB_REQUIRED_CALLBACK(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_CALLBACK | ltype, \
+    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+
+#define PB_OPTIONAL_CALLBACK(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_CALLBACK | ltype, \
+    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+    
+#define PB_REPEATED_CALLBACK(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_HTYPE_CALLBACK | ltype, \
+    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+
+/* The mapping from protobuf types to LTYPEs is done using these macros. */
+#define PB_LTYPE_MAP_BOOL       PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_BYTES      PB_LTYPE_BYTES
+#define PB_LTYPE_MAP_DOUBLE     PB_LTYPE_FIXED64
+#define PB_LTYPE_MAP_ENUM       PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_FIXED32    PB_LTYPE_FIXED32
+#define PB_LTYPE_MAP_FIXED64    PB_LTYPE_FIXED64
+#define PB_LTYPE_MAP_FLOAT      PB_LTYPE_FIXED32
+#define PB_LTYPE_MAP_INT32      PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_INT64      PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_MESSAGE    PB_LTYPE_SUBMESSAGE
+#define PB_LTYPE_MAP_SFIXED32   PB_LTYPE_FIXED32
+#define PB_LTYPE_MAP_SFIXED64   PB_LTYPE_FIXED64
+#define PB_LTYPE_MAP_SINT32     PB_LTYPE_SVARINT
+#define PB_LTYPE_MAP_SINT64     PB_LTYPE_SVARINT
+#define PB_LTYPE_MAP_STRING     PB_LTYPE_STRING
+#define PB_LTYPE_MAP_UINT32     PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_UINT64     PB_LTYPE_VARINT
+
+/* This is the actual macro used in field descriptions.
+ * It takes these arguments:
+ * - Field tag number
+ * - Field type:   BOOL, BYTES, DOUBLE, ENUM, FIXED32, FIXED64,
+ *                 FLOAT, INT32, INT64, MESSAGE, SFIXED32, SFIXED64
+ *                 SINT32, SINT64, STRING, UINT32 or UINT64
+ * - Field rules:  REQUIRED, OPTIONAL or REPEATED
+ * - Allocation:   STATIC or CALLBACK
+ * - Message name
+ * - Field name
+ * - Previous field name (or field name again for first field)
+ * - Pointer to default value or submsg fields.
+ */
+
+#define PB_FIELD(tag, type, rules, allocation, message, field, prevfield, ptr) \
+    PB_ ## rules ## _ ## allocation(tag, message, field, prevfield, \
+                                    PB_LTYPE_MAP_ ## type, ptr)
 
 /* These macros are used for giving out error messages.
  * They are mostly a debugging aid; the main error information
