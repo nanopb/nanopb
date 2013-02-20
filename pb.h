@@ -84,29 +84,24 @@ typedef uint8_t pb_type_t;
 #define PB_LTYPES_COUNT 7
 #define PB_LTYPE_MASK 0x0F
 
-/******************
- * Modifier flags *
- ******************/
+/**************************
+ * Field repetition rules *
+ **************************/
 
-/* Just the basic, write data at data_offset */
 #define PB_HTYPE_REQUIRED 0x00
-
-/* Write true at size_offset */
 #define PB_HTYPE_OPTIONAL 0x10
-
-/* Read to pre-allocated array
- * Maximum number of entries is array_size,
- * actual number is stored at size_offset */
 #define PB_HTYPE_REPEATED 0x20
+#define PB_HTYPE_MASK     0x30
 
-/* Works for all required/optional/repeated fields.
- * data_offset points to pb_callback_t structure.
- * LTYPE should be valid or 0 (it is ignored, but
- * sometimes used to speculatively index an array). */
-#define PB_HTYPE_CALLBACK 0x30
+/********************
+ * Allocation types *
+ ********************/
+ 
+#define PB_ATYPE_STATIC   0x00
+#define PB_ATYPE_CALLBACK 0x40
+#define PB_ATYPE_MASK     0xC0
 
-#define PB_HTYPE_MASK 0xF0
-
+#define PB_ATYPE(x) ((x) & PB_ATYPE_MASK)
 #define PB_HTYPE(x) ((x) & PB_HTYPE_MASK)
 #define PB_LTYPE(x) ((x) & PB_LTYPE_MASK)
 
@@ -214,19 +209,19 @@ typedef enum {
  * submessages and default values.
  */
 #define PB_REQUIRED_STATIC(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_REQUIRED | ltype, \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
     pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
 
 /* Optional fields add the delta to the has_ variable. */
 #define PB_OPTIONAL_STATIC(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_OPTIONAL | ltype, \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
     pb_delta_end(st, m, pm), \
     pb_delta(st, has_ ## m, m), \
     pb_membersize(st, m), 0, ptr}
 
 /* Repeated fields have a _count field and also the maximum number of entries. */
 #define PB_REPEATED_STATIC(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_REPEATED | ltype, \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
     pb_delta_end(st, m, pm), \
     pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), \
@@ -234,15 +229,15 @@ typedef enum {
 
 /* Callbacks are much like required fields except with special datatype. */
 #define PB_REQUIRED_CALLBACK(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_CALLBACK | ltype, \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REQUIRED | ltype, \
     pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
 
 #define PB_OPTIONAL_CALLBACK(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_CALLBACK | ltype, \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
     
 #define PB_REPEATED_CALLBACK(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_CALLBACK | ltype, \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
     pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
 
 /* The mapping from protobuf types to LTYPEs is done using these macros. */

@@ -303,8 +303,11 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     bool notwrapped = true;
     size_t prev_size = iter->current->data_size;
     
-    if (PB_HTYPE(iter->current->type) == PB_HTYPE_REPEATED)
+    if (PB_ATYPE(iter->current->type) == PB_ATYPE_STATIC &&
+        PB_HTYPE(iter->current->type) == PB_HTYPE_REPEATED)
+    {
         prev_size *= iter->current->array_size;
+    }
     
     if (PB_HTYPE(iter->current->type) == PB_HTYPE_REQUIRED)
         iter->required_field_index++;
@@ -343,11 +346,15 @@ static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag)
  * Decode a single field *
  *************************/
 
-static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
+static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
 {
-    pb_decoder_t func = PB_DECODERS[PB_LTYPE(iter->current->type)];
+    pb_type_t type;
+    pb_decoder_t func;
     
-    switch (PB_HTYPE(iter->current->type))
+    type = iter->current->type;
+    func = PB_DECODERS[PB_LTYPE(type)];
+
+    switch (PB_HTYPE(type))
     {
         case PB_HTYPE_REQUIRED:
             return func(stream, iter->current, iter->pData);
@@ -358,7 +365,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
     
         case PB_HTYPE_REPEATED:
             if (wire_type == PB_WT_STRING
-                && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
+                && PB_LTYPE(type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 /* Packed array */
                 bool status = true;
@@ -395,47 +402,62 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
                 (*size)++;
                 return func(stream, iter->current, pItem);
             }
+
+        default:
+            PB_RETURN_ERROR(stream, "invalid field type");
+    }
+}
+
+static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
+{
+    pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
+    
+    if (pCallback->funcs.decode == NULL)
+        return pb_skip_field(stream, wire_type);
+    
+    if (wire_type == PB_WT_STRING)
+    {
+        pb_istream_t substream;
         
-        case PB_HTYPE_CALLBACK:
+        if (!pb_make_string_substream(stream, &substream))
+            return false;
+        
+        while (substream.bytes_left)
         {
-            pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
-            
-            if (pCallback->funcs.decode == NULL)
-                return pb_skip_field(stream, wire_type);
-            
-            if (wire_type == PB_WT_STRING)
-            {
-                pb_istream_t substream;
-                
-                if (!pb_make_string_substream(stream, &substream))
-                    return false;
-                
-                while (substream.bytes_left)
-                {
-                    if (!pCallback->funcs.decode(&substream, iter->current, pCallback->arg))
-                        PB_RETURN_ERROR(stream, "callback failed");
-                }
-                
-                pb_close_string_substream(stream, &substream);
-                return true;
-            }
-            else
-            {
-                /* Copy the single scalar value to stack.
-                 * This is required so that we can limit the stream length,
-                 * which in turn allows to use same callback for packed and
-                 * not-packed fields. */
-                pb_istream_t substream;
-                uint8_t buffer[10];
-                size_t size = sizeof(buffer);
-                
-                if (!read_raw_value(stream, wire_type, buffer, &size))
-                    return false;
-                substream = pb_istream_from_buffer(buffer, size);
-                
-                return pCallback->funcs.decode(&substream, iter->current, pCallback->arg);
-            }
+            if (!pCallback->funcs.decode(&substream, iter->current, pCallback->arg))
+                PB_RETURN_ERROR(stream, "callback failed");
         }
+        
+        pb_close_string_substream(stream, &substream);
+        return true;
+    }
+    else
+    {
+        /* Copy the single scalar value to stack.
+         * This is required so that we can limit the stream length,
+         * which in turn allows to use same callback for packed and
+         * not-packed fields. */
+        pb_istream_t substream;
+        uint8_t buffer[10];
+        size_t size = sizeof(buffer);
+        
+        if (!read_raw_value(stream, wire_type, buffer, &size))
+            return false;
+        substream = pb_istream_from_buffer(buffer, size);
+        
+        return pCallback->funcs.decode(&substream, iter->current, pCallback->arg);
+    }
+}
+
+static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
+{
+    switch (PB_ATYPE(iter->current->type))
+    {
+        case PB_ATYPE_STATIC:
+            return decode_static_field(stream, wire_type, iter);
+        
+        case PB_ATYPE_CALLBACK:
+            return decode_callback_field(stream, wire_type, iter);
         
         default:
             PB_RETURN_ERROR(stream, "invalid field type");
@@ -451,36 +473,42 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
     /* Initialize size/has fields and apply default values */
     do
     {
+        pb_type_t type;
+        type = iter.current->type;
+    
         if (iter.current->tag == 0)
             continue;
         
-        /* Initialize the size field for optional/repeated fields to 0. */
-        if (PB_HTYPE(iter.current->type) == PB_HTYPE_OPTIONAL)
+        if (PB_ATYPE(type) == PB_ATYPE_STATIC)
         {
-            *(bool*)iter.pSize = false;
+            /* Initialize the size field for optional/repeated fields to 0. */
+            if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL)
+            {
+                *(bool*)iter.pSize = false;
+            }
+            else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+            {
+                *(size_t*)iter.pSize = 0;
+                continue; /* Array is empty, no need to initialize contents */
+            }
+            
+            /* Initialize field contents to default value */
+            if (PB_LTYPE(iter.current->type) == PB_LTYPE_SUBMESSAGE)
+            {
+                pb_message_set_to_defaults((const pb_field_t *) iter.current->ptr, iter.pData);
+            }
+            else if (iter.current->ptr != NULL)
+            {
+                memcpy(iter.pData, iter.current->ptr, iter.current->data_size);
+            }
+            else
+            {
+                memset(iter.pData, 0, iter.current->data_size);
+            }
         }
-        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_REPEATED)
-        {
-            *(size_t*)iter.pSize = 0;
-            continue; /* Array is empty, no need to initialize contents */
-        }
-        
-        /* Initialize field contents to default value */
-        if (PB_HTYPE(iter.current->type) == PB_HTYPE_CALLBACK)
+        else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
         {
             continue; /* Don't overwrite callback */
-        }
-        else if (PB_LTYPE(iter.current->type) == PB_LTYPE_SUBMESSAGE)
-        {
-            pb_message_set_to_defaults((const pb_field_t *) iter.current->ptr, iter.pData);
-        }
-        else if (iter.current->ptr != NULL)
-        {
-            memcpy(iter.pData, iter.current->ptr, iter.current->data_size);
-        }
-        else
-        {
-            memset(iter.pData, 0, iter.current->data_size);
         }
     } while (pb_field_next(&iter));
 }

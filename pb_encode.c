@@ -153,58 +153,89 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     return true;
 }
 
+bool checkreturn encode_static_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData)
+{
+    pb_encoder_t func;
+    const void *pSize;
+    
+    func = PB_ENCODERS[PB_LTYPE(field->type)];
+    pSize = (const char*)pData + field->size_offset;
+    
+    switch (PB_HTYPE(field->type))
+    {
+        case PB_HTYPE_REQUIRED:
+            if (!pb_encode_tag_for_field(stream, field))
+                return false;
+            if (!func(stream, field, pData))
+                return false;
+            break;
+        
+        case PB_HTYPE_OPTIONAL:
+            if (*(const bool*)pSize)
+            {
+                if (!pb_encode_tag_for_field(stream, field))
+                    return false;
+            
+                if (!func(stream, field, pData))
+                    return false;
+            }
+            break;
+        
+        case PB_HTYPE_REPEATED:
+            if (!encode_array(stream, field, pData, *(const size_t*)pSize, func))
+                return false;
+            break;
+        
+        default:
+            return false;
+    }
+    
+    return true;
+}
+
+bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData)
+{
+    const pb_callback_t *callback = (const pb_callback_t*)pData;
+    if (callback->funcs.encode != NULL)
+    {
+        if (!callback->funcs.encode(stream, field, callback->arg))
+            return false;
+    }
+    return true;
+}
+
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
     const pb_field_t *field = fields;
     const void *pData = src_struct;
-    const void *pSize;
     size_t prev_size = 0;
     
     while (field->tag != 0)
     {
-        pb_encoder_t func = PB_ENCODERS[PB_LTYPE(field->type)];
         pData = (const char*)pData + prev_size + field->data_offset;
-        pSize = (const char*)pData + field->size_offset;
-        
         prev_size = field->data_size;
-        if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-            prev_size *= field->array_size;
-                
-        switch (PB_HTYPE(field->type))
+        
+        /* Special case for static arrays */
+        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
+            PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
         {
-            case PB_HTYPE_REQUIRED:
-                if (!pb_encode_tag_for_field(stream, field))
-                    return false;
-                if (!func(stream, field, pData))
-                    return false;
-                break;
-            
-            case PB_HTYPE_OPTIONAL:
-                if (*(const bool*)pSize)
-                {
-                    if (!pb_encode_tag_for_field(stream, field))
-                        return false;
+            prev_size *= field->array_size;
+        }
                 
-                    if (!func(stream, field, pData))
-                        return false;
-                }
-                break;
-            
-            case PB_HTYPE_REPEATED:
-                if (!encode_array(stream, field, pData, *(const size_t*)pSize, func))
+        switch (PB_ATYPE(field->type))
+        {
+            case PB_ATYPE_STATIC:
+                if (!encode_static_field(stream, field, pData))
                     return false;
                 break;
             
-            case PB_HTYPE_CALLBACK:
-            {
-                const pb_callback_t *callback = (const pb_callback_t*)pData;
-                if (callback->funcs.encode != NULL)
-                {
-                    if (!callback->funcs.encode(stream, field, callback->arg))
-                        return false;
-                }
+            case PB_ATYPE_CALLBACK:
+                if (!encode_callback_field(stream, field, pData))
+                    return false;
                 break;
-            }
+            
+            default:
+                return false;
         }
     
         field++;
