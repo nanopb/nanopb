@@ -1,14 +1,19 @@
 /* Automatically generated nanopb header */
-/* This is a file generated using nanopb-0.1.1.
+/* This is a file generated using nanopb-0.2.0-dev.
  * It is used as a part of test suite in order to detect any
  * incompatible changes made to the generator in future versions.
  */
-#ifndef _PB_BC_ALLTYPES_PB_H_
-#define _PB_BC_ALLTYPES_PB_H_
+
+#ifndef _PB_ALLTYPES_PB_H_
+#define _PB_ALLTYPES_PB_H_
 #include <pb.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Enum definitions */
-typedef enum {
+typedef enum _MyEnum {
     MyEnum_Zero = 0,
     MyEnum_First = 1,
     MyEnum_Second = 2,
@@ -16,7 +21,7 @@ typedef enum {
 } MyEnum;
 
 /* Struct definitions */
-typedef struct {
+typedef struct _SubMessage {
     char substuff1[16];
     int32_t substuff2;
     bool has_substuff3;
@@ -38,7 +43,7 @@ typedef struct {
     uint8_t bytes[16];
 } AllTypes_opt_bytes_t;
 
-typedef struct {
+typedef struct _AllTypes {
     int32_t req_int32;
     int64_t req_int64;
     uint32_t req_uint32;
@@ -128,7 +133,7 @@ typedef struct {
 } AllTypes;
 
 /* Default values for struct fields */
-extern const char SubMessage_substuff1_default[17];
+extern const char SubMessage_substuff1_default[16];
 extern const int32_t SubMessage_substuff2_default;
 extern const uint32_t SubMessage_substuff3_default;
 extern const int32_t AllTypes_opt_int32_default;
@@ -144,12 +149,30 @@ extern const float AllTypes_opt_float_default;
 extern const uint64_t AllTypes_opt_fixed64_default;
 extern const int64_t AllTypes_opt_sfixed64_default;
 extern const double AllTypes_opt_double_default;
-extern const char AllTypes_opt_string_default[17];
+extern const char AllTypes_opt_string_default[16];
 extern const AllTypes_opt_bytes_t AllTypes_opt_bytes_default;
 extern const MyEnum AllTypes_opt_enum_default;
 
 /* Struct field encoding specification for nanopb */
 extern const pb_field_t SubMessage_fields[4];
 extern const pb_field_t AllTypes_fields[53];
+
+/* Check that field information fits in pb_field_t */
+#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)
+STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 256 && pb_membersize(AllTypes, rep_submsg[0]) < 256 && pb_membersize(AllTypes, opt_submsg) < 256), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_SubMessage_AllTypes)
+#endif
+
+#if !defined(PB_FIELD_32BIT)
+STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 65536 && pb_membersize(AllTypes, rep_submsg[0]) < 65536 && pb_membersize(AllTypes, opt_submsg) < 65536), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_SubMessage_AllTypes)
+#endif
+
+/* On some platforms (such as AVR), double is really float.
+ * These are not directly supported by nanopb, but see example_avr_double.
+ */
+STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif

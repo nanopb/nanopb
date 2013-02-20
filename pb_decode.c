@@ -303,7 +303,7 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     bool notwrapped = true;
     size_t prev_size = iter->current->data_size;
     
-    if (PB_HTYPE(iter->current->type) == PB_HTYPE_ARRAY)
+    if (PB_HTYPE(iter->current->type) == PB_HTYPE_REPEATED)
         prev_size *= iter->current->array_size;
     
     if (PB_HTYPE(iter->current->type) == PB_HTYPE_REQUIRED)
@@ -356,7 +356,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
             *(bool*)iter->pSize = true;
             return func(stream, iter->current, iter->pData);
     
-        case PB_HTYPE_ARRAY:
+        case PB_HTYPE_REPEATED:
             if (wire_type == PB_WT_STRING
                 && PB_LTYPE(iter->current->type) <= PB_LTYPE_LAST_PACKABLE)
             {
@@ -459,7 +459,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
         {
             *(bool*)iter.pSize = false;
         }
-        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_ARRAY)
+        else if (PB_HTYPE(iter.current->type) == PB_HTYPE_REPEATED)
         {
             *(size_t*)iter.pSize = 0;
             continue; /* Array is empty, no need to initialize contents */
@@ -715,7 +715,7 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field
     
     /* New array entries need to be initialized, while required and optional
      * submessages have already been initialized in the top-level pb_decode. */
-    if (PB_HTYPE(field->type) == PB_HTYPE_ARRAY)
+    if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
         status = pb_decode(&substream, submsg_fields, dest);
     else
         status = pb_decode_noinit(&substream, submsg_fields, dest);

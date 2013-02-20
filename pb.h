@@ -97,7 +97,7 @@ typedef uint8_t pb_type_t;
 /* Read to pre-allocated array
  * Maximum number of entries is array_size,
  * actual number is stored at size_offset */
-#define PB_HTYPE_ARRAY 0x20
+#define PB_HTYPE_REPEATED 0x20
 
 /* Works for all required/optional/repeated fields.
  * data_offset points to pb_callback_t structure.
@@ -226,7 +226,7 @@ typedef enum {
 
 /* Repeated fields have a _count field and also the maximum number of entries. */
 #define PB_REPEATED_STATIC(tag, st, m, pm, ltype, ptr) \
-    {tag, PB_HTYPE_ARRAY | ltype, \
+    {tag, PB_HTYPE_REPEATED | ltype, \
     pb_delta_end(st, m, pm), \
     pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), \

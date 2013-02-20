@@ -167,7 +167,7 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
         pSize = (const char*)pData + field->size_offset;
         
         prev_size = field->data_size;
-        if (PB_HTYPE(field->type) == PB_HTYPE_ARRAY)
+        if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
             prev_size *= field->array_size;
                 
         switch (PB_HTYPE(field->type))
@@ -190,7 +190,7 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
                 }
                 break;
             
-            case PB_HTYPE_ARRAY:
+            case PB_HTYPE_REPEATED:
                 if (!encode_array(stream, field, pData, *(const size_t*)pSize, func))
                     return false;
                 break;
