@@ -439,7 +439,7 @@ def make_identifier(headername):
             result += '_'
     return result
 
-def generate_header(dependencies, headername, enums, messages):
+def generate_header(dependencies, headername, enums, messages, options):
     '''Generate content for a header file.
     Generates strings, which should be concatenated and stored to file.
     '''
@@ -454,7 +454,7 @@ def generate_header(dependencies, headername, enums, messages):
     
     for dependency in dependencies:
         noext = os.path.splitext(dependency)[0]
-        yield '#include "%s.pb.h"\n' % noext
+        yield '#include "%s.%s.h"\n' % (noext,options.extension)
     
     yield '#ifdef __cplusplus\n'
     yield 'extern "C" {\n'
@@ -582,6 +582,8 @@ optparser = OptionParser(
              "Output will be written to file.pb.h and file.pb.c.")
 optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
     help="Exclude file from generated #include list.")
+optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default="pb",
+    help="use extension instead of 'pb' for generated files.")
 optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
     help="Don't print anything except errors.")
 optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
@@ -638,8 +640,8 @@ def process(filenames, options):
         enums, messages = parse_file(fdesc.file[0], file_options)
         
         noext = os.path.splitext(filename)[0]
-        headername = noext + '.pb.h'
-        sourcename = noext + '.pb.c'
+        headername = noext + '.' + options.extension + '.h'
+        sourcename = noext + '.' + options.extension + '.c'
         headerbasename = os.path.basename(headername)
         
         if not options.quiet:
@@ -651,7 +653,7 @@ def process(filenames, options):
         dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
         
         header = open(headername, 'w')
-        for part in generate_header(dependencies, headerbasename, enums, messages):
+        for part in generate_header(dependencies, headerbasename, enums, messages, options):
             header.write(part)
 
         source = open(sourcename, 'w')
