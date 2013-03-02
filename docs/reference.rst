@@ -37,22 +37,23 @@ pb_type_t
 ---------
 Defines the encoder/decoder behaviour that should be used for a field. ::
 
-    typedef enum { ... } pb_type_t;
+    typedef uint8_t pb_type_t;
 
-The low-order byte of the enumeration values defines the function that can be used for encoding and decoding the field data:
+The low-order nibble of the enumeration values defines the function that can be used for encoding and decoding the field data:
 
 ==================== ===== ================================================
 LTYPE identifier     Value Storage format
 ==================== ===== ================================================
 PB_LTYPE_VARINT      0x00  Integer.
 PB_LTYPE_SVARINT     0x01  Integer, zigzag encoded.
-PB_LTYPE_FIXED       0x02  Integer or floating point.
-PB_LTYPE_BYTES       0x03  Structure with *size_t* field and byte array.
-PB_LTYPE_STRING      0x04  Null-terminated string.
-PB_LTYPE_SUBMESSAGE  0x05  Submessage structure.
+PB_LTYPE_FIXED32     0x02  32-bit integer or floating point.
+PB_LTYPE_FIXED64     0x03  64-bit integer or floating point.
+PB_LTYPE_BYTES       0x04  Structure with *size_t* field and byte array.
+PB_LTYPE_STRING      0x05  Null-terminated string.
+PB_LTYPE_SUBMESSAGE  0x06  Submessage structure.
 ==================== ===== ================================================
 
-The high-order byte defines whether the field is required, optional, repeated or callback:
+The bits 4-5 define whether the field is required, optional or repeated:
 
 ==================== ===== ================================================
 HTYPE identifier     Value Field handling
@@ -60,12 +61,23 @@ HTYPE identifier     Value Field handling
 PB_HTYPE_REQUIRED    0x00  Verify that field exists in decoded message.
 PB_HTYPE_OPTIONAL    0x10  Use separate *has_<field>* boolean to specify
                            whether the field is present.
-PB_HTYPE_ARRAY       0x20  A repeated field with preallocated array.
+                           (Unless it is a callback)
+PB_HTYPE_REPEATED    0x20  A repeated field with preallocated array.
                            Separate *<field>_count* for number of items.
-PB_HTYPE_CALLBACK    0x30  A field with dynamic storage size, data is
-                           actually a pointer to a structure containing a
-                           callback function.
+                           (Unless it is a callback)
 ==================== ===== ================================================
+
+The bits 6-7 define the how the storage for the field is allocated:
+
+==================== ===== ================================================
+ATYPE identifier     Value Allocation method
+==================== ===== ================================================
+PB_ATYPE_STATIC      0x00  Statically allocated storage in the structure.
+PB_ATYPE_CALLBACK    0x40  A field with dynamic storage size. Struct field
+                           actually contains a pointer to a callback
+                           function.
+==================== ===== ================================================
+
 
 pb_field_t
 ----------
@@ -83,7 +95,7 @@ Describes a single structure field with memory position in relation to others. T
     } pb_packed;
 
 :tag:           Tag number of the field or 0 to terminate a list of fields.
-:type:          LTYPE and HTYPE of the field.
+:type:          LTYPE, HTYPE and ATYPE of the field.
 :data_offset:   Offset of field data, relative to the end of the previous field.
 :size_offset:   Offset of *bool* flag for optional fields or *size_t* count for arrays, relative to field data.
 :data_size:     Size of a single data entry, in bytes. For PB_LTYPE_BYTES, the size of the byte array inside the containing structure. For PB_HTYPE_CALLBACK, size of the C data type if known.

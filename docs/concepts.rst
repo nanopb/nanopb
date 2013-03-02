@@ -255,16 +255,8 @@ For example this submessage in the Person.proto file::
 generates this field description array for the structure *Person_PhoneNumber*::
 
  const pb_field_t Person_PhoneNumber_fields[3] = {
-    {1, PB_HTYPE_REQUIRED | PB_LTYPE_STRING,
-    offsetof(Person_PhoneNumber, number), 0,
-    pb_membersize(Person_PhoneNumber, number), 0, 0},
-
-    {2, PB_HTYPE_OPTIONAL | PB_LTYPE_VARINT,
-    pb_delta(Person_PhoneNumber, type, number),
-    pb_delta(Person_PhoneNumber, has_type, type),
-    pb_membersize(Person_PhoneNumber, type), 0,
-    &Person_PhoneNumber_type_default},
-
+    PB_FIELD(  1, STRING  , REQUIRED, STATIC, Person_PhoneNumber, number, number, 0),
+    PB_FIELD(  2, ENUM    , OPTIONAL, STATIC, Person_PhoneNumber, type, number, &Person_PhoneNumber_type_default),
     PB_LAST_FIELD
  };
 
@@ -276,8 +268,8 @@ Most functions in nanopb return bool: *true* means success, *false* means failur
 
 The error messages help in guessing what is the underlying cause of the error. The most common error conditions are:
 
-1) Running out of memory. Because everything is allocated from the stack, nanopb can't detect this itself. Encoding or decoding the same type of a message always takes the same amount of stack space. Therefore, if it works once, it works always.
-2) Invalid field description. These are usually stored as constants, so if it works under the debugger, it always does.
+1) Running out of memory, i.e. stack overflow.
+2) Invalid field descriptors (would usually mean a bug in the generator).
 3) IO errors in your own stream callbacks.
 4) Errors that happen in your callback functions.
 5) Exceeding the max_size or bytes_left of a stream.

@@ -36,23 +36,26 @@ Features and limitations
 **Features**
 
 #) Pure C runtime
-#) Small code size (2–10 kB depending on processor)
-#) Small ram usage (typically 200 bytes)
+#) Small code size (2–10 kB depending on processor, plus any message definitions)
+#) Small ram usage (typically ~300 bytes, plus any message structs)
 #) Allows specifying maximum size for strings and arrays, so that they can be allocated statically.
 #) No malloc needed: everything can be allocated statically or on the stack.
 #) You can use either encoder or decoder alone to cut the code size in half.
+#) Support for most protobuf features, including: all data types, nested submessages, default values, repeated and optional fields, packed arrays.
+#) Callback mechanism for handling messages larger than can fit in available RAM.
+#) Extensive set of tests.
 
 **Limitations**
 
 #) User must provide callbacks when decoding arrays or strings without maximum size. Malloc support could be added as a separate module.
-#) Some speed has been sacrificed for code size. For example varint calculations are always done in 64 bits.
+#) Some speed has been sacrificed for code size.
 #) Encoding is focused on writing to streams. For memory buffers only it could be made more efficient.
 #) The deprecated Protocol Buffers feature called "groups" is not supported.
 #) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
 #) Unknown fields are not preserved when decoding and re-encoding a message.
 #) Reflection (runtime introspection) is not supported. E.g. you can't request a field by giving its name in a string.
 #) Numeric arrays are always encoded as packed, even if not marked as packed in .proto. This causes incompatibility with decoders that do not support packed format.
-#) Cyclic references between messages are not supported. They could be supported in callback-mode if there was an option in the generator to set the mode.
+#) Cyclic references between messages are supported only in callback mode.
 
 Getting started
 ===============
@@ -104,10 +107,3 @@ Debugging and testing
 =====================
 Extensive unittests are included under the *tests* folder. Just type *make* there to run the tests.
 
-This also generates a file called *breakpoints* which includes all lines returning *false* in nanopb. You can use this in gdb by typing *source breakpoints*, after which gdb will break on first nanopb error.
-
-Wishlist
-========
-#) A specialized encoder for encoding to a memory buffer. Should serialize in reverse order to avoid having to determine submessage size beforehand.
-#) A cleaner rewrite of the Python-based source generator.
-#) Better performance for 16- and 8-bit platforms: use smaller datatypes where possible.
