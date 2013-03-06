@@ -300,6 +300,12 @@ class Message:
     
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
+
+        if not self.ordered_fields:
+            # Empty structs are not allowed in C standard.
+            # Therefore add a dummy field if an empty message occurs.
+            result += '    uint8_t dummy_field;'
+
         result += '\n'.join([str(f) for f in self.ordered_fields])
         result += '\n}'
         
