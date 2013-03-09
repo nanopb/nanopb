@@ -1,5 +1,3 @@
-import "nanopb.proto";
-
 message SubMessage {
     required string substuff1 = 1 [default = "1"];
     required int32 substuff2 = 2 [default = 2];
