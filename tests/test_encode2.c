@@ -26,7 +26,12 @@ int main()
     
     /* Now encode it and check if we succeeded. */
     if (pb_encode(&stream, Person_fields, &person))
+    {
         return 0; /* Success */
+    }
     else
+    {
+        fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return 1; /* Failure */
+    }
 }

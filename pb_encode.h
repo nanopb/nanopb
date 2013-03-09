@@ -46,10 +46,21 @@ struct _pb_ostream_t
     void *state; /* Free field for use by callback implementation */
     size_t max_size; /* Limit number of output bytes written (or use SIZE_MAX). */
     size_t bytes_written;
+    
+#ifndef PB_NO_ERRMSG
+    const char *errmsg;
+#endif
 };
 
 pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize);
 bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+
+/* Stream type for use in computing message sizes */
+#ifndef PB_NO_ERRMSG
+#define PB_OSTREAM_SIZING {0,0,0,0,0}
+#else
+#define PB_OSTREAM_SIZING {0,0,0,0}
+#endif
 
 /* Encode struct to given output stream.
  * Returns true on success, false on any failure.

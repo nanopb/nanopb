@@ -27,6 +27,7 @@ int main()
     }
     else
     {
+        fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return 1; /* Failure */
     }
 }

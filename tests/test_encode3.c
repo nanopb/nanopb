@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        fprintf(stderr, "Encoding failed!\n");
+        fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return 1; /* Failure */
     }
 }
