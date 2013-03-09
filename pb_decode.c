@@ -312,6 +312,9 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     if (PB_HTYPE(iter->current->type) == PB_HTYPE_REQUIRED)
         iter->required_field_index++;
     
+    if (iter->current->tag == 0)
+        return false; /* Only happens with empty message types */
+    
     iter->current++;
     iter->field_index++;
     if (iter->current->tag == 0)
