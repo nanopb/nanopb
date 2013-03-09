@@ -8,9 +8,14 @@
 
 #define NANOPB_VERSION nanopb-0.2.1-dev
 
+#ifdef PB_SYSTEM_HEADER
+#include PB_SYSTEM_HEADER
+#else
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
+#endif
 
 #ifdef __GNUC__
 /* This just reduces memory requirements, but is not required. */

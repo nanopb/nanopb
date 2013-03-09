@@ -6,7 +6,6 @@
 #define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_encode.h"
-#include <string.h>
 
 /* The warn_unused_result attribute appeared first in gcc-3.4.0 */
 #if !defined(__GNUC__) || ( __GNUC__ < 3) || (__GNUC__ == 3 && __GNUC_MINOR__ < 4)

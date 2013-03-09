@@ -14,7 +14,6 @@
 #define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_decode.h"
-#include <string.h>
 
 typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
 
