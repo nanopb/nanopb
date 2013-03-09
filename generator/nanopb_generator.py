@@ -455,7 +455,11 @@ def generate_header(dependencies, headername, enums, messages, options):
     symbol = make_identifier(headername)
     yield '#ifndef _PB_%s_\n' % symbol
     yield '#define _PB_%s_\n' % symbol
-    yield options.libformat % ('pb.h')
+    try:
+        yield options.libformat % ('pb.h')
+    except TypeError:
+        # no %s specified - use whatever was passed in as options.libformat
+        yield options.libformat
     yield '\n'
     
     for dependency in dependencies:
@@ -688,7 +692,11 @@ def process(filenames, options):
         fdesc = descriptor.FileDescriptorSet.FromString(data)
         
         # Check if any separate options are specified
-        optfilename = options.options_file % os.path.splitext(filename)[0]
+        try:
+            optfilename = options.options_file % os.path.splitext(filename)[0]
+        except TypeError:
+            # No %s specified, use the filename as-is
+            optfilename = options.options_file
         
         if options.verbose:
             print 'Reading options from ' + optfilename
