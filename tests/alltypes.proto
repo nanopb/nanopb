@@ -1,7 +1,7 @@
 import "nanopb.proto";
 
 message SubMessage {
-    required string substuff1 = 1 [(nanopb).max_size = 16, default = "1"];
+    required string substuff1 = 1 [default = "1"];
     required int32 substuff2 = 2 [default = 2];
     optional fixed32 substuff3 = 3 [default = 3];
 }
@@ -34,34 +34,34 @@ message AllTypes {
     required sfixed64   req_sfixed64= 12;
     required double     req_double  = 13;
     
-    required string     req_string  = 14 [(nanopb).max_size = 16];
-    required bytes      req_bytes   = 15 [(nanopb).max_size = 16];
+    required string     req_string  = 14;
+    required bytes      req_bytes   = 15;
     required SubMessage req_submsg  = 16;
     required MyEnum     req_enum    = 17;
     required EmptyMessage req_emptymsg = 18;
     
     
-    repeated int32      rep_int32   = 21 [(nanopb).max_count = 5];
-    repeated int64      rep_int64   = 22 [(nanopb).max_count = 5];
-    repeated uint32     rep_uint32  = 23 [(nanopb).max_count = 5];
-    repeated uint64     rep_uint64  = 24 [(nanopb).max_count = 5];
-    repeated sint32     rep_sint32  = 25 [(nanopb).max_count = 5];
-    repeated sint64     rep_sint64  = 26 [(nanopb).max_count = 5];
-    repeated bool       rep_bool    = 27 [(nanopb).max_count = 5];
+    repeated int32      rep_int32   = 21;
+    repeated int64      rep_int64   = 22;
+    repeated uint32     rep_uint32  = 23;
+    repeated uint64     rep_uint64  = 24;
+    repeated sint32     rep_sint32  = 25;
+    repeated sint64     rep_sint64  = 26;
+    repeated bool       rep_bool    = 27;
     
-    repeated fixed32    rep_fixed32 = 28 [(nanopb).max_count = 5];
-    repeated sfixed32   rep_sfixed32= 29 [(nanopb).max_count = 5];
-    repeated float      rep_float   = 30 [(nanopb).max_count = 5];
+    repeated fixed32    rep_fixed32 = 28;
+    repeated sfixed32   rep_sfixed32= 29;
+    repeated float      rep_float   = 30;
     
-    repeated fixed64    rep_fixed64 = 31 [(nanopb).max_count = 5];
-    repeated sfixed64   rep_sfixed64= 32 [(nanopb).max_count = 5];
-    repeated double     rep_double  = 33 [(nanopb).max_count = 5];
+    repeated fixed64    rep_fixed64 = 31;
+    repeated sfixed64   rep_sfixed64= 32;
+    repeated double     rep_double  = 33;
     
-    repeated string     rep_string  = 34 [(nanopb).max_size = 16, (nanopb).max_count = 5];
-    repeated bytes      rep_bytes   = 35 [(nanopb).max_size = 16, (nanopb).max_count = 5];
-    repeated SubMessage rep_submsg  = 36 [(nanopb).max_count = 5];
-    repeated MyEnum     rep_enum    = 37 [(nanopb).max_count = 5];
-    repeated EmptyMessage rep_emptymsg = 38 [(nanopb).max_count = 5];
+    repeated string     rep_string  = 34;
+    repeated bytes      rep_bytes   = 35;
+    repeated SubMessage rep_submsg  = 36;
+    repeated MyEnum     rep_enum    = 37;
+    repeated EmptyMessage rep_emptymsg = 38;
     
     optional int32      opt_int32   = 41 [default = 4041];
     optional int64      opt_int64   = 42 [default = 4042];
@@ -79,8 +79,8 @@ message AllTypes {
     optional sfixed64   opt_sfixed64= 52 [default = 4052];
     optional double     opt_double  = 53 [default = 4053];
     
-    optional string     opt_string  = 54 [(nanopb).max_size = 16, default = "4054"];
-    optional bytes      opt_bytes   = 55 [(nanopb).max_size = 16, default = "4055"];
+    optional string     opt_string  = 54 [default = "4054"];
+    optional bytes      opt_bytes   = 55 [default = "4055"];
     optional SubMessage opt_submsg  = 56;
     optional MyEnum     opt_enum    = 57 [default = Second];
     optional EmptyMessage opt_emptymsg = 58;
