@@ -3,6 +3,7 @@ nanopb_version = "nanopb-0.2.1-dev"
 
 try:
     import google.protobuf.descriptor_pb2 as descriptor
+    import google.protobuf.text_format as text_format
 except:
     print
     print "*************************************************************"
@@ -54,9 +55,7 @@ datatypes = {
 }
 
 class Names:
-    '''Keeps a set of nested names and formats them to C identifier.
-    You can subclass this with your own implementation.
-    '''
+    '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
         if isinstance(parts, Names):
             parts = parts.parts
@@ -286,7 +285,7 @@ class Message:
         self.fields = []
         
         for f in desc.field:
-            field_options = get_nanopb_suboptions(f, message_options)
+            field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.fields.append(Field(self.name, f, field_options))
         
@@ -383,14 +382,14 @@ def parse_file(fdesc, file_options):
         base_name = Names()
     
     for enum in fdesc.enum_type:
-        enum_options = get_nanopb_suboptions(enum, file_options)
+        enum_options = get_nanopb_suboptions(enum, file_options, base_name + enum.name)
         enums.append(Enum(base_name, enum, enum_options))
     
     for names, message in iterate_messages(fdesc, base_name):
-        message_options = get_nanopb_suboptions(message, file_options)
+        message_options = get_nanopb_suboptions(message, file_options, names)
         messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
-            enum_options = get_nanopb_suboptions(enum, message_options)
+            enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
             enums.append(Enum(names, enum, enum_options))
     
     # Fix field default values where enum short names are used.
@@ -575,42 +574,46 @@ def generate_source(headername, enums, messages):
     
     yield '\n'
 
-
 # ---------------------------------------------------------------------------
-#                         Command line interface
+#                    Options parsing for the .proto files
 # ---------------------------------------------------------------------------
 
-import sys
-import os.path    
-from optparse import OptionParser
-import google.protobuf.text_format as text_format
+from fnmatch import fnmatch
 
-optparser = OptionParser(
-    usage = "Usage: nanopb_generator.py [options] file.pb ...",
-    epilog = "Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. " +
-             "Output will be written to file.pb.h and file.pb.c.")
-optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
-    help="Exclude file from generated #include list.")
-optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default="pb",
-    help="Set extension to use instead of 'pb' for generated files. [default: %default]")
-optparser.add_option("-Q", "--generated-include-format", dest="genformat",
-    metavar="FORMAT", default='#include "%s"\n',
-    help="Set format string to use for including other .pb.h files. [default: %default]")
-optparser.add_option("-L", "--library-include-format", dest="libformat",
-    metavar="FORMAT", default='#include <%s>\n',
-    help="Set format string to use for including the nanopb pb.h header. [default: %default]")
-optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
-    help="Don't print anything except errors.")
-optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
-    help="Print more information.")
-optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
-    help="Set generator option (max_size, max_count etc.).")
+def read_options_file(infile):
+    '''Parse a separate options file to list:
+        [(namemask, options), ...]
+    '''
+    results = []
+    for line in infile:
+        line = line.strip()
+        if not line or line.startswith('//') or line.startswith('#'):
+            continue
+        
+        parts = line.split(None, 1)
+        opts = nanopb_pb2.NanoPBOptions()
+        text_format.Merge(parts[1], opts)
+        results.append((parts[0], opts))
 
-def get_nanopb_suboptions(subdesc, options):
+    return results
+
+class Globals:
+    '''Ugly global variables, should find a good way to pass these.'''
+    verbose_options = False
+    separate_options = []
+
+def get_nanopb_suboptions(subdesc, options, name):
     '''Get copy of options, and merge information from subdesc.'''
     new_options = nanopb_pb2.NanoPBOptions()
     new_options.CopyFrom(options)
     
+    # Handle options defined in a separate file
+    dotname = '.'.join(name.parts)
+    for namemask, options in Globals.separate_options:
+        if fnmatch(dotname, namemask):
+            new_options.MergeFrom(options)
+    
+    # Handle options defined in .proto
     if isinstance(subdesc.options, descriptor.FieldOptions):
         ext_type = nanopb_pb2.nanopb
     elif isinstance(subdesc.options, descriptor.FileOptions):
@@ -626,7 +629,43 @@ def get_nanopb_suboptions(subdesc, options):
         ext = subdesc.options.Extensions[ext_type]
         new_options.MergeFrom(ext)
     
+    if Globals.verbose_options:
+        print "Options for " + dotname + ":"
+        print text_format.MessageToString(new_options)
+    
     return new_options
+
+
+# ---------------------------------------------------------------------------
+#                         Command line interface
+# ---------------------------------------------------------------------------
+
+import sys
+import os.path    
+from optparse import OptionParser
+
+optparser = OptionParser(
+    usage = "Usage: nanopb_generator.py [options] file.pb ...",
+    epilog = "Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. " +
+             "Output will be written to file.pb.h and file.pb.c.")
+optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
+    help="Exclude file from generated #include list.")
+optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default="pb",
+    help="Set extension to use instead of 'pb' for generated files. [default: %default]")
+optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
+    help="Set name of a separate generator options file.")
+optparser.add_option("-Q", "--generated-include-format", dest="genformat",
+    metavar="FORMAT", default='#include "%s"\n',
+    help="Set format string to use for including other .pb.h files. [default: %default]")
+optparser.add_option("-L", "--library-include-format", dest="libformat",
+    metavar="FORMAT", default='#include <%s>\n',
+    help="Set format string to use for including the nanopb pb.h header. [default: %default]")
+optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
+    help="Don't print anything except errors.")
+optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
+    help="Print more information.")
+optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
+    help="Set generator option (max_size, max_count etc.).")
 
 def process(filenames, options):
     '''Process the files given on the command line.'''
@@ -637,6 +676,8 @@ def process(filenames, options):
     
     if options.quiet:
         options.verbose = False
+
+    Globals.verbose_options = options.verbose
     
     toplevel_options = nanopb_pb2.NanoPBOptions()
     for s in options.settings:
@@ -646,12 +687,19 @@ def process(filenames, options):
         data = open(filename, 'rb').read()
         fdesc = descriptor.FileDescriptorSet.FromString(data)
         
-        file_options = get_nanopb_suboptions(fdesc.file[0], toplevel_options)
+        # Check if any separate options are specified
+        optfilename = options.options_file % os.path.splitext(filename)[0]
         
         if options.verbose:
-            print "Options for " + filename + ":"
-            print text_format.MessageToString(file_options)
+            print 'Reading options from ' + optfilename
         
+        if os.path.isfile(optfilename):
+            Globals.separate_options = read_options_file(open(optfilename, "rU"))
+        else:
+            Globals.separate_options = []
+        
+        # Parse the file
+        file_options = get_nanopb_suboptions(fdesc.file[0], toplevel_options, Names([filename]))
         enums, messages = parse_file(fdesc.file[0], file_options)
         
         noext = os.path.splitext(filename)[0]

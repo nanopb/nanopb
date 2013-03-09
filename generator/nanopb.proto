@@ -16,6 +16,9 @@ enum FieldType {
     FT_IGNORE = 3; // Ignore the field completely.
 }
 
+// This is the inner options message, which basically defines options for
+// a field. When it is used in message or file scope, it applies to all
+// fields.
 message NanoPBOptions {
   // Allocated size for 'bytes' and 'string' fields.
   optional int32 max_size = 1;
@@ -33,6 +36,9 @@ message NanoPBOptions {
   optional bool packed_struct = 5 [default = false];
 }
 
+// Extensions to protoc 'Descriptor' type in order to define options
+// inside a .proto file.
+//
 // Protocol Buffers extension number registry
 // --------------------------------
 // Project:  Nanopb
