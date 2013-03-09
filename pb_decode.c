@@ -571,7 +571,7 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
         } while (pb_field_next(&iter));
         
         /* Fixup if last field was also required. */
-        if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED)
+        if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED && iter.current->tag)
             req_field_count++;
         
         /* Check the whole bytes */

@@ -6,6 +6,10 @@ message SubMessage {
     optional fixed32 substuff3 = 3 [default = 3];
 }
 
+message EmptyMessage {
+
+}
+
 enum MyEnum {
     Zero = 0;
     First = 1;
@@ -34,6 +38,7 @@ message AllTypes {
     required bytes      req_bytes   = 15 [(nanopb).max_size = 16];
     required SubMessage req_submsg  = 16;
     required MyEnum     req_enum    = 17;
+    required EmptyMessage req_emptymsg = 18;
     
     
     repeated int32      rep_int32   = 21 [(nanopb).max_count = 5];
@@ -56,6 +61,7 @@ message AllTypes {
     repeated bytes      rep_bytes   = 35 [(nanopb).max_size = 16, (nanopb).max_count = 5];
     repeated SubMessage rep_submsg  = 36 [(nanopb).max_count = 5];
     repeated MyEnum     rep_enum    = 37 [(nanopb).max_count = 5];
+    repeated EmptyMessage rep_emptymsg = 38 [(nanopb).max_count = 5];
     
     optional int32      opt_int32   = 41 [default = 4041];
     optional int64      opt_int64   = 42 [default = 4042];
@@ -77,6 +83,7 @@ message AllTypes {
     optional bytes      opt_bytes   = 55 [(nanopb).max_size = 16, default = "4055"];
     optional SubMessage opt_submsg  = 56;
     optional MyEnum     opt_enum    = 57 [default = Second];
+    optional EmptyMessage opt_emptymsg = 58;
 
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.

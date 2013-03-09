@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     alltypes.rep_submsg[4].substuff3 = 2016;
     
     alltypes.rep_enum_count = 5; alltypes.rep_enum[4] = MyEnum_Truth;
+    alltypes.rep_emptymsg_count = 5;
     
     if (mode != 0)
     {
@@ -107,6 +108,7 @@ int main(int argc, char **argv)
         alltypes.opt_submsg.substuff2 = 3056;
         alltypes.has_opt_enum = true;
         alltypes.opt_enum = MyEnum_Truth;
+        alltypes.has_opt_emptymsg = true;
     }
     
     alltypes.end = 1099;

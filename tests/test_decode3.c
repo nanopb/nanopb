@@ -76,6 +76,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == 3);
     
     TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
+    TEST(alltypes.rep_emptymsg_count == 5);
     
     if (mode == 0)
     {
@@ -120,6 +121,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_submsg.substuff3 == 3);
         TEST(alltypes.has_opt_enum     == false);
         TEST(alltypes.opt_enum == MyEnum_Second);
+        TEST(alltypes.has_opt_emptymsg == false);
     }
     else
     {
@@ -164,6 +166,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_submsg.substuff3 == 3);
         TEST(alltypes.has_opt_enum      == true);
         TEST(alltypes.opt_enum == MyEnum_Truth);
+        TEST(alltypes.has_opt_emptymsg  == true);
     }
     
     TEST(alltypes.end == 1099);
