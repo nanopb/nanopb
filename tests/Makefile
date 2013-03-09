@@ -22,6 +22,14 @@ ifneq (,$(findstring clang,$(CC_VERSION)))
 	CFLAGS_CORE=-pedantic -Wextra -Wcast-qual -Wconversion
 endif
 
+# Also use mudflap if it is available
+# To enable, run with    make -B USE_MUDFLAP=y
+USE_MUDFLAP ?= n
+ifeq ($(USE_MUDFLAP),y)
+	CFLAGS += -fmudflap
+	LDFLAGS += -lmudflap -fmudflap
+endif
+
 all: breakpoints $(TESTS) run_unittests
 
 clean:
