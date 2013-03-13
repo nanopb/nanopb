@@ -312,6 +312,11 @@ class Message:
             result += ' pb_packed'
         
         result += ' %s;' % self.name
+        
+        if self.packed:
+            result = 'PB_PACKED_STRUCT_START\n' + result
+            result += '\nPB_PACKED_STRUCT_END'
+        
         return result
     
     def types(self):

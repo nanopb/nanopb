@@ -17,11 +17,29 @@
 #include <string.h>
 #endif
 
-#ifdef __GNUC__
-/* This just reduces memory requirements, but is not required. */
-#define pb_packed __attribute__((packed))
+/* Macro for defining packed structures (compiler dependent).
+ * This just reduces memory requirements, but is not required.
+ */
+#if defined(__GNUC__) || defined(__clang__)
+    /* For GCC and clang */
+#   define PB_PACKED_STRUCT_START
+#   define PB_PACKED_STRUCT_END
+#   define pb_packed __attribute__((packed))
+#elif defined(__ICCARM__)
+    /* For IAR ARM compiler */
+#   define PB_PACKED_STRUCT_START _Pragma("pack(push, 1)")
+#   define PB_PACKED_STRUCT_END _Pragma("pack(pop)")
+#   define pb_packed
+#elif defined(_MSC_VER)
+    /* For Microsoft Visual C++ */
+#   define PB_PACKED_STRUCT_START __pragma(pack(push, 1))
+#   define PB_PACKED_STRUCT_END __pragma(pack(pop))
+#   define pb_packed
 #else
-#define pb_packed
+    /* Unknown compiler */
+#   define PB_PACKED_STRUCT_START
+#   define PB_PACKED_STRUCT_END
+#   define pb_packed
 #endif
 
 /* Handly macro for suppressing unreferenced-parameter compiler warnings.    */
@@ -118,6 +136,7 @@ typedef uint8_t pb_type_t;
  * structures. Fix that by defining PB_FIELD_16BIT or
  * PB_FIELD_32BIT.
  */
+PB_PACKED_STRUCT_START
 typedef struct _pb_field_t pb_field_t;
 struct _pb_field_t {
 
@@ -149,6 +168,7 @@ struct _pb_field_t {
      * If null, then field will zeroed. */
     const void *ptr;
 } pb_packed;
+PB_PACKED_STRUCT_END
 
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.
