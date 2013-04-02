@@ -186,7 +186,7 @@ class Field:
         return cmp(self.tag, other.tag)
     
     def __str__(self):
-        if self.rules == 'OPTIONAL':
+        if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
             result = '    bool has_' + self.name + ';\n'
         elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
             result = '    size_t ' + self.name + '_count;\n'
