@@ -5,7 +5,7 @@
 #include <pb_encode.h>
 #include "callbacks.pb.h"
 
-bool encode_string(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     char *str = "Hello world!";
     
@@ -15,7 +15,7 @@ bool encode_string(pb_ostream_t *stream, const pb_field_t *field, const void *ar
     return pb_encode_string(stream, (uint8_t*)str, strlen(str));
 }
 
-bool encode_int32(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool encode_int32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
         return false;
@@ -23,7 +23,7 @@ bool encode_int32(pb_ostream_t *stream, const pb_field_t *field, const void *arg
     return pb_encode_varint(stream, 42);
 }
 
-bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
         return false;
@@ -32,7 +32,7 @@ bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *a
     return pb_encode_fixed32(stream, &value);
 }
 
-bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
         return false;

@@ -19,11 +19,11 @@ bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 }
 
 /* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
-bool callback_check(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool callback_check(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     int i;
     uint8_t byte;
-    pb_bytes_array_t *ref = (pb_bytes_array_t*) arg;
+    pb_bytes_array_t *ref = (pb_bytes_array_t*) *arg;
     
     for (i = 0; i < ref->size; i++)
     {

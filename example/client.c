@@ -23,7 +23,7 @@
 #include "fileproto.pb.h"
 #include "common.h"
 
-bool printfile_callback(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool printfile_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     FileInfo fileinfo;
     

@@ -17,7 +17,7 @@ bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
     return true;
 }
 
-bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     int value = 0x55;
     if (!pb_encode_tag_for_field(stream, field))
@@ -25,7 +25,7 @@ bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, const void *ar
     return pb_encode_varint(stream, value);
 }
 
-bool crazyfieldcallback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool crazyfieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     /* This callback writes different amount of data the second time. */
     uint32_t *state = (uint32_t*)arg;

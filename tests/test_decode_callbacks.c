@@ -6,7 +6,7 @@
 #include <pb_decode.h>
 #include "callbacks.pb.h"
 
-bool print_string(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     uint8_t buffer[1024] = {0};
     
@@ -20,37 +20,37 @@ bool print_string(pb_istream_t *stream, const pb_field_t *field, void *arg)
     /* Print the string, in format comparable with protoc --decode.
      * Format comes from the arg defined in main().
      */
-    printf((char*)arg, buffer);
+    printf((char*)*arg, buffer);
     return true;
 }
 
-bool print_int32(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
         return false;
     
-    printf((char*)arg, (long)value);
+    printf((char*)*arg, (long)value);
     return true;
 }
 
-bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     uint32_t value;
     if (!pb_decode_fixed32(stream, &value))
         return false;
     
-    printf((char*)arg, (long)value);
+    printf((char*)*arg, (long)value);
     return true;
 }
 
-bool print_fixed64(pb_istream_t *stream, const pb_field_t *field, void *arg)
+bool print_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))
         return false;
     
-    printf((char*)arg, (long long)value);
+    printf((char*)*arg, (long long)value);
     return true;
 }
 

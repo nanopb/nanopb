@@ -181,7 +181,9 @@ Field callbacks
 ===============
 When a field has dynamic length, nanopb cannot statically allocate storage for it. Instead, it allows you to handle the field in whatever way you want, using a callback function.
 
-The `pb_callback_t`_ structure contains a function pointer and a *void* pointer you can use for passing data to the callback. If the function pointer is NULL, the field will be skipped. The actual behavior of the callback function is different in encoding and decoding modes.
+The `pb_callback_t`_ structure contains a function pointer and a *void* pointer called *arg* you can use for passing data to the callback. If the function pointer is NULL, the field will be skipped. A pointer to the *arg* is passed to the function, so that it can modify it and retrieve the value.
+
+The actual behavior of the callback function is different in encoding and decoding modes. In encoding mode, the callback is called once and should write out everything, including field tags. In decoding mode, the callback is called repeatedly for every data item.
 
 .. _`pb_callback_t`: reference.html#pb-callback-t
 
@@ -189,7 +191,7 @@ Encoding callbacks
 ------------------
 ::
 
-    bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
+    bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
 
 When encoding, the callback should write out complete fields, including the wire type and field number tag. It can write as many or as few fields as it likes. For example, if you want to write out an array as *repeated* field, you should do it all in a single call.
 
@@ -203,7 +205,7 @@ If the callback is used in a submessage, it will be called multiple times during
 
 This callback writes out a dynamically sized string::
 
-    bool write_string(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+    bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
     {
         char *str = get_string_from_somewhere();
         if (!pb_encode_tag_for_field(stream, field))
@@ -216,7 +218,7 @@ Decoding callbacks
 ------------------
 ::
 
-    bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
+    bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
 
 When decoding, the callback receives a length-limited substring that reads the contents of a single field. The field tag has already been read. For *string* and *bytes*, the length value has already been parsed, and is available at *stream->bytes_left*.
 
@@ -226,7 +228,7 @@ The callback will be called multiple times for repeated fields. For packed field
 
 This callback reads multiple integers and prints them::
 
-    bool read_ints(pb_istream_t *stream, const pb_field_t *field, void *arg)
+    bool read_ints(pb_istream_t *stream, const pb_field_t *field, void **arg)
     {
         while (stream->bytes_left)
         {

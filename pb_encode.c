@@ -198,9 +198,16 @@ bool checkreturn encode_static_field(pb_ostream_t *stream, const pb_field_t *fie
 bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData)
 {
     const pb_callback_t *callback = (const pb_callback_t*)pData;
+    
+#ifdef PB_OLD_CALLBACK_STYLE
+    const void *arg = callback->arg;
+#else
+    void * const *arg = &(callback->arg);
+#endif    
+    
     if (callback->funcs.encode != NULL)
     {
-        if (!callback->funcs.encode(stream, field, callback->arg))
+        if (!callback->funcs.encode(stream, field, arg))
             PB_RETURN_ERROR(stream, "callback error");
     }
     return true;

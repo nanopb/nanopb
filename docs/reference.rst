@@ -24,6 +24,8 @@ PB_NO_ERRMSG                   Disables the support for error messages; only err
                                Decreases the code size by a few hundred bytes.
 PB_BUFFER_ONLY                 Disables the support for custom streams. Only supports encoding to memory buffers.
                                Speeds up execution and decreases code size slightly.
+PB_OLD_CALLBACK_STYLE          Use the old function signature (void\* instead of void\*\*) for callback fields. This was the
+                               default until nanopb-0.2.1.
 ============================  ================================================================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow raising some datatype limits to suit larger messages.
@@ -122,14 +124,16 @@ Part of a message structure, for fields with type PB_HTYPE_CALLBACK::
     typedef struct _pb_callback_t pb_callback_t;
     struct _pb_callback_t {
         union {
-            bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
-            bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
+            bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
+            bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
         } funcs;
         
         void *arg;
     };
 
-The *arg* is passed to the callback when calling. It can be used to store any information that the callback might need.
+A pointer to the *arg* is passed to the callback when calling. It can be used to store any information that the callback might need.
+
+Previously the function received just the value of *arg* instead of a pointer to it. This old behaviour can be enabled by defining *PB_OLD_CALLBACK_STYLE*.
 
 When calling `pb_encode`_, *funcs.encode* is used, and similarly when calling `pb_decode`_, *funcs.decode* is used. The function pointers are stored in the same memory location but are of incompatible types. You can set the function pointer to NULL to skip the field.
 

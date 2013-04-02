@@ -23,9 +23,9 @@
 #include "fileproto.pb.h"
 #include "common.h"
 
-bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
-    DIR *dir = (DIR*) arg;
+    DIR *dir = (DIR*) *arg;
     struct dirent *file;
     FileInfo fileinfo;
     

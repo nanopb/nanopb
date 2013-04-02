@@ -203,10 +203,19 @@ typedef struct _pb_istream_t pb_istream_t;
 typedef struct _pb_ostream_t pb_ostream_t;
 typedef struct _pb_callback_t pb_callback_t;
 struct _pb_callback_t {
+#ifdef PB_OLD_CALLBACK_STYLE
+    /* Deprecated since nanopb-0.2.1 */
     union {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
     } funcs;
+#else
+    /* New function signature, which allows modifying arg contents in callback. */
+    union {
+        bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
+        bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
+    } funcs;
+#endif    
     
     /* Free arg for use by callback */
     void *arg;
