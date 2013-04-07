@@ -9,7 +9,6 @@
  * These are usually generated from .proto-files with a script.
  */
 
-#include <stdbool.h>
 #include "pb.h"
 
 #ifdef __cplusplus

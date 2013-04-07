@@ -6,7 +6,6 @@
  * and their field descriptions (just like with pb_decode).
  */
 
-#include <stdbool.h>
 #include "pb.h"
 
 #ifdef __cplusplus
