@@ -664,7 +664,8 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t value;
-    bool status = pb_decode_varint(stream, &value);
+    if (!pb_decode_varint(stream, &value))
+        return false;
     
     switch (field->data_size)
     {
@@ -675,13 +676,14 @@ bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, vo
         default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
     
-    return status;
+    return true;
 }
 
 bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     int64_t value;
-    bool status = pb_decode_svarint(stream, &value);
+    if (!pb_decode_svarint(stream, &value))
+        return false;
     
     switch (field->data_size)
     {
@@ -690,7 +692,7 @@ bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, v
         default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
     
-    return status;
+    return true;
 }
 
 bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
