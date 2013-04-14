@@ -83,6 +83,8 @@ int main()
     testmessage.fixed32value.arg = "fixed32value: %ld\n";
     testmessage.fixed64value.funcs.decode = &print_fixed64;
     testmessage.fixed64value.arg = "fixed64value: %lld\n";
+    testmessage.repeatedstring.funcs.decode = &print_string;
+    testmessage.repeatedstring.arg = "repeatedstring: \"%s\"\n";
     
     if (!pb_decode(&stream, TestMessage_fields, &testmessage))
         return 1;

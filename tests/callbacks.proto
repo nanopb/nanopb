@@ -11,5 +11,6 @@ message TestMessage {
     repeated fixed32 fixed32value = 3;
     repeated fixed64 fixed64value = 4;
     optional SubMessage submsg = 5;
+    repeated string repeatedstring = 6;
 }
 

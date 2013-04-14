@@ -430,11 +430,11 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
         if (!pb_make_string_substream(stream, &substream))
             return false;
         
-        while (substream.bytes_left)
+        do
         {
             if (!pCallback->funcs.decode(&substream, iter->pos, arg))
                 PB_RETURN_ERROR(stream, "callback failed");
-        }
+        } while (substream.bytes_left);
         
         pb_close_string_substream(stream, &substream);
         return true;
