@@ -180,12 +180,14 @@ int main()
     {
         uint8_t buffer[30];
         pb_ostream_t s;
-        char value[] = "xyzzy";
+        char value[30] = "xyzzy";
         
         COMMENT("Test pb_enc_string")
-        TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x05xyzzy"))
+        TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x05xyzzy"))
         value[0] = '\0';
-        TEST(WRITES(pb_enc_string(&s, NULL, &value), "\x00"))
+        TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x00"))
+        memset(value, 'x', 30);
+        TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x0Axxxxxxxxxx"))
     }
     
     {

@@ -461,8 +461,16 @@ bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, con
 
 bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    UNUSED(field);
-    return pb_encode_string(stream, (const uint8_t*)src, strlen((const char*)src));
+    /* strnlen() is not always available, so just use a for-loop */
+    size_t size = 0;
+    const char *p = (const char*)src;
+    while (size < field->data_size && *p != '\0')
+    {
+        size++;
+        p++;
+    }
+
+    return pb_encode_string(stream, (const uint8_t*)src, size);
 }
 
 bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
