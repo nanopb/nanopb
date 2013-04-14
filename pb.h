@@ -6,7 +6,7 @@
  * see pb_encode.h or pb_decode.h
  */
 
-#define NANOPB_VERSION nanopb-0.2.1
+#define NANOPB_VERSION nanopb-0.2.2-dev
 
 #ifdef PB_SYSTEM_HEADER
 #include PB_SYSTEM_HEADER
