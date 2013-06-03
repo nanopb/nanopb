@@ -235,6 +235,11 @@ class Field:
         else:
             return 'const %s %s_default%s = %s;' % (ctype, self.struct_name + self.name, array_decl, default)
     
+    def tags(self):
+        '''Return the #define for the tag number of this field.'''
+        identifier = '%s_%s_tag' % (self.struct_name, self.name)
+        return '#define %-40s %d\n' % (identifier, self.tag)
+    
     def pb_field_t(self, prev_field_name):
         '''Return the pb_field_t initializer to use in the constant array.
         prev_field_name is the name of the previous field or None.
@@ -488,6 +493,12 @@ def generate_header(dependencies, headername, enums, messages, options):
     yield '/* Default values for struct fields */\n'
     for msg in messages:
         yield msg.default_decl(True)
+    yield '\n'
+    
+    yield '/* Field tags (for use in manual encoding/decoding) */\n'
+    for msg in sort_dependencies(messages):
+        for field in msg.fields:
+            yield field.tags()
     yield '\n'
     
     yield '/* Struct field encoding specification for nanopb */\n'
