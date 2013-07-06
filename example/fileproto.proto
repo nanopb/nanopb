@@ -1,22 +1,14 @@
-import "nanopb.proto";
-
 // This defines protocol for a simple server that lists files.
 //
-// If you come from high-level programming background, the hardcoded
-// maximum lengths may disgust you. However, if your microcontroller only
-// has a few kB of ram to begin with, setting reasonable limits for
-// filenames is ok.
-//
-// On the other hand, using the callback interface, it is not necessary
-// to set a limit on the number of files in the response.
+// See also the nanopb-specific options in fileproto.options.
 
 message ListFilesRequest {
-    optional string path = 1 [default = "/", (nanopb).max_size = 128];
+    optional string path = 1 [default = "/"];
 }
 
 message FileInfo {
     required uint64 inode = 1;
-    required string name = 2 [(nanopb).max_size = 128];
+    required string name = 2;
 }
 
 message ListFilesResponse {
