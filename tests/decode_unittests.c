@@ -289,6 +289,16 @@ int main()
         TEST((s = S("\x08"), !pb_decode(&s, IntegerArray_fields, &dest)))
     }
     
+    {
+        pb_istream_t s;
+        IntegerContainer dest = {};
+        
+        COMMENT("Testing pb_decode_delimited")
+        TEST((s = S("\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"),
+              pb_decode_delimited(&s, IntegerContainer_fields, &dest)) &&
+              dest.submsg.data_count == 5)
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     

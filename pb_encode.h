@@ -32,6 +32,10 @@ extern "C" {
  */
 bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
+/* Same as pb_encode, but prepends the length of the message as a varint.
+ * Corresponds to writeDelimitedTo() in Google's protobuf API.
+ */
+bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
 /**************************************
  * Functions for manipulating streams *

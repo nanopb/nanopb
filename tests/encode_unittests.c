@@ -245,6 +245,16 @@ int main()
     }
     
     {
+        uint8_t buffer[20];
+        pb_ostream_t s;
+        IntegerContainer msg = {{5, {1,2,3,4,5}}};
+        
+        COMMENT("Test pb_encode_delimited.")
+        TEST(WRITES(pb_encode_delimited(&s, IntegerContainer_fields, &msg),
+                    "\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"))
+    }
+    
+    {
         uint8_t buffer[10];
         pb_ostream_t s;
         CallbackContainer msg;

@@ -253,6 +253,11 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
     return true;
 }
 
+bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
+{
+    return pb_encode_submessage(stream, fields, src_struct);
+}
+
 /* Helper functions */
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
 {

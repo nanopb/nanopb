@@ -43,6 +43,12 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
  */
 bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
 
+/* Same as pb_decode, except expects the stream to start with the message size
+ * encoded as varint. Corresponds to parseDelimitedFrom() in Google's
+ * protobuf API.
+ */
+bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+
 
 /**************************************
  * Functions for manipulating streams *
