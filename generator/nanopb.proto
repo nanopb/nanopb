@@ -33,6 +33,8 @@ message NanoPBOptions {
   optional bool long_names = 4 [default = true];
   
   // Add 'packed' attribute to generated structs.
+  // Note: this cannot be used on CPUs that break on unaligned
+  // accesses to variables.
   optional bool packed_struct = 5 [default = false];
 }
 

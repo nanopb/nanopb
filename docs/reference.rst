@@ -6,31 +6,160 @@ Nanopb: API reference
 
 .. contents ::
 
+
+
+
 Compilation options
 ===================
-The following options can be specified using -D switch given to the C compiler:
+The following options can be specified using -D switch given to the C compiler
+when compiling the nanopb library and applications using it. You must have the
+same settings for the nanopb library and all code that includes pb.h.
 
-============================  ================================================================================================
-__BIG_ENDIAN__                 Set this if your platform stores integers and floats in big-endian format.
-                               Mixed-endian systems (different layout for ints and floats) are currently not supported.
-NANOPB_INTERNALS               Set this to expose the field encoder functions that are hidden since nanopb-0.1.3.
-PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for presence. Default value is 64. Increases stack
-                               usage 1 byte per every 8 fields. Compiler warning will tell if you need this.
-PB_FIELD_16BIT                 Add support for tag numbers > 255 and fields larger than 255 bytes or 255 array entries.
-                               Increases code size 3 bytes per each field. Compiler error will tell if you need this.
-PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields larger than 65535 bytes or 65535 array entries.
-                               Increases code size 9 bytes per each field. Compiler error will tell if you need this.
-PB_NO_ERRMSG                   Disables the support for error messages; only error information is the true/false return value.
-                               Decreases the code size by a few hundred bytes.
-PB_BUFFER_ONLY                 Disables the support for custom streams. Only supports encoding to memory buffers.
-                               Speeds up execution and decreases code size slightly.
-PB_OLD_CALLBACK_STYLE          Use the old function signature (void\* instead of void\*\*) for callback fields. This was the
+============================  ================================================
+__BIG_ENDIAN__                 Set this if your platform stores integers and
+                               floats in big-endian format. Mixed-endian
+                               systems (different layout for ints and floats)
+                               are currently not supported.
+NANOPB_INTERNALS               Set this to expose the field encoder functions
+                               that are hidden since nanopb-0.1.3.
+PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for
+                               presence. Default value is 64. Increases stack
+                               usage 1 byte per every 8 fields. Compiler
+                               warning will tell if you need this.
+PB_FIELD_16BIT                 Add support for tag numbers > 255 and fields
+                               larger than 255 bytes or 255 array entries.
+                               Increases code size 3 bytes per each field.
+                               Compiler error will tell if you need this.
+PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields
+                               larger than 65535 bytes or 65535 array entries.
+                               Increases code size 9 bytes per each field.
+                               Compiler error will tell if you need this.
+PB_NO_ERRMSG                   Disables the support for error messages; only
+                               error information is the true/false return
+                               value. Decreases the code size by a few hundred
+                               bytes.
+PB_BUFFER_ONLY                 Disables the support for custom streams. Only
+                               supports encoding and decoding with memory
+                               buffers. Speeds up execution and decreases code
+                               size slightly.
+PB_OLD_CALLBACK_STYLE          Use the old function signature (void\* instead
+                               of void\*\*) for callback fields. This was the
                                default until nanopb-0.2.1.
-============================  ================================================================================================
+============================  ================================================
 
-The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow raising some datatype limits to suit larger messages.
-Their need is recognized automatically by C-preprocessor #if-directives in the generated .pb.h files. The default setting is to use
-the smallest datatypes (least resources used).
+The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow
+raising some datatype limits to suit larger messages. Their need is recognized
+automatically by C-preprocessor #if-directives in the generated .pb.h files.
+The default setting is to use the smallest datatypes (least resources used).
+
+
+
+
+Proto file options
+==================
+The generator behaviour can be adjusted using these options, defined in the
+'nanopb.proto' file in the generator folder:
+
+============================  ================================================
+max_size                       Allocated size for 'bytes' and 'string' fields.
+max_count                      Allocated number of entries in arrays
+                               ('repeated' fields).
+type                           Type of the generated field. Default value
+                               is FT_DEFAULT, which selects automatically.
+                               You can use FT_CALLBACK, FT_STATIC or FT_IGNORE
+                               to force a callback field, a static field or
+                               to completely ignore the field.
+long_names                     Prefix the enum name to the enum value in
+                               definitions, i.e. 'EnumName_EnumValue'. Enabled
+                               by default.
+packed_struct                  Make the generated structures packed.
+                               NOTE: This cannot be used on CPUs that break
+                               on unaligned accesses to variables.
+============================  ================================================
+
+These options can be defined for the .proto files before they are converted
+using the nanopb-generatory.py. There are three ways to define the options:
+
+1. Using a separate .options file.
+   This is the preferred way as of nanopb-0.2.1, because it has the best
+   compatibility with other protobuf libraries.
+2. Defining the options on the command line of nanopb_generator.py.
+   This only makes sense for settings that apply to a whole file.
+3. Defining the options in the .proto file using the nanopb extensions.
+   This is the way used in nanopb-0.1, and will remain supported in the
+   future. It however sometimes causes trouble when using the .proto file
+   with other protobuf libraries.
+
+The effect of the options is the same no matter how they are given. The most
+common purpose is to define maximum size for string fields in order to
+statically allocate them.
+
+Defining the options in a .options file
+---------------------------------------
+The preferred way to define options is to have a separate file
+'myproto.options' in the same directory as the 'myproto.proto'. The
+generator will automatically search for this file and read the options from
+it. The file format is as follows:
+
+* Lines starting with '#' or '//' are regarded as comments.
+* Blank lines are ignored.
+* All other lines should start with a field name pattern, followed by one or
+  more options. For example: *"MyMessage.myfield max_size:5 max_count:10"*.
+* The field name pattern is matched against a string of form 'Message.field'.
+  For nested messages, the string is 'Message.SubMessage.field'.
+* The field name pattern may use the notation recognized by Python fnmatch():
+  - \* matches any part of string, like 'Message.\*' for all fields
+  - \? matches any single character
+  - [seq] matches any of characters 's', 'e' and 'q'
+  - [!seq] matches any other character
+* The options are written as 'option_name:option_value' and several options
+  can be defined on same line, separated by whitespace.
+* Options defined later in the file override the ones specified earlier, so
+  it makes sense to define wildcard options first in the file and more specific
+  ones later.
+  
+If preferred, the name of the options file can be set using the command line
+switch '-f' to nanopb_generator.py.
+
+Defining the options on command line
+------------------------------------
+The nanopb_generator.py has a simple command line option '-s OPTION:VALUE'.
+The setting applies to the whole file that is being processed.
+
+Defining the options in the .proto file
+---------------------------------------
+The .proto file format allows defining custom options for the fields.
+The nanopb library comes with 'nanopb.proto' which does exactly that, allowing
+you do define the options directly in the .proto file:
+
+    import "nanopb.proto";
+    required string name = 1 [(nanopb).max_size = 40];
+    repeated PhoneNumber phone = 4 [(nanopb).max_count = 5];
+
+A small complication is that you have to set the include path of protoc so that
+nanopb.proto can be found. This file, in turn, requires the file
+*google/protobuf/descriptor.proto*. This is usually installed under
+*/usr/include*. Therefore, to compile a .proto file which uses options, use a
+protoc command similar to::
+
+    protoc -I/usr/include -Inanopb/generator -I. -omessage.pb message.proto
+
+The options can be defined in file, message and field scopes::
+
+    option (nanopb_fileopt).max_size = 20; // File scope
+    message Message
+    {
+        option (nanopb_msgopt).max_size = 30; // Message scope
+        required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
+    }
+
+
+
+
+
+
+
+
 
 pb.h
 ====
@@ -147,6 +276,16 @@ Protocol Buffers wire types. These are used with `pb_encode_tag`_. ::
         PB_WT_STRING = 2,
         PB_WT_32BIT  = 5
     } pb_wire_type_t;
+
+
+
+
+
+
+
+
+
+
 
 pb_encode.h
 ===========
@@ -296,6 +435,17 @@ Encodes a submessage field, including the size header for it. Works for fields o
 In Protocol Buffers format, the submessage size must be written before the submessage contents. Therefore, this function has to encode the submessage twice in order to know the size beforehand.
 
 If the submessage contains callback fields, the callback function might misbehave and write out a different amount of data on the second call. This situation is recognized and *false* is returned, but garbage will be written to the output before the problem is detected.
+
+
+
+
+
+
+
+
+
+
+
 
 pb_decode.h
 ===========

@@ -10,47 +10,40 @@ The things outlined here are the underlying concepts of the nanopb design.
 
 Proto files
 ===========
-All Protocol Buffers implementations use .proto files to describe the message format.
-The point of these files is to be a portable interface description language.
+All Protocol Buffers implementations use .proto files to describe the message
+format. The point of these files is to be a portable interface description
+language.
 
 Compiling .proto files for nanopb
 ---------------------------------
-Nanopb uses the Google's protoc compiler to parse the .proto file, and then a python script to generate the C header and source code from it::
+Nanopb uses the Google's protoc compiler to parse the .proto file, and then a
+python script to generate the C header and source code from it::
 
     user@host:~$ protoc -omessage.pb message.proto
     user@host:~$ python ../generator/nanopb_generator.py message.pb
     Writing to message.h and message.c
     user@host:~$
 
-Compiling .proto files with nanopb options
-------------------------------------------
-Nanopb defines two extensions for message fields described in .proto files: *max_size* and *max_count*.
-These are the maximum size of a string and maximum count of items in an array::
+Modifying generator behaviour
+-----------------------------
+Using generator options, you can set maximum sizes for fields in order to
+allocate them statically. The preferred way to do this is to create an .options
+file with the same name as your .proto file::
 
-    required string name = 1 [(nanopb).max_size = 40];
-    repeated PhoneNumber phone = 4 [(nanopb).max_count = 5];
+   # Foo.proto
+   message Foo {
+      required string name = 1;
+   }
 
-To use these extensions, you need to place an import statement in the beginning of the file::
+::
 
-    import "nanopb.proto";
+   # Foo.options
+   Foo.name max_size:16
 
-This file, in turn, requires the file *google/protobuf/descriptor.proto*. This is usually installed under */usr/include*. Therefore, to compile a .proto file which uses options, use a protoc command similar to::
+For more information on this, see the `Proto file options`_ section in the
+reference manual.
 
-    protoc -I/usr/include -Inanopb/generator -I. -omessage.pb message.proto
-
-The options can be defined in file, message and field scopes::
-
-    option (nanopb_fileopt).max_size = 20; // File scope
-    message Message
-    {
-        option (nanopb_msgopt).max_size = 30; // Message scope
-        required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
-    }
-
-It is also possible to give the options on command line, but then they will affect the whole file. For example::
-
-    user@host:~$ python ../generator/nanopb_generator.py -s 'max_size: 20' message.pb
-
+.. _`Proto file options`: reference.html#proto-file-options
 
 Streams
 =======
