@@ -1,10 +1,10 @@
+/* pb_encode.h: Functions to encode protocol buffers. Depends on pb_encode.c.
+ * The main function is pb_encode. You also need an output stream, and the
+ * field descriptions created by nanopb_generator.py.
+ */
+
 #ifndef _PB_ENCODE_H_
 #define _PB_ENCODE_H_
-
-/* pb_encode.h: Functions to encode protocol buffers. Depends on pb_encode.c.
- * The main function is pb_encode. You also need an output stream, structures
- * and their field descriptions (just like with pb_decode).
- */
 
 #include "pb.h"
 
@@ -12,22 +12,71 @@
 extern "C" {
 #endif
 
-/* Lightweight output stream.
- * You can provide callback for writing or use pb_ostream_from_buffer.
- * 
- * Alternatively, callback can be NULL in which case the stream will just
- * count the number of bytes that would have been written. In this case
- * max_size is not checked.
+/***************************
+ * Main encoding functions *
+ ***************************/
+
+/* Encode a single protocol buffers message from C structure into a stream.
+ * Returns true on success, false on any failure.
+ * The actual struct pointed to by src_struct must match the description in fields.
+ * All required fields in the struct are assumed to have been filled in.
  *
- * Rules for callback:
+ * Example usage:
+ *    MyMessage msg = {};
+ *    uint8_t buffer[64];
+ *    pb_ostream_t stream;
+ *
+ *    msg.field1 = 42;
+ *    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+ *    pb_encode(&stream, MyMessage_fields, &msg);
+ */
+bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+
+
+/**************************************
+ * Functions for manipulating streams *
+ **************************************/
+
+/* Create an output stream for writing into a memory buffer.
+ * The number of bytes written can be found in stream.bytes_written after
+ * encoding the message.
+ *
+ * Alternatively, you can use a custom stream that writes directly to e.g.
+ * a file or a network socket.
+ */
+pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize);
+
+/* Pseudo-stream for measuring the size of a message without actually storing
+ * the encoded data.
+ * 
+ * Example usage:
+ *    MyMessage msg = {};
+ *    pb_ostream_t stream = PB_OSTREAM_SIZING;
+ *    pb_encode(&stream, MyMessage_fields, &msg);
+ *    printf("Message size is %d\n", stream.bytes_written);
+ */
+#ifndef PB_NO_ERRMSG
+#define PB_OSTREAM_SIZING {0,0,0,0,0}
+#else
+#define PB_OSTREAM_SIZING {0,0,0,0}
+#endif
+
+/* Function to write into a pb_ostream_t stream. You can use this if you need
+ * to append or prepend some custom headers to the message.
+ */
+bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+
+/* Structure for defining custom output streams. You will need to provide
+ * a callback function to write the bytes to your storage, which can be
+ * for example a file or a network socket.
+ *
+ * The callback must conform to these rules:
+ *
  * 1) Return false on IO errors. This will cause encoding to abort.
- * 
  * 2) You can use state to store your own data (e.g. buffer pointer).
- * 
  * 3) pb_write will update bytes_written after your callback runs.
- * 
- * 4) Substreams will modify max_size and bytes_written. Don't use them to
- * calculate any pointers.
+ * 4) Substreams will modify max_size and bytes_written. Don't use them
+ *    to calculate any pointers.
  */
 struct _pb_ostream_t
 {
@@ -42,42 +91,26 @@ struct _pb_ostream_t
 #else
     bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
 #endif
-    void *state; /* Free field for use by callback implementation */
-    size_t max_size; /* Limit number of output bytes written (or use SIZE_MAX). */
-    size_t bytes_written;
+    void *state;          /* Free field for use by callback implementation. */
+    size_t max_size;      /* Limit number of output bytes written (or use SIZE_MAX). */
+    size_t bytes_written; /* Number of bytes written so far. */
     
 #ifndef PB_NO_ERRMSG
     const char *errmsg;
 #endif
 };
 
-pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize);
-bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
 
-/* Stream type for use in computing message sizes */
-#ifndef PB_NO_ERRMSG
-#define PB_OSTREAM_SIZING {0,0,0,0,0}
-#else
-#define PB_OSTREAM_SIZING {0,0,0,0}
-#endif
+/************************************************
+ * Helper functions for writing field callbacks *
+ ************************************************/
 
-/* Encode struct to given output stream.
- * Returns true on success, false on any failure.
- * The actual struct pointed to by src_struct must match the description in fields.
- * All required fields in the struct are assumed to have been filled in.
- */
-bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
-
-/* --- Helper functions ---
- * You may want to use these from your caller or callbacks.
- */
-
-/* Encode field header based on LTYPE and field number defined in the field structure.
- * Call this from the callback before writing out field contents. */
+/* Encode field header based on type and field number defined in the field
+ * structure. Call this from the callback before writing out field contents. */
 bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
 
-/* Encode field header by manually specifing wire type. You need to use this if
- * you want to write out packed arrays from a callback field. */
+/* Encode field header by manually specifing wire type. You need to use this
+ * if you want to write out packed arrays from a callback field. */
 bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number);
 
 /* Encode an integer in the varint format.
@@ -100,15 +133,16 @@ bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
 bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
 
 /* Encode a submessage field.
- * You need to pass the pb_field_t array and pointer to struct, just like with pb_encode().
- * This internally encodes the submessage twice, first to calculate message size and then to actually write it out.
+ * You need to pass the pb_field_t array and pointer to struct, just like
+ * with pb_encode(). This internally encodes the submessage twice, first to
+ * calculate message size and then to actually write it out.
  */
 bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
-/* --- Internal functions ---
- * These functions are not terribly useful for the average library user, but
- * are exported to make the unit testing and extending nanopb easier.
- */
+
+/*******************************
+ * Internal / legacy functions *
+ *******************************/
 
 #ifdef NANOPB_INTERNALS
 bool pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
