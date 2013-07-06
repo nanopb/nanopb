@@ -1,13 +1,61 @@
+/* Common parts of the nanopb library. Most of these are quite low-level
+ * stuff. For the high-level interface, see pb_encode.h and pb_decode.h.
+ */
+
 #ifndef _PB_H_
 #define _PB_H_
 
-/* pb.h: Common parts for nanopb library.
- * Most of these are quite low-level stuff. For the high-level interface,
- * see pb_encode.h or pb_decode.h
- */
+/*****************************************************************
+ * Nanopb compilation time options. You can change these here by *
+ * uncommenting the lines, or on the compiler command line.      *
+ *****************************************************************/
 
+/* Define this if your CPU architecture is big endian, i.e. it
+ * stores the most-significant byte first. */
+/* #define __BIG_ENDIAN__ 1 */
+
+/* Increase the number of required fields that are tracked.
+ * A compiler warning will tell if you need this. */
+/* #define PB_MAX_REQUIRED_FIELDS 256 */
+
+/* Add support for tag numbers > 255 and fields larger than 255 bytes. */
+/* #define PB_FIELD_16BIT 1 */
+
+/* Add support for tag numbers > 65536 and fields larger than 65536 bytes. */
+/* #define PB_FIELD_32BIT 1 */
+
+/* Disable support for error messages in order to save some code space. */
+/* #define PB_NO_ERRMSG 1 */
+
+/* Disable support for custom streams (support only memory buffers). */
+/* #define PB_BUFFER_ONLY 1 */
+
+/* Switch back to the old-style callback function signature.
+ * This was the default until nanopb-0.2.1. */
+/* #define PB_OLD_CALLBACK_STYLE */
+
+
+/******************************************************************
+ * You usually don't need to change anything below this line.     *
+ * Feel free to look around and use the defined macros, though.   *
+ ******************************************************************/
+
+
+/* Version of the nanopb library. Just in case you want to check it in
+ * your own program. */
 #define NANOPB_VERSION nanopb-0.2.2-dev
 
+/* Include all the system headers needed by nanopb. You will need the
+ * definitions of the following:
+ * - strlen, memcpy, memset functions
+ * - [u]int8_t, [u]int16_t, [u]int32_t, [u]int64_t
+ * - size_t
+ * - bool
+ *
+ * If you don't have the standard header files, you can instead provide
+ * a custom header that defines or includes all this. In that case,
+ * define PB_SYSTEM_HEADER to the path of this file.
+ */
 #ifdef PB_SYSTEM_HEADER
 #include PB_SYSTEM_HEADER
 #else
@@ -42,7 +90,7 @@
 #   define pb_packed
 #endif
 
-/* Handly macro for suppressing unreferenced-parameter compiler warnings.    */
+/* Handly macro for suppressing unreferenced-parameter compiler warnings. */
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
 #endif
@@ -56,8 +104,7 @@
 #define STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) static_assertion_##MSG##LINE##COUNTER
 #endif
 
-/* Number of required fields to keep track of
- * (change here or on compiler command line). */
+/* Number of required fields to keep track of. */
 #ifndef PB_MAX_REQUIRED_FIELDS
 #define PB_MAX_REQUIRED_FIELDS 64
 #endif
@@ -78,9 +125,7 @@
 
 typedef uint8_t pb_type_t;
 
-/************************
- * Field contents types *
- ************************/
+/**** Field data types ****/
 
 /* Numeric types */
 #define PB_LTYPE_VARINT 0x00 /* int32, uint32, int64, uint64, bool, enum */
@@ -107,18 +152,14 @@ typedef uint8_t pb_type_t;
 #define PB_LTYPES_COUNT 7
 #define PB_LTYPE_MASK 0x0F
 
-/**************************
- * Field repetition rules *
- **************************/
+/**** Field repetition rules ****/
 
 #define PB_HTYPE_REQUIRED 0x00
 #define PB_HTYPE_OPTIONAL 0x10
 #define PB_HTYPE_REPEATED 0x20
 #define PB_HTYPE_MASK     0x30
 
-/********************
- * Allocation types *
- ********************/
+/**** Field allocation types ****/
  
 #define PB_ATYPE_STATIC   0x00
 #define PB_ATYPE_CALLBACK 0x40

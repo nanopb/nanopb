@@ -11,9 +11,13 @@ Nanopb: API reference
 
 Compilation options
 ===================
-The following options can be specified using -D switch given to the C compiler
-when compiling the nanopb library and applications using it. You must have the
-same settings for the nanopb library and all code that includes pb.h.
+The following options can be specified in one of two ways:
+
+1. Using the -D switch on the C compiler command line.
+2. By #defining them at the top of pb.h.
+
+You must have the same settings for the nanopb library and all code that
+includes pb.h.
 
 ============================  ================================================
 __BIG_ENDIAN__                 Set this if your platform stores integers and
