@@ -277,13 +277,38 @@ Protocol Buffers wire types. These are used with `pb_encode_tag`_. ::
         PB_WT_32BIT  = 5
     } pb_wire_type_t;
 
+PB_GET_ERROR
+------------
+Get the current error message from a stream, or a placeholder string if
+there is no error message::
 
+    #define PB_GET_ERROR(stream) (string expression)
 
+This should be used for printing errors, for example::
 
+    if (!pb_decode(...))
+    {
+        printf("Decode failed: %s\n", PB_GET_ERROR(stream));
+    }
 
+The macro only returns pointers to constant strings (in code memory),
+so that there is no need to release the returned pointer.
 
+PB_RETURN_ERROR
+---------------
+Set the error message and return false::
 
+    #define PB_RETURN_ERROR(stream,msg) (sets error and returns false)
 
+This should be used to handle error conditions inside nanopb functions
+and user callback functions::
+
+    if (error_condition)
+    {
+        PB_RETURN_ERROR(stream, "something went wrong");
+    }
+
+The *msg* parameter must be a constant string.
 
 
 
