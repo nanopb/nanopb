@@ -123,6 +123,7 @@ run_unittests: $(TESTS)
 	./test_encode3 1 | ./test_decode3 1
 	./test_encode3 1 | protoc --decode=AllTypes -I. -I../generator -I/usr/include alltypes.proto >/dev/null
 	./test_encode3_buf 1 | ./test_decode3_buf 1
+	./test_decode3 < alltypes_with_extra_fields.pb
 	./bc_encode | ./bc_decode
 	
 	./test_missing_fields
