@@ -148,8 +148,12 @@ typedef uint8_t pb_type_t;
  * submsg_fields is pointer to field descriptions */
 #define PB_LTYPE_SUBMESSAGE 0x06
 
+/* Extension pseudo-field
+ * The field contains a pointer to pb_extension_t */
+#define PB_LTYPE_EXTENSION 0x07
+
 /* Number of declared LTYPES */
-#define PB_LTYPES_COUNT 7
+#define PB_LTYPES_COUNT 8
 #define PB_LTYPE_MASK 0x0F
 
 /**** Field repetition rules ****/
@@ -270,6 +274,51 @@ typedef enum {
     PB_WT_32BIT  = 5
 } pb_wire_type_t;
 
+/* Structure for defining the handling of unknown/extension fields.
+ * Usually the pb_extension_type_t structure is automatically generated,
+ * while the pb_extension_t structure is created by the user. However,
+ * if you want to catch all unknown fields, you can also create a custom
+ * pb_extension_type_t with your own callback.
+ */
+typedef struct _pb_extension_type_t pb_extension_type_t;
+typedef struct _pb_extension_t pb_extension_t;
+struct _pb_extension_type_t {
+    /* Called for each unknown field in the message.
+     * If you handle the field, read off all of its data and return true.
+     * If you do not handle the field, do not read anything and return true.
+     * If you run into an error, return false.
+     * Set to NULL for default handler.
+     */
+    bool (*decode)(pb_istream_t *stream, pb_extension_t *extension,
+                   uint32_t tag, pb_wire_type_t wire_type);
+    
+    /* Called once after all regular fields have been encoded.
+     * If you have something to write, do so and return true.
+     * If you do not have anything to write, just return true.
+     * If you run into an error, return false.
+     * Set to NULL for default handler.
+     */
+    bool (*encode)(pb_ostream_t *stream, pb_extension_t *extension);
+    
+    /* Free field for use by the callback. */
+    const void *arg;
+};
+
+struct _pb_extension_t {
+    /* Type describing the extension field. Usually you'll initialize
+     * this to a pointer to the automatically generated structure. */
+    const pb_extension_type_t *type;
+    
+    /* Destination for the decoded data. This must match the datatype
+     * of the extension field. */
+    void *dest;
+    
+    /* Pointer to the next extension handler, or NULL.
+     * If this extension does not match a field, the next handler is
+     * automatically called. */
+    pb_extension_t *next;
+};
+
 /* These macros are used to declare pb_field_t's in the constant array. */
 #define pb_membersize(st, m) (sizeof ((st*)0)->m)
 #define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
@@ -333,13 +382,14 @@ typedef enum {
 #define PB_LTYPE_MAP_STRING     PB_LTYPE_STRING
 #define PB_LTYPE_MAP_UINT32     PB_LTYPE_VARINT
 #define PB_LTYPE_MAP_UINT64     PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_EXTENSION  PB_LTYPE_EXTENSION
 
 /* This is the actual macro used in field descriptions.
  * It takes these arguments:
  * - Field tag number
  * - Field type:   BOOL, BYTES, DOUBLE, ENUM, FIXED32, FIXED64,
  *                 FLOAT, INT32, INT64, MESSAGE, SFIXED32, SFIXED64
- *                 SINT32, SINT64, STRING, UINT32 or UINT64
+ *                 SINT32, SINT64, STRING, UINT32, UINT64 or EXTENSION
  * - Field rules:  REQUIRED, OPTIONAL or REPEATED
  * - Allocation:   STATIC or CALLBACK
  * - Message name
@@ -351,6 +401,7 @@ typedef enum {
 #define PB_FIELD(tag, type, rules, allocation, message, field, prevfield, ptr) \
     PB_ ## rules ## _ ## allocation(tag, message, field, prevfield, \
                                     PB_LTYPE_MAP_ ## type, ptr)
+
 
 /* These macros are used for giving out error messages.
  * They are mostly a debugging aid; the main error information

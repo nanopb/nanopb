@@ -1,0 +1,5 @@
+import 'alltypes.proto';
+
+extend AllTypes {
+    optional int32 AllTypes_extensionfield1 = 255;
+}
