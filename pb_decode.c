@@ -308,11 +308,11 @@ static bool pb_field_next(pb_field_iterator_t *iter)
         prev_size *= iter->pos->array_size;
     }
     
-    if (PB_HTYPE(iter->pos->type) == PB_HTYPE_REQUIRED)
-        iter->required_field_index++;
-    
     if (iter->pos->tag == 0)
         return false; /* Only happens with empty message types */
+    
+    if (PB_HTYPE(iter->pos->type) == PB_HTYPE_REQUIRED)
+        iter->required_field_index++;
     
     iter->pos++;
     iter->field_index++;
