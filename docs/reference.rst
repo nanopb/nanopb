@@ -65,16 +65,16 @@ The generator behaviour can be adjusted using these options, defined in the
 'nanopb.proto' file in the generator folder:
 
 ============================  ================================================
-max_size                       Allocated size for 'bytes' and 'string' fields.
+max_size                       Allocated size for *bytes* and *string* fields.
 max_count                      Allocated number of entries in arrays
-                               ('repeated' fields).
+                               (*repeated* fields).
 type                           Type of the generated field. Default value
-                               is FT_DEFAULT, which selects automatically.
-                               You can use FT_CALLBACK, FT_STATIC or FT_IGNORE
-                               to force a callback field, a static field or
-                               to completely ignore the field.
+                               is *FT_DEFAULT*, which selects automatically.
+                               You can use *FT_CALLBACK*, *FT_STATIC* or
+                               *FT_IGNORE* to force a callback field, a static
+                               field or to completely ignore the field.
 long_names                     Prefix the enum name to the enum value in
-                               definitions, i.e. 'EnumName_EnumValue'. Enabled
+                               definitions, i.e. *EnumName_EnumValue*. Enabled
                                by default.
 packed_struct                  Make the generated structures packed.
                                NOTE: This cannot be used on CPUs that break
@@ -101,44 +101,62 @@ statically allocate them.
 Defining the options in a .options file
 ---------------------------------------
 The preferred way to define options is to have a separate file
-'myproto.options' in the same directory as the 'myproto.proto'. The
-generator will automatically search for this file and read the options from
-it. The file format is as follows:
+'myproto.options' in the same directory as the 'myproto.proto'. ::
+
+    # myproto.proto
+    message MyMessage {
+        required string name = 1;
+        repeated int32 ids = 4;
+    }
+
+::
+
+    # myproto.options
+    MyMessage.name         max_size:40
+    MyMessage.ids          max_count:5
+
+The generator will automatically search for this file and read the
+options from it. The file format is as follows:
 
 * Lines starting with '#' or '//' are regarded as comments.
 * Blank lines are ignored.
 * All other lines should start with a field name pattern, followed by one or
   more options. For example: *"MyMessage.myfield max_size:5 max_count:10"*.
-* The field name pattern is matched against a string of form 'Message.field'.
-  For nested messages, the string is 'Message.SubMessage.field'.
+* The field name pattern is matched against a string of form *'Message.field'*.
+  For nested messages, the string is *'Message.SubMessage.field'*.
 * The field name pattern may use the notation recognized by Python fnmatch():
-  - \* matches any part of string, like 'Message.\*' for all fields
-  - \? matches any single character
-  - [seq] matches any of characters 's', 'e' and 'q'
-  - [!seq] matches any other character
-* The options are written as 'option_name:option_value' and several options
+
+  - *\** matches any part of string, like 'Message.\*' for all fields
+  - *\?* matches any single character
+  - *[seq]* matches any of characters 's', 'e' and 'q'
+  - *[!seq]* matches any other character
+
+* The options are written as *'option_name:option_value'* and several options
   can be defined on same line, separated by whitespace.
 * Options defined later in the file override the ones specified earlier, so
   it makes sense to define wildcard options first in the file and more specific
   ones later.
   
 If preferred, the name of the options file can be set using the command line
-switch '-f' to nanopb_generator.py.
+switch *-f* to nanopb_generator.py.
 
 Defining the options on command line
 ------------------------------------
-The nanopb_generator.py has a simple command line option '-s OPTION:VALUE'.
+The nanopb_generator.py has a simple command line option *-s OPTION:VALUE*.
 The setting applies to the whole file that is being processed.
 
 Defining the options in the .proto file
 ---------------------------------------
 The .proto file format allows defining custom options for the fields.
-The nanopb library comes with 'nanopb.proto' which does exactly that, allowing
-you do define the options directly in the .proto file:
+The nanopb library comes with *nanopb.proto* which does exactly that, allowing
+you do define the options directly in the .proto file::
 
     import "nanopb.proto";
-    required string name = 1 [(nanopb).max_size = 40];
-    repeated PhoneNumber phone = 4 [(nanopb).max_count = 5];
+    
+    message MyMessage {
+        required string name = 1 [(nanopb).max_size = 40];
+        repeated int32 ids = 4   [(nanopb).max_count = 5];
+    }
 
 A small complication is that you have to set the include path of protoc so that
 nanopb.proto can be found. This file, in turn, requires the file
