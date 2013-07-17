@@ -83,10 +83,7 @@ bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count
 
 /* Main encoding stuff */
 
-/* Callbacks don't need this function because they usually know the data type
- * without examining the field structure.
- * Therefore it is static for now.
- */
+/* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
                          const void *pData, size_t count, pb_encoder_t func)
 {
@@ -97,6 +94,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     if (count == 0)
         return true;
     
+    /* We always pack arrays if the datatype allows it. */
     if (PB_LTYPE(field->type) <= PB_LTYPE_LAST_PACKABLE)
     {
         if (!pb_encode_tag(stream, PB_WT_STRING, field->tag))
@@ -112,7 +110,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
             size = 8 * count;
         }
         else
-        {
+        { 
             pb_ostream_t sizestream = PB_OSTREAM_SIZING;
             p = pData;
             for (i = 0; i < count; i++)
@@ -155,7 +153,10 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     return true;
 }
 
-bool checkreturn encode_static_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData)
+/* Encode a field with static allocation, i.e. one whose data is stored
+ * in the structure itself. */
+static bool checkreturn encode_static_field(pb_ostream_t *stream,
+    const pb_field_t *field, const void *pData)
 {
     pb_encoder_t func;
     const void *pSize;
@@ -195,7 +196,10 @@ bool checkreturn encode_static_field(pb_ostream_t *stream, const pb_field_t *fie
     return true;
 }
 
-bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData)
+/* Encode a field with callback semantics. This means that a user function is
+ * called to provide and encode the actual data. */
+static bool checkreturn encode_callback_field(pb_ostream_t *stream,
+    const pb_field_t *field, const void *pData)
 {
     const pb_callback_t *callback = (const pb_callback_t*)pData;
     
@@ -210,6 +214,57 @@ bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_t *f
         if (!callback->funcs.encode(stream, field, arg))
             PB_RETURN_ERROR(stream, "callback error");
     }
+    return true;
+}
+
+/* Encode a single field of any callback or static type. */
+static bool checkreturn encode_field(pb_ostream_t *stream,
+    const pb_field_t *field, const void *pData)
+{
+    switch (PB_ATYPE(field->type))
+    {
+        case PB_ATYPE_STATIC:
+            return encode_static_field(stream, field, pData);
+        
+        case PB_ATYPE_CALLBACK:
+            return encode_callback_field(stream, field, pData);
+        
+        default:
+            PB_RETURN_ERROR(stream, "invalid field type");
+    }
+}
+
+/* Default handler for extension fields. Expects to have a pb_field_t
+ * pointer in the extension->type->arg field. */
+static bool checkreturn default_extension_handler(pb_ostream_t *stream,
+    const pb_extension_t *extension)
+{
+    const pb_field_t *field = (const pb_field_t*)extension->type->arg;
+    return encode_field(stream, field, extension->dest);
+}
+
+/* Walk through all the registered extensions and give them a chance
+ * to encode themselves. */
+static bool checkreturn encode_extension_field(pb_ostream_t *stream,
+    const pb_field_t *field, const void *pData)
+{
+    const pb_extension_t *extension = *(const pb_extension_t* const *)pData;
+    UNUSED(field);
+    
+    while (extension)
+    {
+        bool status;
+        if (extension->type->encode)
+            status = extension->type->encode(stream, extension);
+        else
+            status = default_extension_handler(stream, extension);
+
+        if (!status)
+            return false;
+        
+        extension = extension->next;
+    }
+    
     return true;
 }
 
@@ -230,21 +285,18 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
         {
             prev_size *= field->array_size;
         }
-                
-        switch (PB_ATYPE(field->type))
+        
+        if (PB_LTYPE(field->type) == PB_LTYPE_EXTENSION)
         {
-            case PB_ATYPE_STATIC:
-                if (!encode_static_field(stream, field, pData))
-                    return false;
-                break;
-            
-            case PB_ATYPE_CALLBACK:
-                if (!encode_callback_field(stream, field, pData))
-                    return false;
-                break;
-            
-            default:
-                PB_RETURN_ERROR(stream, "invalid field type");
+            /* Special case for the extension field placeholder */
+            if (!encode_extension_field(stream, field, pData))
+                return false;
+        }
+        else
+        {
+            /* Regular field */
+            if (!encode_field(stream, field, pData))
+                return false;
         }
     
         field++;

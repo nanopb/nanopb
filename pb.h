@@ -298,7 +298,7 @@ struct _pb_extension_type_t {
      * If you run into an error, return false.
      * Set to NULL for default handler.
      */
-    bool (*encode)(pb_ostream_t *stream, pb_extension_t *extension);
+    bool (*encode)(pb_ostream_t *stream, const pb_extension_t *extension);
     
     /* Free field for use by the callback. */
     const void *arg;
