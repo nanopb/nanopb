@@ -28,7 +28,8 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     
     &pb_enc_bytes,
     &pb_enc_string,
-    &pb_enc_submessage
+    &pb_enc_submessage,
+    NULL /* extensions */
 };
 
 /* pb_ostream_t implementation */

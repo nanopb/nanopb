@@ -276,9 +276,13 @@ class Field:
 
 
 class ExtensionRange(Field):
-    def __init__(self, struct_name, desc, field_options):
-        '''desc is ExtensionRange'''
-        self.tag = desc.start
+    def __init__(self, struct_name, range_start, field_options):
+        '''Implements a special pb_extension_t* field in an extensible message
+        structure. The range_start signifies the index at which the extensions
+        start. Not necessarily all tags above this are extensions, it is merely
+        a speed optimization.
+        '''
+        self.tag = range_start
         self.struct_name = struct_name
         self.name = 'extensions'
         self.pbtype = 'EXTENSION'
@@ -304,6 +308,10 @@ class ExtensionField(Field):
         self.fullname = struct_name + desc.name
         self.extendee_name = names_from_type_name(desc.extendee)
         Field.__init__(self, self.fullname + 'struct', desc, field_options)
+        
+        if self.rules != 'OPTIONAL':
+            raise NotImplementedError("Only 'optional' is supported for extension fields. "
+               + "(%s.rules == %s)" % (self.fullname, self.rules))
 
     def extension_decl(self):
         '''Declaration of the extension type in the .pb.h file'''
@@ -341,8 +349,9 @@ class Message:
         
         if len(desc.extension_range) > 0:
             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
+            range_start = min([r.start for r in desc.extension_range])
             if field_options.type != nanopb_pb2.FT_IGNORE:
-                self.fields.append(ExtensionRange(self.name, desc.extension_range[0], field_options))
+                self.fields.append(ExtensionRange(self.name, range_start, field_options))
         
         self.packed = message_options.packed_struct
         self.ordered_fields = self.fields[:]

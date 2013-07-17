@@ -28,7 +28,8 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     
     &pb_dec_bytes,
     &pb_dec_string,
-    &pb_dec_submessage
+    &pb_dec_submessage,
+    NULL /* extensions */
 };
 
 /**************
@@ -336,8 +337,11 @@ static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag)
     unsigned start = iter->field_index;
     
     do {
-        if (iter->pos->tag == tag)
+        if (iter->pos->tag == tag &&
+            PB_LTYPE(iter->pos->type) != PB_LTYPE_EXTENSION)
+        {
             return true;
+        }
         pb_field_next(iter);
     } while (iter->field_index != start);
     
@@ -472,6 +476,70 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
     }
 }
 
+/* Default handler for extension fields. Expects a pb_field_t structure
+ * in extension->type->arg. */
+static bool checkreturn default_extension_handler(pb_istream_t *stream,
+    pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type)
+{
+    const pb_field_t *field = (const pb_field_t*)extension->type->arg;
+    pb_field_iterator_t iter;
+    bool dummy;
+    
+    if (field->tag != tag)
+        return true;
+    
+    iter.start = field;
+    iter.pos = field;
+    iter.field_index = 0;
+    iter.required_field_index = 0;
+    iter.dest_struct = extension->dest;
+    iter.pData = extension->dest;
+    iter.pSize = &dummy;
+    
+    return decode_field(stream, wire_type, &iter);
+}
+
+/* Try to decode an unknown field as an extension field. Tries each extension
+ * decoder in turn, until one of them handles the field or loop ends. */
+static bool checkreturn decode_extension(pb_istream_t *stream,
+    uint32_t tag, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
+{
+    pb_extension_t *extension = *(pb_extension_t* const *)iter->pData;
+    size_t pos = stream->bytes_left;
+    
+    while (extension && pos == stream->bytes_left)
+    {
+        bool status;
+        if (extension->type->decode)
+            status = extension->type->decode(stream, extension, tag, wire_type);
+        else
+            status = default_extension_handler(stream, extension, tag, wire_type);
+
+        if (!status)
+            return false;
+        
+        extension = extension->next;
+    }
+    
+    return true;
+}
+
+/* Step through the iterator until an extension field is found or until all
+ * entries have been checked. There can be only one extension field per
+ * message. Returns false if no extension field is found. */
+static bool checkreturn find_extension_field(pb_field_iterator_t *iter)
+{
+    unsigned start = iter->field_index;
+    
+    do {
+        if (PB_LTYPE(iter->pos->type) == PB_LTYPE_EXTENSION)
+            return true;
+        pb_field_next(iter);
+    } while (iter->field_index != start);
+    
+    return false;
+}
+
 /* Initialize message fields to default values, recursively */
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct)
 {
@@ -528,6 +596,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
 bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
 {
     uint8_t fields_seen[(PB_MAX_REQUIRED_FIELDS + 7) / 8] = {0}; /* Used to check for required fields */
+    uint32_t extension_range_start = 0;
     pb_field_iterator_t iter;
     
     pb_field_init(&iter, fields, dest_struct);
@@ -548,6 +617,29 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
         
         if (!pb_field_find(&iter, tag))
         {
+            /* No match found, check if it matches an extension. */
+            if (tag >= extension_range_start)
+            {
+                if (!find_extension_field(&iter))
+                    extension_range_start = (uint32_t)-1;
+                else
+                    extension_range_start = iter.pos->tag;
+                
+                if (tag >= extension_range_start)
+                {
+                    size_t pos = stream->bytes_left;
+                
+                    if (!decode_extension(stream, tag, wire_type, &iter))
+                        return false;
+                    
+                    if (pos != stream->bytes_left)
+                    {
+                        /* The field was handled */
+                        continue;                    
+                    }
+                }
+            }
+        
             /* No match found, skip data */
             if (!pb_skip_field(stream, wire_type))
                 return false;
