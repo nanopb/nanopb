@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv)
 {
-    AllTypes alltypes = {0};
+    AllTypes alltypes = {};
     int32_t extensionfield1 = 12345;
     pb_extension_t ext1 = {&AllTypes_extensionfield1, &extensionfield1, NULL};
     
