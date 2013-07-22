@@ -3,3 +3,13 @@ import 'alltypes.proto';
 extend AllTypes {
     optional int32 AllTypes_extensionfield1 = 255;
 }
+
+message ExtensionMessage {
+    extend AllTypes {
+        optional ExtensionMessage AllTypes_extensionfield2 = 254;
+    }
+    
+    required string test1 = 1;
+    required int32 test2 = 2;
+}
+

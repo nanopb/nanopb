@@ -11,10 +11,14 @@
 int main(int argc, char **argv)
 {
     AllTypes alltypes = {};
+
     int32_t extensionfield1 = 12345;
     pb_extension_t ext1 = {&AllTypes_extensionfield1, &extensionfield1, NULL};
-    
     alltypes.extensions = &ext1;
+
+    ExtensionMessage extensionfield2 = {"test", 54321};
+    pb_extension_t ext2 = {&ExtensionMessage_AllTypes_extensionfield2, &extensionfield2, NULL};
+    ext1.next = &ext2;
     
     uint8_t buffer[1024];
     pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
