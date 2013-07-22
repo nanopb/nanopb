@@ -161,9 +161,14 @@ static bool checkreturn encode_static_field(pb_ostream_t *stream,
 {
     pb_encoder_t func;
     const void *pSize;
+    bool dummy = true;
     
     func = PB_ENCODERS[PB_LTYPE(field->type)];
-    pSize = (const char*)pData + field->size_offset;
+    
+    if (field->size_offset)
+        pSize = (const char*)pData + field->size_offset;
+    else
+        pSize = &dummy;
     
     switch (PB_HTYPE(field->type))
     {

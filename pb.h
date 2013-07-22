@@ -364,6 +364,17 @@ struct _pb_extension_t {
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
     pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
 
+/* Optional extensions don't have the has_ field, as that would be redundant. */
+#define PB_OPTEXT_STATIC(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+    0, \
+    0, \
+    pb_membersize(st, m), 0, ptr}
+
+#define PB_OPTEXT_CALLBACK(tag, st, m, pm, ltype, ptr) \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
+    0, 0, pb_membersize(st, m), 0, ptr}
+
 /* The mapping from protobuf types to LTYPEs is done using these macros. */
 #define PB_LTYPE_MAP_BOOL       PB_LTYPE_VARINT
 #define PB_LTYPE_MAP_BYTES      PB_LTYPE_BYTES

@@ -313,16 +313,19 @@ class ExtensionField(Field):
             raise NotImplementedError("Only 'optional' is supported for extension fields. "
                + "(%s.rules == %s)" % (self.fullname, self.rules))
 
+        self.rules = 'OPTEXT'
+
     def extension_decl(self):
         '''Declaration of the extension type in the .pb.h file'''
-        return 'extern const pb_extension_type_t %s;' % self.fullname
+        return 'extern const pb_extension_type_t %s;\n' % self.fullname
 
     def extension_def(self):
         '''Definition of the extension type in the .pb.c file'''
+
         result  = 'typedef struct {\n'
         result += str(self)
-        result += '} %s;\n' % self.struct_name
-        result += ('static const pb_field_t %s_field = %s;\n' %
+        result += '\n} %s;\n\n' % self.struct_name
+        result += ('static const pb_field_t %s_field = \n  %s;\n\n' %
                     (self.fullname, self.pb_field_t(None)))
         result += 'const pb_extension_type_t %s = {\n' % self.fullname
         result += '    NULL,\n'
