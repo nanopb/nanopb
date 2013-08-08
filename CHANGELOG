@@ -1,3 +1,12 @@
+nanopb-0.2.2
+ Add support for extension fields (issue 17)
+ Fix unknown fields in empty message (issue 78)
+ Include the field tags in the generated .pb.h file.
+ Add pb_decode_delimited and pb_encode_delimited wrapper functions (issue 74)
+ Add a section in top of pb.h for changing compilation settings (issue 76)
+ Documentation improvements (issues 12, 77 and others)
+ Improved tests
+
 nanopb-0.2.1
  NOTE: The default callback function signature has changed.
        If you don't want to update your code, define PB_OLD_CALLBACK_STYLE.
