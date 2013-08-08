@@ -103,6 +103,8 @@ Nanopb should compile with most ansi-C compatible compilers. It however requires
 
 If these header files do not come with your compiler, you should be able to find suitable replacements online. Mostly the requirements are very simple, just a few basic functions and typedefs.
 
+Alternatively, you can define *PB_SYSTEM_HEADER*, which should be the name of a single header file including all the necessary definitions.
+
 Debugging and testing
 =====================
 Extensive unittests are included under the *tests* folder. Just type *make* there to run the tests.

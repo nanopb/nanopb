@@ -49,6 +49,11 @@ PB_BUFFER_ONLY                 Disables the support for custom streams. Only
 PB_OLD_CALLBACK_STYLE          Use the old function signature (void\* instead
                                of void\*\*) for callback fields. This was the
                                default until nanopb-0.2.1.
+PB_SYSTEM_HEADER               Replace the standard header files with a single
+                               header file. It should define all the required
+                               functions and typedefs listed on the
+                               `overview page`_. Value must include quotes,
+                               for example *#define PB_SYSTEM_HEADER "foo.h"*.
 ============================  ================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow
@@ -56,7 +61,7 @@ raising some datatype limits to suit larger messages. Their need is recognized
 automatically by C-preprocessor #if-directives in the generated .pb.h files.
 The default setting is to use the smallest datatypes (least resources used).
 
-
+.. _`overview page`: index.html#compiler-requirements
 
 
 Proto file options
