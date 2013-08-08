@@ -41,7 +41,7 @@ Features and limitations
 #) Allows specifying maximum size for strings and arrays, so that they can be allocated statically.
 #) No malloc needed: everything can be allocated statically or on the stack.
 #) You can use either encoder or decoder alone to cut the code size in half.
-#) Support for most protobuf features, including: all data types, nested submessages, default values, repeated and optional fields, packed arrays.
+#) Support for most protobuf features, including: all data types, nested submessages, default values, repeated and optional fields, packed arrays, extension fields.
 #) Callback mechanism for handling messages larger than can fit in available RAM.
 #) Extensive set of tests.
 

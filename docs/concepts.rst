@@ -256,6 +256,50 @@ generates this field description array for the structure *Person_PhoneNumber*::
  };
 
 
+Extension fields
+================
+Protocol Buffers supports a concept of `extension fields`_, which are
+additional fields to a message, but defined outside the actual message.
+The definition can even be in a completely separate .proto file.
+
+The base message is declared as extensible by keyword *extensions* in
+the .proto file::
+
+ message MyMessage {
+     .. fields ..
+     extensions 100 to 199;
+ }
+
+For each extensible message, *nanopb_generator.py* declares an additional
+callback field called *extensions*. The field and associated datatype
+*pb_extension_t* forms a linked list of handlers. When an unknown field is
+encountered, the decoder calls each handler in turn until either one of them
+handles the field, or the list is exhausted.
+
+The actual extensions are declared using the *extend* keyword in the .proto,
+and are in the global namespace::
+
+ extend MyMessage {
+     optional int32 myextension = 100;
+ }
+
+For each extension, *nanopb_generator.py* creates a constant of type
+*pb_extension_type_t*. To link together the base message and the extension,
+you have to:
+
+1. Allocate storage for your field, matching the datatype in the .proto.
+   For example, for a *int32* field, you need a *int32_t* variable to store
+   the value.
+2. Create a *pb_extension_t* constant, with pointers to your variable and
+   to the generated *pb_extension_type_t*.
+3. Set the *message.extensions* pointer to point to the *pb_extension_t*.
+
+An example of this is available in *tests/test_encode_extensions.c* and
+*tests/test_decode_extensions.c*.
+
+.. _`extension fields`: https://developers.google.com/protocol-buffers/docs/proto#extensions
+
+
 Return values and error handling
 ================================
 
