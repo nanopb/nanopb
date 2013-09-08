@@ -310,17 +310,25 @@ class ExtensionField(Field):
         Field.__init__(self, self.fullname + 'struct', desc, field_options)
         
         if self.rules != 'OPTIONAL':
-            raise NotImplementedError("Only 'optional' is supported for extension fields. "
-               + "(%s.rules == %s)" % (self.fullname, self.rules))
-
-        self.rules = 'OPTEXT'
+            self.skip = True
+        else:
+            self.skip = False
+            self.rules = 'OPTEXT'
 
     def extension_decl(self):
         '''Declaration of the extension type in the .pb.h file'''
+        if self.skip:
+            msg = '/* Extension field %s was skipped because only "optional"\n' % self.fullname
+            msg +='   type of extension fields is currently supported. */\n'
+            return msg
+        
         return 'extern const pb_extension_type_t %s;\n' % self.fullname
 
     def extension_def(self):
         '''Definition of the extension type in the .pb.c file'''
+
+        if self.skip:
+            return ''
 
         result  = 'typedef struct {\n'
         result += str(self)
@@ -475,7 +483,8 @@ def parse_file(fdesc, file_options):
     
     for names, extension in iterate_extensions(fdesc, base_name):
         field_options = get_nanopb_suboptions(extension, file_options, names)
-        extensions.append(ExtensionField(names, extension, field_options))
+        if field_options.type != nanopb_pb2.FT_IGNORE:
+            extensions.append(ExtensionField(names, extension, field_options))
     
     # Fix field default values where enum short names are used.
     for enum in enums:
