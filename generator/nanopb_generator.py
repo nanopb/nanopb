@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
 nanopb_version = "nanopb-0.2.3-dev"
 
@@ -602,7 +604,7 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
     # End of header
     yield '\n#endif\n'
 
-def generate_source(headername, enums, messages, extensions):
+def generate_source(headername, enums, messages, extensions, options):
     '''Generate content for a source file.'''
     
     yield '/* Automatically generated nanopb constant definitions */\n'
@@ -780,73 +782,126 @@ optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", def
 optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
     help="Set generator option (max_size, max_count etc.).")
 
-def process(filenames, options):
-    '''Process the files given on the command line.'''
+def process_file(filename, fdesc, options):
+    '''Process a single file.
+    filename: The full path to the .proto or .pb source file, as string.
+    fdesc: The loaded FileDescriptorSet, or None to read from the input file.
+    options: Command line options as they come from OptionsParser.
+    
+    Returns a dict:
+        {'headername': Name of header file,
+         'headerdata': Data for the .h header file,
+         'sourcename': Name of the source code file,
+         'sourcedata': Data for the .c source code file
+        }
+    '''
+    toplevel_options = nanopb_pb2.NanoPBOptions()
+    for s in options.settings:
+        text_format.Merge(s, toplevel_options)
+    
+    if not fdesc:
+        data = open(filename, 'rb').read()
+        fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
+    
+    # Check if there is a separate .options file
+    try:
+        optfilename = options.options_file % os.path.splitext(filename)[0]
+    except TypeError:
+        # No %s specified, use the filename as-is
+        optfilename = options.options_file
+    
+    if options.verbose:
+        print 'Reading options from ' + optfilename
+    
+    if os.path.isfile(optfilename):
+        Globals.separate_options = read_options_file(open(optfilename, "rU"))
+    else:
+        Globals.separate_options = []
+    
+    # Parse the file
+    file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
+    enums, messages, extensions = parse_file(fdesc, file_options)
+    
+    # Decide the file names
+    noext = os.path.splitext(filename)[0]
+    headername = noext + '.' + options.extension + '.h'
+    sourcename = noext + '.' + options.extension + '.c'
+    headerbasename = os.path.basename(headername)
+    
+    # List of .proto files that should not be included in the C header file
+    # even if they are mentioned in the source .proto.
+    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
+    dependencies = [d for d in fdesc.dependency if d not in excludes]
+    
+    headerdata = ''.join(generate_header(dependencies, headerbasename, enums,
+                                         messages, extensions, options))
+
+    sourcedata = ''.join(generate_source(headerbasename, enums,
+                                         messages, extensions, options))
+
+    return {'headername': headername, 'headerdata': headerdata,
+            'sourcename': sourcename, 'sourcedata': sourcedata}
+    
+def main_cli():
+    '''Main function when invoked directly from the command line.'''
+    
+    options, filenames = optparser.parse_args()
     
     if not filenames:
         optparser.print_help()
-        return False
+        sys.exit(1)
     
     if options.quiet:
         options.verbose = False
 
     Globals.verbose_options = options.verbose
     
-    toplevel_options = nanopb_pb2.NanoPBOptions()
-    for s in options.settings:
-        text_format.Merge(s, toplevel_options)
-    
     for filename in filenames:
-        data = open(filename, 'rb').read()
-        fdesc = descriptor.FileDescriptorSet.FromString(data)
-        
-        # Check if any separate options are specified
-        try:
-            optfilename = options.options_file % os.path.splitext(filename)[0]
-        except TypeError:
-            # No %s specified, use the filename as-is
-            optfilename = options.options_file
-        
-        if options.verbose:
-            print 'Reading options from ' + optfilename
-        
-        if os.path.isfile(optfilename):
-            Globals.separate_options = read_options_file(open(optfilename, "rU"))
-        else:
-            Globals.separate_options = []
-        
-        # Parse the file
-        file_options = get_nanopb_suboptions(fdesc.file[0], toplevel_options, Names([filename]))
-        enums, messages, extensions = parse_file(fdesc.file[0], file_options)
-        
-        noext = os.path.splitext(filename)[0]
-        headername = noext + '.' + options.extension + '.h'
-        sourcename = noext + '.' + options.extension + '.c'
-        headerbasename = os.path.basename(headername)
+        results = process_file(filename, None, options)
         
         if not options.quiet:
-            print "Writing to " + headername + " and " + sourcename
-        
-        # List of .proto files that should not be included in the C header file
-        # even if they are mentioned in the source .proto.
-        excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
-        dependencies = [d for d in fdesc.file[0].dependency if d not in excludes]
-        
-        header = open(headername, 'w')
-        for part in generate_header(dependencies, headerbasename, enums,
-                                    messages, extensions, options):
-            header.write(part)
+            print "Writing to " + results['headername'] + " and " + results['sourcename']
+    
+        open(results['headername'], 'w').write(results['headerdata'])
+        open(results['sourcename'], 'w').write(results['sourcedata'])        
 
-        source = open(sourcename, 'w')
-        for part in generate_source(headerbasename, enums, messages, extensions):
-            source.write(part)
+def main_plugin():
+    '''Main function when invoked as a protoc plugin.'''
 
-    return True
+    import plugin_pb2
+    data = sys.stdin.read()
+    request = plugin_pb2.CodeGeneratorRequest.FromString(data)
+    
+    import shlex
+    args = shlex.split(request.parameter)
+    options, dummy = optparser.parse_args(args)
+    
+    # We can't go printing stuff to stdout
+    Globals.verbose_options = False
+    options.verbose = False
+    options.quiet = True
+    
+    response = plugin_pb2.CodeGeneratorResponse()
+    
+    for filename in request.file_to_generate:
+        for fdesc in request.proto_file:
+            if fdesc.name == filename:
+                results = process_file(filename, fdesc, options)
+                
+                f = response.file.add()
+                f.name = results['headername']
+                f.content = results['headerdata']
+
+                f = response.file.add()
+                f.name = results['sourcename']
+                f.content = results['sourcedata']    
+    
+    sys.stdout.write(response.SerializeToString())
 
 if __name__ == '__main__':
-    options, filenames = optparser.parse_args()
-    status = process(filenames, options)
-    
-    if not status:
-        sys.exit(1)
-    
+    # Check if we are running as a plugin under protoc
+    if 'protoc-gen-' in sys.argv[0]:
+        main_plugin()
+    else:
+        main_cli()
+
