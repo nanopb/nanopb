@@ -1,0 +1,12 @@
+# Build and run a basic round-trip test using memory buffer encoding.
+
+Import("env")
+
+env.Program(["encode_buffer.c", "#common/person.pb.c", "#common/pb_encode.o"])
+env.Program(["decode_buffer.c", "#common/person.pb.c", "#common/pb_decode.o"])
+
+env.RunTest("encode_buffer")
+env.RunTest(["decode_buffer", "encode_buffer.output"])
+env.Decode(["encode_buffer.output", "#common/person.proto"], MESSAGE = "Person")
+env.Compare(["decode_buffer.output", "encode_buffer.decoded"])
+
