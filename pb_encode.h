@@ -12,6 +12,40 @@
 extern "C" {
 #endif
 
+/* Structure for defining custom output streams. You will need to provide
+ * a callback function to write the bytes to your storage, which can be
+ * for example a file or a network socket.
+ *
+ * The callback must conform to these rules:
+ *
+ * 1) Return false on IO errors. This will cause encoding to abort.
+ * 2) You can use state to store your own data (e.g. buffer pointer).
+ * 3) pb_write will update bytes_written after your callback runs.
+ * 4) Substreams will modify max_size and bytes_written. Don't use them
+ *    to calculate any pointers.
+ */
+struct _pb_ostream_t
+{
+#ifdef PB_BUFFER_ONLY
+    /* Callback pointer is not used in buffer-only configuration.
+     * Having an int pointer here allows binary compatibility but
+     * gives an error if someone tries to assign callback function.
+     * Also, NULL pointer marks a 'sizing stream' that does not
+     * write anything.
+     */
+    int *callback;
+#else
+    bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+#endif
+    void *state;          /* Free field for use by callback implementation. */
+    size_t max_size;      /* Limit number of output bytes written (or use SIZE_MAX). */
+    size_t bytes_written; /* Number of bytes written so far. */
+    
+#ifndef PB_NO_ERRMSG
+    const char *errmsg;
+#endif
+};
+
 /***************************
  * Main encoding functions *
  ***************************/
@@ -69,40 +103,6 @@ pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize);
  * to append or prepend some custom headers to the message.
  */
 bool pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
-
-/* Structure for defining custom output streams. You will need to provide
- * a callback function to write the bytes to your storage, which can be
- * for example a file or a network socket.
- *
- * The callback must conform to these rules:
- *
- * 1) Return false on IO errors. This will cause encoding to abort.
- * 2) You can use state to store your own data (e.g. buffer pointer).
- * 3) pb_write will update bytes_written after your callback runs.
- * 4) Substreams will modify max_size and bytes_written. Don't use them
- *    to calculate any pointers.
- */
-struct _pb_ostream_t
-{
-#ifdef PB_BUFFER_ONLY
-    /* Callback pointer is not used in buffer-only configuration.
-     * Having an int pointer here allows binary compatibility but
-     * gives an error if someone tries to assign callback function.
-     * Also, NULL pointer marks a 'sizing stream' that does not
-     * write anything.
-     */
-    int *callback;
-#else
-    bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
-#endif
-    void *state;          /* Free field for use by callback implementation. */
-    size_t max_size;      /* Limit number of output bytes written (or use SIZE_MAX). */
-    size_t bytes_written; /* Number of bytes written so far. */
-    
-#ifndef PB_NO_ERRMSG
-    const char *errmsg;
-#endif
-};
 
 
 /************************************************

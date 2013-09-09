@@ -12,6 +12,39 @@
 extern "C" {
 #endif
 
+/* Structure for defining custom input streams. You will need to provide
+ * a callback function to read the bytes from your storage, which can be
+ * for example a file or a network socket.
+ * 
+ * The callback must conform to these rules:
+ *
+ * 1) Return false on IO errors. This will cause decoding to abort.
+ * 2) You can use state to store your own data (e.g. buffer pointer),
+ *    and rely on pb_read to verify that no-body reads past bytes_left.
+ * 3) Your callback may be used with substreams, in which case bytes_left
+ *    is different than from the main stream. Don't use bytes_left to compute
+ *    any pointers.
+ */
+struct _pb_istream_t
+{
+#ifdef PB_BUFFER_ONLY
+    /* Callback pointer is not used in buffer-only configuration.
+     * Having an int pointer here allows binary compatibility but
+     * gives an error if someone tries to assign callback function.
+     */
+    int *callback;
+#else
+    bool (*callback)(pb_istream_t *stream, uint8_t *buf, size_t count);
+#endif
+
+    void *state; /* Free field for use by callback implementation */
+    size_t bytes_left;
+    
+#ifndef PB_NO_ERRMSG
+    const char *errmsg;
+#endif
+};
+
 /***************************
  * Main decoding functions *
  ***************************/
@@ -65,39 +98,6 @@ pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize);
  * read some custom header data, or to read data in field callbacks.
  */
 bool pb_read(pb_istream_t *stream, uint8_t *buf, size_t count);
-
-/* Structure for defining custom input streams. You will need to provide
- * a callback function to read the bytes from your storage, which can be
- * for example a file or a network socket.
- * 
- * The callback must conform to these rules:
- *
- * 1) Return false on IO errors. This will cause decoding to abort.
- * 2) You can use state to store your own data (e.g. buffer pointer),
- *    and rely on pb_read to verify that no-body reads past bytes_left.
- * 3) Your callback may be used with substreams, in which case bytes_left
- *    is different than from the main stream. Don't use bytes_left to compute
- *    any pointers.
- */
-struct _pb_istream_t
-{
-#ifdef PB_BUFFER_ONLY
-    /* Callback pointer is not used in buffer-only configuration.
-     * Having an int pointer here allows binary compatibility but
-     * gives an error if someone tries to assign callback function.
-     */
-    int *callback;
-#else
-    bool (*callback)(pb_istream_t *stream, uint8_t *buf, size_t count);
-#endif
-
-    void *state; /* Free field for use by callback implementation */
-    size_t bytes_left;
-    
-#ifndef PB_NO_ERRMSG
-    const char *errmsg;
-#endif
-};
 
 
 /************************************************
