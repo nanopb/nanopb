@@ -12,6 +12,13 @@ env.Append(PROTOCPATH = ['#../generator', '/usr/include', '.'])
 # Define the include path to find nanopb.proto
 env.Append(PROTOCPATH = ['#../generator', '/usr/include', '.'])
 
+# If the platform doesn't support C99, use our own header file instead.
+conf = Configure(env)
+if not conf.CheckCHeader('stdbool.h'):
+	conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
+	conf.env.Append(CPPPATH = "#../compat")
+env = conf.Finish()
+
 # Now include the SConscript files from all subdirectories
 SConscript(Glob('*/SConscript'), exports = 'env')
 

@@ -215,6 +215,17 @@ struct _pb_field_t {
 } pb_packed;
 PB_PACKED_STRUCT_END
 
+/* Make sure that the standard integer types are of the expected sizes.
+ * All kinds of things may break otherwise.. atleast all fixed* types. */
+STATIC_ASSERT(sizeof(int8_t) == 1, INT8_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(uint8_t) == 1, UINT8_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(int16_t) == 2, INT16_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(uint16_t) == 2, UINT16_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(int32_t) == 4, INT32_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(uint32_t) == 4, UINT32_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(int64_t) == 8, INT64_T_WRONG_SIZE)
+STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
+
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
