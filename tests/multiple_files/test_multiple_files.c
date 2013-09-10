@@ -1,6 +1,5 @@
 /*
- * Tests if still compile if typedefs are redfefined in STATIC_ASSERTS when
- * proto file includes another poto file
+ * Tests if this still compiles when multiple .proto files are involved.
  */
 
 #include <stdio.h>

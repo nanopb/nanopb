@@ -5,7 +5,7 @@
  * incompatible changes made to the generator in future versions.
  */
 
-#include "bc_alltypes.pb.h"
+#include "alltypes_legacy.h"
 
 const char SubMessage_substuff1_default[16] = "1";
 const int32_t SubMessage_substuff2_default = 2;

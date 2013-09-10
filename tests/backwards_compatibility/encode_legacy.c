@@ -1,14 +1,14 @@
 /* Attempts to test all the datatypes supported by ProtoBuf.
- * This is a backwards-compatibility test, using bc_alltypes.pb.h.
- * It is similar to test_encode3, but duplicated in order to allow
- * test_encode3 to test any new features introduced later.
+ * This is a backwards-compatibility test, using alltypes_legacy.h.
+ * It is similar to encode_alltypes, but duplicated in order to allow
+ * encode_alltypes to test any new features introduced later.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pb_encode.h>
-#include "bc_alltypes.pb.h"
+#include "alltypes_legacy.h"
 
 int main(int argc, char **argv)
 {

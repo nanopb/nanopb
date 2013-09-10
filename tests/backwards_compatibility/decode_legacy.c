@@ -1,16 +1,16 @@
 /* Tests the decoding of all types.
- * This is a backwards-compatibility test, using bc_alltypes.pb.h.
- * It is similar to test_decode3, but duplicated in order to allow
- * test_decode3 to test any new features introduced later.
+ * This is a backwards-compatibility test, using alltypes_legacy.h.
+ * It is similar to decode_alltypes, but duplicated in order to allow
+ * decode_alltypes to test any new features introduced later.
  *
- * Run e.g. ./bc_encode | ./bc_decode
+ * Run e.g. ./encode_legacy | ./decode_legacy
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pb_decode.h>
-#include "bc_alltypes.pb.h"
+#include "alltypes_legacy.h"
 
 #define TEST(x) if (!(x)) { \
     printf("Test " #x " failed.\n"); \

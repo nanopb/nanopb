@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import re
 
 try:
     # Make terminal colors work on windows
@@ -13,8 +14,9 @@ def add_nanopb_builders(env):
     
     # Build command for building .pb from .proto using protoc
     def proto_actions(source, target, env, for_signature):
-        dirs = ' '.join(['-I' + env.GetBuildPath(d) for d in env['PROTOCPATH']])
-        return '$PROTOC $PROTOCFLAGS %s -o%s %s' % (dirs, target[0], source[0])
+        esc = env['ESCAPE']
+        dirs = ' '.join(['-I' + esc(env.GetBuildPath(d)) for d in env['PROTOCPATH']])
+        return '$PROTOC $PROTOCFLAGS %s -o%s %s' % (dirs, esc(str(target[0])), esc(str(source[0])))
 
     proto_file_builder = Builder(generator = proto_actions,
                                  suffix = '.pb',
@@ -91,4 +93,19 @@ def add_nanopb_builders(env):
                               suffix = '.equal')
     env.Append(BUILDERS = {'Compare': compare_builder})
 
+    # Build command that checks that each pattern in source2 is found in source1.
+    def match_files(target, source, env):
+        data = open(str(source[0]), 'rU').read()
+        patterns = open(str(source[1]))
+        for pattern in patterns:
+            if pattern.strip() and not re.search(pattern.strip(), data, re.MULTILINE):
+                print '\033[31m[FAIL]\033[0m   Pattern not found in ' + str(source[0]) + ': ' + pattern
+                return 1
+        else:
+            print '\033[32m[ OK ]\033[0m   All patterns found in ' + str(source[0])
+            return 0
+
+    match_builder = Builder(action = match_files, suffix = '.matched')
+    env.Append(BUILDERS = {'Match': match_builder})
+    
 

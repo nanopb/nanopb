@@ -1,0 +1,13 @@
+# Test that multiple .proto files don't cause name collisions.
+
+Import("env")
+
+incpath = env.Clone()
+incpath.Append(PROTOCPATH = '#multiple_files')
+
+incpath.NanopbProto("callbacks")
+incpath.NanopbProto("callbacks2")
+test = incpath.Program(["test_multiple_files.c", "callbacks.pb.c", "callbacks2.pb.c"])
+
+env.RunTest(test)
+
