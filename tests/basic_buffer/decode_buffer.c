@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <pb_decode.h>
 #include "person.pb.h"
+#include "test_helpers.h"
 
 /* This function is called once from main(), it handles
    the decoding and printing. */
@@ -59,9 +60,13 @@ bool print_person(pb_istream_t *stream)
 
 int main()
 {
-    /* Read the data into buffer */
     uint8_t buffer[512];
-    size_t count = fread(buffer, 1, sizeof(buffer), stdin);
+    pb_istream_t stream;
+    size_t count;
+    
+    /* Read the data into buffer */
+    SET_BINARY_MODE(stdin);
+    count = fread(buffer, 1, sizeof(buffer), stdin);
     
     if (!feof(stdin))
     {
@@ -70,7 +75,7 @@ int main()
     }
     
     /* Construct a pb_istream_t for reading from the buffer */
-    pb_istream_t stream = pb_istream_from_buffer(buffer, count);
+    stream = pb_istream_from_buffer(buffer, count);
     
     /* Decode and print out the stuff */
     if (!print_person(&stream))

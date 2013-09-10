@@ -1,6 +1,13 @@
 import subprocess
 import sys
 
+try:
+    # Make terminal colors work on windows
+    import colorama
+    colorama.init()
+except ImportError:
+    pass
+
 def add_nanopb_builders(env):
     '''Add the necessary builder commands for nanopb tests.'''
     
@@ -14,6 +21,7 @@ def add_nanopb_builders(env):
                                  src_suffix = '.proto')
     env.Append(BUILDERS = {'Proto': proto_file_builder})
     env.SetDefault(PROTOC = 'protoc')
+    env.SetDefault(PROTOCPATH = ['.'])
 
     # Build command for running nanopb generator
     import os.path
@@ -50,9 +58,9 @@ def add_nanopb_builders(env):
                                 stderr = sys.stderr)
         result = pipe.wait()
         if result == 0:
-            print '\033[92m[ OK ]\033[0m   Ran ' + str(source[0])
+            print '\033[32m[ OK ]\033[0m   Ran ' + str(source[0])
         else:
-            print '\033[91m[FAIL]\033[0m   Program ' + str(source[0]) + ' returned ' + str(result)
+            print '\033[31m[FAIL]\033[0m   Program ' + str(source[0]) + ' returned ' + str(result)
         return result
         
     run_test_builder = Builder(action = run_test,
@@ -73,10 +81,10 @@ def add_nanopb_builders(env):
         data1 = open(str(source[0]), 'rb').read()
         data2 = open(str(source[1]), 'rb').read()
         if data1 == data2:
-            print '\033[92m[ OK ]\033[0m   Files equal: ' + str(source[0]) + ' and ' + str(source[1])
+            print '\033[32m[ OK ]\033[0m   Files equal: ' + str(source[0]) + ' and ' + str(source[1])
             return 0
         else:
-            print '\033[91m[FAIL]\033[0m   Files differ: ' + str(source[0]) + ' and ' + str(source[1])
+            print '\033[31m[FAIL]\033[0m   Files differ: ' + str(source[0]) + ' and ' + str(source[1])
             return 1
 
     compare_builder = Builder(action = compare_files,

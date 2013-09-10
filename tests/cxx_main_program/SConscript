@@ -13,8 +13,8 @@ Command("encode_alltypes.cxx", "#alltypes/encode_alltypes.c", c)
 Command("decode_alltypes.cxx", "#alltypes/decode_alltypes.c", c)
 
 # Now build and run the test normally.
-env.Program(["encode_alltypes.cxx", "alltypes.pb.cxx", "pb_encode.cxx"])
-env.Program(["decode_alltypes.cxx", "alltypes.pb.cxx", "pb_decode.cxx"])
+enc = env.Program(["encode_alltypes.cxx", "alltypes.pb.cxx", "pb_encode.cxx"])
+dec = env.Program(["decode_alltypes.cxx", "alltypes.pb.cxx", "pb_decode.cxx"])
 
-env.RunTest("encode_alltypes")
-env.RunTest(["decode_alltypes", "encode_alltypes.output"])
+env.RunTest(enc)
+env.RunTest([dec, "encode_alltypes.output"])

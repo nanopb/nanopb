@@ -1,4 +1,5 @@
-env = DefaultEnvironment()
+import os
+env = Environment(ENV = {'PATH': os.environ['PATH']})
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
@@ -7,18 +8,49 @@ add_nanopb_builders(env)
 env.Append(CPPPATH = ["#../", "#common"])
 
 # Path for finding nanopb.proto
-env.Append(PROTOCPATH = ['#../generator', '/usr/include', '.'])
+env.Append(PROTOCPATH = '#../generator')
 
-# Define the include path to find nanopb.proto
-env.Append(PROTOCPATH = ['#../generator', '/usr/include', '.'])
+# Check the compilation environment, unless we are just cleaning up.
+if not env.GetOption('clean'):
+    conf = Configure(env)
 
-# If the platform doesn't support C99, use our own header file instead.
-conf = Configure(env)
-if not conf.CheckCHeader('stdbool.h'):
-	conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
-	conf.env.Append(CPPPATH = "#../compat")
-env = conf.Finish()
+    # If the platform doesn't support C99, use our own header file instead.
+    stdbool = conf.CheckCHeader('stdbool.h')
+    stdint = conf.CheckCHeader('stdint.h')
+    stddef = conf.CheckCHeader('stddef.h')
+    string = conf.CheckCHeader('string.h')
+    if not stdbool or not stdint or not stddef or not string:
+        conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
+        conf.env.Append(CPPPATH = "#../compat")
+        
+        if stdbool: conf.env.Append(CPPDEFINES = {'HAVE_STDBOOL_H': 1})
+        if stdint: conf.env.Append(CPPDEFINES = {'HAVE_STDINT_H': 1})
+        if stddef: conf.env.Append(CPPDEFINES = {'HAVE_STDDEF_H': 1})
+        if string: conf.env.Append(CPPDEFINES = {'HAVE_STRING_H': 1})
+        
+    # Check if we can use pkg-config to find protobuf include path
+    status, output = conf.TryAction('pkg-config protobuf --variable=includedir > $TARGET')
+    if status:
+        conf.env.Append(PROTOCPATH = output.strip())
+    else:
+        conf.env.Append(PROTOCPATH = '/usr/include')
+        
+    # End the config stuff
+    env = conf.Finish()
 
+# Initialize the CCFLAGS according to the compiler
+if 'cl' in env['CC']:
+    # Microsoft Visual C++
+    
+    # Debug info on, warning level 2 for tests, warnings as errors
+    env.Append(CCFLAGS = '/Zi /W2 /WX')
+    env.Append(LINKFLAGS = '/DEBUG')
+    
+    # PB_RETURN_ERROR triggers C4127 because of while(0)
+    env.Append(CCFLAGS = '/wd4127')
+    
+    
+    
 # Now include the SConscript files from all subdirectories
 SConscript(Glob('*/SConscript'), exports = 'env')
 

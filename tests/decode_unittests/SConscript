@@ -1,4 +1,4 @@
 Import('env')
-env.Program(["decode_unittests.c", "#common/unittestproto.pb.c", "#common/pb_decode.o"])
-env.RunTest('decode_unittests')
+p = env.Program(["decode_unittests.c", "#common/unittestproto.pb.c", "#common/pb_decode.o"])
+env.RunTest(p)
 

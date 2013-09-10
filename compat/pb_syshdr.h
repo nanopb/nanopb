@@ -12,6 +12,9 @@
 #define _PB_SYSHDR_H_
 
 /* stdint.h subset */
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#else
 /* You will need to modify these to match the word size of your platform. */
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
@@ -21,8 +24,13 @@ typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef signed long long int64_t;
 typedef unsigned long long uint64_t;
+#endif
 
 /* stddef.h subset */
+#ifdef HAVE_STDDEF_H
+#include <stddef.h>
+#else
+
 typedef uint32_t size_t;
 #define offsetof(st, m) ((size_t)(&((st *)0)->m))
 
@@ -30,12 +38,26 @@ typedef uint32_t size_t;
 #define NULL 0
 #endif
 
+#endif
+
 /* stdbool.h subset */
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#else
+
+#ifndef __cplusplus
 typedef int bool;
 #define false 0
 #define true 1
+#endif
+
+#endif
 
 /* string.h subset */
+#ifdef HAVE_STRING_H
+#include <string.h>
+#else
+
 /* Implementations are from the Public Domain C Library (PDCLib). */
 static size_t strlen( const char * s )
 {
@@ -67,5 +89,6 @@ static void * memset( void * s, int c, size_t n )
     }
     return s;
 }
+#endif
 
 #endif

@@ -291,7 +291,7 @@ int main()
     
     {
         pb_istream_t s;
-        IntegerContainer dest = {};
+        IntegerContainer dest = {{0}};
         
         COMMENT("Testing pb_decode_delimited")
         TEST((s = S("\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"),
