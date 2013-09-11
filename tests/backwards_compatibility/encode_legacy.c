@@ -9,6 +9,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include "alltypes_legacy.h"
+#include "test_helpers.h"
 
 int main(int argc, char **argv)
 {
@@ -113,19 +114,22 @@ int main(int argc, char **argv)
     }
     
     alltypes.end = 1099;
-    
-    uint8_t buffer[1024];
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-    
-    /* Now encode it and check if we succeeded. */
-    if (pb_encode(&stream, AllTypes_fields, &alltypes))
-    {
-        fwrite(buffer, 1, stream.bytes_written, stdout);
-        return 0; /* Success */
-    }
-    else
-    {
-        fprintf(stderr, "Encoding failed!\n");
-        return 1; /* Failure */
+
+    {    
+        uint8_t buffer[1024];
+        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        
+        /* Now encode it and check if we succeeded. */
+        if (pb_encode(&stream, AllTypes_fields, &alltypes))
+        {
+            SET_BINARY_MODE(stdout);
+            fwrite(buffer, 1, stream.bytes_written, stdout);
+            return 0; /* Success */
+        }
+        else
+        {
+            fprintf(stderr, "Encoding failed!\n");
+            return 1; /* Failure */
+        }
     }
 }

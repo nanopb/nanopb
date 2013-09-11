@@ -70,15 +70,15 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -g -O0 -Wall -Werror --coverage -fstack-protector-all')
+    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror --coverage -fstack-protector-all')
     env.Append(LINKFLAGS = '--coverage')
     
     # More strict checks on the nanopb core
-    env.Append(CORECFLAGS = '-pedantic -Wextra -Wcast-qual -Wlogical-op -Wconversion')
+    env.Append(CORECFLAGS = '-Wextra -Wcast-qual -Wlogical-op -Wconversion')
 elif 'clang' in env['CC']:
     # CLang
-    env.Append(CFLAGS = '-ansi -g -O0 -Wall -Werror')
-    env.Append(CORECFLAGS = '-pedantic -Wextra -Wcast-qual -Wconversion')
+    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror')
+    env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
 elif 'cl' in env['CC']:
     # Microsoft Visual C++
     
@@ -87,7 +87,7 @@ elif 'cl' in env['CC']:
     env.Append(LINKFLAGS = '/DEBUG')
     
     # More strict checks on the nanopb core
-    env.Append(CORECFLAGS = '/W4 /Za')
+    env.Append(CORECFLAGS = '/W4')
     
     # PB_RETURN_ERROR triggers C4127 because of while(0)
     env.Append(CFLAGS = '/wd4127')
