@@ -73,11 +73,14 @@ if 'gcc' in env['CC']:
     env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror --coverage -fstack-protector-all')
     env.Append(LINKFLAGS = '--coverage')
     
+    # We currently need uint64_t anyway, even though ANSI C90 otherwise..
+    env.Append(CFLAGS = '-Wno-long-long')
+
     # More strict checks on the nanopb core
     env.Append(CORECFLAGS = '-Wextra -Wcast-qual -Wlogical-op -Wconversion')
 elif 'clang' in env['CC']:
     # CLang
-    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror')
+    env.Append(CFLAGS = '-ansi -g -O0 -Wall -Werror')
     env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
 elif 'cl' in env['CC']:
     # Microsoft Visual C++
