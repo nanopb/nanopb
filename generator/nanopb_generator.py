@@ -246,13 +246,14 @@ class Field:
         '''Return the pb_field_t initializer to use in the constant array.
         prev_field_name is the name of the previous field or None.
         '''
-        result  = '    PB_FIELD(%3d, ' % self.tag
+        result  = '    PB_FIELD2(%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
         result += '%s, ' % self.allocation
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
+        result += '%s, ' % ("first" if not prev_field_name else "other")
         
         if self.pbtype == 'MESSAGE':
             result += '&%s_fields)' % self.submsgname
