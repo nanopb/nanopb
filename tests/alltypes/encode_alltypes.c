@@ -6,6 +6,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include "alltypes.pb.h"
+#include "test_helpers.h"
 
 int main(int argc, char **argv)
 {
@@ -120,6 +121,7 @@ int main(int argc, char **argv)
         /* Now encode it and check if we succeeded. */
         if (pb_encode(&stream, AllTypes_fields, &alltypes))
         {
+            SET_BINARY_MODE(stdout);
             fwrite(buffer, 1, stream.bytes_written, stdout);
             return 0; /* Success */
         }

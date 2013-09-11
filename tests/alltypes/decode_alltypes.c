@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <pb_decode.h>
 #include "alltypes.pb.h"
+#include "test_helpers.h"
 
 #define TEST(x) if (!(x)) { \
     printf("Test " #x " failed.\n"); \
@@ -176,15 +177,19 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
 int main(int argc, char **argv)
 {
+    uint8_t buffer[1024];
+    size_t count;
+    pb_istream_t stream;
+
     /* Whether to expect the optional values or the default values. */
     int mode = (argc > 1) ? atoi(argv[1]) : 0;
     
     /* Read the data into buffer */
-    uint8_t buffer[1024];
-    size_t count = fread(buffer, 1, sizeof(buffer), stdin);
+    SET_BINARY_MODE(stdin);
+    count = fread(buffer, 1, sizeof(buffer), stdin);
     
     /* Construct a pb_istream_t for reading from the buffer */
-    pb_istream_t stream = pb_istream_from_buffer(buffer, count);
+    stream = pb_istream_from_buffer(buffer, count);
     
     /* Decode and print out the stuff */
     if (!check_alltypes(&stream, mode))

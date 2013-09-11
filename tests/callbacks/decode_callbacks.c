@@ -86,7 +86,7 @@ int main()
     testmessage.fixed32value.funcs.decode = &print_fixed32;
     testmessage.fixed32value.arg = "fixed32value: %ld\n";
     testmessage.fixed64value.funcs.decode = &print_fixed64;
-    testmessage.fixed64value.arg = "fixed64value: %lld\n";
+    testmessage.fixed64value.arg = "fixed64value: %ld\n";
     testmessage.repeatedstring.funcs.decode = &print_string;
     testmessage.repeatedstring.arg = "repeatedstring: \"%s\"\n";
     
