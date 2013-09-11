@@ -1,0 +1,24 @@
+# Run the alltypes test case, but compile with PB_FIELD_32BIT=1.
+# Also the .proto file has been modified to have high indexes.
+
+Import("env")
+
+# Take copy of the files for custom build.
+c = Copy("$TARGET", "$SOURCE")
+env.Command("pb_encode.c", "#../pb_encode.c", c)
+env.Command("pb_decode.c", "#../pb_decode.c", c)
+env.Command("encode_alltypes.c", "#alltypes/encode_alltypes.c", c)
+env.Command("decode_alltypes.c", "#alltypes/decode_alltypes.c", c)
+
+env.NanopbProto("alltypes")
+
+# Define the compilation options
+opts = env.Clone()
+opts.Append(CPPDEFINES = {'PB_FIELD_32BIT': 1})
+
+# Now build and run the test normally.
+enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode.c"])
+dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode.c"])
+
+env.RunTest(enc)
+env.RunTest([dec, "encode_alltypes.output"])
