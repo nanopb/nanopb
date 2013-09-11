@@ -37,7 +37,8 @@ def add_nanopb_builders(env):
                                   src_suffix = '.pb',
                                   emitter = nanopb_targets)
     env.Append(BUILDERS = {'Nanopb': nanopb_file_builder})
-    env.SetDefault(NANOPB_GENERATOR = 'python ' + env.GetBuildPath("#../generator/nanopb_generator.py"))
+    gen_path = env['ESCAPE'](env.GetBuildPath("#../generator/nanopb_generator.py"))
+    env.SetDefault(NANOPB_GENERATOR = 'python ' + gen_path)
     env.SetDefault(NANOPB_FLAGS = '-q')
 
     # Combined method to run both protoc and nanopb generator
@@ -71,8 +72,10 @@ def add_nanopb_builders(env):
 
     # Build command that decodes a message using protoc
     def decode_actions(source, target, env, for_signature):
-        dirs = ' '.join(['-I' + env.GetBuildPath(d) for d in env['PROTOCPATH']])
-        return '$PROTOC $PROTOCFLAGS %s --decode=%s %s <%s >%s' % (dirs, env['MESSAGE'], source[1], source[0], target[0])
+        esc = env['ESCAPE']
+        dirs = ' '.join(['-I' + esc(env.GetBuildPath(d)) for d in env['PROTOCPATH']])
+        return '$PROTOC $PROTOCFLAGS %s --decode=%s %s <%s >%s' % (
+            dirs, env['MESSAGE'], esc(str(source[1])), esc(str(source[0])), esc(str(target[0])))
 
     decode_builder = Builder(generator = decode_actions,
                              suffix = '.decoded')
