@@ -1,0 +1,17 @@
+# Build the common files needed by multiple test cases
+
+Import('env')
+
+# Protocol definitions for the encode/decode_unittests
+env.NanopbProto("unittestproto")
+
+# Protocol definitions for basic_buffer/stream tests
+env.NanopbProto("person")
+
+# Binaries of the pb_decode.c and pb_encode.c
+# These are built using more strict warning flags.
+strict = env.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode.o", "#../pb_decode.c")
+strict.Object("pb_encode.o", "#../pb_encode.c")
+

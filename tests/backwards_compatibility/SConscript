@@ -1,0 +1,11 @@
+# Check that the old generated .pb.c/.pb.h files are still compatible with the
+# current version of nanopb.
+
+Import("env")
+
+enc = env.Program(["encode_legacy.c", "alltypes_legacy.c", "#common/pb_encode.o"])
+dec = env.Program(["decode_legacy.c", "alltypes_legacy.c", "#common/pb_decode.o"])
+
+env.RunTest(enc)
+env.RunTest([dec, "encode_legacy.output"])
+

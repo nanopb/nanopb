@@ -1,0 +1,8 @@
+# Check that the decoder properly detects when required fields are missing.
+
+Import("env")
+
+env.NanopbProto("missing_fields")
+test = env.Program(["missing_fields.c", "missing_fields.pb.c", "#common/pb_encode.o", "#common/pb_decode.o"])
+env.RunTest(test)
+

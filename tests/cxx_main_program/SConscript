@@ -1,0 +1,20 @@
+# Run the alltypes test case, but compile it as C++ instead.
+# In fact, compile the entire nanopb using C++ compiler.
+
+Import("env")
+
+# Copy the files to .cxx extension in order to force C++ build.
+c = Copy("$TARGET", "$SOURCE")
+env.Command("pb_encode.cxx", "#../pb_encode.c", c)
+env.Command("pb_decode.cxx", "#../pb_decode.c", c)
+env.Command("alltypes.pb.h", "#alltypes/alltypes.pb.h", c)
+env.Command("alltypes.pb.cxx", "#alltypes/alltypes.pb.c", c)
+env.Command("encode_alltypes.cxx", "#alltypes/encode_alltypes.c", c)
+env.Command("decode_alltypes.cxx", "#alltypes/decode_alltypes.c", c)
+
+# Now build and run the test normally.
+enc = env.Program(["encode_alltypes.cxx", "alltypes.pb.cxx", "pb_encode.cxx"])
+dec = env.Program(["decode_alltypes.cxx", "alltypes.pb.cxx", "pb_decode.cxx"])
+
+env.RunTest(enc)
+env.RunTest([dec, "encode_alltypes.output"])
