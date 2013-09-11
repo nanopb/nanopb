@@ -6,5 +6,9 @@ dec = env.GetBuildPath('#basic_buffer/${PROGPREFIX}decode_buffer${PROGSUFFIX}')
 env.RunTest('person_with_extra_field.output', [dec, "person_with_extra_field.pb"])
 env.Compare(["person_with_extra_field.output", "person_with_extra_field.expected"])
 
+dec = env.GetBuildPath('#basic_stream/${PROGPREFIX}decode_stream${PROGSUFFIX}')
+env.RunTest('person_with_extra_field_stream.output', [dec, "person_with_extra_field.pb"])
+env.Compare(["person_with_extra_field_stream.output", "person_with_extra_field.expected"])
+
 dec2 = env.GetBuildPath('#alltypes/${PROGPREFIX}decode_alltypes${PROGSUFFIX}')
 env.RunTest('alltypes_with_extra_fields.output', [dec2, 'alltypes_with_extra_fields.pb'])
