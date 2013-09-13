@@ -1,3 +1,12 @@
+nanopb-0.2.3
+ Improve compatibility by removing ternary operator from initializations (issue 88)
+ Fix build error on Visual C++ (issue 84, patch by Markus Schwarzenberg)
+ Don't stop on unsupported extension fields (issue 83)
+ Add an example pb_syshdr.h file for non-C99 compilers
+ Reorganize tests and examples into subfolders (issue 63)
+ Switch from Makefiles to scons for building the tests
+ Make the tests buildable on Windows
+
 nanopb-0.2.2
  Add support for extension fields (issue 17)
  Fix unknown fields in empty message (issue 78)
