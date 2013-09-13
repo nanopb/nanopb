@@ -331,58 +331,69 @@ struct _pb_extension_t {
 };
 
 /* These macros are used to declare pb_field_t's in the constant array. */
+/* Size of a structure member, in bytes. */
 #define pb_membersize(st, m) (sizeof ((st*)0)->m)
+/* Number of entries in an array. */
 #define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
+/* Delta from start of one member to the start of another member. */
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
-#define pb_delta_end(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
-                                  ? offsetof(st, m1) \
-                                  : offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
+/* Marks the end of the field list */
 #define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
+
+/* Macros for filling in the data_offset field */
+/* data_offset for first field in a message */
+#define PB_DATAOFFSET_FIRST(st, m1, m2) (offsetof(st, m1))
+/* data_offset for subsequent fields */
+#define PB_DATAOFFSET_OTHER(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
+/* Choose first/other based on m1 == m2 (deprecated, remains for backwards compatibility) */
+#define PB_DATAOFFSET_CHOOSE(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
+                                  ? PB_DATAOFFSET_FIRST(st, m1, m2) \
+                                  : PB_DATAOFFSET_OTHER(st, m1, m2))
 
 /* Required fields are the simplest. They just have delta (padding) from
  * previous field end, and the size of the field. Pointer is used for
  * submessages and default values.
  */
-#define PB_REQUIRED_STATIC(tag, st, m, pm, ltype, ptr) \
+#define PB_REQUIRED_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
-    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+    fd, 0, pb_membersize(st, m), 0, ptr}
 
 /* Optional fields add the delta to the has_ variable. */
-#define PB_OPTIONAL_STATIC(tag, st, m, pm, ltype, ptr) \
+#define PB_OPTIONAL_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
-    pb_delta_end(st, m, pm), \
+    fd, \
     pb_delta(st, has_ ## m, m), \
     pb_membersize(st, m), 0, ptr}
 
 /* Repeated fields have a _count field and also the maximum number of entries. */
-#define PB_REPEATED_STATIC(tag, st, m, pm, ltype, ptr) \
+#define PB_REPEATED_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
-    pb_delta_end(st, m, pm), \
+    fd, \
     pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), \
     pb_arraysize(st, m), ptr}
 
 /* Callbacks are much like required fields except with special datatype. */
-#define PB_REQUIRED_CALLBACK(tag, st, m, pm, ltype, ptr) \
+#define PB_REQUIRED_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REQUIRED | ltype, \
-    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+    fd, 0, pb_membersize(st, m), 0, ptr}
 
-#define PB_OPTIONAL_CALLBACK(tag, st, m, pm, ltype, ptr) \
+#define PB_OPTIONAL_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
-    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+    fd, 0, pb_membersize(st, m), 0, ptr}
     
-#define PB_REPEATED_CALLBACK(tag, st, m, pm, ltype, ptr) \
+#define PB_REPEATED_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
-    pb_delta_end(st, m, pm), 0, pb_membersize(st, m), 0, ptr}
+    fd, 0, pb_membersize(st, m), 0, ptr}
 
 /* Optional extensions don't have the has_ field, as that would be redundant. */
-#define PB_OPTEXT_STATIC(tag, st, m, pm, ltype, ptr) \
+#define PB_OPTEXT_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
     0, \
     0, \
     pb_membersize(st, m), 0, ptr}
 
-#define PB_OPTEXT_CALLBACK(tag, st, m, pm, ltype, ptr) \
+#define PB_OPTEXT_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     0, 0, pb_membersize(st, m), 0, ptr}
 
@@ -421,8 +432,21 @@ struct _pb_extension_t {
  */
 
 #define PB_FIELD(tag, type, rules, allocation, message, field, prevfield, ptr) \
-    PB_ ## rules ## _ ## allocation(tag, message, field, prevfield, \
-                                    PB_LTYPE_MAP_ ## type, ptr)
+    PB_ ## rules ## _ ## allocation(tag, message, field, \
+        PB_DATAOFFSET_CHOOSE(message, field, prevfield), \
+        PB_LTYPE_MAP_ ## type, ptr)
+
+/* This is a new version of the macro used by nanopb generator from
+ * version 0.2.3 onwards. It avoids the use of a ternary expression in
+ * the initialization, which confused some compilers.
+ *
+ * - Placement: FIRST or OTHER, depending on if this is the first field in structure.
+ *
+ */
+#define PB_FIELD2(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
+    PB_ ## rules ## _ ## allocation(tag, message, field, \
+        PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+        PB_LTYPE_MAP_ ## type, ptr)
 
 
 /* These macros are used for giving out error messages.
