@@ -250,10 +250,10 @@ class Field:
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
         result += '%s, ' % self.allocation
+        result += '%s, ' % ("FIRST" if not prev_field_name else "OTHER")
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
-        result += '%s, ' % ("first" if not prev_field_name else "other")
         
         if self.pbtype == 'MESSAGE':
             result += '&%s_fields)' % self.submsgname

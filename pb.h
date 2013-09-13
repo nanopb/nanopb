@@ -326,15 +326,18 @@ struct _pb_extension_t {
 #define pb_arraysize(st, m) (pb_membersize(st, m) / pb_membersize(st, m[0]))
 /* Delta from start of one member to the start of another member. */
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
-/* Delta from start of structure to member. */
-#define pb_fielddelta_first(st, m1, m2) (offsetof(st, m1))
-/* Delta from end of one field to start of another field. */
-#define pb_fielddelta_other(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
-/* Choose between pb_fielddelta_first and pb_fielddelta_other (backwards compatibility) */
-#define pb_fielddelta_choose(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
-                                  ? pb_fielddelta_first(st, m1, m2) \
-                                  : pb_fielddelta_other(st, m1, m2))
+/* Marks the end of the field list */
 #define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
+
+/* Macros for filling in the data_offset field */
+/* data_offset for first field in a message */
+#define PB_DATAOFFSET_FIRST(st, m1, m2) (offsetof(st, m1))
+/* data_offset for subsequent fields */
+#define PB_DATAOFFSET_OTHER(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
+/* Choose first/other based on m1 == m2 (deprecated, remains for backwards compatibility) */
+#define PB_DATAOFFSET_CHOOSE(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
+                                  ? PB_DATAOFFSET_FIRST(st, m1, m2) \
+                                  : PB_DATAOFFSET_OTHER(st, m1, m2))
 
 /* Required fields are the simplest. They just have delta (padding) from
  * previous field end, and the size of the field. Pointer is used for
@@ -419,16 +422,19 @@ struct _pb_extension_t {
 
 #define PB_FIELD(tag, type, rules, allocation, message, field, prevfield, ptr) \
     PB_ ## rules ## _ ## allocation(tag, message, field, \
-        pb_fielddelta_choose(message, field, prevfield), \
+        PB_DATAOFFSET_CHOOSE(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
 /* This is a new version of the macro used by nanopb generator from
  * version 0.2.3 onwards. It avoids the use of a ternary expression in
  * the initialization, which confused some compilers.
+ *
+ * - Placement: FIRST or OTHER, depending on if this is the first field in structure.
+ *
  */
-#define PB_FIELD2(tag, type, rules, allocation, message, field, prevfield, pos, ptr) \
+#define PB_FIELD2(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
     PB_ ## rules ## _ ## allocation(tag, message, field, \
-        pb_fielddelta_ ## pos(message, field, prevfield), \
+        PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
 
