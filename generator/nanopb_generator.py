@@ -38,22 +38,22 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb type)
+# Values are tuple (c type, pb type, encoded size)
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
-    FieldD.TYPE_BOOL:       ('bool',     'BOOL'),
-    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE'),
-    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32'),
-    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64'),
-    FieldD.TYPE_FLOAT:      ('float',    'FLOAT'),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32'),
-    FieldD.TYPE_INT64:      ('int64_t',  'INT64'),
-    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32'),
-    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64'),
-    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32'),
-    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64'),
-    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32'),
-    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64')
+    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1),
+    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8),
+    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4),
+    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8),
+    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32',       5),
+    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10),
+    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4),
+    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8),
+    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5),
+    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10),
+    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5),
+    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10)
 }
 
 class Names:
@@ -82,6 +82,17 @@ def names_from_type_name(type_name):
     if type_name[0] != '.':
         raise NotImplementedError("Lookup of non-absolute type names is not supported")
     return Names(type_name[1:].split('.'))
+
+def varint_max_size(max_value):
+    '''Returns the maximum number of bytes a varint can take when encoded.'''
+    for i in range(1, 11):
+        if (max_value >> (i * 7)) == 0:
+            return i
+    raise ValueError("Value too large for varint: " + str(max_value))
+
+assert varint_max_size(0) == 1
+assert varint_max_size(127) == 1
+assert varint_max_size(128) == 2
 
 class Enum:
     def __init__(self, names, desc, enum_options):
@@ -113,6 +124,7 @@ class Field:
         self.max_size = None
         self.max_count = None
         self.array_decl = ""
+        self.enc_size = None
         
         # Parse field options
         if field_options.HasField("max_size"):
@@ -141,12 +153,13 @@ class Field:
         
         # Decide the C data type to use in the struct.
         if datatypes.has_key(desc.type):
-            self.ctype, self.pbtype = datatypes[desc.type]
+            self.ctype, self.pbtype, self.enc_size = datatypes[desc.type]
         elif desc.type == FieldD.TYPE_ENUM:
             self.pbtype = 'ENUM'
             self.ctype = names_from_type_name(desc.type_name)
             if self.default is not None:
                 self.default = self.ctype + self.default
+            self.enc_size = 5 # protoc rejects enum values > 32 bits
         elif desc.type == FieldD.TYPE_STRING:
             self.pbtype = 'STRING'
             if self.max_size is None:
@@ -154,15 +167,18 @@ class Field:
             else:
                 self.ctype = 'char'
                 self.array_decl += '[%d]' % self.max_size
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
             self.pbtype = 'BYTES'
             if self.max_size is None:
                 can_be_static = False
             else:
                 self.ctype = self.struct_name + self.name + 't'
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
+            self.enc_size = None # Needs to be filled in after the message type is available
         else:
             raise NotImplementedError(desc.type)
         
@@ -277,6 +293,42 @@ class Field:
 
         return max(self.tag, self.max_size, self.max_count)        
 
+    def encoded_size(self, allmsgs):
+        '''Return the maximum size that this field can take when encoded,
+        including the field tag. If the size cannot be determined, returns
+        None.'''
+        
+        if self.allocation != 'STATIC':
+            return None
+        
+        encsize = self.enc_size
+        if self.pbtype == 'MESSAGE':
+            for msg in allmsgs:
+                if msg.name == self.submsgname:
+                    encsize = msg.encoded_size(allmsgs)
+                    if encsize is None:
+                        return None # Submessage size is indeterminate
+                    encsize += varint_max_size(encsize) # submsg length is encoded also
+                    break
+            else:
+                # Submessage cannot be found, this currently occurs when
+                # the submessage type is defined in a different file.
+                return None
+        
+        if encsize is None:
+            raise RuntimeError("Could not determine encoded size for %s.%s"
+                               % (self.struct_name, self.name))
+        
+        encsize += varint_max_size(self.tag << 3) # Tag + wire type
+
+        if self.rules == 'REPEATED':
+            # Decoders must be always able to handle unpacked arrays.
+            # Therefore we have to reserve space for it, even though
+            # we emit packed arrays ourselves.
+            encsize *= self.max_count
+        
+        return encsize
+
 
 class ExtensionRange(Field):
     def __init__(self, struct_name, range_start, field_options):
@@ -305,6 +357,12 @@ class ExtensionRange(Field):
     
     def tags(self):
         return ''
+        
+    def encoded_size(self, allmsgs):
+        # We exclude extensions from the count, because they cannot be known
+        # until runtime. Other option would be to return None here, but this
+        # way the value remains useful if extensions are not used.
+        return 0
 
 class ExtensionField(Field):
     def __init__(self, struct_name, desc, field_options):
@@ -429,6 +487,18 @@ class Message:
         result += '    PB_LAST_FIELD\n};'
         return result
 
+    def encoded_size(self, allmsgs):
+        '''Return the maximum size that this message can take when encoded.
+        If the size cannot be determined, returns None.
+        '''
+        size = 0
+        for field in self.fields:
+            fsize = field.encoded_size(allmsgs)
+            if fsize is None:
+                return None
+            size += fsize
+        
+        return size
 
 
 # ---------------------------------------------------------------------------
@@ -597,8 +667,17 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
     yield '/* Struct field encoding specification for nanopb */\n'
     for msg in messages:
         yield msg.fields_declaration() + '\n'
+    yield '\n'
     
-    yield '\n#ifdef __cplusplus\n'
+    yield '/* Maximum encoded size of messages (where known) */\n'
+    for msg in messages:
+        msize = msg.encoded_size(messages)
+        if msize is not None:
+            identifier = '%s_size' % msg.name
+            yield '#define %-40s %d\n' % (identifier, msize)
+    yield '\n'
+    
+    yield '#ifdef __cplusplus\n'
     yield '} /* extern "C" */\n'
     yield '#endif\n'
     

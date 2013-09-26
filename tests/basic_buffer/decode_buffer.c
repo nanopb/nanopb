@@ -60,7 +60,7 @@ bool print_person(pb_istream_t *stream)
 
 int main()
 {
-    uint8_t buffer[512];
+    uint8_t buffer[Person_size];
     pb_istream_t stream;
     size_t count;
     

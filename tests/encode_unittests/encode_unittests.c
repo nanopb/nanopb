@@ -280,6 +280,19 @@ int main()
         TEST(!pb_encode(&s, CallbackContainerContainer_fields, &msg2))
     }
     
+    {
+        uint8_t buffer[StringMessage_size];
+        pb_ostream_t s;
+        StringMessage msg = {"0123456789"};
+        
+        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        
+        COMMENT("Test that StringMessage_size is correct")
+
+        TEST(pb_encode(&s, StringMessage_fields, &msg));
+        TEST(s.bytes_written == StringMessage_size);
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     

@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     alltypes.end = 1099;
     
     {
-        uint8_t buffer[1024];
+        uint8_t buffer[AllTypes_size];
         pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
         
         /* Now encode it and check if we succeeded. */

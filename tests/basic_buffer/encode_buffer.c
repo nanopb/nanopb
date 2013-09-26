@@ -10,7 +10,7 @@
 
 int main()
 {
-    uint8_t buffer[512];
+    uint8_t buffer[Person_size];
     pb_ostream_t stream;
     
     /* Initialize the structure with constants */
