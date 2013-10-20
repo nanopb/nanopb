@@ -224,6 +224,20 @@ int main()
     }
     
     {
+        uint8_t buffer[50];
+        pb_ostream_t s;
+        FloatArray msg = {1, {99.0f}};
+        
+        COMMENT("Test array size limit in pb_encode")
+        
+        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        TEST((msg.data_count = 10) && pb_encode(&s, FloatArray_fields, &msg))
+        
+        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        TEST((msg.data_count = 11) && !pb_encode(&s, FloatArray_fields, &msg))
+    }
+    
+    {
         uint8_t buffer[10];
         pb_ostream_t s;
         CallbackArray msg;

@@ -94,6 +94,9 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     
     if (count == 0)
         return true;
+        
+    if (count > field->array_size)
+        PB_RETURN_ERROR(stream, "array max size exceeded");
     
     /* We always pack arrays if the datatype allows it. */
     if (PB_LTYPE(field->type) <= PB_LTYPE_LAST_PACKABLE)
