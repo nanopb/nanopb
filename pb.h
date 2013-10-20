@@ -173,6 +173,20 @@ typedef uint8_t pb_type_t;
 #define PB_HTYPE(x) ((x) & PB_HTYPE_MASK)
 #define PB_LTYPE(x) ((x) & PB_LTYPE_MASK)
 
+/* Data type used for storing sizes of struct fields
+ * and array counts.
+ */
+#if defined(PB_FIELD_32BIT)
+    typedef uint32_t pb_size_t;
+    typedef int32_t pb_ssize_t;
+#elif defined(PB_FIELD_16BIT)
+    typedef uint16_t pb_size_t;
+    typedef int16_t pb_ssize_t;
+#else
+    typedef uint8_t pb_size_t;
+    typedef int8_t pb_ssize_t;
+#endif
+
 /* This structure is used in auto-generated constants
  * to specify struct fields.
  * You can change field sizes if you need structures
@@ -184,29 +198,12 @@ typedef uint8_t pb_type_t;
 PB_PACKED_STRUCT_START
 typedef struct _pb_field_t pb_field_t;
 struct _pb_field_t {
-
-#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)
-    uint8_t tag;
+    pb_size_t tag;
     pb_type_t type;
-    uint8_t data_offset; /* Offset of field data, relative to previous field. */
-    int8_t size_offset; /* Offset of array size or has-boolean, relative to data */
-    uint8_t data_size; /* Data size in bytes for a single item */
-    uint8_t array_size; /* Maximum number of entries in array */
-#elif defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)
-    uint16_t tag;
-    pb_type_t type;
-    uint8_t data_offset;
-    int8_t size_offset;
-    uint16_t data_size;
-    uint16_t array_size;
-#else
-    uint32_t tag;
-    pb_type_t type;
-    uint8_t data_offset;
-    int8_t size_offset;
-    uint32_t data_size;
-    uint32_t array_size;
-#endif
+    pb_size_t data_offset; /* Offset of field data, relative to previous field. */
+    pb_ssize_t size_offset; /* Offset of array size or has-boolean, relative to data */
+    pb_size_t data_size; /* Data size in bytes for a single item */
+    pb_size_t array_size; /* Maximum number of entries in array */
     
     /* Field definitions for submessage
      * OR default value for all other non-array, non-callback types
