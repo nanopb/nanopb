@@ -355,6 +355,11 @@ class Field:
                 # Instead of direct numeric value, reference the size that
                 # has been #defined in the other file.
                 encsize = EncodedSize(self.submsgname + 'size')
+
+                # We will have to make a conservative assumption on the length
+                # prefix size, though.
+                encsize += 5
+
         elif self.enc_size is None:
             raise RuntimeError("Could not determine encoded size for %s.%s"
                                % (self.struct_name, self.name))
