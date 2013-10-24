@@ -12,6 +12,10 @@ message StringMessage {
     required string data = 1 [(nanopb).max_size = 10];
 }
 
+message BytesMessage {
+    required bytes data = 1 [(nanopb).max_size = 16];
+}
+
 message CallbackArray {
     // We cheat a bit and use this message for testing other types, too.
     // Nanopb does not care about the actual defined data type for callback

@@ -521,7 +521,10 @@ bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, c
 bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
-    UNUSED(field);
+
+    if (bytes->size + offsetof(pb_bytes_array_t, bytes) > field->data_size)
+        PB_RETURN_ERROR(stream, "bytes size exceeded");
+    
     return pb_encode_string(stream, bytes->bytes, bytes->size);
 }
 
