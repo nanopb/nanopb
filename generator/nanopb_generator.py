@@ -115,7 +115,7 @@ class EncodedSize:
             raise ValueError("Cannot add size: " + repr(other))
 
     def __mul__(self, other):
-        if isinstance(other, int):
+        if isinstance(other, (int, long)):
             return EncodedSize(self.value * other, [str(other) + '*' + s for s in self.symbols])
         else:
             raise ValueError("Cannot multiply size: " + repr(other))
