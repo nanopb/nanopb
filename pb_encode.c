@@ -7,19 +7,20 @@
 #include "pb.h"
 #include "pb_encode.h"
 
-/* The warn_unused_result attribute appeared first in gcc-3.4.0 */
+/* Use the GCC warn_unused_result attribute to check that all return values
+ * are propagated correctly. On other compilers and gcc before 3.4.0 just
+ * ignore the annotation.
+ */
 #if !defined(__GNUC__) || ( __GNUC__ < 3) || (__GNUC__ == 3 && __GNUC_MINOR__ < 4)
     #define checkreturn
 #else
-    /* Verify that we remember to check all return values for proper error propagation */
     #define checkreturn __attribute__((warn_unused_result))
 #endif
-
-typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
 
 /* --- Function pointers to field encoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
+typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
 static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_varint,
     &pb_enc_svarint,
@@ -32,7 +33,9 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     NULL /* extensions */
 };
 
-/* pb_ostream_t implementation */
+/*******************************
+ * pb_ostream_t implementation *
+ *******************************/
 
 static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {
@@ -49,7 +52,7 @@ pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize)
 {
     pb_ostream_t stream;
 #ifdef PB_BUFFER_ONLY
-    stream.callback = (void*)1; /* Just some marker value */
+    stream.callback = (void*)1; /* Just a marker value */
 #else
     stream.callback = &buf_write;
 #endif
@@ -82,7 +85,9 @@ bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count
     return true;
 }
 
-/* Main encoding stuff */
+/*************************
+ * Encode a single field *
+ *************************/
 
 /* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
@@ -277,6 +282,10 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
     return true;
 }
 
+/*********************
+ * Encode all fields *
+ *********************/
+
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
     const pb_field_t *field = fields;
@@ -319,7 +328,9 @@ bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const 
     return pb_encode_submessage(stream, fields, src_struct);
 }
 
-/* Helper functions */
+/********************
+ * Helper functions *
+ ********************/
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
 {
     uint8_t buffer[10];

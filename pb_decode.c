@@ -3,11 +3,13 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
-/* The warn_unused_result attribute appeared first in gcc-3.4.0 */
+/* Use the GCC warn_unused_result attribute to check that all return values
+ * are propagated correctly. On other compilers and gcc before 3.4.0 just
+ * ignore the annotation.
+ */
 #if !defined(__GNUC__) || ( __GNUC__ < 3) || (__GNUC__ == 3 && __GNUC_MINOR__ < 4)
     #define checkreturn
 #else
-    /* Verify that we remember to check all return values for proper error propagation */
     #define checkreturn __attribute__((warn_unused_result))
 #endif
 
@@ -15,11 +17,10 @@
 #include "pb.h"
 #include "pb_decode.h"
 
-typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
-
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
+typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
 static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_varint,
     &pb_dec_svarint,
@@ -32,9 +33,9 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     NULL /* extensions */
 };
 
-/**************
- * pb_istream *
- **************/
+/*******************************
+ * pb_istream_t implementation *
+ *******************************/
 
 static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
