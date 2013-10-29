@@ -47,6 +47,15 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_exten
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
 static bool checkreturn find_extension_field(pb_field_iterator_t *iter);
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
+static bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_skip_varint(pb_istream_t *stream);
+static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.

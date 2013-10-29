@@ -25,7 +25,9 @@ __BIG_ENDIAN__                 Set this if your platform stores integers and
                                systems (different layout for ints and floats)
                                are currently not supported.
 NANOPB_INTERNALS               Set this to expose the field encoder functions
-                               that are hidden since nanopb-0.1.3.
+                               that are hidden since nanopb-0.1.3. Starting
+                               with nanopb-0.2.4, this flag does nothing. Use
+                               the newer functions that have better interface.
 PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for
                                presence. Default value is 64. Increases stack
                                usage 1 byte per every 8 fields. Compiler

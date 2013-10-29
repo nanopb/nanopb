@@ -131,25 +131,6 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
 bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 
-
-/*******************************
- * Internal / legacy functions *
- *******************************/
-
-#ifdef NANOPB_INTERNALS
-bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest);
-
-bool pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
-bool pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest);
-
-bool pb_skip_varint(pb_istream_t *stream);
-bool pb_skip_string(pb_istream_t *stream);
-#endif
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

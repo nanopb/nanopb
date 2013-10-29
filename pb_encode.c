@@ -27,7 +27,13 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
-
+static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
 /* --- Function pointers to field encoders ---
  * Order in the array must match pb_action_t LTYPE numbering.

@@ -78,6 +78,8 @@ if 'gcc' in env['CC']:
 
     # More strict checks on the nanopb core
     env.Append(CORECFLAGS = '-Wextra -Wcast-qual -Wlogical-op -Wconversion')
+    env.Append(CORECFLAGS = ' -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls')
+    env.Append(CORECFLAGS = ' -Wstack-protector')
 elif 'clang' in env['CC']:
     # CLang
     env.Append(CFLAGS = '-ansi -g -O0 -Wall -Werror')

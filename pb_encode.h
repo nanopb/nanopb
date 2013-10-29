@@ -143,24 +143,6 @@ bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
  */
 bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
-
-/*******************************
- * Internal / legacy functions *
- *******************************/
-
-#ifdef NANOPB_INTERNALS
-bool pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-bool pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-#endif
-
-/* This function is not recommended for new programs. Use pb_encode_submessage()
- * instead, it has the same functionality with a less confusing interface. */
-bool pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
-
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

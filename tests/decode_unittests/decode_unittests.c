@@ -1,8 +1,8 @@
-#define NANOPB_INTERNALS
+/* This includes the whole .c file to get access to static functions. */
+#include "pb_decode.c"
 
 #include <stdio.h>
 #include <string.h>
-#include "pb_decode.h"
 #include "unittests.h"
 #include "unittestproto.pb.h"
 
