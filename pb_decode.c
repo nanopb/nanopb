@@ -17,10 +17,40 @@
 #include "pb.h"
 #include "pb_decode.h"
 
+/**************************************
+ * Declarations internal to this file *
+ **************************************/
+
+/* Iterator for pb_field_t list */
+typedef struct {
+    const pb_field_t *start; /* Start of the pb_field_t array */
+    const pb_field_t *pos; /* Current position of the iterator */
+    unsigned field_index; /* Zero-based index of the field. */
+    unsigned required_field_index; /* Zero-based index that counts only the required fields */
+    void *dest_struct; /* Pointer to the destination structure to decode to */
+    void *pData; /* Pointer where to store current field value */
+    void *pSize; /* Pointer where to store the size of current array field */
+} pb_field_iterator_t;
+
+typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
+
+static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t count);
+static bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest);
+static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, uint8_t *buf, size_t *size);
+static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, void *dest_struct);
+static bool pb_field_next(pb_field_iterator_t *iter);
+static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag);
+static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
+static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
+static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
+static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
+static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
+static bool checkreturn find_extension_field(pb_field_iterator_t *iter);
+static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
+
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
-typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
 static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_varint,
     &pb_dec_svarint,
@@ -277,17 +307,6 @@ void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
     stream->errmsg = substream->errmsg;
 #endif
 }
-
-/* Iterator for pb_field_t list */
-typedef struct {
-    const pb_field_t *start; /* Start of the pb_field_t array */
-    const pb_field_t *pos; /* Current position of the iterator */
-    unsigned field_index; /* Zero-based index of the field. */
-    unsigned required_field_index; /* Zero-based index that counts only the required fields */
-    void *dest_struct; /* Pointer to the destination structure to decode to */
-    void *pData; /* Pointer where to store current field value */
-    void *pSize; /* Pointer where to store the size of current array field */
-} pb_field_iterator_t;
 
 static void pb_field_init(pb_field_iterator_t *iter, const pb_field_t *fields, void *dest_struct)
 {

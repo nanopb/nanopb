@@ -17,10 +17,21 @@
     #define checkreturn __attribute__((warn_unused_result))
 #endif
 
+/**************************************
+ * Declarations internal to this file *
+ **************************************/
+typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
+
+static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field, const void *pData, size_t count, pb_encoder_t func);
+static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
+static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
+static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
+
+
 /* --- Function pointers to field encoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
-typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
 static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_varint,
     &pb_enc_svarint,
