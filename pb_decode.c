@@ -478,7 +478,7 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
 
 /* Default handler for extension fields. Expects a pb_field_t structure
  * in extension->type->arg. */
-static bool checkreturn default_extension_handler(pb_istream_t *stream,
+static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type)
 {
     const pb_field_t *field = (const pb_field_t*)extension->type->arg;
@@ -513,7 +513,7 @@ static bool checkreturn decode_extension(pb_istream_t *stream,
         if (extension->type->decode)
             status = extension->type->decode(stream, extension, tag, wire_type);
         else
-            status = default_extension_handler(stream, extension, tag, wire_type);
+            status = default_extension_decoder(stream, extension, tag, wire_type);
 
         if (!status)
             return false;

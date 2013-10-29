@@ -245,7 +245,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream,
 
 /* Default handler for extension fields. Expects to have a pb_field_t
  * pointer in the extension->type->arg field. */
-static bool checkreturn default_extension_handler(pb_ostream_t *stream,
+static bool checkreturn default_extension_encoder(pb_ostream_t *stream,
     const pb_extension_t *extension)
 {
     const pb_field_t *field = (const pb_field_t*)extension->type->arg;
@@ -266,7 +266,7 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
         if (extension->type->encode)
             status = extension->type->encode(stream, extension);
         else
-            status = default_extension_handler(stream, extension);
+            status = default_extension_encoder(stream, extension);
 
         if (!status)
             return false;
