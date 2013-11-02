@@ -1,3 +1,12 @@
+nanopb-0.2.4
+ Remove the deprecated NANOPB_INTERNALS functions from public API.
+ Document the security model.
+ Check array and bytes max sizes when encoding (issue 90)
+ Add #defines for maximum encoded message size (issue 89)
+ Add #define tags for extension fields (issue 93)
+ Fix MISRA C violations (issue 91)
+ Clean up pb_field_t definition with typedefs.
+
 nanopb-0.2.3
  Improve compatibility by removing ternary operator from initializations (issue 88)
  Fix build error on Visual C++ (issue 84, patch by Markus Schwarzenberg)
