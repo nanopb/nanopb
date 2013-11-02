@@ -46,5 +46,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
         return 1; /* Failure */
     }
+    
+    /* Check that the field tags are properly generated */
+    (void)AllTypes_extensionfield1_tag;
+    (void)ExtensionMessage_AllTypes_extensionfield2_tag;
 }
 

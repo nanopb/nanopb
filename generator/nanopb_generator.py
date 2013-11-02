@@ -423,6 +423,11 @@ class ExtensionField(Field):
             self.skip = False
             self.rules = 'OPTEXT'
 
+    def tags(self):
+        '''Return the #define for the tag number of this field.'''
+        identifier = '%s_tag' % self.fullname
+        return '#define %-40s %d\n' % (identifier, self.tag)
+
     def extension_decl(self):
         '''Declaration of the extension type in the .pb.h file'''
         if self.skip:
@@ -709,6 +714,8 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
     for msg in sort_dependencies(messages):
         for field in msg.fields:
             yield field.tags()
+    for extension in extensions:
+        yield extension.tags()
     yield '\n'
     
     yield '/* Struct field encoding specification for nanopb */\n'
