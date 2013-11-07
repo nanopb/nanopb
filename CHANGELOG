@@ -1,4 +1,4 @@
-nanopb-0.2.4 (2013-11-xx)
+nanopb-0.2.4 (2013-11-07)
  Remove the deprecated NANOPB_INTERNALS functions from public API.
  Document the security model.
  Check array and bytes max sizes when encoding (issue 90)
