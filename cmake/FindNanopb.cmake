@@ -148,7 +148,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
       COMMAND python
       ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb
-      DEPENDS ${FIL_WE}.pb
+      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
       COMMENT "Running nanopb generator on ${FIL_WE}.pb"
       VERBATIM )
   endforeach()
