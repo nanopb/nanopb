@@ -3,9 +3,9 @@
 
 Import("env")
 
-env.NanopbProto("alltypes")
-enc = env.Program(["encode_alltypes.c", "alltypes.pb.c", "#common/pb_encode.o"])
-dec = env.Program(["decode_alltypes.c", "alltypes.pb.c", "#common/pb_decode.o"])
+env.NanopbProto(["alltypes", "alltypes.options"])
+enc = env.Program(["encode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
+dec = env.Program(["decode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_decode.o"])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_alltypes.output"])
