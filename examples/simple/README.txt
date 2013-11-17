@@ -18,10 +18,9 @@ On Linux, simply type "make" to build the example. After that, you can
 run it with the command: ./simple
 
 On other platforms, you first have to compile the protocol definition using
-the following two commands::
+the following command::
 
-  protoc -osimple.pb simple.proto
-  python nanopb_generator.py simple.pb
+  ../../generator-bin/protoc --nanopb_out=. simple.proto
 
 After that, add the following four files to your project and compile:
 
