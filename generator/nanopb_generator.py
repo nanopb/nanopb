@@ -15,10 +15,17 @@ except:
     print
     raise
 
-import proto.nanopb_pb2 as nanopb_pb2
-import proto.descriptor_pb2 as descriptor
-
-
+try:
+    import proto.nanopb_pb2 as nanopb_pb2
+    import proto.descriptor_pb2 as descriptor
+except:
+    print
+    print "********************************************************************"
+    print "*** Failed to import the protocol definitions for generator.     ***"
+    print "*** You have to run 'make' in the nanopb/generator/proto folder. ***"
+    print "********************************************************************"
+    print
+    raise
 
 
 # ---------------------------------------------------------------------------
@@ -1054,7 +1061,7 @@ def main_plugin():
 
 if __name__ == '__main__':
     # Check if we are running as a plugin under protoc
-    if 'protoc-gen-' in sys.argv[0]:
+    if 'protoc-gen-' in sys.argv[0] or '--protoc-plugin' in sys.argv:
         main_plugin()
     else:
         main_cli()

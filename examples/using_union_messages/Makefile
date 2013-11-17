@@ -1,9 +1,8 @@
-CFLAGS = -ansi -Wall -Werror -g -O0
+# Include the nanopb provided Makefile rules
+include ../../extra/nanopb.mk
 
-# Path to the nanopb root folder
-NANOPB_DIR = ../..
-DEPS = $(NANOPB_DIR)/pb_decode.c $(NANOPB_DIR)/pb_decode.h \
-       $(NANOPB_DIR)/pb_encode.c $(NANOPB_DIR)/pb_encode.h $(NANOPB_DIR)/pb.h
+# Compiler flags to enable all warnings & debug info
+CFLAGS = -ansi -Wall -Werror -g -O0
 CFLAGS += -I$(NANOPB_DIR)
 
 all: encode decode
@@ -14,9 +13,6 @@ all: encode decode
 clean:
 	rm -f encode unionproto.pb.h unionproto.pb.c
 
-%: %.c $(DEPS) unionproto.pb.h unionproto.pb.c
-	$(CC) $(CFLAGS) -o $@ $< $(NANOPB_DIR)/pb_decode.c $(NANOPB_DIR)/pb_encode.c unionproto.pb.c
+%: %.c unionproto.pb.c
+	$(CC) $(CFLAGS) -o $@ $^ $(NANOPB_CORE)
 
-unionproto.pb.h unionproto.pb.c: unionproto.proto $(NANOPB_DIR)/generator/nanopb_generator.py
-	protoc -ounionproto.pb $<
-	python $(NANOPB_DIR)/generator/nanopb_generator.py unionproto.pb
