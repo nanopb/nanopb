@@ -17,9 +17,9 @@ else
 	# Source only or git checkout
 	PROTOC = protoc
 	ifdef windir
-		PROTOC_OPTS = --plugin=nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb.bat
+		PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb.bat
 	else
-		PROTOC_OPTS = --plugin=nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb
+		PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb
 	endif
 endif
 
