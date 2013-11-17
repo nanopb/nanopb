@@ -6,6 +6,7 @@
 *.pb.h
 *.pb
 *.pyc
+*_pb2.py
 *~
 *.tar.gz
 .sconsign.dblite
@@ -13,6 +14,7 @@ config.log
 .sconf_temp
 tests/build
 julkaisu.txt
+dist
 docs/*.html
 docs/generator_flow.png
 examples/simple/simple
