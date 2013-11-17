@@ -4,7 +4,7 @@
 nanopb_version = "nanopb-0.2.5-dev"
 
 try:
-    import google.protobuf.descriptor_pb2 as descriptor
+    import google, distutils.util # bbfreeze seems to need these
     import google.protobuf.text_format as text_format
 except:
     print
@@ -15,18 +15,8 @@ except:
     print
     raise
 
-try:
-    import proto.nanopb_pb2 as nanopb_pb2
-except:
-    print
-    print "***************************************************************"
-    print "*** Could not import the precompiled nanopb_pb2.py.         ***"
-    print "*** Run 'make' in the 'generator' folder to update the file.***"
-    print "***************************************************************"
-    print
-    raise
-
-
+import proto.nanopb_pb2 as nanopb_pb2
+import proto.descriptor_pb2 as descriptor
 
 
 
@@ -1025,6 +1015,13 @@ def main_cli():
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
 
+    import sys
+    if sys.platform == "win32":
+        import os, msvcrt
+        # Set stdin and stdout to binary mode
+        msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
+        msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+    
     import proto.plugin_pb2 as plugin_pb2
     data = sys.stdin.read()
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)

@@ -1,7 +1,4 @@
-all: nanopb_pb2.py plugin_pb2.py
+all: nanopb_pb2.py plugin_pb2.py descriptor_pb2.py
 
-nanopb_pb2.py: nanopb.proto
-	protoc --python_out=. nanopb.proto
-
-plugin_pb2.py: plugin.proto
-	protoc --python_out=. plugin.proto
+%_pb2.py: %.proto
+	protoc --python_out=. $<
