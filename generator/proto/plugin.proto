@@ -46,7 +46,7 @@
 
 package google.protobuf.compiler;
 
-import "google/protobuf/descriptor.proto";
+import "descriptor.proto";
 
 // An encoded CodeGeneratorRequest is written to the plugin's stdin.
 message CodeGeneratorRequest {
