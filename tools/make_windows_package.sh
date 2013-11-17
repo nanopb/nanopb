@@ -30,7 +30,9 @@ mv $DEST/generator/dist $DEST/generator-bin
 rm $DEST/generator/protoc-gen-nanopb.py
 
 # Package the protoc compiler
-cp `which protoc`.exe $DEST/generator-bin/
+cp `which protoc.exe` $DEST/generator-bin/
+cp `which MSVCR100.DLL` $DEST/generator-bin/
+cp `which MSVCP100.DLL` $DEST/generator-bin/
 
 # Convert line breaks for convenience
 find $DEST -name '*.c' -o -name '*.h' -o -name '*.txt' \
