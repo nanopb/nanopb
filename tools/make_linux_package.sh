@@ -36,3 +36,6 @@ chmod +x $DEST/generator-bin/protoc
 # Make the nanopb generator available as a protoc plugin
 ln -s nanopb-generator $DEST/generator-bin/protoc-gen-nanopb
 
+# Tar it all up
+( cd dist; tar -czf $VERSION.tar.gz $VERSION )
+
