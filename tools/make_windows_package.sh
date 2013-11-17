@@ -2,6 +2,7 @@
 
 # Run this script in the top nanopb directory to create a binary package
 # for Windows users. This script is designed to run under MingW/MSYS bash
+# and requires the following tools: git, make, zip, unix2dos
 
 set -e
 set -x
@@ -31,3 +32,10 @@ rm $DEST/generator/protoc-gen-nanopb.py
 # Package the protoc compiler
 cp `which protoc`.exe $DEST/generator-bin/
 
+# Convert line breaks for convenience
+find $DEST -name '*.c' -o -name '*.h' -o -name '*.txt' \
+    -o -name '*.proto' -o -name '*.py' -o -name '*.options' \
+    -exec unix2dos '{}' \;
+
+# Zip it all up
+( cd dist; zip -r $VERSION.zip $VERSION )
