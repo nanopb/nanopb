@@ -1,7 +1,7 @@
 /* This is an example of a header file for platforms/compilers that do
  * not come with stdint.h/stddef.h/stdbool.h/string.h. To use it, define
  * PB_SYSTEM_HEADER as "pb_syshdr.h", including the quotes, and add the
- * compat folder to your include path.
+ * extra folder to your include path.
  *
  * It is very likely that you will need to customize this file to suit
  * your platform. For any compiler that supports C99, this file should

@@ -1,4 +1,5 @@
-# Locate and configure the nanopb library.
+# This is an example script for use with CMake projects for locating and configuring
+# the nanopb library.
 #
 # The following varialbes have to be set:
 #
