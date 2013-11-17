@@ -16,7 +16,7 @@ except:
     raise
 
 try:
-    import nanopb_pb2
+    import proto.nanopb_pb2 as nanopb_pb2
 except:
     print
     print "***************************************************************"
@@ -1025,7 +1025,7 @@ def main_cli():
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
 
-    import plugin_pb2
+    import proto.plugin_pb2 as plugin_pb2
     data = sys.stdin.read()
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
     
