@@ -26,6 +26,10 @@ cp $DEST/generator/nanopb_generator.py $DEST/generator/protoc-gen-nanopb.py
 ( cd $DEST/generator; bbfreeze nanopb_generator.py protoc-gen-nanopb.py )
 mv $DEST/generator/dist $DEST/generator-bin
 
+# The python interpreter requires MSVCR90.dll.
+# FIXME: Find a way around hardcoding this path
+cp /c/windows/winsxs/x86_microsoft.vc90.crt_1fc8b3b9a1e18e3b_9.0.30729.4974_none_50940634bcb759cb/MSVCR90.DLL $DEST/generator-bin/
+
 # Remove temp file
 rm $DEST/generator/protoc-gen-nanopb.py
 
