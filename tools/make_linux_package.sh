@@ -24,6 +24,8 @@ mv $DEST/generator/dist $DEST/generator-bin
 
 # Package the protoc compiler
 cp `which protoc` $DEST/generator-bin/protoc.bin
+LIBPROTOC=$(ldd `which protoc` | grep -o '/.*libprotoc[^ ]*')
+cp $LIBPROTOC $DEST/generator-bin/
 cat > $DEST/generator-bin/protoc << EOF
 #!/bin/bash
 SCRIPTDIR=\$(dirname \$(readlink -f \$0))
