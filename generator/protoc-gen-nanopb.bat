@@ -1,3 +1,4 @@
+@echo off
 :: This file is used to invoke nanopb_generator.py as a plugin
 :: to protoc on Windows.
 :: Use it like this:
