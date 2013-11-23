@@ -12,6 +12,6 @@ env.NanopbProto("person")
 # These are built using more strict warning flags.
 strict = env.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode.o", "#../pb_decode.c")
-strict.Object("pb_encode.o", "#../pb_encode.c")
+strict.Object("pb_decode.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode.o", "$NANOPB/pb_encode.c")
 

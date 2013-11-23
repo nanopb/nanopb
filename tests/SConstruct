@@ -14,7 +14,7 @@ scons CC=clang CXX=clang++
 ''')
 
 import os
-env = Environment(ENV = os.environ)
+env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 
 # Allow overriding the compiler with scons CC=???
 if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
