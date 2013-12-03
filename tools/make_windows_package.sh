@@ -52,4 +52,4 @@ find $DEST -name '*.c' -o -name '*.h' -o -name '*.txt' \
     -exec unix2dos '{}' \;
 
 # Zip it all up
-( cd dist; zip -r $VERSION.zip $VERSION )
+( cd dist; zip -r $VERSION-windows.zip $VERSION )
