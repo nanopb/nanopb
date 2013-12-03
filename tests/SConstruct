@@ -35,7 +35,7 @@ env.Append(PROTOCPATH = '#../generator')
 if not env.GetOption('clean'):
     def check_ccflags(context, flags):
         '''Check if given CCFLAGS are supported'''
-        context.Message('Checking support for CCFLAGS="%s"...' % flags)
+        context.Message('Checking support for CCFLAGS="%s"... ' % flags)
         oldflags = context.env['CCFLAGS']
         context.env.Append(CCFLAGS = flags)
         result = context.TryCompile("int main() {return 0;}", '.c')
@@ -75,7 +75,7 @@ if not env.GetOption('clean'):
     # Check if we can use extra strict warning flags (only with GCC)
     extra = '-Wcast-qual -Wlogical-op -Wconversion'
     extra += ' -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls'
-    extra += ' -Wstack-protector'
+    extra += ' -Wstack-protector '
     if 'gcc' in env['CC']:
         if conf.CheckCCFLAGS(extra):
             conf.env.Append(CORECFLAGS = extra)
