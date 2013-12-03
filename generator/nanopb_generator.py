@@ -3,28 +3,30 @@
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
 nanopb_version = "nanopb-0.2.5-dev"
 
+import sys
+
 try:
     import google, distutils.util # bbfreeze seems to need these
     import google.protobuf.text_format as text_format
 except:
-    print
-    print "*************************************************************"
-    print "*** Could not import the Google protobuf Python libraries ***"
-    print "*** Try installing package 'python-protobuf' or similar.  ***"
-    print "*************************************************************"
-    print
+    sys.stderr.write('''
+         *************************************************************
+         *** Could not import the Google protobuf Python libraries ***
+         *** Try installing package 'python-protobuf' or similar.  ***
+         *************************************************************
+    ''' + '\n')
     raise
 
 try:
     import proto.nanopb_pb2 as nanopb_pb2
     import proto.descriptor_pb2 as descriptor
 except:
-    print
-    print "********************************************************************"
-    print "*** Failed to import the protocol definitions for generator.     ***"
-    print "*** You have to run 'make' in the nanopb/generator/proto folder. ***"
-    print "********************************************************************"
-    print
+    sys.stderr.write('''
+         ********************************************************************
+         *** Failed to import the protocol definitions for generator.     ***
+         *** You have to run 'make' in the nanopb/generator/proto folder. ***
+         ********************************************************************
+    ''' + '\n')
     raise
 
 
