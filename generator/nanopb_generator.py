@@ -6,7 +6,14 @@ nanopb_version = "nanopb-0.2.5-dev"
 import sys
 
 try:
+    # Add some dummy imports to keep packaging tools happy.
     import google, distutils.util # bbfreeze seems to need these
+    import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
+except:
+    # Don't care, we will error out later if it is actually important.
+    pass
+
+try:
     import google.protobuf.text_format as text_format
 except:
     sys.stderr.write('''
