@@ -162,6 +162,7 @@ typedef uint8_t pb_type_t;
 /**** Field allocation types ****/
  
 #define PB_ATYPE_STATIC   0x00
+#define PB_ATYPE_POINTER  0x80
 #define PB_ATYPE_CALLBACK 0x40
 #define PB_ATYPE_MASK     0xC0
 
@@ -365,6 +366,22 @@ struct _pb_extension_t {
     pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), \
     pb_arraysize(st, m), ptr}
+
+/* Allocated fields carry the size of the actual data, not the pointer */
+#define PB_REQUIRED_POINTER(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_REQUIRED | ltype, \
+    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+
+/* Optional fields don't need a has_ variable, as information would be redundant */
+#define PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+
+#define PB_REPEATED_POINTER(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
+    fd, \
+    pb_delta(st, m ## _count, m), \
+    pb_membersize(st, m[0]), 0, ptr}
 
 /* Callbacks are much like required fields except with special datatype. */
 #define PB_REQUIRED_CALLBACK(tag, st, m, fd, ltype, ptr) \

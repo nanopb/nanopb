@@ -200,19 +200,27 @@ class Field:
             self.enc_size = 5 # protoc rejects enum values > 32 bits
         elif desc.type == FieldD.TYPE_STRING:
             self.pbtype = 'STRING'
-            if self.max_size is None:
-                can_be_static = False
-            else:
+            if field_options.type == nanopb_pb2.FT_POINTER:
                 self.ctype = 'char'
-                self.array_decl += '[%d]' % self.max_size
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
+                self.enc_size = None
+            else:
+                if self.max_size is None:
+                    can_be_static = False
+                else:
+                    self.ctype = 'char'
+                    self.array_decl += '[%d]' % self.max_size
+                    self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
             self.pbtype = 'BYTES'
-            if self.max_size is None:
-                can_be_static = False
-            else:
+            if field_options.type == nanopb_pb2.FT_POINTER:
                 self.ctype = self.struct_name + self.name + 't'
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
+                self.enc_size = None
+            else:
+                if self.max_size is None:
+                    can_be_static = False
+                else:
+                    self.ctype = self.struct_name + self.name + 't'
+                    self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -231,6 +239,8 @@ class Field:
         
         if field_options.type == nanopb_pb2.FT_STATIC:
             self.allocation = 'STATIC'
+        elif field_options.type == nanopb_pb2.FT_POINTER:
+            self.allocation = 'POINTER'
         elif field_options.type == nanopb_pb2.FT_CALLBACK:
             self.allocation = 'CALLBACK'
             self.ctype = 'pb_callback_t'
@@ -242,21 +252,37 @@ class Field:
         return cmp(self.tag, other.tag)
     
     def __str__(self):
-        if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
-            result = '    bool has_' + self.name + ';\n'
-        elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
-            result = '    size_t ' + self.name + '_count;\n'
+        result = ''
+        if self.allocation == 'POINTER':
+            if self.rules == 'REPEATED':
+                result += '    size_t ' + self.name + '_count;\n'
+            
+            # Use struct definition, so recursive submessages are possible
+            if self.pbtype == 'MESSAGE':
+                result += '    struct _%s *%s;' % (self.ctype, self.name)
+
+            # String arrays need to be defined as pointers to pointers
+            elif self.rules == 'REPEATED' and self.pbtype == 'STRING':
+                result += '    %s **%s;' % (self.ctype, self.name)
+            else:
+                result += '    %s *%s;' % (self.ctype, self.name)
         else:
-            result = ''
-        result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
+            if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+                result += '    bool has_' + self.name + ';\n'
+            elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
+                result += '    size_t ' + self.name + '_count;\n'
+            result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
     
     def types(self):
         '''Return definitions for any special types this field might need.'''
-        if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
+        if self.pbtype == 'BYTES' and (self.allocation == 'STATIC' or self.allocation == 'POINTER'):
             result = 'typedef struct {\n'
             result += '    size_t size;\n'
-            result += '    uint8_t bytes[%d];\n' % self.max_size
+            if self.allocation == 'POINTER':
+                result += '    uint8_t *bytes;\n'
+            else:
+                result += '    uint8_t bytes[%d];\n' % self.max_size
             result += '} %s;\n' % self.ctype
         else:
             result = None
@@ -303,7 +329,7 @@ class Field:
         result  = '    PB_FIELD2(%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
-        result += '%s, ' % self.allocation
+        result += '%-8s, ' % self.allocation
         result += '%s, ' % ("FIRST" if not prev_field_name else "OTHER")
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name

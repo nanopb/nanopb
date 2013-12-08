@@ -1,0 +1,12 @@
+# Build and run a test that encodes and decodes a message that contains
+# all of the Protocol Buffers data types.
+
+Import("env")
+
+env.NanopbProto(["alltypes", "alltypes.options"])
+enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
+# dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_decode.o"])
+
+env.RunTest(enc)
+# env.RunTest([dec, "encode_alltypes.output"])
+
