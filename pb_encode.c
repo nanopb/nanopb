@@ -195,9 +195,9 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     return true;
 }
 
-/* Encode a field with static allocation, i.e. one whose data is stored
- * in the structure itself. */
-static bool checkreturn encode_static_field(pb_ostream_t *stream,
+/* Encode a field with static or pointer allocation, i.e. one whose data
+ * is available to the encoder directly. */
+static bool checkreturn encode_basic_field(pb_ostream_t *stream,
     const pb_field_t *field, const void *pData)
 {
     pb_encoder_t func;
@@ -285,7 +285,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream,
     {
         case PB_ATYPE_STATIC:
         case PB_ATYPE_POINTER:
-            return encode_static_field(stream, field, pData);
+            return encode_basic_field(stream, field, pData);
         
         case PB_ATYPE_CALLBACK:
             return encode_callback_field(stream, field, pData);
