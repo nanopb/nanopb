@@ -173,11 +173,14 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
             if (!pb_encode_tag_for_field(stream, field))
                 return false;
 
-            /* Special case for strings */
+            /* Normally the data is stored directly in the array entries, but
+             * for pointer-type string fields, the array entries are actually
+             * string pointers. So we have to dereference once more to get to
+             * the character data. */
             if (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
                 PB_LTYPE(field->type) == PB_LTYPE_STRING)
             {
-                if (!func(stream, field, *(const void**)p))
+                if (!func(stream, field, *(const void* const*)p))
                     return false;      
             }
             else
@@ -199,19 +202,25 @@ static bool checkreturn encode_static_field(pb_ostream_t *stream,
 {
     pb_encoder_t func;
     const void *pSize;
-    bool dummy = true;
+    bool implicit_has = true;
     
     func = PB_ENCODERS[PB_LTYPE(field->type)];
     
     if (field->size_offset)
         pSize = (const char*)pData + field->size_offset;
-    else if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-        pSize = *(const void**)pData ? &dummy : pData;
     else
-        pSize = &dummy;
+        pSize = &implicit_has;
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-        pData = *(const void**)pData;
+    {
+        /* pData is a pointer to the field, which contains pointer to
+         * the data. If the 2nd pointer is NULL, it is interpreted as if
+         * the has_field was false.
+         */
+        
+        pData = *(const void* const*)pData;
+        implicit_has = (pData != NULL);
+    }
 
     switch (PB_HTYPE(field->type))
     {
@@ -606,25 +615,20 @@ bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, con
 
 bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    /* strnlen() is not always available, so just use a for-loop */
+    /* strnlen() is not always available, so just use a loop */
     size_t size = 0;
+    size_t max_size = field->data_size;
     const char *p = (const char*)src;
+    
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+        max_size = (size_t)-1;
+
+    while (size < max_size && *p != '\0')
     {
-        while (*p != '\0')
-        {
-            size++;
-            p++;
-        }
+        size++;
+        p++;
     }
-    else
-    {
-        while (size < field->data_size && *p != '\0')
-        {
-            size++;
-            p++;
-        }
-    }
+
     return pb_encode_string(stream, (const uint8_t*)src, size);
 }
 
