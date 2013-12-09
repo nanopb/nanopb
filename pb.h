@@ -228,8 +228,16 @@ struct _pb_bytes_array_t {
     size_t size;
     uint8_t bytes[1];
 };
-
 typedef struct _pb_bytes_array_t pb_bytes_array_t;
+
+/* Same, except for pointer-type fields. There is no need to variable struct
+ * length in this case.
+ */
+struct _pb_bytes_ptr_t {
+    size_t size;
+    uint8_t *bytes;
+};
+typedef struct _pb_bytes_ptr_t pb_bytes_ptr_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
@@ -377,10 +385,10 @@ struct _pb_extension_t {
     {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m[0]), 0, ptr}
 
+/* Repeated fields have a _count field and a pointer to array of pointers */
 #define PB_REPEATED_POINTER(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
-    fd, \
-    pb_delta(st, m ## _count, m), \
+    fd, pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), 0, ptr}
 
 /* Callbacks are much like required fields except with special datatype. */

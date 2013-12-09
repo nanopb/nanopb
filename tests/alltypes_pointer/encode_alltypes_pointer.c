@@ -24,9 +24,8 @@ int main(int argc, char **argv)
     double value_double = 1000.0f;
 
     char *value_string = "1000";
-    AllTypes_req_bytes_t value_req_bytes;
-    AllTypes_rep_bytes_t value_rep_bytes;
-    AllTypes_opt_bytes_t value_opt_bytes;
+    
+    pb_bytes_ptr_t value_bytes = {4, (uint8_t*)"1000"};
 
     SubMessage value_submessage = {0};
     MyEnum value_enum = MyEnum_Truth;
@@ -51,11 +50,9 @@ int main(int argc, char **argv)
     alltypes.req_sfixed64      = &value_int64;
     alltypes.req_double        = &value_double;
 
-    value_req_bytes.bytes = (uint8_t*)"1000";
-    value_req_bytes.size  = 4;
-    
     alltypes.req_string        = value_string;
-    alltypes.req_bytes         = &value_req_bytes;
+    
+    alltypes.req_bytes         = &value_bytes;
 
     value_submessage.substuff1 = value_string;
     value_submessage.substuff2 = &value_int32;
@@ -80,11 +77,8 @@ int main(int argc, char **argv)
     alltypes.rep_sfixed64_count = 1; alltypes.rep_sfixed64 = &value_int64;
     alltypes.rep_double_count = 1; alltypes.rep_double = &value_double;
 
-    value_rep_bytes.bytes = (uint8_t*)"1000";
-    value_rep_bytes.size  = 4;
-
     alltypes.rep_string_count = 1; alltypes.rep_string = (char **)&value_string;
-    alltypes.rep_bytes_count = 0; alltypes.rep_bytes = &value_rep_bytes;
+    alltypes.rep_bytes_count = 1; alltypes.rep_bytes = &value_bytes;
 
     alltypes.rep_submsg_count = 1; alltypes.rep_submsg = &value_submessage;
     alltypes.rep_enum_count = 1; alltypes.rep_enum = &value_enum;
@@ -109,11 +103,9 @@ int main(int argc, char **argv)
       alltypes.opt_sfixed64      = &value_int64;
       alltypes.opt_double        = &value_double;
     
-      value_opt_bytes.bytes = (uint8_t*)"1000";
-      value_opt_bytes.size  = 4;
-    
       alltypes.opt_string        = value_string;
-      alltypes.opt_bytes         = &value_opt_bytes;
+      
+      alltypes.opt_bytes         = &value_bytes;
 
       alltypes.opt_submsg        = &value_submessage;
       alltypes.opt_enum          = &value_enum;

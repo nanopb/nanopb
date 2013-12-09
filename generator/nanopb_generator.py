@@ -189,6 +189,34 @@ class Field:
         else:
             raise NotImplementedError(desc.label)
         
+        # Check if the field can be implemented with static allocation
+        # i.e. whether the data size is known.
+        if desc.type == FieldD.TYPE_STRING and self.max_size is None:
+            can_be_static = False
+        
+        if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
+            can_be_static = False
+        
+        # Decide how the field data will be allocated
+        if field_options.type == nanopb_pb2.FT_DEFAULT:
+            if can_be_static:
+                field_options.type = nanopb_pb2.FT_STATIC
+            else:
+                field_options.type = nanopb_pb2.FT_CALLBACK
+        
+        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
+            raise Exception("Field %s is defined as static, but max_size or "
+                            "max_count is not given." % self.name)
+        
+        if field_options.type == nanopb_pb2.FT_STATIC:
+            self.allocation = 'STATIC'
+        elif field_options.type == nanopb_pb2.FT_POINTER:
+            self.allocation = 'POINTER'
+        elif field_options.type == nanopb_pb2.FT_CALLBACK:
+            self.allocation = 'CALLBACK'
+        else:
+            raise NotImplementedError(field_options.type)
+        
         # Decide the C data type to use in the struct.
         if datatypes.has_key(desc.type):
             self.ctype, self.pbtype, self.enc_size = datatypes[desc.type]
@@ -200,27 +228,18 @@ class Field:
             self.enc_size = 5 # protoc rejects enum values > 32 bits
         elif desc.type == FieldD.TYPE_STRING:
             self.pbtype = 'STRING'
-            if field_options.type == nanopb_pb2.FT_POINTER:
+            self.ctype = 'char'
+            if self.allocation == 'STATIC':
                 self.ctype = 'char'
-                self.enc_size = None
-            else:
-                if self.max_size is None:
-                    can_be_static = False
-                else:
-                    self.ctype = 'char'
-                    self.array_decl += '[%d]' % self.max_size
-                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+                self.array_decl += '[%d]' % self.max_size
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
             self.pbtype = 'BYTES'
-            if field_options.type == nanopb_pb2.FT_POINTER:
+            if self.allocation == 'STATIC':
                 self.ctype = self.struct_name + self.name + 't'
-                self.enc_size = None
-            else:
-                if self.max_size is None:
-                    can_be_static = False
-                else:
-                    self.ctype = self.struct_name + self.name + 't'
-                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
+            elif self.allocation == 'POINTER':
+                self.ctype = 'pb_bytes_ptr_t'
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -228,26 +247,6 @@ class Field:
         else:
             raise NotImplementedError(desc.type)
         
-        if field_options.type == nanopb_pb2.FT_DEFAULT:
-            if can_be_static:
-                field_options.type = nanopb_pb2.FT_STATIC
-            else:
-                field_options.type = nanopb_pb2.FT_CALLBACK
-        
-        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
-            raise Exception("Field %s is defined as static, but max_size or max_count is not given." % self.name)
-        
-        if field_options.type == nanopb_pb2.FT_STATIC:
-            self.allocation = 'STATIC'
-        elif field_options.type == nanopb_pb2.FT_POINTER:
-            self.allocation = 'POINTER'
-        elif field_options.type == nanopb_pb2.FT_CALLBACK:
-            self.allocation = 'CALLBACK'
-            self.ctype = 'pb_callback_t'
-            self.array_decl = ''
-        else:
-            raise NotImplementedError(field_options.type)
-    
     def __cmp__(self, other):
         return cmp(self.tag, other.tag)
     
@@ -257,15 +256,16 @@ class Field:
             if self.rules == 'REPEATED':
                 result += '    size_t ' + self.name + '_count;\n'
             
-            # Use struct definition, so recursive submessages are possible
             if self.pbtype == 'MESSAGE':
+                # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
-
-            # String arrays need to be defined as pointers to pointers
             elif self.rules == 'REPEATED' and self.pbtype == 'STRING':
+                # String arrays need to be defined as pointers to pointers
                 result += '    %s **%s;' % (self.ctype, self.name)
             else:
                 result += '    %s *%s;' % (self.ctype, self.name)
+        elif self.allocation == 'CALLBACK':
+            result += '    pb_callback_t %s;' % self.name
         else:
             if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
                 result += '    bool has_' + self.name + ';\n'
@@ -276,13 +276,10 @@ class Field:
     
     def types(self):
         '''Return definitions for any special types this field might need.'''
-        if self.pbtype == 'BYTES' and (self.allocation == 'STATIC' or self.allocation == 'POINTER'):
+        if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
             result = 'typedef struct {\n'
             result += '    size_t size;\n'
-            if self.allocation == 'POINTER':
-                result += '    uint8_t *bytes;\n'
-            else:
-                result += '    uint8_t bytes[%d];\n' % self.max_size
+            result += '    uint8_t bytes[%d];\n' % self.max_size
             result += '} %s;\n' % self.ctype
         else:
             result = None
