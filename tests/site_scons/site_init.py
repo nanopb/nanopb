@@ -55,7 +55,11 @@ def add_nanopb_builders(env):
         else:
             infile = None
         
-        pipe = subprocess.Popen(str(source[0]),
+        args = [str(source[0])]
+        if env.has_key('ARGS'):
+            args.extend(env['ARGS'])
+        
+        pipe = subprocess.Popen(args,
                                 stdin = infile,
                                 stdout = open(str(target[0]), 'w'),
                                 stderr = sys.stderr)
@@ -80,6 +84,17 @@ def add_nanopb_builders(env):
     decode_builder = Builder(generator = decode_actions,
                              suffix = '.decoded')
     env.Append(BUILDERS = {'Decode': decode_builder})    
+
+    # Build command that encodes a message using protoc
+    def encode_actions(source, target, env, for_signature):
+        esc = env['ESCAPE']
+        dirs = ' '.join(['-I' + esc(env.GetBuildPath(d)) for d in env['PROTOCPATH']])
+        return '$PROTOC $PROTOCFLAGS %s --encode=%s %s <%s >%s' % (
+            dirs, env['MESSAGE'], esc(str(source[1])), esc(str(source[0])), esc(str(target[0])))
+
+    encode_builder = Builder(generator = encode_actions,
+                             suffix = '.encoded')
+    env.Append(BUILDERS = {'Encode': encode_builder})    
 
     # Build command that asserts that two files be equal
     def compare_files(target, source, env):
