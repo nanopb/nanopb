@@ -47,7 +47,8 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_exten
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
 static bool checkreturn find_extension_field(pb_field_iterator_t *iter);
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
-static bool pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest);
@@ -62,6 +63,7 @@ static bool checkreturn pb_skip_string(pb_istream_t *stream);
  */
 static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_varint,
+    &pb_dec_uvarint,
     &pb_dec_svarint,
     &pb_dec_fixed32,
     &pb_dec_fixed64,
@@ -823,8 +825,24 @@ bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, vo
     
     switch (field->data_size)
     {
-        case 1: *(uint8_t*)dest = (uint8_t)value; break;
-        case 2: *(uint16_t*)dest = (uint16_t)value; break;
+        case 1: *(int8_t*)dest = (int8_t)value; break;
+        case 2: *(int16_t*)dest = (int16_t)value; break;
+        case 4: *(int32_t*)dest = (int32_t)value; break;
+        case 8: *(int64_t*)dest = (int64_t)value; break;
+        default: PB_RETURN_ERROR(stream, "invalid data_size");
+    }
+    
+    return true;
+}
+
+bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+{
+    uint64_t value;
+    if (!pb_decode_varint(stream, &value))
+        return false;
+    
+    switch (field->data_size)
+    {
         case 4: *(uint32_t*)dest = (uint32_t)value; break;
         case 8: *(uint64_t*)dest = value; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");

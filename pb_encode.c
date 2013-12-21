@@ -28,6 +28,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src);
@@ -40,6 +41,7 @@ static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t
  */
 static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_varint,
+    &pb_enc_uvarint,
     &pb_enc_svarint,
     &pb_enc_fixed32,
     &pb_enc_fixed64,
@@ -424,6 +426,7 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
     switch (PB_LTYPE(field->type))
     {
         case PB_LTYPE_VARINT:
+        case PB_LTYPE_UVARINT:
         case PB_LTYPE_SVARINT:
             wiretype = PB_WT_VARINT;
             break;
@@ -506,12 +509,28 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
 
 bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
+    int64_t value = 0;
+    
+    /* Cases 1 and 2 are for compilers that have smaller types for bool
+     * or enums. */
+    switch (field->data_size)
+    {
+        case 1: value = *(const int8_t*)src; break;
+        case 2: value = *(const int16_t*)src; break;
+        case 4: value = *(const int32_t*)src; break;
+        case 8: value = *(const int64_t*)src; break;
+        default: PB_RETURN_ERROR(stream, "invalid data_size");
+    }
+    
+    return pb_encode_varint(stream, (uint64_t)value);
+}
+
+bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
     uint64_t value = 0;
     
     switch (field->data_size)
     {
-        case 1: value = *(const uint8_t*)src; break;
-        case 2: value = *(const uint16_t*)src; break;
         case 4: value = *(const uint32_t*)src; break;
         case 8: value = *(const uint64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
