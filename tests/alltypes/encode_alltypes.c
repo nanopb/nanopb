@@ -67,6 +67,17 @@ int main(int argc, char **argv)
     alltypes.rep_enum_count = 5; alltypes.rep_enum[4] = MyEnum_Truth;
     alltypes.rep_emptymsg_count = 5;
     
+    alltypes.req_limits.int32_min  = INT32_MIN;
+    alltypes.req_limits.int32_max  = INT32_MAX;
+    alltypes.req_limits.uint32_min = 0;
+    alltypes.req_limits.uint32_max = UINT32_MAX;
+    alltypes.req_limits.int64_min  = INT64_MIN;
+    alltypes.req_limits.int64_max  = INT64_MAX;
+    alltypes.req_limits.uint64_min = 0;
+    alltypes.req_limits.uint64_max = UINT64_MAX;
+    alltypes.req_limits.enum_min   = HugeEnum_Negative;
+    alltypes.req_limits.enum_max   = HugeEnum_Positive;
+    
     if (mode != 0)
     {
         /* Fill in values for optional fields */

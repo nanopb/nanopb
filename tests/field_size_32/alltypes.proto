@@ -8,6 +8,24 @@ message EmptyMessage {
 
 }
 
+enum HugeEnum {
+    Negative = -2147483647; /* protoc doesn't accept -2147483648 here */
+    Positive =  2147483647;
+}
+
+message Limits {
+    required int32      int32_min  =  1;
+    required int32      int32_max  =  2;
+    required uint32     uint32_min =  3;
+    required uint32     uint32_max =  4;
+    required int64      int64_min  =  5;
+    required int64      int64_max  =  6;
+    required uint64     uint64_min =  7;
+    required uint64     uint64_max =  8;
+    required HugeEnum   enum_min   =  9;
+    required HugeEnum   enum_max   = 10;
+}
+
 enum MyEnum {
     Zero = 0;
     First = 1;
@@ -82,6 +100,9 @@ message AllTypes {
     optional SubMessage opt_submsg  = 10056;
     optional MyEnum     opt_enum    = 10057 [default = Second];
     optional EmptyMessage opt_emptymsg = 10058;
+
+    // Check that extreme integer values are handled correctly
+    required Limits     req_limits = 98;
 
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.

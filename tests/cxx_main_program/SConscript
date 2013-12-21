@@ -3,6 +3,10 @@
 
 Import("env")
 
+# This is needed to get INT32_MIN etc. macros defined
+env = env.Clone()
+env.Append(CPPDEFINES = ['__STDC_LIMIT_MACROS'])
+
 # Copy the files to .cxx extension in order to force C++ build.
 c = Copy("$TARGET", "$SOURCE")
 env.Command("pb_encode.cxx", "#../pb_encode.c", c)

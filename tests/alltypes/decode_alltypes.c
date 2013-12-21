@@ -170,6 +170,17 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.has_opt_emptymsg  == true);
     }
     
+    TEST(alltypes.req_limits.int32_min  == INT32_MIN);
+    TEST(alltypes.req_limits.int32_max  == INT32_MAX);
+    TEST(alltypes.req_limits.uint32_min == 0);
+    TEST(alltypes.req_limits.uint32_max == UINT32_MAX);
+    TEST(alltypes.req_limits.int64_min  == INT64_MIN);
+    TEST(alltypes.req_limits.int64_max  == INT64_MAX);
+    TEST(alltypes.req_limits.uint64_min == 0);
+    TEST(alltypes.req_limits.uint64_max == UINT64_MAX);
+    TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
+    TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
+    
     TEST(alltypes.end == 1099);
     
     return true;

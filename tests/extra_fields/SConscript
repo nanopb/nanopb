@@ -10,5 +10,7 @@ dec = env.GetBuildPath('$BUILD/basic_stream/${PROGPREFIX}decode_stream${PROGSUFF
 env.RunTest('person_with_extra_field_stream.output', [dec, "person_with_extra_field.pb"])
 env.Compare(["person_with_extra_field_stream.output", "person_with_extra_field.expected"])
 
-dec2 = env.GetBuildPath('$BUILD/alltypes/${PROGPREFIX}decode_alltypes${PROGSUFFIX}')
+# This uses the backwards compatibility alltypes test, so that
+# alltypes_with_extra_fields.pb doesn't have to be remade so often.
+dec2 = env.GetBuildPath('$BUILD/backwards_compatibility/${PROGPREFIX}decode_legacy${PROGSUFFIX}')
 env.RunTest('alltypes_with_extra_fields.output', [dec2, 'alltypes_with_extra_fields.pb'])
