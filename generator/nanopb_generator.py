@@ -46,7 +46,7 @@ datatypes = {
     FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4),
     FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8),
     FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32',       5),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10),
     FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10),
     FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4),
     FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8),
