@@ -28,9 +28,9 @@ compiler. This has the advantage that there is no need to reimplement the
 basic parsing of .proto files. However, it does mean that you need the
 Google's protobuf library in order to run the generator.
 
-If you have downloaded a binary package for nanopb (either Windows or Linux
-version), the 'protoc' binary is included in the 'generator-bin' folder. In
-this case, you are ready to go. Simply run this command:
+If you have downloaded a binary package for nanopb (either Windows, Linux or
+Mac OS X version), the 'protoc' binary is included in the 'generator-bin'
+folder. In this case, you are ready to go. Simply run this command:
 
     generator-bin/protoc --nanopb_out=. myprotocol.proto
 
