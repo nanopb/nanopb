@@ -57,8 +57,8 @@ def _detect_protoc(env):
         # Use protoc defined by user
         return env['PROTOC']
     
-    p = _detect_nanopb(env)
-    p1 = os.path.join(p, 'generator-bin', 'protoc' + env['PROGSUFFIX'])
+    n = _detect_nanopb(env)
+    p1 = os.path.join(n, 'generator-bin', 'protoc' + env['PROGSUFFIX'])
     if os.path.exists(p1):
         # Use protoc bundled with binary package
         return env['ESCAPE'](p1)
@@ -78,7 +78,8 @@ def _detect_protocflags(env):
     
     p = _detect_protoc(env)
     n = _detect_nanopb(env)
-    if p == os.path.join(n, 'generator-bin', 'protoc'):
+    p1 = os.path.join(n, 'generator-bin', 'protoc' + env['PROGSUFFIX'])
+    if p == env['ESCAPE'](p1):
         # Using the bundled protoc, no options needed
         return ''
     
