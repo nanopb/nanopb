@@ -83,6 +83,23 @@ int main(int argc, char **argv)
     MyEnum      opt_enum          = MyEnum_Truth;
     EmptyMessage opt_emptymsg     = {0};
 
+    /* Values for the Limits message. */
+    static int32_t  int32_min  = INT32_MIN;
+    static int32_t  int32_max  = INT32_MAX;
+    static uint32_t uint32_min = 0;
+    static uint32_t uint32_max = UINT32_MAX;
+    static int64_t  int64_min  = INT64_MIN;
+    static int64_t  int64_max  = INT64_MAX;
+    static uint64_t uint64_min = 0;
+    static uint64_t uint64_max = UINT64_MAX;
+    static HugeEnum enum_min   = HugeEnum_Negative;
+    static HugeEnum enum_max   = HugeEnum_Positive;
+    Limits req_limits = {&int32_min,    &int32_max,
+                         &uint32_min,   &uint32_max,
+                         &int64_min,    &int64_max,
+                         &uint64_min,   &uint64_max,
+                         &enum_min,     &enum_max};
+
     /* Initialize the message struct with pointers to the fields. */
     AllTypes alltypes = {0};
 
@@ -104,6 +121,7 @@ int main(int argc, char **argv)
     alltypes.req_submsg        = &req_submsg;
     alltypes.req_enum          = &req_enum;
     alltypes.req_emptymsg      = &req_emptymsg;
+    alltypes.req_limits        = &req_limits;
     
     alltypes.rep_int32_count    = 5; alltypes.rep_int32     = rep_int32;
     alltypes.rep_int64_count    = 5; alltypes.rep_int64     = rep_int64;

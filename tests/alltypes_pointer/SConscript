@@ -3,6 +3,9 @@
 
 Import("env")
 
+c = Copy("$TARGET", "$SOURCE")
+env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
+
 env.NanopbProto(["alltypes", "alltypes.options"])
 enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
 
@@ -12,7 +15,7 @@ env.RunTest("decode_alltypes.output", ["$BUILD/alltypes/decode_alltypes", "encod
 env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
 
 # Do the same thing with the optional fields present
-#env.RunTest("optionals.output", enc, ARGS = ['1'])
-#env.RunTest("optionals.decout", ["$BUILD/alltypes/decode_alltypes", "optionals.output"], ARGS = ['1'])
-#env.Compare(["optionals.output", "$BUILD/alltypes/optionals.output"])
+env.RunTest("optionals.output", enc, ARGS = ['1'])
+env.RunTest("optionals.decout", ["$BUILD/alltypes/decode_alltypes", "optionals.output"], ARGS = ['1'])
+env.Compare(["optionals.output", "$BUILD/alltypes/optionals.output"])
 
