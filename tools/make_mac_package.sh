@@ -37,10 +37,10 @@ LIBPROTOBUF=$(otool -L `which protoc` | grep -o '/.*libprotobuf[^ ]*')
 cp $LIBPROTOC $LIBPROTOBUF $DEST/generator-bin/
 cat > $DEST/generator-bin/protoc << EOF
 #!/bin/bash
-SCRIPTDIR=\$(cd \$(dirname \$0); pwd)
+SCRIPTDIR=\$(dirname "\$0")
 export DYLD_LIBRARY_PATH=\$SCRIPTDIR
 export PATH=\$SCRIPTDIR:\$PATH
-exec \$SCRIPTDIR/protoc.bin "\$@"
+exec "\$SCRIPTDIR/protoc.bin" "\$@"
 EOF
 chmod +x $DEST/generator-bin/protoc
 
