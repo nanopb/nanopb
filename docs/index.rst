@@ -104,11 +104,12 @@ requires a few header files to be available:
 #) *stdbool.h*, for definition of *bool*
 
 If these header files do not come with your compiler, you can use the
-file *compat/pb_syshdr.h* instead. It contains an example of how to provide
+file *extra/pb_syshdr.h* instead. It contains an example of how to provide
 the dependencies. You may have to edit it a bit to suit your custom platform.
 
-To use the pb_syshdr.h, define *PB_SYSTEM_HEADER* to be the name of your custom
-header file. It should provide all the dependencies listed above.
+To use the pb_syshdr.h, define *PB_SYSTEM_HEADER* as *"pb_syshdr.h"* (including the quotes).
+Similarly, you can provide a custom include file, which should provide all the dependencies
+listed above.
 
 Running the test cases
 ======================
