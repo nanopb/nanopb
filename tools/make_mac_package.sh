@@ -45,5 +45,5 @@ EOF
 chmod +x $DEST/generator-bin/protoc
 
 # Tar it all up
-( cd dist; tar -czf $VERSION.tgz $VERSION )
+( cd dist; zip -r $VERSION.zip $VERSION )
 
