@@ -1,12 +1,18 @@
-# Build and run a test that encodes and decodes a message that contains
-# all of the Protocol Buffers data types.
+# Encode the AllTypes message using pointers for all fields, and verify the
+# output against the normal AllTypes test case.
 
 Import("env")
 
 env.NanopbProto(["alltypes", "alltypes.options"])
 enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
-# dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_decode.o"])
 
+# Encode and compare results
 env.RunTest(enc)
-# env.RunTest([dec, "encode_alltypes.output"])
+env.RunTest("decode_alltypes.output", ["$BUILD/alltypes/decode_alltypes", "encode_alltypes_pointer.output"])
+env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
+
+# Do the same thing with the optional fields present
+#env.RunTest("optionals.output", enc, ARGS = ['1'])
+#env.RunTest("optionals.decout", ["$BUILD/alltypes/decode_alltypes", "optionals.output"], ARGS = ['1'])
+#env.Compare(["optionals.output", "$BUILD/alltypes/optionals.output"])
 
