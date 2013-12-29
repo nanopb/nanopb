@@ -226,7 +226,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
     {
         case PB_HTYPE_REQUIRED:
             if (!pData)
-                return false;
+                PB_RETURN_ERROR(stream, "missing required field");
             if (!pb_encode_tag_for_field(stream, field))
                 return false;
             if (!func(stream, field, pData))
@@ -499,7 +499,12 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
     bool status;
     
     if (!pb_encode(&substream, fields, src_struct))
+    {
+#ifndef PB_NO_ERRMSG
+        stream->errmsg = substream.errmsg;
+#endif
         return false;
+    }
     
     size = substream.bytes_written;
     
