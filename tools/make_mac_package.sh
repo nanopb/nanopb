@@ -8,7 +8,7 @@
 set -e
 set -x
 
-VERSION=`git describe --always`
+VERSION=`git describe --always`-macosx-x86
 DEST=dist/$VERSION
 
 rm -rf $DEST
@@ -45,5 +45,5 @@ EOF
 chmod +x $DEST/generator-bin/protoc
 
 # Tar it all up
-( cd dist; tar -czf $VERSION-mac.tgz $VERSION )
+( cd dist; tar -czf $VERSION.tgz $VERSION )
 
