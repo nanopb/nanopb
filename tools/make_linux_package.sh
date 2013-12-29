@@ -34,10 +34,10 @@ LIBPROTOC=$(ldd `which protoc` | grep -o '/.*libprotoc[^ ]*')
 cp $LIBPROTOC $DEST/generator-bin/
 cat > $DEST/generator-bin/protoc << EOF
 #!/bin/bash
-SCRIPTDIR=\$(dirname \$(readlink -f \$0))
+SCRIPTDIR=\$(dirname "\$0")
 export LD_LIBRARY_PATH=\$SCRIPTDIR
 export PATH=\$SCRIPTDIR:\$PATH
-exec \$SCRIPTDIR/protoc.bin "\$@"
+exec "\$SCRIPTDIR/protoc.bin" "\$@"
 EOF
 chmod +x $DEST/generator-bin/protoc
 

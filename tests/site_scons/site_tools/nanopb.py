@@ -61,12 +61,12 @@ def _detect_protoc(env):
     p1 = os.path.join(p, 'generator-bin', 'protoc')
     if os.path.exists(p1):
         # Use protoc bundled with binary package
-        return p1
+        return env['ESCAPE'](p1)
     
     p = env.WhereIs('protoc')
     if p:
         # Use protoc from path
-        return p
+        return env['ESCAPE'](p)
     
     raise SCons.Errors.StopError(NanopbWarning,
         "Could not find the protoc compiler")
