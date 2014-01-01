@@ -1,3 +1,10 @@
+nanopb-0.2.5 (2014-01-01)
+ Fix a bug with encoding negative values in int32 fields (issue 97)
+ Create binary packages of the generator + dependencies (issue 47)
+ Add support for pointer-type fields to the encoder (part of issue 80)
+ Fixed path in FindNanopb.cmake (issue 94)
+ Improved tests
+
 nanopb-0.2.4 (2013-11-07)
  Remove the deprecated NANOPB_INTERNALS functions from public API.
  Document the security model.
