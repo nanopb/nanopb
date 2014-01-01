@@ -10,6 +10,8 @@ all: encode decode
 	./encode 2 | ./decode
 	./encode 3 | ./decode
 
+.SUFFIXES:
+
 clean:
 	rm -f encode unionproto.pb.h unionproto.pb.c
 

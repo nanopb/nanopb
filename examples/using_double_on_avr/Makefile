@@ -7,6 +7,8 @@ CFLAGS += -I$(NANOPB_DIR)
 
 all: run_tests
 
+.SUFFIXES:
+
 clean:
 	rm -f test_conversions encode_double decode_double doubleproto.pb.c doubleproto.pb.h
 

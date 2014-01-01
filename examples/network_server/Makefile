@@ -7,6 +7,8 @@ CFLAGS += -I$(NANOPB_DIR)
 
 all: server client
 
+.SUFFIXES:
+
 clean:
 	rm -f server client fileproto.pb.c fileproto.pb.h
 
