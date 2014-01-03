@@ -169,6 +169,7 @@ class Field:
         self.max_count = None
         self.array_decl = ""
         self.enc_size = None
+        self.ctype = None
         
         # Parse field options
         if field_options.HasField("max_size"):
