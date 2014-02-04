@@ -822,16 +822,6 @@ def generate_source(headername, enums, messages, extensions, options):
     if worst > 255 or checks:
         yield '\n/* Check that field information fits in pb_field_t */\n'
         
-        if worst < 65536:
-            yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
-            if worst > 255:
-                yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
-            else:
-                assertion = ' && '.join(str(c) + ' < 256' for c in checks)
-                msgs = '_'.join(str(n) for n in checks_msgnames)
-                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-            yield '#endif\n\n'
-        
         if worst > 65535 or checks:
             yield '#if !defined(PB_FIELD_32BIT)\n'
             if worst > 65535:
@@ -839,8 +829,32 @@ def generate_source(headername, enums, messages, extensions, options):
             else:
                 assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
                 msgs = '_'.join(str(n) for n in checks_msgnames)
+                yield '/* If you get an error here, it means that you need to define PB_FIELD_32BIT\n'
+                yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
+                yield ' * \n'
+                yield ' * The reason you need to do this is that some of your messages contain tag\n'
+                yield ' * numbers or field sizes that are larger than what can fit in 8 or 16 bit\n'
+                yield ' * field descriptors.\n'
+                yield ' */\n'
                 yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-            yield '#endif\n'
+            yield '#endif\n\n'
+        
+        if worst < 65536:
+            yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
+            if worst > 255:
+                yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
+            else:
+                assertion = ' && '.join(str(c) + ' < 256' for c in checks)
+                msgs = '_'.join(str(n) for n in checks_msgnames)
+                yield '/* If you get an error here, it means that you need to define PB_FIELD_16BIT\n'
+                yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
+                yield ' * \n'
+                yield ' * The reason you need to do this is that some of your messages contain tag\n'
+                yield ' * numbers or field sizes that are larger than what can fit in the default\n'
+                yield ' * 8 bit descriptors.\n'
+                yield ' */\n'
+                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
+            yield '#endif\n\n'
     
     # Add check for sizeof(double)
     has_double = False

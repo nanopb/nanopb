@@ -96,8 +96,14 @@
 #endif
 
 /* Compile-time assertion, used for checking compatible compilation options.
- * If this fails on your compiler for some reason, use #define STATIC_ASSERT
- * to disable it. */
+ * If this does not work properly on your compiler, use #define STATIC_ASSERT
+ * to disable it.
+ *
+ * But before doing that, check carefully the error message / place where it
+ * comes from to see if the error has a real cause. Unfortunately the error
+ * message is not always very clear to read, but you can see the reason better
+ * in the place where the STATIC_ASSERT macro was called.
+ */
 #ifndef STATIC_ASSERT
 #define STATIC_ASSERT(COND,MSG) typedef char STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
 #define STATIC_ASSERT_MSG(MSG, LINE, COUNTER) STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
@@ -210,7 +216,11 @@ struct _pb_field_t {
 PB_PACKED_STRUCT_END
 
 /* Make sure that the standard integer types are of the expected sizes.
- * All kinds of things may break otherwise.. atleast all fixed* types. */
+ * All kinds of things may break otherwise.. atleast all fixed* types.
+ *
+ * If you get errors here, it probably means that your stdint.h is not
+ * correct for your platform.
+ */
 STATIC_ASSERT(sizeof(int8_t) == 1, INT8_T_WRONG_SIZE)
 STATIC_ASSERT(sizeof(uint8_t) == 1, UINT8_T_WRONG_SIZE)
 STATIC_ASSERT(sizeof(int16_t) == 2, INT16_T_WRONG_SIZE)
