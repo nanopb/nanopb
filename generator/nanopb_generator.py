@@ -315,6 +315,12 @@ class Field:
             data = self.default.decode('string_escape')
             data = ['0x%02x' % ord(c) for c in data]
             default = '{%d, {%s}}' % (len(data), ','.join(data))
+        elif self.pbtype in ['FIXED32', 'UINT32']:
+            default += 'u'
+        elif self.pbtype in ['FIXED64', 'UINT64']:
+            default += 'ull'
+        elif self.pbtype in ['SFIXED64', 'INT64']:
+            default += 'll'
         
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
