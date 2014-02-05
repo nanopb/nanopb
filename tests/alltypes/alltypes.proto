@@ -15,11 +15,11 @@ enum HugeEnum {
 
 message Limits {
     required int32      int32_min  =  1 [default = 2147483647];
-    required int32      int32_max  =  2 [default = -2147483648];
+    required int32      int32_max  =  2 [default = -2147483647];
     required uint32     uint32_min =  3 [default = 4294967295];
     required uint32     uint32_max =  4 [default = 0];
     required int64      int64_min  =  5 [default = 9223372036854775807];
-    required int64      int64_max  =  6 [default = -9223372036854775807]; /* GCC gives a warning about -2**63, so just avoid the trouble for now.. */
+    required int64      int64_max  =  6 [default = -9223372036854775807];
     required uint64     uint64_min =  7 [default = 18446744073709551615];
     required uint64     uint64_max =  8 [default = 0];
     required HugeEnum   enum_min   =  9 [default = Positive];
