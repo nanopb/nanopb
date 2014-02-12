@@ -15,6 +15,7 @@ except:
 
 try:
     import google.protobuf.text_format as text_format
+    import google.protobuf.descriptor_pb2 as descriptor
 except:
     sys.stderr.write('''
          *************************************************************
@@ -26,7 +27,7 @@ except:
 
 try:
     import proto.nanopb_pb2 as nanopb_pb2
-    import proto.descriptor_pb2 as descriptor
+    import proto.plugin_pb2 as plugin_pb2
 except:
     sys.stderr.write('''
          ********************************************************************
@@ -1070,7 +1071,6 @@ def main_plugin():
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
     
-    import proto.plugin_pb2 as plugin_pb2
     data = sys.stdin.read()
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
     
