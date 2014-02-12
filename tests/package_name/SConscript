@@ -1,0 +1,36 @@
+# Check that alltypes test case works also when the .proto file defines
+# a package name.
+
+Import("env")
+
+# Build a modified alltypes.proto
+def modify_proto(target, source, env):
+    '''Add a "package test.package;" directive to the beginning of the .proto file.'''
+    data = open(str(source[0]), 'r').read()
+    open(str(target[0]), 'w').write("package test.package;\n\n" + data)
+    return 0
+
+env.Command("alltypes.proto", "#alltypes/alltypes.proto", modify_proto)
+env.Command("alltypes.options", "#alltypes/alltypes.options", Copy("$TARGET", "$SOURCE"))
+env.NanopbProto(["alltypes", "alltypes.options"])
+
+# Build a modified encode_alltypes.c
+def modify_c(target, source, env):
+    '''Add package name to type names in .c file.'''
+
+    data = open(str(source[0]), 'r').read()
+    
+    type_names = ['AllTypes', 'MyEnum', 'HugeEnum']
+    for name in type_names:
+        data = data.replace(name, 'test_package_' + name)
+    
+    open(str(target[0]), 'w').write(data)
+    return 0
+env.Command("encode_alltypes.c", "#alltypes/encode_alltypes.c", modify_c)
+
+# Encode and compare results to original alltypes testcase
+enc = env.Program(["encode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
+refdec = "$BUILD/alltypes/decode_alltypes$PROGSUFFIX"
+env.RunTest(enc)
+env.Compare(["encode_alltypes.output", "$BUILD/alltypes/encode_alltypes.output"])
+
