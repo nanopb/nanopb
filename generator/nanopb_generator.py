@@ -36,7 +36,6 @@ except:
     ''' + '\n')
     raise
 
-
 # ---------------------------------------------------------------------------
 #                     Generation of single fields
 # ---------------------------------------------------------------------------
@@ -900,6 +899,7 @@ class Globals:
     '''Ugly global variables, should find a good way to pass these.'''
     verbose_options = False
     separate_options = []
+    matched_namemasks = set()
 
 def get_nanopb_suboptions(subdesc, options, name):
     '''Get copy of options, and merge information from subdesc.'''
@@ -910,6 +910,7 @@ def get_nanopb_suboptions(subdesc, options, name):
     dotname = '.'.join(name.parts)
     for namemask, options in Globals.separate_options:
         if fnmatch(dotname, namemask):
+            Globals.matched_namemasks.add(namemask)
             new_options.MergeFrom(options)
     
     # Handle options defined in .proto
@@ -929,8 +930,8 @@ def get_nanopb_suboptions(subdesc, options, name):
         new_options.MergeFrom(ext)
     
     if Globals.verbose_options:
-        print "Options for " + dotname + ":"
-        print text_format.MessageToString(new_options)
+        sys.stderr.write("Options for " + dotname + ": ")
+        sys.stderr.write(text_format.MessageToString(new_options) + "\n")
     
     return new_options
 
@@ -994,13 +995,14 @@ def process_file(filename, fdesc, options):
         # No %s specified, use the filename as-is
         optfilename = options.options_file
     
-    if options.verbose:
-        print 'Reading options from ' + optfilename
-    
     if os.path.isfile(optfilename):
+        if options.verbose:
+            sys.stderr.write('Reading options from ' + optfilename + '\n')
+
         Globals.separate_options = read_options_file(open(optfilename, "rU"))
     else:
         Globals.separate_options = []
+    Globals.matched_namemasks = set()
     
     # Parse the file
     file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
@@ -1023,6 +1025,14 @@ def process_file(filename, fdesc, options):
     sourcedata = ''.join(generate_source(headerbasename, enums,
                                          messages, extensions, options))
 
+    # Check if there were any lines in .options that did not match a member
+    unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
+    if unmatched and not options.quiet:
+        sys.stderr.write("Following patterns in " + optfilename + " did not match any fields: "
+                         + ', '.join(unmatched) + "\n")
+        if not Globals.verbose_options:
+            sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
+
     return {'headername': headername, 'headerdata': headerdata,
             'sourcename': sourcename, 'sourcedata': sourcedata}
     
@@ -1044,7 +1054,8 @@ def main_cli():
         results = process_file(filename, None, options)
         
         if not options.quiet:
-            print "Writing to " + results['headername'] + " and " + results['sourcename']
+            sys.stderr.write("Writing to " + results['headername'] + " and "
+                             + results['sourcename'] + "\n")
     
         open(results['headername'], 'w').write(results['headerdata'])
         open(results['sourcename'], 'w').write(results['sourcedata'])        
@@ -1067,10 +1078,7 @@ def main_plugin():
     args = shlex.split(request.parameter)
     options, dummy = optparser.parse_args(args)
     
-    # We can't go printing stuff to stdout
-    Globals.verbose_options = False
-    options.verbose = False
-    options.quiet = True
+    Globals.verbose_options = options.verbose
     
     response = plugin_pb2.CodeGeneratorResponse()
     
