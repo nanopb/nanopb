@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.2.6"
+nanopb_version = "nanopb-0.2.7-dev"
 
 import sys
 
