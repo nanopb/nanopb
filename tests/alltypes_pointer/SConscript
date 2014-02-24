@@ -3,18 +3,27 @@
 
 Import("env")
 
+# We need our own pb_decode.o for the malloc support
+strict = env.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1});
+strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
+
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 
 env.NanopbProto(["alltypes", "alltypes.options"])
 enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
+dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "pb_decode_with_malloc.o"])
 
 refdec = "$BUILD/alltypes/decode_alltypes$PROGSUFFIX"
 
 # Encode and compare results
 env.RunTest(enc)
-env.RunTest("decode_alltypes.output", [refdec, "encode_alltypes_pointer.output"])
+env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"])
+env.RunTest("decode_alltypes_ref.output", [refdec, "encode_alltypes_pointer.output"])
 env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
+env.Compare(["encode_alltypes_pointer_ref.output", "$BUILD/alltypes/encode_alltypes.output"])
 
 # Do the same thing with the optional fields present
 env.RunTest("optionals.output", enc, ARGS = ['1'])

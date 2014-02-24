@@ -465,6 +465,121 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
     }
 }
 
+#ifdef PB_ENABLE_MALLOC
+/* Allocate storage for the field and store the pointer at iter->pData.
+ * array_size is the number of entries to reserve in an array. */
+static bool checkreturn allocate_field(pb_istream_t *stream, pb_field_iterator_t *iter, size_t array_size)
+{    
+    void *ptr = *(void**)iter->pData;
+    size_t size = array_size * iter->pos->data_size;
+    
+    if (ptr == NULL)
+    {
+        /* First allocation */
+        ptr = malloc(size);
+        if (ptr == NULL)
+            PB_RETURN_ERROR(stream, "malloc failed");
+    }
+    else
+    {
+        /* Expand previous allocation */
+        /* Note: on failure the old pointer will remain in the structure,
+         * the message must be freed by caller also on error return. */
+        ptr = realloc(ptr, size);
+        if (ptr == NULL)
+            PB_RETURN_ERROR(stream, "realloc failed");
+    }
+    
+    *(void**)iter->pData = ptr;
+    return true;
+}
+#endif
+
+static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
+{
+#ifndef PB_ENABLE_MALLOC
+    UNUSED(wire_type);
+    UNUSED(iter);
+    PB_RETURN_ERROR(stream, "no malloc support");
+#else
+    pb_type_t type;
+    pb_decoder_t func;
+    
+    type = iter->pos->type;
+    func = PB_DECODERS[PB_LTYPE(type)];
+    
+    switch (PB_HTYPE(type))
+    {
+        case PB_HTYPE_REQUIRED:
+        case PB_HTYPE_OPTIONAL:
+            if (!allocate_field(stream, iter, 1))
+                return false;
+            return func(stream, iter->pos, iter->pData);
+    
+        case PB_HTYPE_REPEATED:
+            if (wire_type == PB_WT_STRING
+                && PB_LTYPE(type) <= PB_LTYPE_LAST_PACKABLE)
+            {
+                /* Packed array, multiple items come in at once. */
+                bool status = true;
+                size_t *size = (size_t*)iter->pSize;
+                size_t allocated_size = *size;
+                void *pItem;
+                pb_istream_t substream;
+                
+                if (!pb_make_string_substream(stream, &substream))
+                    return false;
+                
+                while (substream.bytes_left)
+                {
+                    if (*size + 1 > allocated_size)
+                    {
+                        /* Allocate more storage. This tries to guess the
+                         * number of remaining entries. */
+                        allocated_size += substream.bytes_left / iter->pos->data_size;
+                        if (*size + 1 > allocated_size)
+                            allocated_size++; /* Division gave zero. */
+                        
+                        if (!allocate_field(&substream, iter, allocated_size))
+                        {
+                            status = false;
+                            break;
+                        }
+
+                        /* Decode the array entry */
+                        pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
+                        if (!func(&substream, iter->pos, pItem))
+                        {
+                            status = false;
+                            break;
+                        }
+                        (*size)++;
+                    }
+                }
+                pb_close_string_substream(stream, &substream);
+                
+                return status;
+            }
+            else
+            {
+                /* Normal repeated field, i.e. only one item at a time. */
+                size_t *size = (size_t*)iter->pSize;
+                void *pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
+                
+                if (!allocate_field(stream, iter, *size + 1))
+                    return false;
+            
+                
+                (*size)++;
+                return func(stream, iter->pos, pItem);
+            }
+            
+        default:
+            PB_RETURN_ERROR(stream, "invalid field type");
+    }
+#endif
+}
+
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
 {
     pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
@@ -518,6 +633,9 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
     {
         case PB_ATYPE_STATIC:
             return decode_static_field(stream, wire_type, iter);
+        
+        case PB_ATYPE_POINTER:
+            return decode_pointer_field(stream, wire_type, iter);
         
         case PB_ATYPE_CALLBACK:
             return decode_callback_field(stream, wire_type, iter);
@@ -597,45 +715,60 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
     pb_field_iterator_t iter;
     pb_field_init(&iter, fields, dest_struct);
     
-    /* Initialize size/has fields and apply default values */
     do
     {
         pb_type_t type;
         type = iter.pos->type;
     
+        /* Avoid crash on empty message types (zero fields) */
         if (iter.pos->tag == 0)
             continue;
         
         if (PB_ATYPE(type) == PB_ATYPE_STATIC)
         {
-            /* Initialize the size field for optional/repeated fields to 0. */
             if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL)
             {
+                /* Set has_field to false. Still initialize the optional field
+                 * itself also. */
                 *(bool*)iter.pSize = false;
             }
             else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
             {
+                /* Set array count to 0, no need to initialize contents. */
                 *(size_t*)iter.pSize = 0;
-                continue; /* Array is empty, no need to initialize contents */
+                continue;
             }
             
-            /* Initialize field contents to default value */
             if (PB_LTYPE(iter.pos->type) == PB_LTYPE_SUBMESSAGE)
             {
+                /* Initialize submessage to defaults */
                 pb_message_set_to_defaults((const pb_field_t *) iter.pos->ptr, iter.pData);
             }
             else if (iter.pos->ptr != NULL)
             {
+                /* Initialize to default value */
                 memcpy(iter.pData, iter.pos->ptr, iter.pos->data_size);
             }
             else
             {
+                /* Initialize to zeros */
                 memset(iter.pData, 0, iter.pos->data_size);
+            }
+        }
+        else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+        {
+            /* Initialize the pointer to NULL. */
+            *(void**)iter.pData = NULL;
+            
+            /* Initialize array count to 0. */
+            if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+            {
+                *(size_t*)iter.pSize = 0;
             }
         }
         else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
         {
-            continue; /* Don't overwrite callback */
+            /* Don't overwrite callback */
         }
     } while (pb_field_next(&iter));
 }

@@ -63,6 +63,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
+
+#ifdef PB_ENABLE_MALLOC
+#include <stdlib.h>
+#endif
 #endif
 
 /* Macro for defining packed structures (compiler dependent).
