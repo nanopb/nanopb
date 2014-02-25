@@ -359,6 +359,10 @@ static bool pb_field_next(pb_field_iterator_t *iter)
     {
         prev_size *= iter->pos->array_size;
     }
+    else if (PB_ATYPE(iter->pos->type) == PB_ATYPE_POINTER)
+    {
+        prev_size = sizeof(void*);
+    }
     
     if (iter->pos->tag == 0)
         return false; /* Only happens with empty message types */
@@ -512,9 +516,17 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
     {
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
-            if (!allocate_field(stream, iter, 1))
-                return false;
-            return func(stream, iter->pos, iter->pData);
+            if (PB_LTYPE(type) == PB_LTYPE_STRING)
+            {
+                return func(stream, iter->pos, iter->pData);
+            }
+            else
+            {
+                if (!allocate_field(stream, iter, 1))
+                    return false;
+                
+                return func(stream, iter->pos, *(void**)iter->pData);
+            }
     
         case PB_HTYPE_REPEATED:
             if (wire_type == PB_WT_STRING
@@ -545,16 +557,16 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                             status = false;
                             break;
                         }
-
-                        /* Decode the array entry */
-                        pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
-                        if (!func(&substream, iter->pos, pItem))
-                        {
-                            status = false;
-                            break;
-                        }
-                        (*size)++;
                     }
+
+                    /* Decode the array entry */
+                    pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
+                    if (!func(&substream, iter->pos, pItem))
+                    {
+                        status = false;
+                        break;
+                    }
+                    (*size)++;
                 }
                 pb_close_string_substream(stream, &substream);
                 
@@ -1036,8 +1048,22 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
         return false;
     
     /* Check length, noting the null terminator */
-    if (size + 1 > field->data_size)
-        PB_RETURN_ERROR(stream, "string overflow");
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+#ifndef PB_ENABLE_MALLOC
+        PB_RETURN_ERROR(stream, "no malloc support");
+#else
+        *(void**)dest = realloc(*(void**)dest, size + 1);
+        if (*(void**)dest == NULL)
+            PB_RETURN_ERROR(stream, "out of memory");
+        dest = *(void**)dest;
+#endif
+    }
+    else
+    {
+        if (size + 1 > field->data_size)
+            PB_RETURN_ERROR(stream, "string overflow");
+    }
     
     status = pb_read(stream, (uint8_t*)dest, size);
     *((uint8_t*)dest + size) = 0;
