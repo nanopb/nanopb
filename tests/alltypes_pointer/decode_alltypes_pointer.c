@@ -7,13 +7,14 @@
 
 #define TEST(x) if (!(x)) { \
     printf("Test " #x " failed.\n"); \
-    return false; \
+    status = false; \
     }
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
+    bool status = true;
     AllTypes alltypes;
     
     /* Fill with garbage to better detect initialization errors */
@@ -22,28 +23,31 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
         return false;
     
-    TEST(*alltypes.req_int32         == -1001);
-    TEST(*alltypes.req_int64         == -1002);
-    TEST(*alltypes.req_uint32        == 1003);
-    TEST(*alltypes.req_uint64        == 1004);
-    TEST(*alltypes.req_sint32        == -1005);
-    TEST(*alltypes.req_sint64        == -1006);
-    TEST(*alltypes.req_bool          == true);
+    TEST(alltypes.req_int32     && *alltypes.req_int32         == -1001);
+    TEST(alltypes.req_int64     && *alltypes.req_int64         == -1002);
+    TEST(alltypes.req_uint32    && *alltypes.req_uint32        == 1003);
+    TEST(alltypes.req_uint64    && *alltypes.req_uint64        == 1004);
+    TEST(alltypes.req_sint32    && *alltypes.req_sint32        == -1005);
+    TEST(alltypes.req_sint64    && *alltypes.req_sint64        == -1006);
+    TEST(alltypes.req_bool      && *alltypes.req_bool          == true);
     
-    TEST(*alltypes.req_fixed32       == 1008);
-    TEST(*alltypes.req_sfixed32      == -1009);
-    TEST(*alltypes.req_float         == 1010.0f);
+    TEST(alltypes.req_fixed32   && *alltypes.req_fixed32       == 1008);
+    TEST(alltypes.req_sfixed32  && *alltypes.req_sfixed32      == -1009);
+    TEST(alltypes.req_float     && *alltypes.req_float         == 1010.0f);
     
-    TEST(*alltypes.req_fixed64       == 1011);
-    TEST(*alltypes.req_sfixed64      == -1012);
-    TEST(*alltypes.req_double        == 1013.0f);
+    TEST(alltypes.req_fixed64   && *alltypes.req_fixed64       == 1011);
+    TEST(alltypes.req_sfixed64  && *alltypes.req_sfixed64      == -1012);
+    TEST(alltypes.req_double    && *alltypes.req_double        == 1013.0f);
     
-    TEST(strcmp(alltypes.req_string, "1014") == 0);
-    TEST(alltypes.req_bytes->size == 4);
-    TEST(memcmp(alltypes.req_bytes->bytes, "1015", 4) == 0);
-    TEST(strcmp(alltypes.req_submsg->substuff1, "1016") == 0);
-    TEST(*alltypes.req_submsg->substuff2 == 1016);
-    TEST(*alltypes.req_submsg->substuff3 == 3);
+    TEST(alltypes.req_string    && strcmp(alltypes.req_string, "1014") == 0);
+    TEST(alltypes.req_bytes     && alltypes.req_bytes->size == 4);
+    TEST(alltypes.req_bytes     && alltypes.req_bytes->bytes
+                                && memcmp(alltypes.req_bytes->bytes, "1015", 4) == 0);
+    TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff1
+                                && strcmp(alltypes.req_submsg->substuff1, "1016") == 0);
+    TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff2
+                                && *alltypes.req_submsg->substuff2 == 1016);
+    /* TEST(*alltypes.req_submsg->substuff3 == 3); Default values are not currently supported for pointer fields */
     TEST(*alltypes.req_enum == MyEnum_Truth);
 
 #if 0
@@ -180,7 +184,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.end == 1099);
 #endif
 
-    return true;
+    return status;
 }
 
 int main(int argc, char **argv)

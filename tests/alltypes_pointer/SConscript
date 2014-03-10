@@ -23,7 +23,6 @@ env.RunTest(enc)
 env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"])
 env.RunTest("decode_alltypes_ref.output", [refdec, "encode_alltypes_pointer.output"])
 env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
-env.Compare(["encode_alltypes_pointer_ref.output", "$BUILD/alltypes/encode_alltypes.output"])
 
 # Do the same thing with the optional fields present
 env.RunTest("optionals.output", enc, ARGS = ['1'])

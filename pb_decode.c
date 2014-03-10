@@ -472,29 +472,19 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
 #ifdef PB_ENABLE_MALLOC
 /* Allocate storage for the field and store the pointer at iter->pData.
  * array_size is the number of entries to reserve in an array. */
-static bool checkreturn allocate_field(pb_istream_t *stream, pb_field_iterator_t *iter, size_t array_size)
+static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size)
 {    
-    void *ptr = *(void**)iter->pData;
-    size_t size = array_size * iter->pos->data_size;
+    void *ptr = *(void**)pData;
+    size_t size = array_size * data_size;
     
+    /* Allocate new or expand previous allocation */
+    /* Note: on failure the old pointer will remain in the structure,
+     * the message must be freed by caller also on error return. */
+    ptr = realloc(ptr, size);
     if (ptr == NULL)
-    {
-        /* First allocation */
-        ptr = malloc(size);
-        if (ptr == NULL)
-            PB_RETURN_ERROR(stream, "malloc failed");
-    }
-    else
-    {
-        /* Expand previous allocation */
-        /* Note: on failure the old pointer will remain in the structure,
-         * the message must be freed by caller also on error return. */
-        ptr = realloc(ptr, size);
-        if (ptr == NULL)
-            PB_RETURN_ERROR(stream, "realloc failed");
-    }
+        PB_RETURN_ERROR(stream, "realloc failed");
     
-    *(void**)iter->pData = ptr;
+    *(void**)pData = ptr;
     return true;
 }
 #endif
@@ -522,7 +512,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
             }
             else
             {
-                if (!allocate_field(stream, iter, 1))
+                if (!allocate_field(stream, iter->pData, iter->pos->data_size, 1))
                     return false;
                 
                 return func(stream, iter->pos, *(void**)iter->pData);
@@ -547,12 +537,11 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                     if (*size + 1 > allocated_size)
                     {
                         /* Allocate more storage. This tries to guess the
-                         * number of remaining entries. */
-                        allocated_size += substream.bytes_left / iter->pos->data_size;
-                        if (*size + 1 > allocated_size)
-                            allocated_size++; /* Division gave zero. */
+                         * number of remaining entries. Round the division
+                         * upwards. */
+                        allocated_size += (substream.bytes_left - 1) / iter->pos->data_size + 1;
                         
-                        if (!allocate_field(&substream, iter, allocated_size))
+                        if (!allocate_field(&substream, iter->pData, iter->pos->data_size, allocated_size))
                         {
                             status = false;
                             break;
@@ -560,7 +549,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                     }
 
                     /* Decode the array entry */
-                    pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
+                    pItem = *(uint8_t**)iter->pData + iter->pos->data_size * (*size);
                     if (!func(&substream, iter->pos, pItem))
                     {
                         status = false;
@@ -576,11 +565,26 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
             {
                 /* Normal repeated field, i.e. only one item at a time. */
                 size_t *size = (size_t*)iter->pSize;
-                void *pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
+                void *pItem;
                 
-                if (!allocate_field(stream, iter, *size + 1))
+                if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size + 1))
                     return false;
             
+                pItem = *(uint8_t**)iter->pData + iter->pos->data_size * (*size);
+                
+                /* Clear the new item in case it contains a pointer, or is a submessage. */
+                if (PB_LTYPE(type) == PB_LTYPE_STRING)
+                {
+                    *(char**)pItem = NULL;
+                }
+                else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
+                {
+                    memset(pItem, 0, iter->pos->data_size); 
+                }
+                else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+                {
+                    pb_message_set_to_defaults((const pb_field_t *) iter->pos->ptr, pItem);
+                }
                 
                 (*size)++;
                 return func(stream, iter->pos, pItem);
@@ -1026,42 +1030,62 @@ bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, v
 
 bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    pb_bytes_array_t *x = (pb_bytes_array_t*)dest;
-    
-    uint32_t temp;
-    if (!pb_decode_varint32(stream, &temp))
-        return false;
-    x->size = temp;
-    
-    /* Check length, noting the space taken by the size_t header. */
-    if (x->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
-        PB_RETURN_ERROR(stream, "bytes overflow");
-    
-    return pb_read(stream, x->bytes, x->size);
-}
-
-bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
-{
     uint32_t size;
-    bool status;
+    size_t alloc_size;
+    
     if (!pb_decode_varint32(stream, &size))
         return false;
     
-    /* Check length, noting the null terminator */
+    /* Space for the size_t header */
+    alloc_size = size + offsetof(pb_bytes_array_t, bytes);
+    
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
-        *(void**)dest = realloc(*(void**)dest, size + 1);
-        if (*(void**)dest == NULL)
-            PB_RETURN_ERROR(stream, "out of memory");
+        pb_bytes_ptr_t *bdest = (pb_bytes_ptr_t*)dest;
+        if (!allocate_field(stream, &bdest->bytes, alloc_size, 1))
+            return false;
+        
+        bdest->size = size;
+        return pb_read(stream, bdest->bytes, size);
+#endif
+    }
+    else
+    {
+        pb_bytes_array_t* bdest = (pb_bytes_array_t*)dest;
+        if (alloc_size > field->data_size)
+            PB_RETURN_ERROR(stream, "bytes overflow");
+        bdest->size = size;
+        return pb_read(stream, bdest->bytes, size);
+    }
+}
+
+bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
+{
+    uint32_t size;
+    size_t alloc_size;
+    bool status;
+    if (!pb_decode_varint32(stream, &size))
+        return false;
+    
+    /* Space for null terminator */
+    alloc_size = size + 1;
+    
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+#ifndef PB_ENABLE_MALLOC
+        PB_RETURN_ERROR(stream, "no malloc support");
+#else
+        if (!allocate_field(stream, dest, alloc_size, 1))
+            return false;
         dest = *(void**)dest;
 #endif
     }
     else
     {
-        if (size + 1 > field->data_size)
+        if (alloc_size > field->data_size)
             PB_RETURN_ERROR(stream, "string overflow");
     }
     
