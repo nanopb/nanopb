@@ -82,6 +82,14 @@ bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *des
  */
 bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
 
+#ifdef PB_ENABLE_MALLOC
+/* Release any allocated pointer fields. If you use dynamic allocation, you should
+ * call this for any decoded message when you are done with it. You also need to
+ * free messages even if pb_decode() returned with error.
+ */
+void pb_release(const pb_field_t fields[], void *dest_struct);
+#endif
+
 
 /**************************************
  * Functions for manipulating streams *

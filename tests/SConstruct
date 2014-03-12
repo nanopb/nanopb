@@ -58,7 +58,12 @@ if not env.GetOption('clean'):
         if stdint: conf.env.Append(CPPDEFINES = {'HAVE_STDINT_H': 1})
         if stddef: conf.env.Append(CPPDEFINES = {'HAVE_STDDEF_H': 1})
         if string: conf.env.Append(CPPDEFINES = {'HAVE_STRING_H': 1})
-        
+    
+    # Check if we have mallinfo for memory leak tests
+    mallinfo = conf.CheckFunc('mallinfo', '#include <malloc.h>\n')
+    if mallinfo:
+        conf.env.Append(CPPDEFINES = {'HAVE_MALLINFO': 1})
+    
     # Check if we can use pkg-config to find protobuf include path
     status, output = conf.TryAction('pkg-config protobuf --variable=includedir > $TARGET')
     if status:
@@ -70,7 +75,7 @@ if not env.GetOption('clean'):
     if 'gcc' in env['CC']:
         if conf.CheckLib('mudflap'):
             conf.env.Append(CCFLAGS = '-fmudflap')
-            conf.env.Append(LINKFLAGS = '-lmudflap -fmudflap')
+            conf.env.Append(LINKFLAGS = '-fmudflap')
     
     # Check if we can use extra strict warning flags (only with GCC)
     extra = '-Wcast-qual -Wlogical-op -Wconversion'

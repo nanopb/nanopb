@@ -5,8 +5,12 @@
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 
+#ifdef HAVE_MALLINFO
+#include <malloc.h>
+#endif
+
 #define TEST(x) if (!(x)) { \
-    printf("Test " #x " failed.\n"); \
+    fprintf(stderr, "Test " #x " failed.\n"); \
     status = false; \
     }
 
@@ -21,7 +25,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     memset(&alltypes, 0xAA, sizeof(alltypes));
     
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
+    {
+        pb_release(AllTypes_fields, &alltypes);
         return false;
+    }
     
     TEST(alltypes.req_int32     && *alltypes.req_int32         == -1001);
     TEST(alltypes.req_int64     && *alltypes.req_int64         == -1002);
@@ -184,31 +191,70 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.end == 1099);
 #endif
 
+    pb_release(AllTypes_fields, &alltypes);
+
     return status;
 }
 
 int main(int argc, char **argv)
 {
-    uint8_t buffer[1024];
-    size_t count;
-    pb_istream_t stream;
-
-    /* Whether to expect the optional values or the default values. */
-    int mode = (argc > 1) ? atoi(argv[1]) : 0;
+    bool status;
+    int orig_allocations;
     
-    /* Read the data into buffer */
-    SET_BINARY_MODE(stdin);
-    count = fread(buffer, 1, sizeof(buffer), stdin);
-    
-    /* Construct a pb_istream_t for reading from the buffer */
-    stream = pb_istream_from_buffer(buffer, count);
-    
-    /* Decode and print out the stuff */
-    if (!check_alltypes(&stream, mode))
+#ifdef HAVE_MALLINFO
+    /* Dynamic library loader etc. may have some malloc()ed memory also. */
     {
-        printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));
+        struct mallinfo m = mallinfo();
+        orig_allocations = m.uordblks;
+    }
+#endif
+
+    {    
+        uint8_t buffer[1024];
+        size_t count;
+        pb_istream_t stream;
+        
+        /* Whether to expect the optional values or the default values. */
+        int mode = (argc > 1) ? atoi(argv[1]) : 0;
+        
+        /* Read the data into buffer */
+        SET_BINARY_MODE(stdin);
+        count = fread(buffer, 1, sizeof(buffer), stdin);
+        
+        /* Construct a pb_istream_t for reading from the buffer */
+        stream = pb_istream_from_buffer(buffer, count);
+        
+        /* Decode and verify the message */
+        status = check_alltypes(&stream, mode);
+        
+        if (!status)
+            fprintf(stderr, "Parsing failed: %s\n", PB_GET_ERROR(&stream));
+    }
+    
+#ifdef HAVE_MALLINFO
+    /* Check for memory leaks */
+    {
+        struct mallinfo m = mallinfo();
+        int leak = m.uordblks - orig_allocations;
+        
+        if (leak > 0)
+        {
+            fprintf(stderr, "Memory leak: %d bytes\n", leak);
+            return 1;
+        }
+        else
+        {
+            fprintf(stderr, "Ok, no memory leaks\n");
+        }
+    }
+#endif
+    
+    if (!status)
+    {
         return 1;
-    } else {
+    }
+    else
+    {
         return 0;
     }
 }

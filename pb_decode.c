@@ -487,6 +487,23 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
     *(void**)pData = ptr;
     return true;
 }
+
+/* Clear a newly allocated item in case it contains a pointer, or is a submessage. */
+static void initialize_pointer_field(void *pItem, pb_field_iterator_t *iter)
+{
+    if (PB_LTYPE(iter->pos->type) == PB_LTYPE_STRING)
+    {
+        *(char**)pItem = NULL;
+    }
+    else if (PB_LTYPE(iter->pos->type) == PB_LTYPE_BYTES)
+    {
+        memset(pItem, 0, iter->pos->data_size); 
+    }
+    else if (PB_LTYPE(iter->pos->type) == PB_LTYPE_SUBMESSAGE)
+    {
+        pb_message_set_to_defaults((const pb_field_t *) iter->pos->ptr, pItem);
+    }
+}
 #endif
 
 static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter)
@@ -515,6 +532,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 if (!allocate_field(stream, iter->pData, iter->pos->data_size, 1))
                     return false;
                 
+                initialize_pointer_field(*(void**)iter->pData, iter);
                 return func(stream, iter->pos, *(void**)iter->pData);
             }
     
@@ -550,6 +568,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
                     /* Decode the array entry */
                     pItem = *(uint8_t**)iter->pData + iter->pos->data_size * (*size);
+                    initialize_pointer_field(pItem, iter);
                     if (!func(&substream, iter->pos, pItem))
                     {
                         status = false;
@@ -567,26 +586,12 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 size_t *size = (size_t*)iter->pSize;
                 void *pItem;
                 
-                if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size + 1))
+                (*size)++;
+                if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size))
                     return false;
             
-                pItem = *(uint8_t**)iter->pData + iter->pos->data_size * (*size);
-                
-                /* Clear the new item in case it contains a pointer, or is a submessage. */
-                if (PB_LTYPE(type) == PB_LTYPE_STRING)
-                {
-                    *(char**)pItem = NULL;
-                }
-                else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
-                {
-                    memset(pItem, 0, iter->pos->data_size); 
-                }
-                else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
-                {
-                    pb_message_set_to_defaults((const pb_field_t *) iter->pos->ptr, pItem);
-                }
-                
-                (*size)++;
+                pItem = *(uint8_t**)iter->pData + iter->pos->data_size * (*size - 1);
+                initialize_pointer_field(pItem, iter);
                 return func(stream, iter->pos, pItem);
             }
             
@@ -907,6 +912,79 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
     pb_close_string_substream(stream, &substream);
     return status;
 }
+
+#ifdef PB_ENABLE_MALLOC
+void pb_release(const pb_field_t fields[], void *dest_struct)
+{
+    pb_field_iterator_t iter;
+    pb_field_init(&iter, fields, dest_struct);
+    
+    do
+    {
+        pb_type_t type;
+        type = iter.pos->type;
+    
+        /* Avoid crash on empty message types (zero fields) */
+        if (iter.pos->tag == 0)
+            continue;
+        
+        if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+        {
+            if (PB_LTYPE(type) == PB_LTYPE_STRING &&
+                PB_HTYPE(type) == PB_HTYPE_REPEATED)
+            {
+                /* Release entries in repeated string array */
+                void **pItem = *(void***)iter.pData;
+                size_t count = *(size_t*)iter.pSize;
+                while (count--)
+                {
+                    free(*pItem);
+                    *pItem++ = NULL;
+                }
+            }
+            else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
+            {
+                /* Release entries in repeated bytes array */
+                pb_bytes_ptr_t *pItem = *(pb_bytes_ptr_t**)iter.pData;
+                size_t count = (pItem ? 1 : 0);
+                
+                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+                {
+                    count = *(size_t*)iter.pSize;   
+                }
+                
+                while (count--)
+                {
+                    free(pItem->bytes);
+                    pItem->bytes = NULL;
+                    pItem++;
+                }
+            }
+            else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+            {
+                /* Release fields in submessages */
+                void *pItem = *(void**)iter.pData;
+                size_t count = (pItem ? 1 : 0);
+                
+                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+                {
+                    count = *(size_t*)iter.pSize;   
+                }
+                
+                while (count--)
+                {
+                    pb_release((const pb_field_t*)iter.pos->ptr, pItem);
+                    pItem = (uint8_t*)pItem + iter.pos->data_size;
+                }
+            }
+            
+            /* Release main item */
+            free(*(void**)iter.pData);
+            *(void**)iter.pData = NULL;
+        }
+    } while (pb_field_next(&iter));
+}
+#endif
 
 /* Field decoders */
 
