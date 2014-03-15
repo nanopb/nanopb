@@ -174,11 +174,12 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
                 return false;
 
             /* Normally the data is stored directly in the array entries, but
-             * for pointer-type string fields, the array entries are actually
-             * string pointers. So we have to dereference once more to get to
-             * the character data. */
+             * for pointer-type string and bytes fields, the array entries are
+             * actually pointers themselves also. So we have to dereference once
+             * more to get to the actual data. */
             if (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
-                PB_LTYPE(field->type) == PB_LTYPE_STRING)
+                (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
+                 PB_LTYPE(field->type) == PB_LTYPE_BYTES))
             {
                 if (!func(stream, field, *(const void* const*)p))
                     return false;      
@@ -603,19 +604,21 @@ bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, c
 
 bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
+    
+    if (src == NULL)
     {
-        const pb_bytes_ptr_t *bytes = (const pb_bytes_ptr_t*)src;
-        return pb_encode_string(stream, bytes->bytes, bytes->size);
+        /* Threat null pointer as an empty bytes field */
+        return pb_encode_string(stream, NULL, 0);
     }
-    else
+    
+    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
+        PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) > field->data_size)
     {
-        const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
-        if (bytes->size + offsetof(pb_bytes_array_t, bytes) > field->data_size)
-            PB_RETURN_ERROR(stream, "bytes size exceeded");
-
-        return pb_encode_string(stream, bytes->bytes, bytes->size);
+        PB_RETURN_ERROR(stream, "bytes size exceeded");
     }
+    
+    return pb_encode_string(stream, bytes->bytes, bytes->size);
 }
 
 bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
@@ -628,10 +631,17 @@ bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, co
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
         max_size = (size_t)-1;
 
-    while (size < max_size && *p != '\0')
+    if (src == NULL)
     {
-        size++;
-        p++;
+        size = 0; /* Threat null pointer as an empty string */
+    }
+    else
+    {
+        while (size < max_size && *p != '\0')
+        {
+            size++;
+            p++;
+        }
     }
 
     return pb_encode_string(stream, (const uint8_t*)src, size);

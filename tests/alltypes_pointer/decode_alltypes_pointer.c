@@ -48,8 +48,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     
     TEST(alltypes.req_string    && strcmp(alltypes.req_string, "1014") == 0);
     TEST(alltypes.req_bytes     && alltypes.req_bytes->size == 4);
-    TEST(alltypes.req_bytes     && alltypes.req_bytes->bytes
-                                && memcmp(alltypes.req_bytes->bytes, "1015", 4) == 0);
+    TEST(alltypes.req_bytes     && memcmp(&alltypes.req_bytes->bytes, "1015", 4) == 0);
     TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff1
                                 && strcmp(alltypes.req_submsg->substuff1, "1016") == 0);
     TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff2

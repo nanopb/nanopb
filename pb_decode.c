@@ -491,13 +491,10 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
 /* Clear a newly allocated item in case it contains a pointer, or is a submessage. */
 static void initialize_pointer_field(void *pItem, pb_field_iterator_t *iter)
 {
-    if (PB_LTYPE(iter->pos->type) == PB_LTYPE_STRING)
+    if (PB_LTYPE(iter->pos->type) == PB_LTYPE_STRING ||
+        PB_LTYPE(iter->pos->type) == PB_LTYPE_BYTES)
     {
-        *(char**)pItem = NULL;
-    }
-    else if (PB_LTYPE(iter->pos->type) == PB_LTYPE_BYTES)
-    {
-        memset(pItem, 0, iter->pos->data_size); 
+        *(void**)pItem = NULL;
     }
     else if (PB_LTYPE(iter->pos->type) == PB_LTYPE_SUBMESSAGE)
     {
@@ -523,7 +520,8 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
     {
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
-            if (PB_LTYPE(type) == PB_LTYPE_STRING)
+            if (PB_LTYPE(type) == PB_LTYPE_STRING ||
+                PB_LTYPE(type) == PB_LTYPE_BYTES)
             {
                 return func(stream, iter->pos, iter->pData);
             }
@@ -930,34 +928,17 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
         
         if (PB_ATYPE(type) == PB_ATYPE_POINTER)
         {
-            if (PB_LTYPE(type) == PB_LTYPE_STRING &&
-                PB_HTYPE(type) == PB_HTYPE_REPEATED)
+            if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
+                (PB_LTYPE(type) == PB_LTYPE_STRING ||
+                 PB_LTYPE(type) == PB_LTYPE_BYTES))
             {
-                /* Release entries in repeated string array */
+                /* Release entries in repeated string or bytes array */
                 void **pItem = *(void***)iter.pData;
                 size_t count = *(size_t*)iter.pSize;
                 while (count--)
                 {
                     free(*pItem);
                     *pItem++ = NULL;
-                }
-            }
-            else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
-            {
-                /* Release entries in repeated bytes array */
-                pb_bytes_ptr_t *pItem = *(pb_bytes_ptr_t**)iter.pData;
-                size_t count = (pItem ? 1 : 0);
-                
-                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-                {
-                    count = *(size_t*)iter.pSize;   
-                }
-                
-                while (count--)
-                {
-                    free(pItem->bytes);
-                    pItem->bytes = NULL;
-                    pItem++;
                 }
             }
             else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
@@ -1109,35 +1090,30 @@ bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, v
 bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
-    size_t alloc_size;
+    pb_bytes_array_t *bdest;
     
     if (!pb_decode_varint32(stream, &size))
         return false;
-    
-    /* Space for the size_t header */
-    alloc_size = size + offsetof(pb_bytes_array_t, bytes);
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
-        pb_bytes_ptr_t *bdest = (pb_bytes_ptr_t*)dest;
-        if (!allocate_field(stream, &bdest->bytes, alloc_size, 1))
+        if (!allocate_field(stream, dest, PB_BYTES_ARRAY_T_ALLOCSIZE(size), 1))
             return false;
-        
-        bdest->size = size;
-        return pb_read(stream, bdest->bytes, size);
+        bdest = *(pb_bytes_array_t**)dest;
 #endif
     }
     else
     {
-        pb_bytes_array_t* bdest = (pb_bytes_array_t*)dest;
-        if (alloc_size > field->data_size)
+        if (PB_BYTES_ARRAY_T_ALLOCSIZE(size) > field->data_size)
             PB_RETURN_ERROR(stream, "bytes overflow");
-        bdest->size = size;
-        return pb_read(stream, bdest->bytes, size);
+        bdest = (pb_bytes_array_t*)dest;
     }
+    
+    bdest->size = size;
+    return pb_read(stream, bdest->bytes, size);
 }
 
 bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)

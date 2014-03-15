@@ -238,20 +238,14 @@ STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
  */
+#define PB_BYTES_ARRAY_T(n) struct { size_t size; uint8_t bytes[n]; }
+#define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
+
 struct _pb_bytes_array_t {
     size_t size;
     uint8_t bytes[1];
 };
 typedef struct _pb_bytes_array_t pb_bytes_array_t;
-
-/* Same, except for pointer-type fields. There is no need to variable struct
- * length in this case.
- */
-struct _pb_bytes_ptr_t {
-    size_t size;
-    uint8_t *bytes;
-};
-typedef struct _pb_bytes_ptr_t pb_bytes_ptr_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that

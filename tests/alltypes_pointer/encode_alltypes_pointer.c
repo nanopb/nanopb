@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     int64_t     req_sfixed64      = -1012;
     double      req_double        = 1013.0;
     char*       req_string        = "1014";
-    pb_bytes_ptr_t req_bytes      = {4, (uint8_t*)"1015"};
+    PB_BYTES_ARRAY_T(4) req_bytes = {4, {'1', '0', '1', '5'}};
     static int32_t req_substuff   = 1016;
     SubMessage  req_submsg        = {"1016", &req_substuff};
     MyEnum      req_enum          = MyEnum_Truth;
@@ -50,7 +50,8 @@ int main(int argc, char **argv)
     int64_t     rep_sfixed64[5]   = {0, 0, 0, 0, -2012};
     double      rep_double[5]     = {0, 0, 0, 0, 2013.0f};
     char*       rep_string[5]     = {"", "", "", "", "2014"};
-    pb_bytes_ptr_t rep_bytes[5]   = {{0,0}, {0,0}, {0,0}, {0,0}, {4, (uint8_t*)"2015"}};
+    static PB_BYTES_ARRAY_T(4) rep_bytes_4 = {4, {'2', '0', '1', '5'}};
+    pb_bytes_array_t *rep_bytes[5]= {NULL, NULL, NULL, NULL, (pb_bytes_array_t*)&rep_bytes_4};
     static int32_t rep_sub2zero   = 0;
     static int32_t rep_substuff2  = 2016;
     static uint32_t rep_substuff3 = 2016;
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
     int64_t     opt_sfixed64      = 3052;
     double      opt_double        = 3053.0;
     char*       opt_string        = "3054";
-    pb_bytes_ptr_t opt_bytes      = {4, (uint8_t*)"3055"};
+    PB_BYTES_ARRAY_T(4) opt_bytes = {4, {'3', '0', '5', '5'}};
     static int32_t opt_substuff   = 3056;
     SubMessage  opt_submsg        = {"3056", &opt_substuff};
     MyEnum      opt_enum          = MyEnum_Truth;
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
     alltypes.req_sfixed64      = &req_sfixed64;
     alltypes.req_double        = &req_double;
     alltypes.req_string        = req_string;
-    alltypes.req_bytes         = &req_bytes;
+    alltypes.req_bytes         = (pb_bytes_array_t*)&req_bytes;
     alltypes.req_submsg        = &req_submsg;
     alltypes.req_enum          = &req_enum;
     alltypes.req_emptymsg      = &req_emptymsg;
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
         alltypes.opt_sfixed64      = &opt_sfixed64;
         alltypes.opt_double        = &opt_double;
         alltypes.opt_string        = opt_string;
-        alltypes.opt_bytes         = &opt_bytes;
+        alltypes.opt_bytes         = (pb_bytes_array_t*)&opt_bytes;
         alltypes.opt_submsg        = &opt_submsg;
         alltypes.opt_enum          = &opt_enum;
         alltypes.opt_emptymsg      = &opt_emptymsg;

@@ -246,7 +246,7 @@ class Field:
                 self.ctype = self.struct_name + self.name + 't'
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
             elif self.allocation == 'POINTER':
-                self.ctype = 'pb_bytes_ptr_t'
+                self.ctype = 'pb_bytes_array_t'
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -266,8 +266,8 @@ class Field:
             if self.pbtype == 'MESSAGE':
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
-            elif self.rules == 'REPEATED' and self.pbtype == 'STRING':
-                # String arrays need to be defined as pointers to pointers
+            elif self.rules == 'REPEATED' and self.pbtype in ['STRING', 'BYTES']:
+                # String/bytes arrays need to be defined as pointers to pointers
                 result += '    %s **%s;' % (self.ctype, self.name)
             else:
                 result += '    %s *%s;' % (self.ctype, self.name)
