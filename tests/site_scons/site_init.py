@@ -19,19 +19,24 @@ def add_nanopb_builders(env):
         else:
             infile = None
         
-        args = [str(source[0])]
+        if env.has_key("COMMAND"):
+            args = [env["COMMAND"]]
+        else:
+            args = [str(source[0])]
+        
         if env.has_key('ARGS'):
             args.extend(env['ARGS'])
         
+        print 'Command line: ' + str(args)
         pipe = subprocess.Popen(args,
                                 stdin = infile,
                                 stdout = open(str(target[0]), 'w'),
                                 stderr = sys.stderr)
         result = pipe.wait()
         if result == 0:
-            print '\033[32m[ OK ]\033[0m   Ran ' + str(source[0])
+            print '\033[32m[ OK ]\033[0m   Ran ' + args[0]
         else:
-            print '\033[31m[FAIL]\033[0m   Program ' + str(source[0]) + ' returned ' + str(result)
+            print '\033[31m[FAIL]\033[0m   Program ' + args[0] + ' returned ' + str(result)
         return result
         
     run_test_builder = Builder(action = run_test,

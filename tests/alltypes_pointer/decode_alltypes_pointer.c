@@ -5,10 +5,6 @@
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 
-#ifdef HAVE_MALLINFO
-#include <malloc.h>
-#endif
-
 #define TEST(x) if (!(x)) { \
     fprintf(stderr, "Test " #x " failed.\n"); \
     status = false; \
@@ -53,10 +49,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
                                 && strcmp(alltypes.req_submsg->substuff1, "1016") == 0);
     TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff2
                                 && *alltypes.req_submsg->substuff2 == 1016);
-    /* TEST(*alltypes.req_submsg->substuff3 == 3); Default values are not currently supported for pointer fields */
     TEST(*alltypes.req_enum == MyEnum_Truth);
 
-#if 0
     TEST(alltypes.rep_int32_count == 5 && alltypes.rep_int32[4] == -2001 && alltypes.rep_int32[0] == 0);
     TEST(alltypes.rep_int64_count == 5 && alltypes.rep_int64[4] == -2002 && alltypes.rep_int64[0] == 0);
     TEST(alltypes.rep_uint32_count == 5 && alltypes.rep_uint32[4] == 2003 && alltypes.rep_uint32[0] == 0);
@@ -74,121 +68,79 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_double_count == 5 && alltypes.rep_double[4] == 2013.0 && alltypes.rep_double[0] == 0.0);
     
     TEST(alltypes.rep_string_count == 5 && strcmp(alltypes.rep_string[4], "2014") == 0 && alltypes.rep_string[0][0] == '\0');
-    TEST(alltypes.rep_bytes_count == 5 && alltypes.rep_bytes[4].size == 4 && alltypes.rep_bytes[0].size == 0);
-    TEST(memcmp(alltypes.rep_bytes[4].bytes, "2015", 4) == 0);
+    TEST(alltypes.rep_bytes_count == 5 && alltypes.rep_bytes[4]->size == 4 && alltypes.rep_bytes[0]->size == 0);
+    TEST(memcmp(&alltypes.rep_bytes[4]->bytes, "2015", 4) == 0);
 
     TEST(alltypes.rep_submsg_count == 5);
     TEST(strcmp(alltypes.rep_submsg[4].substuff1, "2016") == 0 && alltypes.rep_submsg[0].substuff1[0] == '\0');
-    TEST(alltypes.rep_submsg[4].substuff2 == 2016 && alltypes.rep_submsg[0].substuff2 == 0);
-    TEST(alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == 3);
+    TEST(*alltypes.rep_submsg[4].substuff2 == 2016 && *alltypes.rep_submsg[0].substuff2 == 0);
+    TEST(*alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == NULL);
     
     TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
     TEST(alltypes.rep_emptymsg_count == 5);
-    
+
     if (mode == 0)
     {
-        /* Expect default values */
-        TEST(alltypes.has_opt_int32     == false);
-        TEST(alltypes.opt_int32         == 4041);
-        TEST(alltypes.has_opt_int64     == false);
-        TEST(alltypes.opt_int64         == 4042);
-        TEST(alltypes.has_opt_uint32    == false);
-        TEST(alltypes.opt_uint32        == 4043);
-        TEST(alltypes.has_opt_uint64    == false);
-        TEST(alltypes.opt_uint64        == 4044);
-        TEST(alltypes.has_opt_sint32    == false);
-        TEST(alltypes.opt_sint32        == 4045);
-        TEST(alltypes.has_opt_sint64    == false);
-        TEST(alltypes.opt_sint64        == 4046);
-        TEST(alltypes.has_opt_bool      == false);
-        TEST(alltypes.opt_bool          == false);
+        /* Expect that optional values are not present */
+        TEST(alltypes.opt_int32         == NULL);
+        TEST(alltypes.opt_int64         == NULL);
+        TEST(alltypes.opt_uint32        == NULL);
+        TEST(alltypes.opt_uint64        == NULL);
+        TEST(alltypes.opt_sint32        == NULL);
+        TEST(alltypes.opt_sint64        == NULL);
+        TEST(alltypes.opt_bool          == NULL);
         
-        TEST(alltypes.has_opt_fixed32   == false);
-        TEST(alltypes.opt_fixed32       == 4048);
-        TEST(alltypes.has_opt_sfixed32  == false);
-        TEST(alltypes.opt_sfixed32      == 4049);
-        TEST(alltypes.has_opt_float     == false);
-        TEST(alltypes.opt_float         == 4050.0f);
+        TEST(alltypes.opt_fixed32       == NULL);
+        TEST(alltypes.opt_sfixed32      == NULL);
+        TEST(alltypes.opt_float         == NULL);
+        TEST(alltypes.opt_fixed64       == NULL);
+        TEST(alltypes.opt_sfixed64      == NULL);
+        TEST(alltypes.opt_double        == NULL);
         
-        TEST(alltypes.has_opt_fixed64   == false);
-        TEST(alltypes.opt_fixed64       == 4051);
-        TEST(alltypes.has_opt_sfixed64  == false);
-        TEST(alltypes.opt_sfixed64      == 4052);
-        TEST(alltypes.has_opt_double    == false);
-        TEST(alltypes.opt_double        == 4053.0);
-        
-        TEST(alltypes.has_opt_string    == false);
-        TEST(strcmp(alltypes.opt_string, "4054") == 0);
-        TEST(alltypes.has_opt_bytes     == false);
-        TEST(alltypes.opt_bytes.size == 4);
-        TEST(memcmp(alltypes.opt_bytes.bytes, "4055", 4) == 0);
-        TEST(alltypes.has_opt_submsg    == false);
-        TEST(strcmp(alltypes.opt_submsg.substuff1, "1") == 0);
-        TEST(alltypes.opt_submsg.substuff2 == 2);
-        TEST(alltypes.opt_submsg.substuff3 == 3);
-        TEST(alltypes.has_opt_enum     == false);
-        TEST(alltypes.opt_enum == MyEnum_Second);
-        TEST(alltypes.has_opt_emptymsg == false);
+        TEST(alltypes.opt_string        == NULL);
+        TEST(alltypes.opt_bytes         == NULL);
+        TEST(alltypes.opt_submsg        == NULL);
+        TEST(alltypes.opt_enum          == NULL);
     }
     else
     {
         /* Expect filled-in values */
-        TEST(alltypes.has_opt_int32     == true);
-        TEST(alltypes.opt_int32         == 3041);
-        TEST(alltypes.has_opt_int64     == true);
-        TEST(alltypes.opt_int64         == 3042);
-        TEST(alltypes.has_opt_uint32    == true);
-        TEST(alltypes.opt_uint32        == 3043);
-        TEST(alltypes.has_opt_uint64    == true);
-        TEST(alltypes.opt_uint64        == 3044);
-        TEST(alltypes.has_opt_sint32    == true);
-        TEST(alltypes.opt_sint32        == 3045);
-        TEST(alltypes.has_opt_sint64    == true);
-        TEST(alltypes.opt_sint64        == 3046);
-        TEST(alltypes.has_opt_bool      == true);
-        TEST(alltypes.opt_bool          == true);
+        TEST(alltypes.opt_int32 && *alltypes.opt_int32      == 3041);
+        TEST(alltypes.opt_int64 && *alltypes.opt_int64      == 3042);
+        TEST(alltypes.opt_uint32 && *alltypes.opt_uint32    == 3043);
+        TEST(alltypes.opt_uint64 && *alltypes.opt_uint64    == 3044);
+        TEST(alltypes.opt_sint32 && *alltypes.opt_sint32    == 3045);
+        TEST(alltypes.opt_sint64 && *alltypes.opt_sint64    == 3046);
+        TEST(alltypes.opt_bool && *alltypes.opt_bool        == true);
         
-        TEST(alltypes.has_opt_fixed32   == true);
-        TEST(alltypes.opt_fixed32       == 3048);
-        TEST(alltypes.has_opt_sfixed32  == true);
-        TEST(alltypes.opt_sfixed32      == 3049);
-        TEST(alltypes.has_opt_float     == true);
-        TEST(alltypes.opt_float         == 3050.0f);
+        TEST(alltypes.opt_fixed32 && *alltypes.opt_fixed32  == 3048);
+        TEST(alltypes.opt_sfixed32 && *alltypes.opt_sfixed32== 3049);
+        TEST(alltypes.opt_float && *alltypes.opt_float      == 3050.0f);
+        TEST(alltypes.opt_fixed64 && *alltypes.opt_fixed64  == 3051);
+        TEST(alltypes.opt_sfixed64 && *alltypes.opt_sfixed64== 3052);
+        TEST(alltypes.opt_double && *alltypes.opt_double    == 3053.0);
         
-        TEST(alltypes.has_opt_fixed64   == true);
-        TEST(alltypes.opt_fixed64       == 3051);
-        TEST(alltypes.has_opt_sfixed64  == true);
-        TEST(alltypes.opt_sfixed64      == 3052);
-        TEST(alltypes.has_opt_double    == true);
-        TEST(alltypes.opt_double        == 3053.0);
-        
-        TEST(alltypes.has_opt_string    == true);
-        TEST(strcmp(alltypes.opt_string, "3054") == 0);
-        TEST(alltypes.has_opt_bytes     == true);
-        TEST(alltypes.opt_bytes.size == 4);
-        TEST(memcmp(alltypes.opt_bytes.bytes, "3055", 4) == 0);
-        TEST(alltypes.has_opt_submsg    == true);
-        TEST(strcmp(alltypes.opt_submsg.substuff1, "3056") == 0);
-        TEST(alltypes.opt_submsg.substuff2 == 3056);
-        TEST(alltypes.opt_submsg.substuff3 == 3);
-        TEST(alltypes.has_opt_enum      == true);
-        TEST(alltypes.opt_enum == MyEnum_Truth);
-        TEST(alltypes.has_opt_emptymsg  == true);
+        TEST(alltypes.opt_string && strcmp(alltypes.opt_string, "3054") == 0);
+        TEST(alltypes.opt_bytes && alltypes.opt_bytes->size == 4);
+        TEST(alltypes.opt_bytes && memcmp(&alltypes.opt_bytes->bytes, "3055", 4) == 0);
+        TEST(alltypes.opt_submsg && strcmp(alltypes.opt_submsg->substuff1, "3056") == 0);
+        TEST(alltypes.opt_submsg && *alltypes.opt_submsg->substuff2 == 3056);
+        TEST(alltypes.opt_enum && *alltypes.opt_enum == MyEnum_Truth);
+        TEST(alltypes.opt_emptymsg);
     }
     
-    TEST(alltypes.req_limits.int32_min  == INT32_MIN);
-    TEST(alltypes.req_limits.int32_max  == INT32_MAX);
-    TEST(alltypes.req_limits.uint32_min == 0);
-    TEST(alltypes.req_limits.uint32_max == UINT32_MAX);
-    TEST(alltypes.req_limits.int64_min  == INT64_MIN);
-    TEST(alltypes.req_limits.int64_max  == INT64_MAX);
-    TEST(alltypes.req_limits.uint64_min == 0);
-    TEST(alltypes.req_limits.uint64_max == UINT64_MAX);
-    TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
-    TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
+    TEST(alltypes.req_limits->int32_min && *alltypes.req_limits->int32_min   == INT32_MIN);
+    TEST(alltypes.req_limits->int32_max && *alltypes.req_limits->int32_max   == INT32_MAX);
+    TEST(alltypes.req_limits->uint32_min && *alltypes.req_limits->uint32_min == 0);
+    TEST(alltypes.req_limits->uint32_max && *alltypes.req_limits->uint32_max == UINT32_MAX);
+    TEST(alltypes.req_limits->int64_min && *alltypes.req_limits->int64_min   == INT64_MIN);
+    TEST(alltypes.req_limits->int64_max && *alltypes.req_limits->int64_max   == INT64_MAX);
+    TEST(alltypes.req_limits->uint64_min && *alltypes.req_limits->uint64_min == 0);
+    TEST(alltypes.req_limits->uint64_max && *alltypes.req_limits->uint64_max == UINT64_MAX);
+    TEST(alltypes.req_limits->enum_min && *alltypes.req_limits->enum_min     == HugeEnum_Negative);
+    TEST(alltypes.req_limits->enum_max && *alltypes.req_limits->enum_max     == HugeEnum_Positive);
     
-    TEST(alltypes.end == 1099);
-#endif
+    TEST(alltypes.end && *alltypes.end == 1099);
 
     pb_release(AllTypes_fields, &alltypes);
 
@@ -197,59 +149,24 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
 int main(int argc, char **argv)
 {
-    bool status;
-    int orig_allocations;
+    uint8_t buffer[1024];
+    size_t count;
+    pb_istream_t stream;
     
-#ifdef HAVE_MALLINFO
-    /* Dynamic library loader etc. may have some malloc()ed memory also. */
-    {
-        struct mallinfo m = mallinfo();
-        orig_allocations = m.uordblks;
-    }
-#endif
-
-    {    
-        uint8_t buffer[1024];
-        size_t count;
-        pb_istream_t stream;
-        
-        /* Whether to expect the optional values or the default values. */
-        int mode = (argc > 1) ? atoi(argv[1]) : 0;
-        
-        /* Read the data into buffer */
-        SET_BINARY_MODE(stdin);
-        count = fread(buffer, 1, sizeof(buffer), stdin);
-        
-        /* Construct a pb_istream_t for reading from the buffer */
-        stream = pb_istream_from_buffer(buffer, count);
-        
-        /* Decode and verify the message */
-        status = check_alltypes(&stream, mode);
-        
-        if (!status)
-            fprintf(stderr, "Parsing failed: %s\n", PB_GET_ERROR(&stream));
-    }
+    /* Whether to expect the optional values or the default values. */
+    int mode = (argc > 1) ? atoi(argv[1]) : 0;
     
-#ifdef HAVE_MALLINFO
-    /* Check for memory leaks */
-    {
-        struct mallinfo m = mallinfo();
-        int leak = m.uordblks - orig_allocations;
-        
-        if (leak > 0)
-        {
-            fprintf(stderr, "Memory leak: %d bytes\n", leak);
-            return 1;
-        }
-        else
-        {
-            fprintf(stderr, "Ok, no memory leaks\n");
-        }
-    }
-#endif
+    /* Read the data into buffer */
+    SET_BINARY_MODE(stdin);
+    count = fread(buffer, 1, sizeof(buffer), stdin);
     
-    if (!status)
+    /* Construct a pb_istream_t for reading from the buffer */
+    stream = pb_istream_from_buffer(buffer, count);
+    
+    /* Decode and verify the message */
+    if (!check_alltypes(&stream, mode))
     {
+        fprintf(stderr, "Test failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     }
     else

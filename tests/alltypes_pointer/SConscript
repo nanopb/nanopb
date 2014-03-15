@@ -7,7 +7,7 @@ Import("env")
 env = env.Clone()
 env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1});
 
-# Disable libmudflap, because it will confuse e.g. valgrind
+# Disable libmudflap, because it will confuse valgrind
 # and other memory leak detection tools.
 if '-fmudflap' in env["CCFLAGS"]:
     env["CCFLAGS"].remove("-fmudflap")
@@ -26,18 +26,23 @@ env.NanopbProto(["alltypes", "alltypes.options"])
 enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "pb_encode_with_malloc.o"])
 dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "pb_decode_with_malloc.o"])
 
-refdec = "$BUILD/alltypes/decode_alltypes$PROGSUFFIX"
-
-# Encode and compare results
+# Encode and compare results to non-pointer alltypes test case
 env.RunTest(enc)
 env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
 
-# Decode
-env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"])
-env.RunTest("decode_alltypes_ref.output", [refdec, "encode_alltypes_pointer.output"])
+# Decode (under valgrind if available)
+valgrind = env.WhereIs('valgrind')
+kwargs = {}
+if valgrind:
+    kwargs['COMMAND'] = valgrind
+    kwargs['ARGS'] = ["-q", dec[0].abspath]
+
+env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"], **kwargs)
 
 # Do the same thing with the optional fields present
 env.RunTest("optionals.output", enc, ARGS = ['1'])
-env.RunTest("optionals.decout", [refdec, "optionals.output"], ARGS = ['1'])
 env.Compare(["optionals.output", "$BUILD/alltypes/optionals.output"])
+
+kwargs['ARGS'] = kwargs.get('ARGS', []) + ['1']
+env.RunTest("optionals.decout", [dec, "optionals.output"], **kwargs)
 
