@@ -73,6 +73,9 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
  *
  * This can also be used for 'merging' two messages, i.e. update only the
  * fields that exist in the new message.
+ *
+ * Note: If this function returns with an error, it will not release any
+ * dynamically allocated fields. You will need to call pb_release() yourself.
  */
 bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
 
@@ -84,8 +87,8 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
 
 #ifdef PB_ENABLE_MALLOC
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
- * call this for any decoded message when you are done with it. You also need to
- * free messages even if pb_decode() returned with error.
+ * call this for any successfully decoded message when you are done with it. If
+ * pb_decode() returns with an error, the message is already released.
  */
 void pb_release(const pb_field_t fields[], void *dest_struct);
 #endif

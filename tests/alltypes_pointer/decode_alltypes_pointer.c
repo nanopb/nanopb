@@ -21,10 +21,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     memset(&alltypes, 0xAA, sizeof(alltypes));
     
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
-    {
-        pb_release(AllTypes_fields, &alltypes);
         return false;
-    }
     
     TEST(alltypes.req_int32     && *alltypes.req_int32         == -1001);
     TEST(alltypes.req_int64     && *alltypes.req_int64         == -1002);
