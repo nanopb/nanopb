@@ -480,7 +480,7 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
     /* Allocate new or expand previous allocation */
     /* Note: on failure the old pointer will remain in the structure,
      * the message must be freed by caller also on error return. */
-    ptr = realloc(ptr, size);
+    ptr = pb_realloc(ptr, size);
     if (ptr == NULL)
         PB_RETURN_ERROR(stream, "realloc failed");
     
@@ -945,7 +945,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
                 size_t count = *(size_t*)iter.pSize;
                 while (count--)
                 {
-                    free(*pItem);
+                    pb_free(*pItem);
                     *pItem++ = NULL;
                 }
             }
@@ -968,7 +968,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
             }
             
             /* Release main item */
-            free(*(void**)iter.pData);
+            pb_free(*(void**)iter.pData);
             *(void**)iter.pData = NULL;
         }
     } while (pb_field_next(&iter));

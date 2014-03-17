@@ -10,6 +10,9 @@
  * uncommenting the lines, or on the compiler command line.      *
  *****************************************************************/
 
+/* Enable support for dynamically allocated fields */
+/* #define PB_ENABLE_MALLOC 1 */
+
 /* Define this if your CPU architecture is big endian, i.e. it
  * stores the most-significant byte first. */
 /* #define __BIG_ENDIAN__ 1 */
@@ -339,6 +342,17 @@ struct _pb_extension_t {
      * automatically called. */
     pb_extension_t *next;
 };
+
+/* Memory allocation functions to use. You can define pb_realloc and
+ * pb_free to custom functions if you want. */
+#ifdef PB_ENABLE_MALLOC
+#   ifndef pb_realloc
+#       define pb_realloc(ptr, size) realloc(ptr, size)
+#   endif
+#   ifndef pb_free
+#       define pb_free(ptr) free(ptr)
+#   endif
+#endif
 
 /* These macros are used to declare pb_field_t's in the constant array. */
 /* Size of a structure member, in bytes. */
