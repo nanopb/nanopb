@@ -53,6 +53,16 @@ typedef int bool;
 
 #endif
 
+/* stdlib.h subset */
+#ifdef PB_ENABLE_MALLOC
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#else
+void *realloc(void *ptr, size_t size);
+void free(void *ptr);
+#endif
+#endif
+
 /* string.h subset */
 #ifdef HAVE_STRING_H
 #include <string.h>
