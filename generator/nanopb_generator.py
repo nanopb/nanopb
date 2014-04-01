@@ -351,6 +351,8 @@ class Field:
             result += '0)'
         elif self.pbtype in ['BYTES', 'STRING'] and self.allocation != 'STATIC':
             result += '0)' # Arbitrary size default values not implemented
+        elif self.rules == 'OPTEXT':
+            result += '0)' # Default value for extensions is not implemented
         else:
             result += '&%s_default)' % (self.struct_name + self.name)
         

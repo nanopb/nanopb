@@ -1,7 +1,7 @@
 import 'alltypes.proto';
 
 extend AllTypes {
-    optional int32 AllTypes_extensionfield1 = 255;
+    optional int32 AllTypes_extensionfield1 = 255 [default = 5];
 }
 
 message ExtensionMessage {
