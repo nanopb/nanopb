@@ -1,0 +1,36 @@
++checks
++partial
++matchanyintegral
++strictlib
+-isoreserved		# to be fixed in 0.3
+-nullassign
+-predboolint
+-predboolptr
++ptrnegate
+-switchloopbreak
++ignoresigns
+-infloopsuncon
+-type
+
+# splint's memory checks don't quite work without annotations
+-mustfreeonly
+-compmempass
+-nullret
+-observertrans
+-statictrans
+-compdestroy
+-nullpass
+-nullstate
+-compdef
+-usereleased
+-temptrans
+-dependenttrans
+-kepttrans
+-branchstate
+
+# These tests give false positives, compiler typically has
+# better warnings for these.
+-noret
+-noeffect
+-usedef
+

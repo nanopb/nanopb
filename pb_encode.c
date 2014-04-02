@@ -405,9 +405,9 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
 {
     uint64_t zigzagged;
     if (value < 0)
-        zigzagged = (uint64_t)(~(value << 1));
+        zigzagged = ~((uint64_t)value << 1);
     else
-        zigzagged = (uint64_t)(value << 1);
+        zigzagged = (uint64_t)value << 1;
     
     return pb_encode_varint(stream, zigzagged);
 }
@@ -448,7 +448,7 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number)
 {
-    uint64_t tag = wiretype | (field_number << 3);
+    uint64_t tag = ((uint64_t)field_number << 3) | wiretype;
     return pb_encode_varint(stream, tag);
 }
 
