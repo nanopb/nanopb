@@ -13,7 +13,6 @@
     #define checkreturn __attribute__((warn_unused_result))
 #endif
 
-#define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_decode.h"
 
@@ -1033,7 +1032,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     #endif   
 }
 
-bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -1051,7 +1050,7 @@ bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, vo
     return true;
 }
 
-bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -1067,7 +1066,7 @@ bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, v
     return true;
 }
 
-bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     int64_t value;
     if (!pb_decode_svarint(stream, &value))
@@ -1083,19 +1082,19 @@ bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, v
     return true;
 }
 
-bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     UNUSED(field);
     return pb_decode_fixed32(stream, dest);
 }
 
-bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     UNUSED(field);
     return pb_decode_fixed64(stream, dest);
 }
 
-bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
     pb_bytes_array_t *bdest;
@@ -1124,7 +1123,7 @@ bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, voi
     return pb_read(stream, bdest->bytes, size);
 }
 
-bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
     size_t alloc_size;
@@ -1156,7 +1155,7 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, vo
     return status;
 }
 
-bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
+static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     bool status;
     pb_istream_t substream;

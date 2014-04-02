@@ -3,7 +3,6 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
-#define NANOPB_INTERNALS
 #include "pb.h"
 #include "pb_encode.h"
 
@@ -544,7 +543,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
 
 /* Field encoders */
 
-bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     int64_t value = 0;
     
@@ -562,7 +561,7 @@ bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, co
     return pb_encode_varint(stream, (uint64_t)value);
 }
 
-bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     uint64_t value = 0;
     
@@ -576,7 +575,7 @@ bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, c
     return pb_encode_varint(stream, value);
 }
 
-bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     int64_t value = 0;
     
@@ -590,19 +589,19 @@ bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, c
     return pb_encode_svarint(stream, value);
 }
 
-bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     UNUSED(field);
     return pb_encode_fixed64(stream, src);
 }
 
-bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     UNUSED(field);
     return pb_encode_fixed32(stream, src);
 }
 
-bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
     
@@ -621,7 +620,7 @@ bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, con
     return pb_encode_string(stream, bytes->bytes, bytes->size);
 }
 
-bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     /* strnlen() is not always available, so just use a loop */
     size_t size = 0;
@@ -647,7 +646,7 @@ bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, co
     return pb_encode_string(stream, (const uint8_t*)src, size);
 }
 
-bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     if (field->ptr == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
