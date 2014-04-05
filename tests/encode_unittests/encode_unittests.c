@@ -281,6 +281,15 @@ int main()
         TEST(WRITES(pb_encode_delimited(&s, IntegerContainer_fields, &msg),
                     "\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"))
     }
+
+    {
+        IntegerContainer msg = {{5, {1,2,3,4,5}}};
+        size_t size;
+        
+        COMMENT("Test pb_get_encoded_size.")
+        TEST(pb_get_encoded_size(&size, IntegerContainer_fields, &msg) &&
+             size == 9);
+    }
     
     {
         uint8_t buffer[10];

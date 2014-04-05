@@ -378,6 +378,17 @@ bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const 
     return pb_encode_submessage(stream, fields, src_struct);
 }
 
+bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct)
+{
+    pb_ostream_t stream = PB_OSTREAM_SIZING;
+    
+    if (!pb_encode(&stream, fields, src_struct))
+        return false;
+    
+    *size = stream.bytes_written;
+    return true;
+}
+
 /********************
  * Helper functions *
  ********************/

@@ -71,6 +71,10 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
  */
 bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
+/* Encode the message to get the size of the encoded data, but do not store
+ * the data. */
+bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct);
+
 /**************************************
  * Functions for manipulating streams *
  **************************************/
