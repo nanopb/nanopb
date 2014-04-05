@@ -91,9 +91,9 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror --coverage -fstack-protector-all')
+    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror -fprofile-arcs -ftest-coverage -fstack-protector-all')
     env.Append(CORECFLAGS = '-Wextra')
-    env.Append(LINKFLAGS = '--coverage')
+    env.Append(LINKFLAGS = '-g --coverage')
     
     # We currently need uint64_t anyway, even though ANSI C90 otherwise..
     env.Append(CFLAGS = '-Wno-long-long')

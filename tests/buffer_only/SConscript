@@ -4,8 +4,6 @@ Import("env")
 
 # Take copy of the files for custom build.
 c = Copy("$TARGET", "$SOURCE")
-env.Command("pb_encode.c", "#../pb_encode.c", c)
-env.Command("pb_decode.c", "#../pb_decode.c", c)
 env.Command("alltypes.pb.h", "$BUILD/alltypes/alltypes.pb.h", c)
 env.Command("alltypes.pb.c", "$BUILD/alltypes/alltypes.pb.c", c)
 env.Command("encode_alltypes.c", "$BUILD/alltypes/encode_alltypes.c", c)
@@ -15,9 +13,15 @@ env.Command("decode_alltypes.c", "$BUILD/alltypes/decode_alltypes.c", c)
 opts = env.Clone()
 opts.Append(CPPDEFINES = {'PB_BUFFER_ONLY': 1})
 
+# Build new version of core
+strict = opts.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_bufonly.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_bufonly.o", "$NANOPB/pb_encode.c")
+
 # Now build and run the test normally.
-enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode.c"])
-dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode.c"])
+enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_bufonly.o"])
+dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode_bufonly.o"])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_alltypes.output"])
