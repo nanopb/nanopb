@@ -27,6 +27,7 @@
 -dependenttrans
 -kepttrans
 -branchstate
+-immediatetrans
 
 # These tests give false positives, compiler typically has
 # better warnings for these.

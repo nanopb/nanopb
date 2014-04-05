@@ -670,7 +670,6 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
 {
     const pb_field_t *field = (const pb_field_t*)extension->type->arg;
     pb_field_iterator_t iter;
-    bool dummy;
     
     if (field->tag != tag)
         return true;
@@ -681,7 +680,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     iter.required_field_index = 0;
     iter.dest_struct = extension->dest;
     iter.pData = extension->dest;
-    iter.pSize = &dummy;
+    iter.pSize = &extension->found;
     
     return decode_field(stream, wire_type, &iter);
 }

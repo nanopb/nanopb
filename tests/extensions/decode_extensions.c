@@ -49,7 +49,9 @@ int main(int argc, char **argv)
     }
 
     /* Check that the extensions decoded properly */
+    TEST(ext1.found)
     TEST(extensionfield1 == 12345)
+    TEST(ext2.found)
     TEST(strcmp(extensionfield2.test1, "test") == 0)
     TEST(extensionfield2.test2 == 54321)
     

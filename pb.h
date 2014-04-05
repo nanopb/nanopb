@@ -341,6 +341,10 @@ struct _pb_extension_t {
      * If this extension does not match a field, the next handler is
      * automatically called. */
     pb_extension_t *next;
+
+    /* The decoder sets this to true if the extension was found.
+     * Ignored for encoding. */
+    bool found;
 };
 
 /* Memory allocation functions to use. You can define pb_realloc and
