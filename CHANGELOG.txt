@@ -1,3 +1,11 @@
+nanopb-0.2.7 (2014-04-07)
+ Fix bug with default values for extension fields (issue 111)
+ Fix some MISRA-C warnings (issue 91)
+ Implemented optional malloc() support (issue 80)
+ Changed pointer-type bytes field datatype
+ Add a "found" field to pb_extension_t (issue 112)
+ Add convenience function pb_get_encoded_size() (issue 16)
+
 nanopb-0.2.6 (2014-02-15)
  Fix generator error with bytes callback fields (issue 99)
  Fix warnings about large integer constants (issue 102)
