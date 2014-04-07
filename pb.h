@@ -46,7 +46,7 @@
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */
-#define NANOPB_VERSION nanopb-0.2.7
+#define NANOPB_VERSION nanopb-0.2.8-dev
 
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
