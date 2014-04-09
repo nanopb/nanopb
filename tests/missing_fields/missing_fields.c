@@ -8,6 +8,7 @@
 int main()
 {
     uint8_t buffer[512];
+    size_t size;
     
     /* Create a message with one missing field */
     {
@@ -19,12 +20,14 @@ int main()
             printf("Encode failed.\n");
             return 1;
         }
+
+        size = stream.bytes_written;
     }
 
     /* Test that it decodes properly if we don't require that field */
     {
         MissingField msg = {0};
-        pb_istream_t stream = pb_istream_from_buffer(buffer, sizeof(buffer));
+        pb_istream_t stream = pb_istream_from_buffer(buffer, size);
         
         if (!pb_decode(&stream, MissingField_fields, &msg))
         {
@@ -36,7 +39,7 @@ int main()
     /* Test that it does *not* decode properly if we require the field */
     {
         AllFields msg = {0};
-        pb_istream_t stream = pb_istream_from_buffer(buffer, sizeof(buffer));
+        pb_istream_t stream = pb_istream_from_buffer(buffer, size);
         
         if (pb_decode(&stream, AllFields_fields, &msg))
         {
