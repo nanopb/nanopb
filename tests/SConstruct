@@ -19,8 +19,8 @@ env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 # Allow overriding the compiler with scons CC=???
 if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
 if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
-if 'CFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CFLAGS'])
-if 'CXXFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CXXFLAGS'])
+if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
+if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
