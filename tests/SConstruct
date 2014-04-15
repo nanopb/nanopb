@@ -101,7 +101,7 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -pedantic -g -O0 -Wall -Werror -fprofile-arcs -ftest-coverage -fstack-protector-all')
+    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage -fstack-protector-all')
     env.Append(CORECFLAGS = '-Wextra')
     env.Append(LINKFLAGS = '-g --coverage')
     
@@ -109,7 +109,7 @@ if 'gcc' in env['CC']:
     env.Append(CFLAGS = '-Wno-long-long')
 elif 'clang' in env['CC']:
     # CLang
-    env.Append(CFLAGS = '-ansi -g -O0 -Wall -Werror')
+    env.Append(CFLAGS = '-ansi -g -Wall -Werror')
     env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
 elif 'cl' in env['CC']:
     # Microsoft Visual C++
@@ -130,9 +130,9 @@ elif 'tcc' in env['CC']:
 env.SetDefault(CORECFLAGS = '')
 
 if 'clang' in env['CXX']:
-    env.Append(CXXFLAGS = '-g -O0 -Wall -Werror -Wextra -Wno-missing-field-initializers')
+    env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
 elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
-    env.Append(CXXFLAGS = '-g -O0 -Wall -Werror -Wextra -Wno-missing-field-initializers')
+    env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
 elif 'cl' in env['CXX']:
     env.Append(CXXFLAGS = '/Zi /W2 /WX')
     
