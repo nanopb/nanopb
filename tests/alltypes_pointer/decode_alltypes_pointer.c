@@ -19,6 +19,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     
     /* Fill with garbage to better detect initialization errors */
     memset(&alltypes, 0xAA, sizeof(alltypes));
+    alltypes.extensions = 0;
     
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
         return false;

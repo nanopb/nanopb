@@ -220,6 +220,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     
     /* Fill with garbage to better detect initialization errors */
     memset(&alltypes, 0xAA, sizeof(alltypes));
+    alltypes.extensions = 0;
     
     alltypes.req_int32.funcs.decode = &read_varint;
     alltypes.req_int32.arg = (void*)-1001;
