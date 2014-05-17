@@ -470,11 +470,31 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
 
 #ifdef PB_ENABLE_MALLOC
 /* Allocate storage for the field and store the pointer at iter->pData.
- * array_size is the number of entries to reserve in an array. */
+ * array_size is the number of entries to reserve in an array.
+ */
 static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size)
 {    
     void *ptr = *(void**)pData;
-    size_t size = array_size * data_size;
+    
+    /* Check for multiplication overflows. */
+    size_t size = 0;
+    if (data_size > 0 && array_size > 0)
+    {
+        /* Avoid the costly division if the sizes are small enough.
+         * Multiplication is safe as long as only half of bits are set
+         * in either multiplicand.
+         */
+        const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
+        if (data_size >= check_limit || array_size >= check_limit)
+        {
+            if (SIZE_MAX / array_size < data_size)
+            {
+                PB_RETURN_ERROR(stream, "size too large");
+            }
+        }
+    
+        size = array_size * data_size;
+    }
     
     /* Allocate new or expand previous allocation */
     /* Note: on failure the old pointer will remain in the structure,
