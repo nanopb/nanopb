@@ -1,3 +1,9 @@
+nanopb-0.2.8 (2014-05-20)
+ Fix security issue with PB_ENABLE_MALLOC. (issue 117)
+ Add option to not add timestamps to .pb.h and .pb.c preambles. (issue 115)
+ Documentation updates
+ Improved tests
+
 nanopb-0.2.7 (2014-04-07)
  Fix bug with default values for extension fields (issue 111)
  Fix some MISRA-C warnings (issue 91)
