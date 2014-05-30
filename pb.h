@@ -80,8 +80,8 @@
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed __attribute__((packed))
-#elif defined(__ICCARM__)
-    /* For IAR ARM compiler */
+#elif defined(__ICCARM__) || defined(__CC_ARM)
+    /* For IAR ARM and Keil MDK-ARM compilers */
 #   define PB_PACKED_STRUCT_START _Pragma("pack(push, 1)")
 #   define PB_PACKED_STRUCT_END _Pragma("pack(pop)")
 #   define pb_packed
