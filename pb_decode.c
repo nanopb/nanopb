@@ -487,7 +487,8 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
         const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
         if (data_size >= check_limit || array_size >= check_limit)
         {
-            if (SIZE_MAX / array_size < data_size)
+            const size_t size_max = (size_t)-1;
+            if (size_max / array_size < data_size)
             {
                 PB_RETURN_ERROR(stream, "size too large");
             }
