@@ -1,4 +1,5 @@
 /* This includes the whole .c file to get access to static functions. */
+#define PB_ENABLE_MALLOC
 #include "pb_decode.c"
 
 #include <stdio.h>
@@ -297,6 +298,28 @@ int main()
         TEST((s = S("\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"),
               pb_decode_delimited(&s, IntegerContainer_fields, &dest)) &&
               dest.submsg.data_count == 5)
+    }
+    
+    {
+        pb_istream_t s = {0};
+        void *data = NULL;
+        
+        COMMENT("Testing allocate_field")
+        TEST(allocate_field(&s, &data, 10, 10) && data != NULL);
+        TEST(allocate_field(&s, &data, 10, 20) && data != NULL);
+        
+        {
+            void *oldvalue = data;
+            size_t very_big = (size_t)-1;
+            size_t somewhat_big = very_big / 2 + 1;
+            size_t not_so_big = (size_t)1 << (4 * sizeof(size_t));
+        
+            TEST(!allocate_field(&s, &data, very_big, 2) && data == oldvalue);
+            TEST(!allocate_field(&s, &data, somewhat_big, 2) && data == oldvalue);
+            TEST(!allocate_field(&s, &data, not_so_big, not_so_big) && data == oldvalue);
+        }
+        
+        pb_free(data);
     }
     
     if (status != 0)
