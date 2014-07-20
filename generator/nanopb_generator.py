@@ -724,7 +724,7 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
     
     for dependency in dependencies:
         noext = os.path.splitext(dependency)[0]
-        yield options.genformat % (noext + '.' + options.extension + '.h')
+        yield options.genformat % (noext + options.extension + '.h')
         yield '\n'
 
     yield '#ifdef __cplusplus\n'
@@ -959,8 +959,8 @@ optparser = OptionParser(
              "Output will be written to file.pb.h and file.pb.c.")
 optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
     help="Exclude file from generated #include list.")
-optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default="pb",
-    help="Set extension to use instead of 'pb' for generated files. [default: %default]")
+optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default=".pb",
+    help="Set extension to use instead of '.pb' for generated files. [default: %default]")
 optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
     help="Set name of a separate generator options file.")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
@@ -1027,11 +1027,11 @@ def process_file(filename, fdesc, options):
     # Parse the file
     file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
     enums, messages, extensions = parse_file(fdesc, file_options)
-    
+
     # Decide the file names
     noext = os.path.splitext(filename)[0]
-    headername = noext + '.' + options.extension + '.h'
-    sourcename = noext + '.' + options.extension + '.c'
+    headername = noext + options.extension + '.h'
+    sourcename = noext + options.extension + '.c'
     headerbasename = os.path.basename(headername)
     
     # List of .proto files that should not be included in the C header file
