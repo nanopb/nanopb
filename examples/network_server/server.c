@@ -23,11 +23,16 @@
 #include "fileproto.pb.h"
 #include "common.h"
 
+/* This callback function will be called once during the encoding.
+ * It will write out any number of FileInfo entries, without consuming unnecessary memory.
+ * This is accomplished by fetching the filenames one at a time and encoding them
+ * immediately.
+ */
 bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     DIR *dir = (DIR*) *arg;
     struct dirent *file;
-    FileInfo fileinfo;
+    FileInfo fileinfo = {};
     
     while ((file = readdir(dir)) != NULL)
     {
@@ -35,9 +40,12 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
         strncpy(fileinfo.name, file->d_name, sizeof(fileinfo.name));
         fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
         
+        /* This encodes the header for the field, based on the constant info
+         * from pb_field_t. */
         if (!pb_encode_tag_for_field(stream, field))
             return false;
         
+        /* This encodes the data for the field, based on our FileInfo structure. */
         if (!pb_encode_submessage(stream, FileInfo_fields, &fileinfo))
             return false;
     }
@@ -45,43 +53,59 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
     return true;
 }
 
+/* Handle one arriving client connection.
+ * Clients are expected to send a ListFilesRequest, terminated by a '0'.
+ * Server will respond with a ListFilesResponse message.
+ */
 void handle_connection(int connfd)
 {
-    ListFilesRequest request;
-    ListFilesResponse response;
-    pb_istream_t input = pb_istream_from_socket(connfd);
-    pb_ostream_t output = pb_ostream_from_socket(connfd);
-    DIR *directory;
+    DIR *directory = NULL;
     
-    if (!pb_decode(&input, ListFilesRequest_fields, &request))
+    /* Decode the message from the client and open the requested directory. */
     {
-        printf("Decode failed: %s\n", PB_GET_ERROR(&input));
-        return;
-    }
-    
-    directory = opendir(request.path);
-    
-    printf("Listing directory: %s\n", request.path);
-    
-    if (directory == NULL)
-    {
-        perror("opendir");
+        ListFilesRequest request = {};
+        pb_istream_t input = pb_istream_from_socket(connfd);
         
-        response.has_path_error = true;
-        response.path_error = true;
-        response.file.funcs.encode = NULL;
-    }
-    else
-    {
-        response.has_path_error = false;
-        response.file.funcs.encode = &listdir_callback;
-        response.file.arg = directory;
+        if (!pb_decode(&input, ListFilesRequest_fields, &request))
+        {
+            printf("Decode failed: %s\n", PB_GET_ERROR(&input));
+            return;
+        }
+        
+        directory = opendir(request.path);
+        printf("Listing directory: %s\n", request.path);
     }
     
-    if (!pb_encode(&output, ListFilesResponse_fields, &response))
+    /* List the files in the directory and transmit the response to client */
     {
-        printf("Encoding failed.\n");
+        ListFilesResponse response = {};
+        pb_ostream_t output = pb_ostream_from_socket(connfd);
+        
+        if (directory == NULL)
+        {
+            perror("opendir");
+            
+            /* Directory was not found, transmit error status */
+            response.has_path_error = true;
+            response.path_error = true;
+            response.file.funcs.encode = NULL;
+        }
+        else
+        {
+            /* Directory was found, transmit filenames */
+            response.has_path_error = false;
+            response.file.funcs.encode = &listdir_callback;
+            response.file.arg = directory;
+        }
+        
+        if (!pb_encode(&output, ListFilesResponse_fields, &response))
+        {
+            printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
+        }
     }
+    
+    if (directory != NULL)
+        closedir(directory);
 }
 
 int main(int argc, char **argv)
@@ -90,8 +114,8 @@ int main(int argc, char **argv)
     struct sockaddr_in servaddr;
     int reuse = 1;
     
+    /* Listen on localhost:1234 for TCP connections */
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     
     memset(&servaddr, 0, sizeof(servaddr));
@@ -112,6 +136,7 @@ int main(int argc, char **argv)
     
     for(;;)
     {
+        /* Wait for a client */
         connfd = accept(listenfd, NULL, NULL);
         
         if (connfd < 0)
@@ -128,4 +153,6 @@ int main(int argc, char **argv)
         
         close(connfd);
     }
+    
+    return 0;
 }
