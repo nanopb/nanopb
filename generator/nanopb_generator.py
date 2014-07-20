@@ -645,7 +645,7 @@ def parse_file(fdesc, file_options):
             enums.append(Enum(names, enum, enum_options))
     
     for names, extension in iterate_extensions(fdesc, base_name):
-        field_options = get_nanopb_suboptions(extension, file_options, names)
+        field_options = get_nanopb_suboptions(extension, file_options, names + extension.name)
         if field_options.type != nanopb_pb2.FT_IGNORE:
             extensions.append(ExtensionField(names, extension, field_options))
     
