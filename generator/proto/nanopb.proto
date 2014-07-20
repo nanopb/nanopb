@@ -37,6 +37,9 @@ message NanoPBOptions {
   // Note: this cannot be used on CPUs that break on unaligned
   // accesses to variables.
   optional bool packed_struct = 5 [default = false];
+  
+  // Skip this message
+  optional bool skip_message = 6 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

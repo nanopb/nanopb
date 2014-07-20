@@ -63,11 +63,15 @@ message my_packed_struct
 }
 
 // Message with ignored field
-// Note: doesn't really test if the field is missing in the output,
-// but atleast tests that the output compiles.
 message Message6
 {
     required int32 field1 = 1;
-    optional int32 field2 = 2 [(nanopb).type = FT_IGNORE];
+    optional int32 skipped_field = 2 [(nanopb).type = FT_IGNORE];
 }
 
+// Message that is skipped
+message SkippedMessage
+{
+    option (nanopb_msgopt).skip_message = true;
+    required int32 foo = 1;
+}

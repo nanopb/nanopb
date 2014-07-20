@@ -639,6 +639,10 @@ def parse_file(fdesc, file_options):
     
     for names, message in iterate_messages(fdesc, base_name):
         message_options = get_nanopb_suboptions(message, file_options, names)
+        
+        if message_options.skip_message:
+            continue
+        
         messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
             enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
