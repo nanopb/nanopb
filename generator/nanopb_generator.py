@@ -1000,19 +1000,28 @@ def process_file(filename, fdesc, options):
         fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
     
     # Check if there is a separate .options file
+    had_abspath = False
     try:
         optfilename = options.options_file % os.path.splitext(filename)[0]
     except TypeError:
         # No %s specified, use the filename as-is
         optfilename = options.options_file
-    
+        had_abspath = True
+
     if os.path.isfile(optfilename):
         if options.verbose:
             sys.stderr.write('Reading options from ' + optfilename + '\n')
 
         Globals.separate_options = read_options_file(open(optfilename, "rU"))
     else:
+        # If we are given a full filename and it does not exist, give an error.
+        # However, don't give error when we automatically look for .options file
+        # with the same name as .proto.
+        if options.verbose or had_abspath:
+            sys.stderr.write('Options file not found: ' + optfilename)
+
         Globals.separate_options = []
+
     Globals.matched_namemasks = set()
     
     # Parse the file
