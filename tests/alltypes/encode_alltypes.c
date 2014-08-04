@@ -13,7 +13,7 @@ int main(int argc, char **argv)
     int mode = (argc > 1) ? atoi(argv[1]) : 0;
     
     /* Initialize the structure with constants */
-    AllTypes alltypes = {0};
+    AllTypes alltypes = AllTypes_init_zero;
     
     alltypes.req_int32         = -1001;
     alltypes.req_int64         = -1002;

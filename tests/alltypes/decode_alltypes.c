@@ -19,7 +19,8 @@
    the decoding and checks the fields. */
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
-    AllTypes alltypes;
+    /* Uses _init_default to just make sure that it works. */
+    AllTypes alltypes = AllTypes_init_default;
     
     /* Fill with garbage to better detect initialization errors */
     memset(&alltypes, 0xAA, sizeof(alltypes));

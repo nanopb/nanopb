@@ -292,35 +292,63 @@ class Field:
             result = None
         return result
     
-    def default_decl(self, declaration_only = False):
-        '''Return definition for this field's default value.'''
-        if self.default is None:
-            return None
-
-        ctype, default = self.ctype, self.default
-        array_decl = ''
+    def get_initializer(self, null_init):
+        '''Return literal expression for this field's default value.'''
+        
+        if self.pbtype == 'MESSAGE':
+            if null_init:
+                return '%s_init_zero' % self.ctype
+            else:
+                return '%s_init_default' % self.ctype
+        
+        if self.default is None or null_init:
+            if self.pbtype == 'STRING':
+                return '""'
+            elif self.pbtype == 'BYTES':
+                return '{0, {0}}'
+            elif self.pbtype == 'ENUM':
+                return '(%s)0' % self.ctype
+            else:
+                return '0'
+        
+        default = str(self.default)
         
         if self.pbtype == 'STRING':
-            if self.allocation != 'STATIC':
-                return None # Not implemented
-        
-            array_decl = '[%d]' % self.max_size
-            default = str(self.default).encode('string_escape')
+            default = default.encode('utf-8').encode('string_escape')
             default = default.replace('"', '\\"')
             default = '"' + default + '"'
         elif self.pbtype == 'BYTES':
-            if self.allocation != 'STATIC':
-                return None # Not implemented
-
-            data = self.default.decode('string_escape')
+            data = default.decode('string_escape')
             data = ['0x%02x' % ord(c) for c in data]
-            default = '{%d, {%s}}' % (len(data), ','.join(data))
+            if len(data) == 0:
+                default = '{0, {0}}'
+            else:
+                default = '{%d, {%s}}' % (len(data), ','.join(data))
         elif self.pbtype in ['FIXED32', 'UINT32']:
             default += 'u'
         elif self.pbtype in ['FIXED64', 'UINT64']:
             default += 'ull'
         elif self.pbtype in ['SFIXED64', 'INT64']:
             default += 'll'
+        
+        return default
+    
+    def default_decl(self, declaration_only = False):
+        '''Return definition for this field's default value.'''
+        if self.default is None:
+            return None
+
+        ctype = self.ctype
+        default = self.get_initializer(False)
+        array_decl = ''
+        
+        if self.pbtype == 'STRING':
+            if self.allocation != 'STATIC':
+                return None # Not implemented
+            array_decl = '[%d]' % self.max_size
+        elif self.pbtype == 'BYTES':
+            if self.allocation != 'STATIC':
+                return None # Not implemented
         
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
@@ -442,7 +470,7 @@ class ExtensionRange(Field):
     
     def tags(self):
         return ''
-        
+    
     def encoded_size(self, allmsgs):
         # We exclude extensions from the count, because they cannot be known
         # until runtime. Other option would be to return None here, but this
@@ -552,6 +580,32 @@ class Message:
             if types is not None:
                 result += types + '\n'
         return result
+    
+    def get_initializer(self, null_init):
+        if not self.ordered_fields:
+            return '{0}'
+    
+        parts = []
+        for field in self.ordered_fields:
+            if field.allocation == 'STATIC':
+                if field.rules == 'REPEATED':
+                    parts.append('0')
+                    parts.append('{'
+                                 + ', '.join([field.get_initializer(null_init)] * field.max_count)
+                                 + '}')
+                elif field.rules == 'OPTIONAL':
+                    parts.append('false')
+                    parts.append(field.get_initializer(null_init))
+                else:
+                    parts.append(field.get_initializer(null_init))
+            elif field.allocation == 'POINTER':
+                parts.append('NULL')
+            elif field.allocation == 'CALLBACK':
+                if field.pbtype == 'EXTENSION':
+                    parts.append('NULL')
+                else:
+                    parts.append('{{NULL}, NULL}')
+        return '{' + ', '.join(parts) + '}'
     
     def default_decl(self, declaration_only = False):
         result = ""
@@ -753,6 +807,15 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
     yield '/* Default values for struct fields */\n'
     for msg in messages:
         yield msg.default_decl(True)
+    yield '\n'
+    
+    yield '/* Initializer values for message structs */\n'
+    for msg in messages:
+        identifier = '%s_init_default' % msg.name
+        yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
+    for msg in messages:
+        identifier = '%s_init_zero' % msg.name
+        yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
     yield '\n'
     
     yield '/* Field tags (for use in manual encoding/decoding) */\n'
