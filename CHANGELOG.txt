@@ -1,3 +1,16 @@
+nanopb-0.2.9 (2014-08-xx)
+ NOTE: If you are using the -e option with the generator, you have
+ to prepend . to the argument to get the same behaviour as before.
+
+ Do not automatically add a dot with generator -e option. (issue 122)
+ Fix problem with .options file and extension fields. (issue 125)
+ Don't use SIZE_MAX macro, as it is not in C89. (issue 120)
+ Generate #defines for initializing message structures. (issue 79)
+ Add skip_message option to generator. (issue 121)
+ Add PB_PACKED_STRUCT support for Keil MDK-ARM toolchain (issue 119)
+ Give better messages about the .options file path. (issue 124)
+ Improved tests
+
 nanopb-0.2.8 (2014-05-20)
  Fix security issue with PB_ENABLE_MALLOC. (issue 117)
  Add option to not add timestamps to .pb.h and .pb.c preambles. (issue 115)
