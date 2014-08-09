@@ -1,4 +1,4 @@
-nanopb-0.2.9 (2014-08-xx)
+nanopb-0.2.9 (2014-08-09)
  NOTE: If you are using the -e option with the generator, you have
  to prepend . to the argument to get the same behaviour as before.
 
