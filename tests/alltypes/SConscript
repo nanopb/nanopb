@@ -4,8 +4,8 @@
 Import("env")
 
 env.NanopbProto(["alltypes", "alltypes.options"])
-enc = env.Program(["encode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
-dec = env.Program(["decode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_decode.o"])
+enc = env.Program(["encode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+dec = env.Program(["decode_alltypes.c", "alltypes.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
 
 # Test the round-trip from nanopb encoder to nanopb decoder
 env.RunTest(enc)

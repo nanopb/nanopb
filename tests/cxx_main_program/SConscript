@@ -11,14 +11,15 @@ env.Append(CPPDEFINES = ['__STDC_LIMIT_MACROS'])
 c = Copy("$TARGET", "$SOURCE")
 env.Command("pb_encode.cxx", "#../pb_encode.c", c)
 env.Command("pb_decode.cxx", "#../pb_decode.c", c)
+env.Command("pb_common.cxx", "#../pb_common.c", c)
 env.Command("alltypes.pb.h", "$BUILD/alltypes/alltypes.pb.h", c)
 env.Command("alltypes.pb.cxx", "$BUILD/alltypes/alltypes.pb.c", c)
 env.Command("encode_alltypes.cxx", "$BUILD/alltypes/encode_alltypes.c", c)
 env.Command("decode_alltypes.cxx", "$BUILD/alltypes/decode_alltypes.c", c)
 
 # Now build and run the test normally.
-enc = env.Program(["encode_alltypes.cxx", "alltypes.pb.cxx", "pb_encode.cxx"])
-dec = env.Program(["decode_alltypes.cxx", "alltypes.pb.cxx", "pb_decode.cxx"])
+enc = env.Program(["encode_alltypes.cxx", "alltypes.pb.cxx", "pb_encode.cxx", "pb_common.cxx"])
+dec = env.Program(["decode_alltypes.cxx", "alltypes.pb.cxx", "pb_decode.cxx", "pb_common.cxx"])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_alltypes.output"])

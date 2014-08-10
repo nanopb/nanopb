@@ -11,3 +11,6 @@ if p:
     env.Command('pb_encode.splint', '$NANOPB/pb_encode.c',
         'splint -f splint/splint.rc $SOURCE 2> $TARGET')
 
+    env.Command('pb_common.splint', '$NANOPB/pb_common.c',
+        'splint -f splint/splint.rc $SOURCE 2> $TARGET')
+

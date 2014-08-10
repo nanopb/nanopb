@@ -18,10 +18,11 @@ strict = opts.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
 strict.Object("pb_decode_noerr.o", "$NANOPB/pb_decode.c")
 strict.Object("pb_encode_noerr.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_noerr.o", "$NANOPB/pb_common.c")
 
 # Now build and run the test normally.
-enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_noerr.o"])
-dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode_noerr.o"])
+enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_noerr.o", "pb_common_noerr.o"])
+dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode_noerr.o", "pb_common_noerr.o"])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_alltypes.output"])

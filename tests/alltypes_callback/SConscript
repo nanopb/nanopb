@@ -6,8 +6,8 @@ c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 
 env.NanopbProto(["alltypes", "alltypes.options"])
-enc = env.Program(["encode_alltypes_callback.c", "alltypes.pb.c", "$COMMON/pb_encode.o"])
-dec = env.Program(["decode_alltypes_callback.c", "alltypes.pb.c", "$COMMON/pb_decode.o"])
+enc = env.Program(["encode_alltypes_callback.c", "alltypes.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+dec = env.Program(["decode_alltypes_callback.c", "alltypes.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
 
 refdec = "$BUILD/alltypes/decode_alltypes$PROGSUFFIX"
 

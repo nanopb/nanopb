@@ -18,13 +18,14 @@ strict = env.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
 strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
 strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_with_malloc.o", "$NANOPB/pb_common.c")
 
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 
 env.NanopbProto(["alltypes", "alltypes.options"])
-enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "pb_encode_with_malloc.o"])
-dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "pb_decode_with_malloc.o"])
+enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "pb_encode_with_malloc.o", "pb_common_with_malloc.o"])
+dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "pb_decode_with_malloc.o", "pb_common_with_malloc.o"])
 
 # Encode and compare results to non-pointer alltypes test case
 env.RunTest(enc)

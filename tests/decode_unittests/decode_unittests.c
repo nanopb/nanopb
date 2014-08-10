@@ -1,5 +1,6 @@
 /* This includes the whole .c file to get access to static functions. */
 #define PB_ENABLE_MALLOC
+#include "pb_common.c"
 #include "pb_decode.c"
 
 #include <stdio.h>

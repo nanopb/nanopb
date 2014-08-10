@@ -8,8 +8,8 @@ incpath.Append(PROTOCPATH = '$BUILD/alltypes')
 incpath.Append(CPPPATH = '$BUILD/alltypes')
 
 incpath.NanopbProto(["extensions", "extensions.options"])
-enc = incpath.Program(["encode_extensions.c", "extensions.pb.c", "$BUILD/alltypes/alltypes.pb$OBJSUFFIX", "$COMMON/pb_encode.o"])
-dec = incpath.Program(["decode_extensions.c", "extensions.pb.c", "$BUILD/alltypes/alltypes.pb$OBJSUFFIX", "$COMMON/pb_decode.o"])
+enc = incpath.Program(["encode_extensions.c", "extensions.pb.c", "$BUILD/alltypes/alltypes.pb.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+dec = incpath.Program(["decode_extensions.c", "extensions.pb.c", "$BUILD/alltypes/alltypes.pb.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_extensions.output"])
