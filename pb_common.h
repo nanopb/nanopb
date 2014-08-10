@@ -16,13 +16,14 @@ typedef struct {
     const pb_field_t *start;       /* Start of the pb_field_t array */
     const pb_field_t *pos;         /* Current position of the iterator */
     unsigned required_field_index; /* Zero-based index that counts only the required fields */
-    void *dest_struct;             /* Pointer to the destination structure to decode to */
-    void *pData;                   /* Pointer where to store current field value */
-    void *pSize;                   /* Pointer where to store the size of current array field */
+    void *dest_struct;             /* Pointer to start of the structure */
+    void *pData;                   /* Pointer to current field value */
+    void *pSize;                   /* Pointer to count/has field */
 } pb_field_iter_t;
 
-/* Initialize the field iterator structure to beginning. */
-void pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *dest_struct);
+/* Initialize the field iterator structure to beginning.
+ * Returns false if the message type is empty. */
+bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *dest_struct);
 
 /* Advance the iterator to the next field.
  * Returns false when the iterator wraps back to the first field. */

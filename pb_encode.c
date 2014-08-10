@@ -5,6 +5,7 @@
 
 #include "pb.h"
 #include "pb_encode.h"
+#include "pb_common.h"
 
 /* Use the GCC warn_unused_result attribute to check that all return values
  * are propagated correctly. On other compilers and gcc before 3.4.0 just
@@ -333,42 +334,38 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
  * Encode all fields *
  *********************/
 
+static void *remove_const(const void *p)
+{
+    /* Note: this casts away const, in order to use the common field iterator
+     * logic for both encoding and decoding. */
+    union {
+        void *p1;
+        const void *p2;
+    } t;
+    t.p2 = p;
+    return t.p1;
+}
+
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
-    const pb_field_t *field = fields;
-    const void *pData = src_struct;
-    size_t prev_size = 0;
+    pb_field_iter_t iter;
+    if (!pb_field_iter_begin(&iter, fields, remove_const(src_struct)))
+        return true; /* Empty message type */
     
-    while (field->tag != 0)
-    {
-        pData = (const char*)pData + prev_size + field->data_offset;
-        if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-            prev_size = sizeof(const void*);
-        else
-            prev_size = field->data_size;
-        
-        /* Special case for static arrays */
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-            PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-        {
-            prev_size *= field->array_size;
-        }
-        
-        if (PB_LTYPE(field->type) == PB_LTYPE_EXTENSION)
+    do {
+        if (PB_LTYPE(iter.pos->type) == PB_LTYPE_EXTENSION)
         {
             /* Special case for the extension field placeholder */
-            if (!encode_extension_field(stream, field, pData))
+            if (!encode_extension_field(stream, iter.pos, iter.pData))
                 return false;
         }
         else
         {
             /* Regular field */
-            if (!encode_field(stream, field, pData))
+            if (!encode_field(stream, iter.pos, iter.pData))
                 return false;
         }
-    
-        field++;
-    }
+    } while (pb_field_iter_next(&iter));
     
     return true;
 }

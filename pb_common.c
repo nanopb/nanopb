@@ -5,7 +5,7 @@
 
 #include "pb_common.h"
 
-void pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *dest_struct)
+bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *dest_struct)
 {
     iter->start = fields;
     iter->pos = fields;
@@ -13,6 +13,8 @@ void pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *
     iter->dest_struct = dest_struct;
     iter->pData = (char*)dest_struct + iter->pos->data_offset;
     iter->pSize = (char*)iter->pData + iter->pos->size_offset;
+    
+    return (iter->pos->tag != 0);
 }
 
 bool pb_field_iter_next(pb_field_iter_t *iter)
@@ -31,7 +33,7 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
     if (iter->pos->tag == 0)
     {
         /* Wrapped back to beginning, reinitialize */
-        pb_field_iter_begin(iter, iter->start, iter->dest_struct);
+        (void)pb_field_iter_begin(iter, iter->start, iter->dest_struct);
         return false;
     }
     else

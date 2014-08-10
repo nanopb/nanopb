@@ -616,7 +616,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     /* Fake a field iterator for the extension field.
      * It is not actually safe to advance this iterator, but decode_field
      * will not even try to. */
-    pb_field_iter_begin(&iter, field, extension->dest);
+    (void)pb_field_iter_begin(&iter, field, extension->dest);
     iter.pData = extension->dest;
     iter.pSize = &extension->found;
     
@@ -668,16 +668,14 @@ static bool checkreturn find_extension_field(pb_field_iter_t *iter)
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct)
 {
     pb_field_iter_t iter;
-    pb_field_iter_begin(&iter, fields, dest_struct);
+
+    if (!pb_field_iter_begin(&iter, fields, dest_struct))
+        return; /* Empty message type */
     
     do
     {
         pb_type_t type;
         type = iter.pos->type;
-    
-        /* Avoid crash on empty message types (zero fields) */
-        if (iter.pos->tag == 0)
-            continue;
         
         if (PB_ATYPE(type) == PB_ATYPE_STATIC)
         {
@@ -738,7 +736,9 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
     uint32_t extension_range_start = 0;
     pb_field_iter_t iter;
     
-    pb_field_iter_begin(&iter, fields, dest_struct);
+    /* Return value ignored, as empty message types will be correctly handled by
+     * pb_field_iter_find() anyway. */
+    (void)pb_field_iter_begin(&iter, fields, dest_struct);
     
     while (stream->bytes_left)
     {
@@ -859,17 +859,15 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
 void pb_release(const pb_field_t fields[], void *dest_struct)
 {
     pb_field_iter_t iter;
-    pb_field_iter_begin(&iter, fields, dest_struct);
+    
+    if (!pb_field_iter_begin(&iter, fields, dest_struct))
+        return; /* Empty message type */
     
     do
     {
         pb_type_t type;
         type = iter.pos->type;
     
-        /* Avoid crash on empty message types (zero fields) */
-        if (iter.pos->tag == 0)
-            continue;
-        
         if (PB_ATYPE(type) == PB_ATYPE_POINTER)
         {
             if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&

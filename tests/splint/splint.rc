@@ -28,6 +28,7 @@
 -kepttrans
 -branchstate
 -immediatetrans
+-mustfreefresh
 
 # These tests give false positives, compiler typically has
 # better warnings for these.
