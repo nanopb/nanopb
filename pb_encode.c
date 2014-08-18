@@ -246,7 +246,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
             break;
         
         case PB_HTYPE_REPEATED:
-            if (!encode_array(stream, field, pData, *(const size_t*)pSize, func))
+            if (!encode_array(stream, field, pData, *(const pb_size_t*)pSize, func))
                 return false;
             break;
         
@@ -630,7 +630,6 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *fie
 
 static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    /* strnlen() is not always available, so just use a loop */
     size_t size = 0;
     size_t max_size = field->data_size;
     const char *p = (const char*)src;
@@ -644,6 +643,7 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
     }
     else
     {
+        /* strnlen() is not always available, so just use a loop */
         while (size < max_size && *p != '\0')
         {
             size++;

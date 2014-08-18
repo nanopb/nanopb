@@ -261,7 +261,7 @@ class Field:
         result = ''
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
-                result += '    size_t ' + self.name + '_count;\n'
+                result += '    pb_size_t ' + self.name + '_count;\n'
             
             if self.pbtype == 'MESSAGE':
                 # Use struct definition, so recursive submessages are possible
@@ -277,17 +277,14 @@ class Field:
             if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
                 result += '    bool has_' + self.name + ';\n'
             elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
-                result += '    size_t ' + self.name + '_count;\n'
+                result += '    pb_size_t ' + self.name + '_count;\n'
             result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
     
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            result = 'typedef struct {\n'
-            result += '    size_t size;\n'
-            result += '    uint8_t bytes[%d];\n' % self.max_size
-            result += '} %s;\n' % self.ctype
+            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
         else:
             result = None
         return result

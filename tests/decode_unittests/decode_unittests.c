@@ -170,7 +170,7 @@ int main()
     
     {
         pb_istream_t s;
-        struct { size_t size; uint8_t bytes[5]; } d;
+        struct { pb_size_t size; uint8_t bytes[5]; } d;
         pb_field_t f = {1, PB_LTYPE_BYTES, 0, 0, sizeof(d), 0, 0};
         
         COMMENT("Test pb_dec_bytes")
@@ -251,7 +251,7 @@ int main()
     {
         pb_istream_t s;
         CallbackArray dest;
-        struct { size_t size; uint8_t bytes[10]; } ref;
+        struct { pb_size_t size; uint8_t bytes[10]; } ref;
         dest.data.funcs.decode = &callback_check;
         dest.data.arg = &ref;
         

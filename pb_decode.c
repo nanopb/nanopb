@@ -352,7 +352,7 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             {
                 /* Packed array */
                 bool status = true;
-                size_t *size = (size_t*)iter->pSize;
+                pb_size_t *size = (pb_size_t*)iter->pSize;
                 pb_istream_t substream;
                 if (!pb_make_string_substream(stream, &substream))
                     return false;
@@ -377,7 +377,7 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             else
             {
                 /* Repeated field */
-                size_t *size = (size_t*)iter->pSize;
+                pb_size_t *size = (pb_size_t*)iter->pSize;
                 void *pItem = (uint8_t*)iter->pData + iter->pos->data_size * (*size);
                 if (*size >= iter->pos->array_size)
                     PB_RETURN_ERROR(stream, "array overflow");
@@ -478,7 +478,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
             {
                 /* Packed array, multiple items come in at once. */
                 bool status = true;
-                size_t *size = (size_t*)iter->pSize;
+                pb_size_t *size = (pb_size_t*)iter->pSize;
                 size_t allocated_size = *size;
                 void *pItem;
                 pb_istream_t substream;
@@ -488,7 +488,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 
                 while (substream.bytes_left)
                 {
-                    if (*size + 1 > allocated_size)
+                    if ((size_t)*size + 1 > allocated_size)
                     {
                         /* Allocate more storage. This tries to guess the
                          * number of remaining entries. Round the division
@@ -510,6 +510,16 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                         status = false;
                         break;
                     }
+                    
+                    if (*size == PB_SIZE_MAX)
+                    {
+#ifndef PB_NO_ERRMSG
+                        stream->errmsg = "too many array entries";
+#endif
+                        status = false;
+                        break;
+                    }
+                    
                     (*size)++;
                 }
                 pb_close_string_substream(stream, &substream);
@@ -519,8 +529,11 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
             else
             {
                 /* Normal repeated field, i.e. only one item at a time. */
-                size_t *size = (size_t*)iter->pSize;
+                pb_size_t *size = (pb_size_t*)iter->pSize;
                 void *pItem;
+                
+                if (*size == PB_SIZE_MAX)
+                    PB_RETURN_ERROR(stream, "too many array entries");
                 
                 (*size)++;
                 if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size))
@@ -688,7 +701,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
             else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
             {
                 /* Set array count to 0, no need to initialize contents. */
-                *(size_t*)iter.pSize = 0;
+                *(pb_size_t*)iter.pSize = 0;
                 continue;
             }
             
@@ -716,7 +729,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
             /* Initialize array count to 0. */
             if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
             {
-                *(size_t*)iter.pSize = 0;
+                *(pb_size_t*)iter.pSize = 0;
             }
         }
         else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
@@ -876,7 +889,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
             {
                 /* Release entries in repeated string or bytes array */
                 void **pItem = *(void***)iter.pData;
-                size_t count = *(size_t*)iter.pSize;
+                pb_size_t count = *(pb_size_t*)iter.pSize;
                 while (count--)
                 {
                     pb_free(*pItem);
@@ -887,11 +900,11 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
             {
                 /* Release fields in submessages */
                 void *pItem = *(void**)iter.pData;
-                size_t count = (pItem ? 1 : 0);
+                pb_size_t count = (pItem ? 1 : 0);
                 
                 if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
                 {
-                    count = *(size_t*)iter.pSize;   
+                    count = *(pb_size_t*)iter.pSize;   
                 }
                 
                 while (count--)
@@ -1054,7 +1067,12 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
         bdest = (pb_bytes_array_t*)dest;
     }
     
-    bdest->size = size;
+    if (size > PB_SIZE_MAX)
+    {
+        PB_RETURN_ERROR(stream, "bytes overflow");
+    }
+
+    bdest->size = (pb_size_t)size;
     return pb_read(stream, bdest->bytes, size);
 }
 

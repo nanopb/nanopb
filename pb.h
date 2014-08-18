@@ -187,12 +187,15 @@ typedef uint8_t pb_type_t;
  * and array counts.
  */
 #if defined(PB_FIELD_32BIT)
+#define PB_SIZE_MAX ((uint32_t)-1)
     typedef uint32_t pb_size_t;
     typedef int32_t pb_ssize_t;
 #elif defined(PB_FIELD_16BIT)
+#define PB_SIZE_MAX ((uint16_t)-1)
     typedef uint16_t pb_size_t;
     typedef int16_t pb_ssize_t;
 #else
+#define PB_SIZE_MAX ((uint8_t)-1)
     typedef uint8_t pb_size_t;
     typedef int8_t pb_ssize_t;
 #endif
@@ -241,11 +244,11 @@ STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
  */
-#define PB_BYTES_ARRAY_T(n) struct { size_t size; uint8_t bytes[n]; }
+#define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; uint8_t bytes[n]; }
 #define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
 
 struct _pb_bytes_array_t {
-    size_t size;
+    pb_size_t size;
     uint8_t bytes[1];
 };
 typedef struct _pb_bytes_array_t pb_bytes_array_t;

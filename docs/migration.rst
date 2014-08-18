@@ -31,6 +31,21 @@ functionality is not needed.
 **Error indications:** Linker error: undefined reference to
 *pb_field_iter_begin*, *pb_field_iter_next* or similar.
 
+Change data type of field counts to pb_size_t
+---------------------------------------------
+**Rationale:** Often nanopb is used with small arrays, such as 255 items or
+less. Using a full *size_t* field to store the array count wastes memory if
+there are many arrays. There already exists parameters *PB_FIELD_16BIT* and
+*PB_FIELD_32BIT* which tell nanopb what is the maximum size of arrays in use.
+
+**Changes:** Generator will now use *pb_size_t* for the array *_count* fields.
+The size of the type will be controlled by the *PB_FIELD_16BIT* and
+*PB_FIELD_32BIT* compilation time options.
+
+**Required actions:** Regenerate all *.pb.h* files. In some cases casts to the
+*pb_size_t* type may need to be added in the user code when accessing the
+*_count* fields. 
+
 Nanopb-0.2.9 (2014-08-09)
 =========================
 

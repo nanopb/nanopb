@@ -170,7 +170,7 @@ int main()
     {
         uint8_t buffer[30];
         pb_ostream_t s;
-        struct { size_t size; uint8_t bytes[5]; } value = {5, {'x', 'y', 'z', 'z', 'y'}};
+        struct { pb_size_t size; uint8_t bytes[5]; } value = {5, {'x', 'y', 'z', 'z', 'y'}};
     
         COMMENT("Test pb_enc_bytes")
         TEST(WRITES(pb_enc_bytes(&s, &BytesMessage_fields[0], &value), "\x05xyzzy"))

@@ -29,17 +29,17 @@ typedef struct _SubMessage {
 } SubMessage;
 
 typedef struct {
-    size_t size;
+    pb_size_t size;
     uint8_t bytes[16];
 } AllTypes_req_bytes_t;
 
 typedef struct {
-    size_t size;
+    pb_size_t size;
     uint8_t bytes[16];
 } AllTypes_rep_bytes_t;
 
 typedef struct {
-    size_t size;
+    pb_size_t size;
     uint8_t bytes[16];
 } AllTypes_opt_bytes_t;
 
@@ -61,39 +61,39 @@ typedef struct _AllTypes {
     AllTypes_req_bytes_t req_bytes;
     SubMessage req_submsg;
     MyEnum req_enum;
-    size_t rep_int32_count;
+    pb_size_t rep_int32_count;
     int32_t rep_int32[5];
-    size_t rep_int64_count;
+    pb_size_t rep_int64_count;
     int64_t rep_int64[5];
-    size_t rep_uint32_count;
+    pb_size_t rep_uint32_count;
     uint32_t rep_uint32[5];
-    size_t rep_uint64_count;
+    pb_size_t rep_uint64_count;
     uint64_t rep_uint64[5];
-    size_t rep_sint32_count;
+    pb_size_t rep_sint32_count;
     int32_t rep_sint32[5];
-    size_t rep_sint64_count;
+    pb_size_t rep_sint64_count;
     int64_t rep_sint64[5];
-    size_t rep_bool_count;
+    pb_size_t rep_bool_count;
     bool rep_bool[5];
-    size_t rep_fixed32_count;
+    pb_size_t rep_fixed32_count;
     uint32_t rep_fixed32[5];
-    size_t rep_sfixed32_count;
+    pb_size_t rep_sfixed32_count;
     int32_t rep_sfixed32[5];
-    size_t rep_float_count;
+    pb_size_t rep_float_count;
     float rep_float[5];
-    size_t rep_fixed64_count;
+    pb_size_t rep_fixed64_count;
     uint64_t rep_fixed64[5];
-    size_t rep_sfixed64_count;
+    pb_size_t rep_sfixed64_count;
     int64_t rep_sfixed64[5];
-    size_t rep_double_count;
+    pb_size_t rep_double_count;
     double rep_double[5];
-    size_t rep_string_count;
+    pb_size_t rep_string_count;
     char rep_string[5][16];
-    size_t rep_bytes_count;
+    pb_size_t rep_bytes_count;
     AllTypes_rep_bytes_t rep_bytes[5];
-    size_t rep_submsg_count;
+    pb_size_t rep_submsg_count;
     SubMessage rep_submsg[5];
-    size_t rep_enum_count;
+    pb_size_t rep_enum_count;
     MyEnum rep_enum[5];
     bool has_opt_int32;
     int32_t opt_int32;
