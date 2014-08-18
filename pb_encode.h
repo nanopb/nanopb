@@ -3,8 +3,8 @@
  * field descriptions created by nanopb_generator.py.
  */
 
-#ifndef _PB_ENCODE_H_
-#define _PB_ENCODE_H_
+#ifndef PB_ENCODE_H_INCLUDED
+#define PB_ENCODE_H_INCLUDED
 
 #include "pb.h"
 
@@ -24,7 +24,7 @@ extern "C" {
  * 4) Substreams will modify max_size and bytes_written. Don't use them
  *    to calculate any pointers.
  */
-struct _pb_ostream_t
+struct pb_ostream_s
 {
 #ifdef PB_BUFFER_ONLY
     /* Callback pointer is not used in buffer-only configuration.

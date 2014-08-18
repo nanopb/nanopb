@@ -44,7 +44,45 @@ The size of the type will be controlled by the *PB_FIELD_16BIT* and
 
 **Required actions:** Regenerate all *.pb.h* files. In some cases casts to the
 *pb_size_t* type may need to be added in the user code when accessing the
-*_count* fields. 
+*_count* fields.
+
+**Error indications:** Incorrect data at runtime, crashes. But note that other
+changes in the same version already require regenerating the files and have
+better indications of errors, so this is only an issue for development
+versions.
+
+Renamed some macros and identifiers
+-----------------------------------
+**Rationale:** Some names in nanopb core were badly chosen and conflicted with
+ISO C99 reserved names or lacked a prefix. While they haven't caused trouble
+so far, it is reasonable to switch to non-conflicting names as these are rarely
+used from user code.
+
+**Changes:** The following identifier names have changed:
+
+  * Macros:
+  
+    * STATIC_ASSERT(x) -> PB_STATIC_ASSERT(x)
+    * UNUSED(x) -> PB_UNUSED(x)
+  
+  * Include guards:
+  
+    * _PB_filename_ -> PB_filename_INCLUDED
+  
+  * Structure forward declaration tags:
+  
+    * _pb_field_t -> pb_field_s
+    * _pb_bytes_array_t -> pb_bytes_array_s
+    * _pb_callback_t -> pb_callback_s
+    * _pb_extension_type_t -> pb_extension_type_s
+    * _pb_extension_t -> pb_extension_s
+    * _pb_istream_t -> pb_istream_s
+    * _pb_ostream_t -> pb_ostream_s
+
+**Required actions:** Regenerate all *.pb.c* files. If you use any of the above
+identifiers in your application code, perform search-replace to the new name.
+
+**Error indications:** Compiler errors on lines with the macro/type names.
 
 Nanopb-0.2.9 (2014-08-09)
 =========================

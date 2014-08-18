@@ -2,8 +2,8 @@
  * stuff. For the high-level interface, see pb_encode.h and pb_decode.h.
  */
 
-#ifndef _PB_H_
-#define _PB_H_
+#ifndef PB_H_INCLUDED
+#define PB_H_INCLUDED
 
 /*****************************************************************
  * Nanopb compilation time options. You can change these here by *
@@ -213,8 +213,8 @@ typedef uint8_t pb_type_t;
  * PB_FIELD_32BIT.
  */
 PB_PACKED_STRUCT_START
-typedef struct _pb_field_t pb_field_t;
-struct _pb_field_t {
+typedef struct pb_field_s pb_field_t;
+struct pb_field_s {
     pb_size_t tag;
     pb_type_t type;
     pb_size_t data_offset; /* Offset of field data, relative to previous field. */
@@ -251,11 +251,11 @@ PB_STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
 #define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; uint8_t bytes[n]; }
 #define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
 
-struct _pb_bytes_array_t {
+struct pb_bytes_array_s {
     pb_size_t size;
     uint8_t bytes[1];
 };
-typedef struct _pb_bytes_array_t pb_bytes_array_t;
+typedef struct pb_bytes_array_s pb_bytes_array_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
@@ -275,10 +275,10 @@ typedef struct _pb_bytes_array_t pb_bytes_array_t;
  *
  * The callback can be null if you want to skip a field.
  */
-typedef struct _pb_istream_t pb_istream_t;
-typedef struct _pb_ostream_t pb_ostream_t;
-typedef struct _pb_callback_t pb_callback_t;
-struct _pb_callback_t {
+typedef struct pb_istream_s pb_istream_t;
+typedef struct pb_ostream_s pb_ostream_t;
+typedef struct pb_callback_s pb_callback_t;
+struct pb_callback_s {
 #ifdef PB_OLD_CALLBACK_STYLE
     /* Deprecated since nanopb-0.2.1 */
     union {
@@ -311,9 +311,9 @@ typedef enum {
  * if you want to catch all unknown fields, you can also create a custom
  * pb_extension_type_t with your own callback.
  */
-typedef struct _pb_extension_type_t pb_extension_type_t;
-typedef struct _pb_extension_t pb_extension_t;
-struct _pb_extension_type_t {
+typedef struct pb_extension_type_s pb_extension_type_t;
+typedef struct pb_extension_s pb_extension_t;
+struct pb_extension_type_s {
     /* Called for each unknown field in the message.
      * If you handle the field, read off all of its data and return true.
      * If you do not handle the field, do not read anything and return true.
@@ -335,7 +335,7 @@ struct _pb_extension_type_t {
     const void *arg;
 };
 
-struct _pb_extension_t {
+struct pb_extension_s {
     /* Type describing the extension field. Usually you'll initialize
      * this to a pointer to the automatically generated structure. */
     const pb_extension_type_t *type;

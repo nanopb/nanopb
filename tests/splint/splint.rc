@@ -2,7 +2,6 @@
 +partial
 +matchanyintegral
 +strictlib
--isoreserved		# to be fixed in 0.3
 -nullassign
 -predboolint
 -predboolptr
