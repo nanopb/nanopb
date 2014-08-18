@@ -159,17 +159,17 @@ extern const pb_field_t AllTypes_fields[53];
 
 /* Check that field information fits in pb_field_t */
 #if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)
-STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 256 && pb_membersize(AllTypes, rep_submsg[0]) < 256 && pb_membersize(AllTypes, opt_submsg) < 256), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_SubMessage_AllTypes)
+PB_STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 256 && pb_membersize(AllTypes, rep_submsg[0]) < 256 && pb_membersize(AllTypes, opt_submsg) < 256), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_SubMessage_AllTypes)
 #endif
 
 #if !defined(PB_FIELD_32BIT)
-STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 65536 && pb_membersize(AllTypes, rep_submsg[0]) < 65536 && pb_membersize(AllTypes, opt_submsg) < 65536), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_SubMessage_AllTypes)
+PB_STATIC_ASSERT((pb_membersize(AllTypes, req_submsg) < 65536 && pb_membersize(AllTypes, rep_submsg[0]) < 65536 && pb_membersize(AllTypes, opt_submsg) < 65536), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_SubMessage_AllTypes)
 #endif
 
 /* On some platforms (such as AVR), double is really float.
  * These are not directly supported by nanopb, but see example_avr_double.
  */
-STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)
+PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)
 
 #ifdef __cplusplus
 } /* extern "C" */

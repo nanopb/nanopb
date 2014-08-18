@@ -311,7 +311,7 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
     const pb_field_t *field, const void *pData)
 {
     const pb_extension_t *extension = *(const pb_extension_t* const *)pData;
-    UNUSED(field);
+    PB_UNUSED(field);
     
     while (extension)
     {
@@ -599,13 +599,13 @@ static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *f
 
 static bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    UNUSED(field);
+    PB_UNUSED(field);
     return pb_encode_fixed64(stream, src);
 }
 
 static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    UNUSED(field);
+    PB_UNUSED(field);
     return pb_encode_fixed32(stream, src);
 }
 

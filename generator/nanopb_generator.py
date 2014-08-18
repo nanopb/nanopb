@@ -908,7 +908,7 @@ def generate_source(headername, enums, messages, extensions, options):
                 yield ' * numbers or field sizes that are larger than what can fit in 8 or 16 bit\n'
                 yield ' * field descriptors.\n'
                 yield ' */\n'
-                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
+                yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
             yield '#endif\n\n'
         
         if worst < 65536:
@@ -925,7 +925,7 @@ def generate_source(headername, enums, messages, extensions, options):
                 yield ' * numbers or field sizes that are larger than what can fit in the default\n'
                 yield ' * 8 bit descriptors.\n'
                 yield ' */\n'
-                yield 'STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
+                yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
             yield '#endif\n\n'
     
     # Add check for sizeof(double)
@@ -941,7 +941,7 @@ def generate_source(headername, enums, messages, extensions, options):
         yield ' * These are not directly supported by nanopb, but see example_avr_double.\n'
         yield ' * To get rid of this error, remove any double fields from your .proto.\n'
         yield ' */\n'
-        yield 'STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
+        yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
     
     yield '\n'
 

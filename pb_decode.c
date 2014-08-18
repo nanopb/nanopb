@@ -444,8 +444,8 @@ static void initialize_pointer_field(void *pItem, pb_field_iter_t *iter)
 static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter)
 {
 #ifndef PB_ENABLE_MALLOC
-    UNUSED(wire_type);
-    UNUSED(iter);
+    PB_UNUSED(wire_type);
+    PB_UNUSED(iter);
     PB_RETURN_ERROR(stream, "no malloc support");
 #else
     pb_type_t type;
@@ -1032,13 +1032,13 @@ static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *f
 
 static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    UNUSED(field);
+    PB_UNUSED(field);
     return pb_decode_fixed32(stream, dest);
 }
 
 static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    UNUSED(field);
+    PB_UNUSED(field);
     return pb_decode_fixed64(stream, dest);
 }
 

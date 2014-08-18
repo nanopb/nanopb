@@ -98,23 +98,27 @@
 #endif
 
 /* Handly macro for suppressing unreferenced-parameter compiler warnings. */
-#ifndef UNUSED
-#define UNUSED(x) (void)(x)
+#ifndef PB_UNUSED
+#define PB_UNUSED(x) (void)(x)
 #endif
 
 /* Compile-time assertion, used for checking compatible compilation options.
- * If this does not work properly on your compiler, use #define STATIC_ASSERT
- * to disable it.
+ * If this does not work properly on your compiler, use
+ * #define PB_NO_STATIC_ASSERT to disable it.
  *
  * But before doing that, check carefully the error message / place where it
  * comes from to see if the error has a real cause. Unfortunately the error
  * message is not always very clear to read, but you can see the reason better
- * in the place where the STATIC_ASSERT macro was called.
+ * in the place where the PB_STATIC_ASSERT macro was called.
  */
-#ifndef STATIC_ASSERT
-#define STATIC_ASSERT(COND,MSG) typedef char STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
-#define STATIC_ASSERT_MSG(MSG, LINE, COUNTER) STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
-#define STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) static_assertion_##MSG##LINE##COUNTER
+#ifndef PB_NO_STATIC_ASSERT
+#ifndef PB_STATIC_ASSERT
+#define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
+#define PB_STATIC_ASSERT_MSG(MSG, LINE, COUNTER) PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
+#define PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) pb_static_assertion_##MSG##LINE##COUNTER
+#endif
+#else
+#define PB_STATIC_ASSERT(COND,MSG)
 #endif
 
 /* Number of required fields to keep track of. */
@@ -231,14 +235,14 @@ PB_PACKED_STRUCT_END
  * If you get errors here, it probably means that your stdint.h is not
  * correct for your platform.
  */
-STATIC_ASSERT(sizeof(int8_t) == 1, INT8_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(uint8_t) == 1, UINT8_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(int16_t) == 2, INT16_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(uint16_t) == 2, UINT16_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(int32_t) == 4, INT32_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(uint32_t) == 4, UINT32_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(int64_t) == 8, INT64_T_WRONG_SIZE)
-STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(int8_t) == 1, INT8_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint8_t) == 1, UINT8_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(int16_t) == 2, INT16_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint16_t) == 2, UINT16_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(int32_t) == 4, INT32_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint32_t) == 4, UINT32_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(int64_t) == 8, INT64_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
 
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.
@@ -505,7 +509,7 @@ struct _pb_extension_t {
 #ifdef PB_NO_ERRMSG
 #define PB_RETURN_ERROR(stream,msg) \
     do {\
-        UNUSED(stream); \
+        PB_UNUSED(stream); \
         return false; \
     } while(0)
 #define PB_GET_ERROR(stream) "(errmsg disabled)"
