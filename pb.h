@@ -365,6 +365,9 @@ struct pb_extension_s {
 #   endif
 #endif
 
+/* This is used to inform about need to regenerate .pb.h/.pb.c files. */
+#define PB_PROTO_HEADER_VERSION 30
+
 /* These macros are used to declare pb_field_t's in the constant array. */
 /* Size of a structure member, in bytes. */
 #define pb_membersize(st, m) (sizeof ((st*)0)->m)
@@ -476,26 +479,15 @@ struct pb_extension_s {
  *                 SINT32, SINT64, STRING, UINT32, UINT64 or EXTENSION
  * - Field rules:  REQUIRED, OPTIONAL or REPEATED
  * - Allocation:   STATIC or CALLBACK
+ * - Placement: FIRST or OTHER, depending on if this is the first field in structure.
  * - Message name
  * - Field name
  * - Previous field name (or field name again for first field)
  * - Pointer to default value or submsg fields.
  */
 
-#define PB_FIELD(tag, type, rules, allocation, message, field, prevfield, ptr) \
-    PB_ ## rules ## _ ## allocation(tag, message, field, \
-        PB_DATAOFFSET_CHOOSE(message, field, prevfield), \
-        PB_LTYPE_MAP_ ## type, ptr)
-
-/* This is a new version of the macro used by nanopb generator from
- * version 0.2.3 onwards. It avoids the use of a ternary expression in
- * the initialization, which confused some compilers.
- *
- * - Placement: FIRST or OTHER, depending on if this is the first field in structure.
- *
- */
-#define PB_FIELD2(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
-    PB_ ## rules ## _ ## allocation(tag, message, field, \
+#define PB_FIELD(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
+        PB_ ## rules ## _ ## allocation(tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
