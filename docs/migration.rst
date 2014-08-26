@@ -151,12 +151,12 @@ Callback function signature
 as *void\**. This allowed passing of any data, but made it unnecessarily
 complex to return a pointer from callback.
 
-**Changes:** The callback function parameter was changed to *void\**.
+**Changes:** The callback function parameter was changed to *void\*\**.
 
 **Required actions:** You can continue using the old callback style by
 defining *PB_OLD_CALLBACK_STYLE*. Recommended action is to:
 
-  * Change the callback signatures to contain *void\** for decoders and
+  * Change the callback signatures to contain *void\*\** for decoders and
     *void \* const \** for encoders.
   * Change the callback function body to use *\*arg* instead of *arg*.
 
