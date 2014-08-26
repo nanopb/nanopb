@@ -182,8 +182,8 @@ mark_as_advanced(NANOPB_INCLUDE_DIRS)
 # Find nanopb source files
 set(NANOPB_SRCS)
 set(NANOPB_HDRS)
-list(APPEND _nanopb_srcs pb_decode.c pb_encode.c)
-list(APPEND _nanopb_hdrs pb_decode.h pb_encode.h pb.h)
+list(APPEND _nanopb_srcs pb_decode.c pb_encode.c pb_common.c)
+list(APPEND _nanopb_hdrs pb_decode.h pb_encode.h pb_common.h pb.h)
 
 foreach(FIL ${_nanopb_srcs})
   find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER} ${NANOPB_INCLUDE_DIRS})
