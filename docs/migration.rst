@@ -11,7 +11,7 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.3.0 (2014-09-xx)
+Nanopb-0.3.0 (2014-08-26)
 =========================
 
 Separate field iterator logic to pb_common.c

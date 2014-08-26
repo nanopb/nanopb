@@ -1,3 +1,15 @@
+nanopb-0.3.0 (2014-08-26)
+ NOTE: See docs/migration.html or online at
+ http://koti.kapsi.fi/~jpa/nanopb/docs/migration.html
+ for changes in this version. Most importantly, you need to add
+ pb_common.c to the list of files to compile.
+
+ Separated field iterator logic to pb_common.c (issue 128)
+ Change the _count fields to use pb_size_t datatype (issue 82)
+ Added PB_ prefix to macro names (issue 106)
+ Added #if version guard to generated files (issue 129)
+ Added migration document
+
 nanopb-0.2.9 (2014-08-09)
  NOTE: If you are using the -e option with the generator, you have
  to prepend . to the argument to get the same behaviour as before.
