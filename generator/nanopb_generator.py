@@ -546,7 +546,7 @@ class Message:
 
     def get_dependencies(self):
         '''Get list of type names that this structure refers to.'''
-        return [str(field.ctype) for field in self.fields]
+        return [str(field.ctype) for field in self.fields if field.allocation == 'STATIC']
     
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
