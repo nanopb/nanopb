@@ -1,0 +1,50 @@
+# Run a fuzz test to verify robustness against corrupted/malicious data.
+
+Import("env")
+
+# We need our own pb_decode.o for the malloc support
+env = env.Clone()
+env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1,
+                         'PB_SYSTEM_HEADER': '\\"fuzz_syshdr.h\\"'})
+env.Append(CPPPATH = ".")
+
+if 'SYSHDR' in env:
+    env.Append(CPPDEFINES = {'PB_OLD_SYSHDR': env['SYSHDR']})
+
+# Disable libmudflap, because it will confuse valgrind
+# and other memory leak detection tools.
+if '-fmudflap' in env["CCFLAGS"]:
+    env["CCFLAGS"].remove("-fmudflap")
+    env["LINKFLAGS"].remove("-fmudflap")
+    env["LIBS"].remove("mudflap")
+
+strict = env.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_with_malloc.o", "$NANOPB/pb_common.c")
+
+# We want both pointer and static versions of the AllTypes message
+env.Command("alltypes_static.proto", "#alltypes/alltypes.proto",
+            lambda target, source, env:
+                open(str(target[0]), 'w').write("package alltypes_static;\n"
+                                                + open(str(source[0])).read()))
+env.Command("alltypes_pointer.proto", "#alltypes/alltypes.proto",
+            lambda target, source, env:
+                open(str(target[0]), 'w').write("package alltypes_pointer;\n"
+                                                + open(str(source[0])).read()))
+
+p1 = env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
+p2 = env.NanopbProto(["alltypes_static", "alltypes_static.options"])
+fuzz = env.Program(["fuzztest.c",
+                    "alltypes_pointer.pb.c",
+                    "alltypes_static.pb.c",
+                    "pb_encode_with_malloc.o",
+                    "pb_decode_with_malloc.o",
+                    "pb_common_with_malloc.o",
+                    "malloc_wrappers.c"])
+Depends([p1, p2, fuzz], ["fuzz_syshdr.h", "malloc_wrappers.h"])
+
+env.RunTest(fuzz)
+
+
