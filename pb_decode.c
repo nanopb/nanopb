@@ -44,6 +44,10 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t
 static bool checkreturn pb_skip_varint(pb_istream_t *stream);
 static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
+#ifdef PB_ENABLE_MALLOC
+static void pb_release_single_field(const pb_field_iter_t *iter);
+#endif
+
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
@@ -458,6 +462,13 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
     {
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
+            if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE &&
+                *(void**)iter->pData != NULL)
+            {
+                /* Duplicate field, have to release the old allocation first. */
+                pb_release_single_field(iter);
+            }
+        
             if (PB_LTYPE(type) == PB_LTYPE_STRING ||
                 PB_LTYPE(type) == PB_LTYPE_BYTES)
             {
@@ -869,6 +880,55 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
 }
 
 #ifdef PB_ENABLE_MALLOC
+static void pb_release_single_field(const pb_field_iter_t *iter)
+{
+    pb_type_t type;
+    type = iter->pos->type;
+
+    if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+    {
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
+            (PB_LTYPE(type) == PB_LTYPE_STRING ||
+             PB_LTYPE(type) == PB_LTYPE_BYTES))
+        {
+            /* Release entries in repeated string or bytes array */
+            void **pItem = *(void***)iter->pData;
+            pb_size_t count = *(pb_size_t*)iter->pSize;
+            while (count--)
+            {
+                pb_free(*pItem);
+                *pItem++ = NULL;
+            }
+            *(pb_size_t*)iter->pSize = 0;
+        }
+        else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+        {
+            /* Release fields in submessages */
+            void *pItem = *(void**)iter->pData;
+            if (pItem)
+            {
+                pb_size_t count = 1;
+                
+                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+                {
+                    count = *(pb_size_t*)iter->pSize;
+                    *(pb_size_t*)iter->pSize = 0;
+                }
+                
+                while (count--)
+                {
+                    pb_release((const pb_field_t*)iter->pos->ptr, pItem);
+                    pItem = (uint8_t*)pItem + iter->pos->data_size;
+                }
+            }
+        }
+        
+        /* Release main item */
+        pb_free(*(void**)iter->pData);
+        *(void**)iter->pData = NULL;
+    }
+}
+
 void pb_release(const pb_field_t fields[], void *dest_struct)
 {
     pb_field_iter_t iter;
@@ -878,51 +938,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
     
     do
     {
-        pb_type_t type;
-        type = iter.pos->type;
-    
-        if (PB_ATYPE(type) == PB_ATYPE_POINTER)
-        {
-            if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
-                (PB_LTYPE(type) == PB_LTYPE_STRING ||
-                 PB_LTYPE(type) == PB_LTYPE_BYTES))
-            {
-                /* Release entries in repeated string or bytes array */
-                void **pItem = *(void***)iter.pData;
-                pb_size_t count = *(pb_size_t*)iter.pSize;
-                while (count--)
-                {
-                    pb_free(*pItem);
-                    *pItem++ = NULL;
-                }
-                *(pb_size_t*)iter.pSize = 0;
-            }
-            else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
-            {
-                /* Release fields in submessages */
-                void *pItem = *(void**)iter.pData;
-                if (pItem)
-                {
-                    pb_size_t count = 1;
-                    
-                    if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-                    {
-                        count = *(pb_size_t*)iter.pSize;
-                        *(pb_size_t*)iter.pSize = 0;
-                    }
-                    
-                    while (count--)
-                    {
-                        pb_release((const pb_field_t*)iter.pos->ptr, pItem);
-                        pItem = (uint8_t*)pItem + iter.pos->data_size;
-                    }
-                }
-            }
-            
-            /* Release main item */
-            pb_free(*(void**)iter.pData);
-            *(void**)iter.pData = NULL;
-        }
+        pb_release_single_field(&iter);
     } while (pb_field_iter_next(&iter));
 }
 #endif
