@@ -962,22 +962,27 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
                     pb_free(*pItem);
                     *pItem++ = NULL;
                 }
+                *(pb_size_t*)iter.pSize = 0;
             }
             else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
             {
                 /* Release fields in submessages */
                 void *pItem = *(void**)iter.pData;
-                size_t count = (pItem ? 1 : 0);
-                
-                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+                if (pItem)
                 {
-                    count = *(size_t*)iter.pSize;   
-                }
-                
-                while (count--)
-                {
-                    pb_release((const pb_field_t*)iter.pos->ptr, pItem);
-                    pItem = (uint8_t*)pItem + iter.pos->data_size;
+                    pb_size_t count = 1;
+                    
+                    if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+                    {
+                        count = *(pb_size_t*)iter.pSize;
+                        *(pb_size_t*)iter.pSize = 0;
+                    }
+                    
+                    while (count--)
+                    {
+                        pb_release((const pb_field_t*)iter.pos->ptr, pItem);
+                        pItem = (uint8_t*)pItem + iter.pos->data_size;
+                    }
                 }
             }
             
