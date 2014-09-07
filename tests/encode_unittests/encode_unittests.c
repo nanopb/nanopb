@@ -331,6 +331,23 @@ int main()
         TEST(s.bytes_written == StringMessage_size);
     }
     
+    {
+        uint8_t buffer[128];
+        pb_ostream_t s;
+        StringPointerContainer msg = StringPointerContainer_init_zero;
+        char *strs[1] = {NULL};
+        char zstr[] = "Z";
+        
+        COMMENT("Test string pointer encoding.");
+        
+        msg.rep_str = strs;
+        msg.rep_str_count = 1;
+        TEST(WRITES(pb_encode(&s, StringPointerContainer_fields, &msg), "\x0a\x00"))
+        
+        strs[0] = zstr;
+        TEST(WRITES(pb_encode(&s, StringPointerContainer_fields, &msg), "\x0a\x01Z"))
+    }
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     

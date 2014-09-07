@@ -87,6 +87,20 @@ int main()
               pb_decode_varint(&s, (uint64_t*)&i) && i == -1));
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"),
               pb_decode_varint(&s, &u) && u == UINT64_MAX));
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"),
+              !pb_decode_varint(&s, &u)));
+    }
+    
+    {
+        pb_istream_t s;
+        uint32_t u;
+        
+        COMMENT("Test pb_decode_varint32");
+        TEST((s = S("\x00"), pb_decode_varint32(&s, &u) && u == 0));
+        TEST((s = S("\x01"), pb_decode_varint32(&s, &u) && u == 1));
+        TEST((s = S("\xAC\x02"), pb_decode_varint32(&s, &u) && u == 300));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint32(&s, &u) && u == UINT32_MAX));
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\x01"), !pb_decode_varint32(&s, &u)));
     }
     
     {

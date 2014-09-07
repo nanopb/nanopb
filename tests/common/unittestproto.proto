@@ -34,3 +34,8 @@ message CallbackContainer {
 message CallbackContainerContainer {
     required CallbackContainer submsg = 1;
 }
+
+message StringPointerContainer {
+    repeated string rep_str = 1 [(nanopb).type = FT_POINTER];
+}
+
