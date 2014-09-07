@@ -1,0 +1,42 @@
+# Simulate io errors when encoding and decoding
+
+Import("env")
+
+# We need our own pb_decode.o for the malloc support
+env = env.Clone()
+env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1});
+
+# Disable libmudflap, because it will confuse valgrind
+# and other memory leak detection tools.
+if '-fmudflap' in env["CCFLAGS"]:
+    env["CCFLAGS"].remove("-fmudflap")
+    env["LINKFLAGS"].remove("-fmudflap")
+    env["LIBS"].remove("mudflap")
+
+strict = env.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_with_malloc.o", "$NANOPB/pb_common.c")
+
+c = Copy("$TARGET", "$SOURCE")
+env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
+env.Command("io_errors.c", "#io_errors/io_errors.c", c)
+
+env.NanopbProto(["alltypes", "alltypes.options"])
+
+ioerr = env.Program(["io_errors.c", "alltypes.pb.c",
+                     "pb_encode_with_malloc.o",
+                     "pb_decode_with_malloc.o",
+                     "pb_common_with_malloc.o"])
+
+# Run tests under valgrind if available
+valgrind = env.WhereIs('valgrind')
+kwargs = {}
+if valgrind:
+    kwargs['COMMAND'] = valgrind
+    kwargs['ARGS'] = ["-q", ioerr[0].abspath]
+
+env.RunTest("io_errors.output", [ioerr, "$BUILD/alltypes/encode_alltypes.output"], **kwargs)
+
+
