@@ -678,6 +678,9 @@ bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, voi
         return false;
     x->size = temp;
     
+    if (x->size < temp)
+        PB_RETURN_ERROR(stream, "size too large");
+    
     /* Check length, noting the space taken by the size_t header. */
     if (x->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
         PB_RETURN_ERROR(stream, "bytes overflow");
@@ -688,12 +691,18 @@ bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, voi
 bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint32_t size;
+    size_t alloc_size;
     bool status;
     if (!pb_decode_varint32(stream, &size))
         return false;
     
+    alloc_size = size + 1;
+    
+    if (alloc_size < size)
+        PB_RETURN_ERROR(stream, "size too large");
+    
     /* Check length, noting the null terminator */
-    if (size + 1 > field->data_size)
+    if (alloc_size > field->data_size)
         PB_RETURN_ERROR(stream, "string overflow");
     
     status = pb_read(stream, (uint8_t*)dest, size);
