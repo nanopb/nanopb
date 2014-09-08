@@ -45,6 +45,7 @@ static bool checkreturn pb_skip_varint(pb_istream_t *stream);
 static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
 #ifdef PB_ENABLE_MALLOC
+static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size);
 static void pb_release_single_field(const pb_field_iter_t *iter);
 #endif
 
@@ -404,18 +405,23 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
 {    
     void *ptr = *(void**)pData;
     
+    if (data_size == 0 || array_size == 0)
+        PB_RETURN_ERROR(stream, "invalid size");
+    
     /* Check for multiplication overflows.
      * This code avoids the costly division if the sizes are small enough.
      * Multiplication is safe as long as only half of bits are set
      * in either multiplicand.
      */
-    const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
-    if (data_size >= check_limit || array_size >= check_limit)
     {
-        const size_t size_max = (size_t)-1;
-        if (size_max / array_size < data_size)
+        const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
+        if (data_size >= check_limit || array_size >= check_limit)
         {
-            PB_RETURN_ERROR(stream, "size too large");
+            const size_t size_max = (size_t)-1;
+            if (size_max / array_size < data_size)
+            {
+                PB_RETURN_ERROR(stream, "size too large");
+            }
         }
     }
     
