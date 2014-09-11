@@ -47,4 +47,12 @@ Depends([p1, p2, fuzz], ["fuzz_syshdr.h", "malloc_wrappers.h"])
 
 env.RunTest(fuzz)
 
+fuzzstub = env.Program(["fuzzstub.c",
+                    "alltypes_pointer.pb.c",
+                    "alltypes_static.pb.c",
+                    "pb_encode_with_malloc.o",
+                    "pb_decode_with_malloc.o",
+                    "pb_common_with_malloc.o",
+                    "malloc_wrappers.c"])
+
 
