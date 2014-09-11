@@ -1,3 +1,11 @@
+nanopb-0.3.1 (2014-09-11)
+ Fix security issue due to size_t overflows. (issue 132)
+ Fix memory leak with duplicated fields and PB_ENABLE_MALLOC
+ Fix crash if pb_release() is called twice.
+ Fix cyclic message support (issue 130)
+ Fix error in generated initializers for repeated pointer fields.
+ Improve tests (issues 113, 126)
+
 nanopb-0.3.0 (2014-08-26)
  NOTE: See docs/migration.html or online at
  http://koti.kapsi.fi/~jpa/nanopb/docs/migration.html
