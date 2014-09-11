@@ -1,3 +1,9 @@
+nanopb-0.1.9.1
+ Fix security issue due to size_t overflows. (issue 132)
+
+ NOTE: nanopb-0.1.x is and will remain affected by issue 97.
+       A fix would be too intrusive for a support release.
+
 nanopb-0.1.9
  Fixed error message bugs (issues 52, 56)
  Sanitize #ifndef filename (issue 50)
