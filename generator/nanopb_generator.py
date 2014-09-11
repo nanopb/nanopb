@@ -1,5 +1,5 @@
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.1.9.1-dev"
+nanopb_version = "nanopb-0.1.9.1"
 
 try:
     import google.protobuf.descriptor_pb2 as descriptor
