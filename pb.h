@@ -17,6 +17,10 @@
  * stores the most-significant byte first. */
 /* #define __BIG_ENDIAN__ 1 */
 
+/* Define this if your CPU / compiler combination does not support
+ * unaligned memory access to packed structures. */
+/* #define PB_NO_PACKED_STRUCTS 1 */
+
 /* Increase the number of required fields that are tracked.
  * A compiler warning will tell if you need this. */
 /* #define PB_MAX_REQUIRED_FIELDS 256 */
@@ -75,7 +79,12 @@
 /* Macro for defining packed structures (compiler dependent).
  * This just reduces memory requirements, but is not required.
  */
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(PB_NO_PACKED_STRUCTS)
+    /* Disable struct packing */
+#   define PB_PACKED_STRUCT_START
+#   define PB_PACKED_STRUCT_END
+#   define pb_packed
+#elif defined(__GNUC__) || defined(__clang__)
     /* For GCC and clang */
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END

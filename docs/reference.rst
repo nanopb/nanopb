@@ -24,6 +24,9 @@ __BIG_ENDIAN__                 Set this if your platform stores integers and
                                floats in big-endian format. Mixed-endian
                                systems (different layout for ints and floats)
                                are currently not supported.
+PB_NO_PACKED_STRUCTS           Disable packed structs. Increases RAM usage but
+                               is necessary on some platforms that do not
+                               support unaligned memory access.
 PB_ENABLE_MALLOC               Set this to enable dynamic allocation support
                                in the decoder.
 PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for
