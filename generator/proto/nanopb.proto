@@ -5,6 +5,7 @@
 // These are used by nanopb to generate statically allocable structures
 // for memory-limited environments.
 
+syntax = "proto2";
 import "google/protobuf/descriptor.proto";
 
 option java_package = "fi.kapsi.koti.jpa.nanopb";

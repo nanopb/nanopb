@@ -7,8 +7,8 @@ extend AllTypes {
 message ExtensionMessage {
     extend AllTypes {
         optional ExtensionMessage AllTypes_extensionfield2 = 254;
-	required ExtensionMessage AllTypes_extensionfield3 = 253;
-	repeated ExtensionMessage AllTypes_extensionfield4 = 252;
+        // required ExtensionMessage AllTypes_extensionfield3 = 253; // No longer allowed by protobuf 3
+        repeated ExtensionMessage AllTypes_extensionfield4 = 252;
     }
     
     required string test1 = 1;
