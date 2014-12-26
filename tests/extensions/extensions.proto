@@ -7,7 +7,6 @@ extend AllTypes {
 message ExtensionMessage {
     extend AllTypes {
         optional ExtensionMessage AllTypes_extensionfield2 = 254;
-	required ExtensionMessage AllTypes_extensionfield3 = 253;
 	repeated ExtensionMessage AllTypes_extensionfield4 = 252;
     }
     

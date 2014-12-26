@@ -599,6 +599,8 @@ class Message:
                 else:
                     parts.append(field.get_initializer(null_init))
             elif field.allocation == 'POINTER':
+                if field.rules == 'REPEATED':
+                    parts.append('0')
                 parts.append('NULL')
             elif field.allocation == 'CALLBACK':
                 if field.pbtype == 'EXTENSION':

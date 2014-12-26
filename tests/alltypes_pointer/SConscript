@@ -1,30 +1,20 @@
 # Encode the AllTypes message using pointers for all fields, and verify the
 # output against the normal AllTypes test case.
 
-Import("env")
-
-# We need our own pb_decode.o for the malloc support
-env = env.Clone()
-env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1});
-
-# Disable libmudflap, because it will confuse valgrind
-# and other memory leak detection tools.
-if '-fmudflap' in env["CCFLAGS"]:
-    env["CCFLAGS"].remove("-fmudflap")
-    env["LINKFLAGS"].remove("-fmudflap")
-    env["LIBS"].remove("mudflap")
-
-strict = env.Clone()
-strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
-strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
+Import("env", "malloc_env")
 
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 
 env.NanopbProto(["alltypes", "alltypes.options"])
-enc = env.Program(["encode_alltypes_pointer.c", "alltypes.pb.c", "pb_encode_with_malloc.o"])
-dec = env.Program(["decode_alltypes_pointer.c", "alltypes.pb.c", "pb_decode_with_malloc.o"])
+enc = malloc_env.Program(["encode_alltypes_pointer.c",
+                          "alltypes.pb.c",
+                          "$COMMON/pb_encode_with_malloc.o",
+                          "$COMMON/malloc_wrappers.o"])
+dec = malloc_env.Program(["decode_alltypes_pointer.c",
+                          "alltypes.pb.c",
+                          "$COMMON/pb_decode_with_malloc.o",
+                          "$COMMON/malloc_wrappers.o"])
 
 # Encode and compare results to non-pointer alltypes test case
 env.RunTest(enc)
