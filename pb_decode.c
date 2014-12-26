@@ -29,9 +29,11 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter);
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter);
 static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter);
+static void iter_from_extension(pb_field_iter_t *iter, pb_extension_t *extension);
 static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iter_t *iter);
 static bool checkreturn find_extension_field(pb_field_iter_t *iter);
+static void pb_field_set_to_default(pb_field_iter_t *iter);
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
@@ -632,6 +634,25 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
     }
 }
 
+static void iter_from_extension(pb_field_iter_t *iter, pb_extension_t *extension)
+{
+    /* Fake a field iterator for the extension field.
+     * It is not actually safe to advance this iterator, but decode_field
+     * will not even try to. */
+    const pb_field_t *field = (const pb_field_t*)extension->type->arg;
+    (void)pb_field_iter_begin(iter, field, extension->dest);
+    iter->pData = extension->dest;
+    iter->pSize = &extension->found;
+    
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        /* For pointer extensions, the pointer is stored directly
+         * in the extension structure. This avoids having an extra
+         * indirection. */
+        iter->pData = &extension->dest;
+    }
+}
+
 /* Default handler for extension fields. Expects a pb_field_t structure
  * in extension->type->arg. */
 static bool checkreturn default_extension_decoder(pb_istream_t *stream,
@@ -643,21 +664,8 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     if (field->tag != tag)
         return true;
     
-    /* Fake a field iterator for the extension field.
-     * It is not actually safe to advance this iterator, but decode_field
-     * will not even try to. */
-    (void)pb_field_iter_begin(&iter, field, extension->dest);
-    iter.pData = extension->dest;
-    iter.pSize = &extension->found;
-    
-    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-    {
-        /* For pointer extensions, the pointer is stored directly
-         * in the extension structure. This avoids having an extra
-         * indirection. */
-        iter.pData = &extension->dest;
-    }
-    
+    iter_from_extension(&iter, extension);
+    extension->found = true;
     return decode_field(stream, wire_type, &iter);
 }
 
@@ -703,6 +711,75 @@ static bool checkreturn find_extension_field(pb_field_iter_t *iter)
 }
 
 /* Initialize message fields to default values, recursively */
+static void pb_field_set_to_default(pb_field_iter_t *iter)
+{
+    pb_type_t type;
+    type = iter->pos->type;
+    
+    if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
+    {
+        pb_extension_t *ext = *(pb_extension_t* const *)iter->pData;
+        while (ext != NULL)
+        {
+            pb_field_iter_t ext_iter;
+            ext->found = false;
+            iter_from_extension(&ext_iter, ext);
+            pb_field_set_to_default(&ext_iter);
+            ext = ext->next;
+        }
+    }
+    else if (PB_ATYPE(type) == PB_ATYPE_STATIC)
+    {
+        bool init_data = true;
+        if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL)
+        {
+            /* Set has_field to false. Still initialize the optional field
+             * itself also. */
+            *(bool*)iter->pSize = false;
+        }
+        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+        {
+            /* Set array count to 0, no need to initialize contents. */
+            *(pb_size_t*)iter->pSize = 0;
+            init_data = false;
+        }
+        
+        if (init_data)
+        {
+            if (PB_LTYPE(iter->pos->type) == PB_LTYPE_SUBMESSAGE)
+            {
+                /* Initialize submessage to defaults */
+                pb_message_set_to_defaults((const pb_field_t *) iter->pos->ptr, iter->pData);
+            }
+            else if (iter->pos->ptr != NULL)
+            {
+                /* Initialize to default value */
+                memcpy(iter->pData, iter->pos->ptr, iter->pos->data_size);
+            }
+            else
+            {
+                /* Initialize to zeros */
+                memset(iter->pData, 0, iter->pos->data_size);
+            }
+        }
+    }
+    else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+    {
+        /* Initialize the pointer to NULL. */
+        *(void**)iter->pData = NULL;
+        
+        /* Initialize array count to 0. */
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+        {
+            *(pb_size_t*)iter->pSize = 0;
+        }
+    }
+    else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
+    {
+        /* Don't overwrite callback */
+    }
+}
+
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct)
 {
     pb_field_iter_t iter;
@@ -712,55 +789,7 @@ static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_str
     
     do
     {
-        pb_type_t type;
-        type = iter.pos->type;
-        
-        if (PB_ATYPE(type) == PB_ATYPE_STATIC)
-        {
-            if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL)
-            {
-                /* Set has_field to false. Still initialize the optional field
-                 * itself also. */
-                *(bool*)iter.pSize = false;
-            }
-            else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-            {
-                /* Set array count to 0, no need to initialize contents. */
-                *(pb_size_t*)iter.pSize = 0;
-                continue;
-            }
-            
-            if (PB_LTYPE(iter.pos->type) == PB_LTYPE_SUBMESSAGE)
-            {
-                /* Initialize submessage to defaults */
-                pb_message_set_to_defaults((const pb_field_t *) iter.pos->ptr, iter.pData);
-            }
-            else if (iter.pos->ptr != NULL)
-            {
-                /* Initialize to default value */
-                memcpy(iter.pData, iter.pos->ptr, iter.pos->data_size);
-            }
-            else
-            {
-                /* Initialize to zeros */
-                memset(iter.pData, 0, iter.pos->data_size);
-            }
-        }
-        else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
-        {
-            /* Initialize the pointer to NULL. */
-            *(void**)iter.pData = NULL;
-            
-            /* Initialize array count to 0. */
-            if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-            {
-                *(pb_size_t*)iter.pSize = 0;
-            }
-        }
-        else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
-        {
-            /* Don't overwrite callback */
-        }
+        pb_field_set_to_default(&iter);
     } while (pb_field_iter_next(&iter));
 }
 
