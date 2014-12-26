@@ -10,7 +10,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include "malloc_wrappers.h"
+#include <malloc_wrappers.h>
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
 

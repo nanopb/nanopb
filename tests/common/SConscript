@@ -15,3 +15,7 @@ strict.Append(CFLAGS = strict['CORECFLAGS'])
 strict.Object("pb_decode.o", "$NANOPB/pb_decode.c")
 strict.Object("pb_encode.o", "$NANOPB/pb_encode.c")
 strict.Object("pb_common.o", "$NANOPB/pb_common.c")
+
+mw = env.Object("malloc_wrappers.o", "malloc_wrappers.c")
+Depends(mw, ["malloc_wrappers_syshdr.h"])
+

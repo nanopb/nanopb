@@ -5,8 +5,8 @@ Import("env")
 # We need our own pb_decode.o for the malloc support
 env = env.Clone()
 env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1,
-                         'PB_SYSTEM_HEADER': '\\"fuzz_syshdr.h\\"'})
-env.Append(CPPPATH = ".")
+                         'PB_SYSTEM_HEADER': '\\"malloc_wrappers_syshdr.h\\"'})
+env.Append(CPPPATH = [".", "$COMMON"])
 
 if 'SYSHDR' in env:
     env.Append(CPPDEFINES = {'PB_OLD_SYSHDR': env['SYSHDR']})
@@ -42,8 +42,7 @@ fuzz = env.Program(["fuzztest.c",
                     "pb_encode_with_malloc.o",
                     "pb_decode_with_malloc.o",
                     "pb_common_with_malloc.o",
-                    "malloc_wrappers.c"])
-Depends([p1, p2, fuzz], ["fuzz_syshdr.h", "malloc_wrappers.h"])
+                    "$COMMON/malloc_wrappers.o"])
 
 env.RunTest(fuzz)
 
@@ -53,6 +52,6 @@ fuzzstub = env.Program(["fuzzstub.c",
                     "pb_encode_with_malloc.o",
                     "pb_decode_with_malloc.o",
                     "pb_common_with_malloc.o",
-                    "malloc_wrappers.c"])
+                    "$COMMON/malloc_wrappers.o"])
 
 
