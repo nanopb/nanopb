@@ -498,7 +498,8 @@ class ExtensionField(Field):
             msg +='   type of extension fields is currently supported. */\n'
             return msg
         
-        return 'extern const pb_extension_type_t %s;\n' % self.fullname
+        return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
+            (self.fullname, str(self).strip()))
 
     def extension_def(self):
         '''Definition of the extension type in the .pb.c file'''
