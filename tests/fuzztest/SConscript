@@ -1,30 +1,9 @@
 # Run a fuzz test to verify robustness against corrupted/malicious data.
 
-Import("env")
-
-# We need our own pb_decode.o for the malloc support
-env = env.Clone()
-env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC': 1,
-                         'PB_SYSTEM_HEADER': '\\"malloc_wrappers_syshdr.h\\"'})
-env.Append(CPPPATH = [".", "$COMMON"])
-
-if 'SYSHDR' in env:
-    env.Append(CPPDEFINES = {'PB_OLD_SYSHDR': env['SYSHDR']})
-
-# Disable libmudflap, because it will confuse valgrind
-# and other memory leak detection tools.
-if '-fmudflap' in env["CCFLAGS"]:
-    env["CCFLAGS"].remove("-fmudflap")
-    env["LINKFLAGS"].remove("-fmudflap")
-    env["LIBS"].remove("mudflap")
-
-strict = env.Clone()
-strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
-strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
-strict.Object("pb_common_with_malloc.o", "$NANOPB/pb_common.c")
+Import("env", "malloc_env")
 
 # We want both pointer and static versions of the AllTypes message
+# Prefix them with package name.
 env.Command("alltypes_static.proto", "#alltypes/alltypes.proto",
             lambda target, source, env:
                 open(str(target[0]), 'w').write("package alltypes_static;\n"
@@ -36,22 +15,22 @@ env.Command("alltypes_pointer.proto", "#alltypes/alltypes.proto",
 
 p1 = env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
 p2 = env.NanopbProto(["alltypes_static", "alltypes_static.options"])
-fuzz = env.Program(["fuzztest.c",
+fuzz = malloc_env.Program(["fuzztest.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
-                    "pb_encode_with_malloc.o",
-                    "pb_decode_with_malloc.o",
-                    "pb_common_with_malloc.o",
+                    "$COMMON/pb_encode_with_malloc.o",
+                    "$COMMON/pb_decode_with_malloc.o",
+                    "$COMMON/pb_common_with_malloc.o",
                     "$COMMON/malloc_wrappers.o"])
 
 env.RunTest(fuzz)
 
-fuzzstub = env.Program(["fuzzstub.c",
+fuzzstub = malloc_env.Program(["fuzzstub.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
-                    "pb_encode_with_malloc.o",
-                    "pb_decode_with_malloc.o",
-                    "pb_common_with_malloc.o",
+                    "$COMMON/pb_encode_with_malloc.o",
+                    "$COMMON/pb_decode_with_malloc.o",
+                    "$COMMON/pb_common_with_malloc.o",
                     "$COMMON/malloc_wrappers.o"])
 
 
