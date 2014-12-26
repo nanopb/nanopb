@@ -650,6 +650,14 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     iter.pData = extension->dest;
     iter.pSize = &extension->found;
     
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        /* For pointer extensions, the pointer is stored directly
+         * in the extension structure. This avoids having an extra
+         * indirection. */
+        iter.pData = &extension->dest;
+    }
+    
     return decode_field(stream, wire_type, &iter);
 }
 

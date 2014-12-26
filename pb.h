@@ -456,9 +456,11 @@ struct pb_extension_s {
     0, \
     pb_membersize(st, m), 0, ptr}
 
+#define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, ptr) \
+    PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr)
+
 #define PB_OPTEXT_CALLBACK(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
-    0, 0, pb_membersize(st, m), 0, ptr}
+    PB_OPTIONAL_CALLBACK(tag, st, m, fd, ltype, ptr)
 
 /* The mapping from protobuf types to LTYPEs is done using these macros. */
 #define PB_LTYPE_MAP_BOOL       PB_LTYPE_VARINT
