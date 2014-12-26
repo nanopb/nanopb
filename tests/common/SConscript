@@ -39,8 +39,8 @@ malloc_strict.Append(CFLAGS = malloc_strict['CORECFLAGS'])
 malloc_strict.Object("pb_decode_with_malloc.o", "$NANOPB/pb_decode.c")
 malloc_strict.Object("pb_encode_with_malloc.o", "$NANOPB/pb_encode.c")
 
-mw = env.Object("malloc_wrappers.o", "malloc_wrappers.c")
-Depends(mw, ["malloc_wrappers_syshdr.h"])
+malloc_env.Object("malloc_wrappers.o", "malloc_wrappers.c")
+malloc_env.Depends("$NANOPB/pb.h", ["malloc_wrappers_syshdr.h", "malloc_wrappers.h"])
 
 Export("malloc_env")
 
