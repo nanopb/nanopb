@@ -42,6 +42,7 @@ static bool checkreturn pb_field_find(pb_field_iterator_t *iter, uint32_t tag);
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
 static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
+static void iter_from_extension(pb_field_iterator_t *iter, pb_extension_t *extension);
 static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iterator_t *iter);
 static bool checkreturn find_extension_field(pb_field_iterator_t *iter);
@@ -696,6 +697,19 @@ static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_t
     }
 }
 
+static void iter_from_extension(pb_field_iterator_t *iter, pb_extension_t *extension)
+{
+    const pb_field_t *field = (const pb_field_t*)extension->type->arg;
+    
+    iter->start = field;
+    iter->pos = field;
+    iter->field_index = 0;
+    iter->required_field_index = 0;
+    iter->dest_struct = extension->dest;
+    iter->pData = extension->dest;
+    iter->pSize = &extension->found;
+}
+
 /* Default handler for extension fields. Expects a pb_field_t structure
  * in extension->type->arg. */
 static bool checkreturn default_extension_decoder(pb_istream_t *stream,
@@ -707,14 +721,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     if (field->tag != tag)
         return true;
     
-    iter.start = field;
-    iter.pos = field;
-    iter.field_index = 0;
-    iter.required_field_index = 0;
-    iter.dest_struct = extension->dest;
-    iter.pData = extension->dest;
-    iter.pSize = &extension->found;
-    
+    iter_from_extension(&iter, extension);
     return decode_field(stream, wire_type, &iter);
 }
 
@@ -956,6 +963,47 @@ static void pb_release_single_field(const pb_field_iterator_t *iter)
     pb_type_t type;
     type = iter->pos->type;
 
+    /* Release anything contained inside an extension or submsg.
+     * This has to be done even if the submsg itself is statically
+     * allocated. */
+    if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
+    {
+        /* Release fields from all extensions in the linked list */
+        pb_extension_t *ext = *(pb_extension_t**)iter->pData;
+        while (ext != NULL)
+        {
+            pb_field_iterator_t ext_iter;
+            iter_from_extension(&ext_iter, ext);
+            pb_release_single_field(&ext_iter);
+            ext = ext->next;
+        }
+    }
+    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+    {
+        /* Release fields in submessage or submsg array */
+        void *pItem = iter->pData;
+        pb_size_t count = 1;
+        
+        if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+        {
+            pItem = *(void**)iter->pData;
+        }
+        
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+        {
+            count = *(pb_size_t*)iter->pSize;
+        }
+        
+        if (pItem)
+        {
+            while (count--)
+            {
+                pb_release((const pb_field_t*)iter->pos->ptr, pItem);
+                pItem = (uint8_t*)pItem + iter->pos->data_size;
+            }
+        }
+    }
+    
     if (PB_ATYPE(type) == PB_ATYPE_POINTER)
     {
         if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
@@ -970,28 +1018,12 @@ static void pb_release_single_field(const pb_field_iterator_t *iter)
                 pb_free(*pItem);
                 *pItem++ = NULL;
             }
-            *(pb_size_t*)iter->pSize = 0;
         }
-        else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+        
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
-            /* Release fields in submessages */
-            void *pItem = *(void**)iter->pData;
-            if (pItem)
-            {
-                pb_size_t count = 1;
-                
-                if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-                {
-                    count = *(pb_size_t*)iter->pSize;
-                    *(pb_size_t*)iter->pSize = 0;
-                }
-                
-                while (count--)
-                {
-                    pb_release((const pb_field_t*)iter->pos->ptr, pItem);
-                    pItem = (uint8_t*)pItem + iter->pos->data_size;
-                }
-            }
+            /* We are going to release the array, so set the size to 0 */
+            *(pb_size_t*)iter->pSize = 0;
         }
         
         /* Release main item */
