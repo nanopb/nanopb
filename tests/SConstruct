@@ -121,9 +121,6 @@ elif 'cl' in env['CC']:
     
     # More strict checks on the nanopb core
     env.Append(CORECFLAGS = '/W4')
-    
-    # PB_RETURN_ERROR triggers C4127 because of while(0)
-    env.Append(CFLAGS = '/wd4127')
 elif 'tcc' in env['CC']:
     # Tiny C Compiler
     env.Append(CFLAGS = '-Wall -Werror -g')

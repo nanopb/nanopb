@@ -508,22 +508,21 @@ struct pb_extension_s {
  * is the true/false return value from functions.
  * Some code space can be saved by disabling the error
  * messages if not used.
+ *
+ * PB_SET_ERROR() sets the error message if none has been set yet.
+ *                msg must be a constant string literal.
+ * PB_GET_ERROR() always returns a pointer to a string.
+ * PB_RETURN_ERROR() sets the error and returns false from current
+ *                   function.
  */
 #ifdef PB_NO_ERRMSG
-#define PB_RETURN_ERROR(stream,msg) \
-    do {\
-        PB_UNUSED(stream); \
-        return false; \
-    } while(0)
+#define PB_SET_ERROR(stream, msg) PB_UNUSED(stream)
 #define PB_GET_ERROR(stream) "(errmsg disabled)"
 #else
-#define PB_RETURN_ERROR(stream,msg) \
-    do {\
-        if ((stream)->errmsg == NULL) \
-            (stream)->errmsg = (msg); \
-        return false; \
-    } while(0)
+#define PB_SET_ERROR(stream, msg) (stream->errmsg = (stream)->errmsg ? (stream)->errmsg : (msg))
 #define PB_GET_ERROR(stream) ((stream)->errmsg ? (stream)->errmsg : "(none)")
 #endif
+
+#define PB_RETURN_ERROR(stream, msg) return PB_SET_ERROR(stream, msg), false
 
 #endif
