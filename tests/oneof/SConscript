@@ -2,21 +2,26 @@
 
 Import('env')
 
-env.NanopbProto('oneof')
+import re
+version = re.search('([0-9]+).([0-9]+).([0-9]+)', 'libprotoc 3.0.0').groups()
 
-enc = env.Program(['encode_oneof.c',
-                   'oneof.pb.c',
-                   '$COMMON/pb_encode.o',
-                   '$COMMON/pb_common.o'])
+# Oneof is supported by protoc >= 2.6.0
+if int(version[0]) > 2 or (int(version[0]) == 2 and int(version[1]) >= 6):
+    env.NanopbProto('oneof')
 
-dec = env.Program(['decode_oneof.c',
-                   'oneof.pb.c',
-                   '$COMMON/pb_decode.o',
-                   '$COMMON/pb_common.o'])
+    enc = env.Program(['encode_oneof.c',
+                    'oneof.pb.c',
+                    '$COMMON/pb_encode.o',
+                    '$COMMON/pb_common.o'])
 
-env.RunTest("message1.pb", enc, ARGS = ['1'])
-env.RunTest("message1.txt", [dec, 'message1.pb'], ARGS = ['1'])
-env.RunTest("message2.pb", enc, ARGS = ['2'])
-env.RunTest("message2.txt", [dec, 'message2.pb'], ARGS = ['2'])
-env.RunTest("message3.pb", enc, ARGS = ['3'])
-env.RunTest("message3.txt", [dec, 'message3.pb'], ARGS = ['3'])
+    dec = env.Program(['decode_oneof.c',
+                    'oneof.pb.c',
+                    '$COMMON/pb_decode.o',
+                    '$COMMON/pb_common.o'])
+
+    env.RunTest("message1.pb", enc, ARGS = ['1'])
+    env.RunTest("message1.txt", [dec, 'message1.pb'], ARGS = ['1'])
+    env.RunTest("message2.pb", enc, ARGS = ['2'])
+    env.RunTest("message2.txt", [dec, 'message2.pb'], ARGS = ['2'])
+    env.RunTest("message3.pb", enc, ARGS = ['3'])
+    env.RunTest("message3.txt", [dec, 'message3.pb'], ARGS = ['3'])

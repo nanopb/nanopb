@@ -72,6 +72,13 @@ if not env.GetOption('clean'):
     else:
         conf.env.Append(PROTOCPATH = '/usr/include')
     
+    # Check protoc version
+    status, output = conf.TryAction('protoc --version')
+    if status:
+        conf.env.Append(PROTOC_VERSION = output)
+    else:
+        conf.env.Append(PROTOC_VERSION = "")
+
     # Check if libmudflap is available (only with GCC)
     if 'gcc' in env['CC']:
         if conf.CheckLib('mudflap'):
