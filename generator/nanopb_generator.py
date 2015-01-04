@@ -520,7 +520,7 @@ class ExtensionRange(Field):
         return '    pb_extension_t *extensions;'
     
     def types(self):
-        return None
+        return ''
     
     def tags(self):
         return ''
