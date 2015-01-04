@@ -183,6 +183,7 @@ typedef uint8_t pb_type_t;
 #define PB_HTYPE_REQUIRED 0x00
 #define PB_HTYPE_OPTIONAL 0x10
 #define PB_HTYPE_REPEATED 0x20
+#define PB_HTYPE_ONEOF    0x30
 #define PB_HTYPE_MASK     0x30
 
 /**** Field allocation types ****/
@@ -502,6 +503,23 @@ struct pb_extension_s {
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
+/* Field description for oneof fields. This requires taking into account the
+ * union name also, that's why a separate set of macros is needed.
+ */
+#define PB_ONEOF_STATIC(u, tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_ONEOF | ltype, \
+    fd, pb_delta(st, which_ ## u, u.m), \
+    pb_membersize(st, u.m), 0, ptr}
+
+#define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+    fd, pb_delta(st, which_ ## u, u.m), \
+    pb_membersize(st, u.m), 0, ptr}
+
+#define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
+        PB_ ## rules ## _ ## allocation(union_name, tag, message, field, \
+        PB_DATAOFFSET_ ## placement(message, union_name.field, prevfield), \
+        PB_LTYPE_MAP_ ## type, ptr)
 
 /* These macros are used for giving out error messages.
  * They are mostly a debugging aid; the main error information

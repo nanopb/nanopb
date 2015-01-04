@@ -393,6 +393,10 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 return func(stream, iter->pos, pItem);
             }
 
+        case PB_HTYPE_ONEOF:
+            *(pb_size_t*)iter->pSize = iter->pos->tag;
+            return func(stream, iter->pos, iter->pData);
+
         default:
             PB_RETURN_ERROR(stream, "invalid field type");
     }
@@ -470,6 +474,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
     {
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
+        case PB_HTYPE_ONEOF:
             if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE &&
                 *(void**)iter->pData != NULL)
             {
@@ -477,6 +482,11 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 pb_release_single_field(iter);
             }
         
+            if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+            {
+                *(pb_size_t*)iter->pSize = iter->pos->tag;
+            }
+
             if (PB_LTYPE(type) == PB_LTYPE_STRING ||
                 PB_LTYPE(type) == PB_LTYPE_BYTES)
             {
@@ -562,7 +572,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 initialize_pointer_field(pItem, iter);
                 return func(stream, iter->pos, pItem);
             }
-            
+
         default:
             PB_RETURN_ERROR(stream, "invalid field type");
     }

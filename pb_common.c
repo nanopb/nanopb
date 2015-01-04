@@ -54,6 +54,13 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
              * The data_size only applies to the dynamically allocated area. */
             prev_size = sizeof(void*);
         }
+        else if (PB_HTYPE(prev_field->type) == PB_HTYPE_ONEOF &&
+                 PB_HTYPE(iter->pos->type) == PB_HTYPE_ONEOF)
+        {
+            /* Don't advance pointers inside unions */
+            prev_size = 0;
+            iter->pData = (char*)iter->pData - prev_field->data_offset;
+        }
         
         if (PB_HTYPE(prev_field->type) == PB_HTYPE_REQUIRED)
         {

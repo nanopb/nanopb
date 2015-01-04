@@ -250,6 +250,17 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
                 return false;
             break;
         
+        case PB_HTYPE_ONEOF:
+            if (*(const pb_size_t*)pSize == field->tag)
+            {
+                if (!pb_encode_tag_for_field(stream, field))
+                    return false;
+
+                if (!func(stream, field, pData))
+                    return false;
+            }
+            break;
+            
         default:
             PB_RETURN_ERROR(stream, "invalid field type");
     }
