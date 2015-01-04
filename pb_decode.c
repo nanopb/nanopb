@@ -1095,6 +1095,8 @@ static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
+        case 1: *(uint8_t*)dest = (uint8_t)value; break;
+        case 2: *(uint16_t*)dest = (uint16_t)value; break;
         case 4: *(uint32_t*)dest = (uint32_t)value; break;
         case 8: *(uint64_t*)dest = value; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
@@ -1111,6 +1113,8 @@ static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
+        case 1: *(int8_t*)dest = (int8_t)value; break;
+        case 2: *(int16_t*)dest = (int16_t)value; break;
         case 4: *(int32_t*)dest = (int32_t)value; break;
         case 8: *(int64_t*)dest = value; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");

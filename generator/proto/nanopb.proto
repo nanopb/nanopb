@@ -18,6 +18,14 @@ enum FieldType {
     FT_IGNORE = 3; // Ignore the field completely.
 }
 
+enum IntSize {
+    IS_DEFAULT = 0; // Default, 32/64bit based on type in .proto
+    IS_8 = 1;
+    IS_16 = 2;
+    IS_32 = 3;
+    IS_64 = 4;
+}
+
 // This is the inner options message, which basically defines options for
 // a field. When it is used in message or file scope, it applies to all
 // fields.
@@ -28,6 +36,10 @@ message NanoPBOptions {
   // Allocated number of entries in arrays ('repeated' fields)
   optional int32 max_count = 2;
   
+  // Size of integer fields. Can save some memory if you don't need
+  // full 32 bits for the value.
+  optional IntSize int_size = 7 [default = IS_DEFAULT];
+
   // Force type of field (callback or static allocation)
   optional FieldType type = 3 [default = FT_DEFAULT];
   

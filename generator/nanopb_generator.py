@@ -44,22 +44,30 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb type, encoded size)
+# Values are tuple (c type, pb type, encoded size, int_size_allowed)
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
-    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1),
-    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8),
-    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4),
-    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8),
-    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10),
-    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10),
-    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4),
-    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8),
-    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5),
-    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10),
-    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5),
-    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10)
+    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
+    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
+    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  False),
+    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  False),
+    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  False),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  True),
+    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  True),
+    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  False),
+    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  False),
+    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  True),
+    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  True),
+    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  True),
+    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  True)
+}
+
+# Integer size overrides (from .proto settings)
+intsizes = {
+    nanopb_pb2.IS_8:     'int8_t',
+    nanopb_pb2.IS_16:    'int16_t',
+    nanopb_pb2.IS_32:    'int32_t',
+    nanopb_pb2.IS_64:    'int64_t',
 }
 
 class Names:
@@ -226,7 +234,13 @@ class Field:
         
         # Decide the C data type to use in the struct.
         if datatypes.has_key(desc.type):
-            self.ctype, self.pbtype, self.enc_size = datatypes[desc.type]
+            self.ctype, self.pbtype, self.enc_size, isa = datatypes[desc.type]
+
+            # Override the field size if user wants to use smaller integers
+            if isa and field_options.int_size != nanopb_pb2.IS_DEFAULT:
+                self.ctype = intsizes[field_options.int_size]
+                if desc.type == FieldD.TYPE_UINT32 or desc.type == FieldD.TYPE_UINT64:
+                    self.ctype = 'u' + self.ctype;
         elif desc.type == FieldD.TYPE_ENUM:
             self.pbtype = 'ENUM'
             self.ctype = names_from_type_name(desc.type_name)

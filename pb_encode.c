@@ -567,7 +567,7 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
     int64_t value = 0;
     
     /* Cases 1 and 2 are for compilers that have smaller types for bool
-     * or enums. */
+     * or enums, and for int_size option. */
     switch (field->data_size)
     {
         case 1: value = *(const int8_t*)src; break;
@@ -586,6 +586,8 @@ static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
+        case 1: value = *(const uint8_t*)src; break;
+        case 2: value = *(const uint16_t*)src; break;
         case 4: value = *(const uint32_t*)src; break;
         case 8: value = *(const uint64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
@@ -600,6 +602,8 @@ static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
+        case 1: value = *(const int8_t*)src; break;
+        case 2: value = *(const int16_t*)src; break;
         case 4: value = *(const int32_t*)src; break;
         case 8: value = *(const int64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");

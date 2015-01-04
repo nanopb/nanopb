@@ -76,6 +76,8 @@ The generator behaviour can be adjusted using these options, defined in the
 max_size                       Allocated size for *bytes* and *string* fields.
 max_count                      Allocated number of entries in arrays
                                (*repeated* fields).
+int_size                       Override the integer type of a field.
+                               (To use e.g. uint8_t to save RAM.)
 type                           Type of the generated field. Default value
                                is *FT_DEFAULT*, which selects automatically.
                                You can use *FT_CALLBACK*, *FT_POINTER*,
@@ -88,6 +90,7 @@ long_names                     Prefix the enum name to the enum value in
 packed_struct                  Make the generated structures packed.
                                NOTE: This cannot be used on CPUs that break
                                on unaligned accesses to variables.
+skip_message                   Skip the whole message from generation.
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted
