@@ -101,6 +101,20 @@ int main()
                    INT32_MIN, 0, INT32_MIN,
                    INT64_MIN, 0, INT64_MIN, true);
 
+    COMMENT("Test overflow detection");
+    TEST_ROUNDTRIP(-129,      0,   -128,
+                   -32768,    0, -32768,
+                   INT32_MIN, 0, INT32_MIN,
+                   INT64_MIN, 0, INT64_MIN, false);
+    TEST_ROUNDTRIP(127,     256,    127,
+                   32767, 65535,  32767,
+                   INT32_MAX, UINT32_MAX, INT32_MAX,
+                   INT64_MAX, UINT64_MAX, INT64_MAX, false);
+    TEST_ROUNDTRIP(-128,      0,   -128,
+                   -32768,    0, -32769,
+                   INT32_MIN, 0, INT32_MIN,
+                   INT64_MIN, 0, INT64_MIN, false);
+    
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 

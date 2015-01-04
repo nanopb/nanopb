@@ -123,16 +123,16 @@ int main()
     }
     
     {
-        pb_istream_t s = S("\x01\xFF\xFF\x03");
+        pb_istream_t s = S("\x01\x00");
         pb_field_t f = {1, PB_LTYPE_VARINT, 0, 0, 4, 0, 0};
         uint32_t d;
         COMMENT("Test pb_dec_varint using uint32_t")
         TEST(pb_dec_varint(&s, &f, &d) && d == 1)
         
         /* Verify that no more than data_size is written. */
-        d = 0;
+        d = 0xFFFFFFFF;
         f.data_size = 1;
-        TEST(pb_dec_varint(&s, &f, &d) && (d == 0xFF || d == 0xFF000000))
+        TEST(pb_dec_varint(&s, &f, &d) && (d == 0xFFFFFF00 || d == 0x00FFFFFF))
     }
     
     {

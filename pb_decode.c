@@ -1072,53 +1072,75 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     uint64_t value;
+    int64_t svalue;
+    int64_t clamped;
     if (!pb_decode_varint(stream, &value))
         return false;
     
+    /* See issue 97: Google's C++ protobuf allows negative varint values to
+     * be cast as int32_t, instead of the int64_t that should be used when
+     * encoding. Previous nanopb versions had a bug in encoding. In order to
+     * not break decoding of such messages, we cast <=32 bit fields to
+     * int32_t first to get the sign correct.
+     */
+    if (field->data_size == 8)
+        svalue = (int64_t)value;
+    else
+        svalue = (int32_t)value;
+
     switch (field->data_size)
     {
-        case 1: *(int8_t*)dest = (int8_t)value; break;
-        case 2: *(int16_t*)dest = (int16_t)value; break;
-        case 4: *(int32_t*)dest = (int32_t)value; break;
-        case 8: *(int64_t*)dest = (int64_t)value; break;
+        case 1: clamped = *(int8_t*)dest = (int8_t)svalue; break;
+        case 2: clamped = *(int16_t*)dest = (int16_t)svalue; break;
+        case 4: clamped = *(int32_t*)dest = (int32_t)svalue; break;
+        case 8: clamped = *(int64_t*)dest = svalue; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
+
+    if (clamped != svalue)
+        PB_RETURN_ERROR(stream, "integer too large");
     
     return true;
 }
 
 static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    uint64_t value;
+    uint64_t value, clamped;
     if (!pb_decode_varint(stream, &value))
         return false;
     
     switch (field->data_size)
     {
-        case 1: *(uint8_t*)dest = (uint8_t)value; break;
-        case 2: *(uint16_t*)dest = (uint16_t)value; break;
-        case 4: *(uint32_t*)dest = (uint32_t)value; break;
-        case 8: *(uint64_t*)dest = value; break;
+        case 1: clamped = *(uint8_t*)dest = (uint8_t)value; break;
+        case 2: clamped = *(uint16_t*)dest = (uint16_t)value; break;
+        case 4: clamped = *(uint32_t*)dest = (uint32_t)value; break;
+        case 8: clamped = *(uint64_t*)dest = value; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
     
+    if (clamped != value)
+        PB_RETURN_ERROR(stream, "integer too large");
+
     return true;
 }
 
 static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    int64_t value;
+    int64_t value, clamped;
     if (!pb_decode_svarint(stream, &value))
         return false;
     
     switch (field->data_size)
     {
-        case 1: *(int8_t*)dest = (int8_t)value; break;
-        case 2: *(int16_t*)dest = (int16_t)value; break;
-        case 4: *(int32_t*)dest = (int32_t)value; break;
-        case 8: *(int64_t*)dest = value; break;
+        case 1: clamped = *(int8_t*)dest = (int8_t)value; break;
+        case 2: clamped = *(int16_t*)dest = (int16_t)value; break;
+        case 4: clamped = *(int32_t*)dest = (int32_t)value; break;
+        case 8: clamped = *(int64_t*)dest = value; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
     }
+
+    if (clamped != value)
+        PB_RETURN_ERROR(stream, "integer too large");
     
     return true;
 }
