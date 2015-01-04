@@ -3,10 +3,16 @@
 Import('env')
 
 import re
-version = re.search('([0-9]+).([0-9]+).([0-9]+)', 'libprotoc 3.0.0').groups()
+
+match = None
+if 'PROTOC_VERSION' in env:
+    match = re.search('([0-9]+).([0-9]+).([0-9]+)', env['PROTOC_VERSION'])
+
+if match:
+    version = map(int, match.groups())
 
 # Oneof is supported by protoc >= 2.6.0
-if int(version[0]) > 2 or (int(version[0]) == 2 and int(version[1]) >= 6):
+if env.GetOption('clean') or (match and (version[0] > 2 or (version[0] == 2 and version[1] >= 6))):
     env.NanopbProto('oneof')
 
     enc = env.Program(['encode_oneof.c',
