@@ -20,10 +20,10 @@ enum FieldType {
 
 enum IntSize {
     IS_DEFAULT = 0; // Default, 32/64bit based on type in .proto
-    IS_8 = 1;
-    IS_16 = 2;
-    IS_32 = 3;
-    IS_64 = 4;
+    IS_8 = 8;
+    IS_16 = 16;
+    IS_32 = 32;
+    IS_64 = 64;
 }
 
 // This is the inner options message, which basically defines options for
