@@ -582,7 +582,8 @@ class ExtensionField(Field):
 # ---------------------------------------------------------------------------
 
 class OneOf(Field):
-    def __init__(self, oneof_desc):
+    def __init__(self, struct_name, oneof_desc):
+        self.struct_name = struct_name
         self.name = oneof_desc.name
         self.ctype = 'union'
         self.fields = []
@@ -655,7 +656,7 @@ class Message:
 
         if hasattr(desc, 'oneof_decl'):
             for f in desc.oneof_decl:
-                oneof = OneOf(f)
+                oneof = OneOf(self.name, f)
                 self.oneofs.append(oneof)
                 self.fields.append(oneof)
 
