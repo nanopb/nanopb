@@ -11,6 +11,25 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
+Nanopb-0.3.2 (2015-01-xx)
+=========================
+
+Add support for OneOfs
+----------------------
+**Rationale:** Previously nanopb did not support the *oneof* construct in
+*.proto* files. Those fields were generated as regular *optional* fields.
+
+**Changes:** OneOfs are now generated as C unions. Callback fields are not
+supported inside oneof and generator gives an error.
+
+**Required actions:** The generator option *no_unions* can be used to restore old
+behaviour and to allow callbacks to be used. To use unions, one change is
+needed: use *which_xxxx* field to detect which field is present, instead
+of *has_xxxx*. Compare the value against *MyStruct_myfield_tag*.
+
+**Error indications:** Generator error: "Callback fields inside of oneof are
+not supported". Compiler error: "Message" has no member named "has_xxxx".
+
 Nanopb-0.3.0 (2014-08-26)
 =========================
 

@@ -591,7 +591,7 @@ class OneOf(Field):
     def add_field(self, field):
         if field.allocation == 'CALLBACK':
             raise Exception("Callback fields inside of oneof are not supported"
-                            + " (field %s)" % field.fullname)
+                            + " (field %s)" % field.name)
 
         field.union_name = self.name
         field.rules = 'ONEOF'
@@ -652,13 +652,20 @@ class Message:
     def __init__(self, names, desc, message_options):
         self.name = names
         self.fields = []
-        self.oneofs = []
+        self.oneofs = {}
+        no_unions = []
 
         if hasattr(desc, 'oneof_decl'):
-            for f in desc.oneof_decl:
-                oneof = OneOf(self.name, f)
-                self.oneofs.append(oneof)
-                self.fields.append(oneof)
+            for i, f in enumerate(desc.oneof_decl):
+                oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
+                if oneof_options.no_unions:
+                    no_unions.append(i) # No union, but add fields normally
+                elif oneof_options.type == nanopb_pb2.FT_IGNORE:
+                    pass # No union and skip fields also
+                else:
+                    oneof = OneOf(self.name, f)
+                    self.oneofs[i] = oneof
+                    self.fields.append(oneof)
 
         for f in desc.field:
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
@@ -666,8 +673,11 @@ class Message:
                 continue
 
             field = Field(self.name, f, field_options)
-            if hasattr(f, 'oneof_index') and f.HasField('oneof_index'):
-                self.oneofs[f.oneof_index].add_field(field)
+            if (hasattr(f, 'oneof_index') and
+                f.HasField('oneof_index') and
+                f.oneof_index not in no_unions):
+                if f.oneof_index in self.oneofs:
+                    self.oneofs[f.oneof_index].add_field(field)
             else:
                 self.fields.append(field)
         
@@ -734,7 +744,7 @@ class Message:
         '''Returns number of required fields inside this message'''
         count = 0
         for f in self.fields:
-            if f not in self.oneofs:
+            if not isinstance(f, OneOf):
                 if f.rules == 'REQUIRED':
                     count += 1
         return count
@@ -742,7 +752,7 @@ class Message:
     def count_all_fields(self):
         count = 0
         for f in self.fields:
-            if f in self.oneofs:
+            if isinstance(f, OneOf):
                 count += len(f.fields)
             else:
                 count += 1

@@ -53,6 +53,9 @@ message NanoPBOptions {
   
   // Skip this message
   optional bool skip_message = 6 [default = false];
+
+  // Generate oneof fields as normal optional fields instead of union.
+  optional bool no_unions = 8 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
