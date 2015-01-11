@@ -514,7 +514,7 @@ struct pb_extension_s {
 #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
     fd, pb_delta(st, which_ ## u, u.m), \
-    pb_membersize(st, u.m), 0, ptr}
+    pb_membersize(st, u.m[0]), 0, ptr}
 
 #define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
         PB_ ## rules ## _ ## allocation(union_name, tag, message, field, \

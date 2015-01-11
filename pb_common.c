@@ -41,8 +41,15 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
         /* Increment the pointers based on previous field size */
         size_t prev_size = prev_field->data_size;
     
-        if (PB_ATYPE(prev_field->type) == PB_ATYPE_STATIC &&
-            PB_HTYPE(prev_field->type) == PB_HTYPE_REPEATED)
+        if (PB_HTYPE(prev_field->type) == PB_HTYPE_ONEOF &&
+            PB_HTYPE(iter->pos->type) == PB_HTYPE_ONEOF)
+        {
+            /* Don't advance pointers inside unions */
+            prev_size = 0;
+            iter->pData = (char*)iter->pData - prev_field->data_offset;
+        }
+        else if (PB_ATYPE(prev_field->type) == PB_ATYPE_STATIC &&
+                 PB_HTYPE(prev_field->type) == PB_HTYPE_REPEATED)
         {
             /* In static arrays, the data_size tells the size of a single entry and
              * array_size is the number of entries */
@@ -54,14 +61,7 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
              * The data_size only applies to the dynamically allocated area. */
             prev_size = sizeof(void*);
         }
-        else if (PB_HTYPE(prev_field->type) == PB_HTYPE_ONEOF &&
-                 PB_HTYPE(iter->pos->type) == PB_HTYPE_ONEOF)
-        {
-            /* Don't advance pointers inside unions */
-            prev_size = 0;
-            iter->pData = (char*)iter->pData - prev_field->data_offset;
-        }
-        
+
         if (PB_HTYPE(prev_field->type) == PB_HTYPE_REQUIRED)
         {
             /* Count the required fields, in order to check their presence in the

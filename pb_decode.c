@@ -747,13 +747,15 @@ static void pb_field_set_to_default(pb_field_iter_t *iter)
              * itself also. */
             *(bool*)iter->pSize = false;
         }
-        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
+                 PB_HTYPE(type) == PB_HTYPE_ONEOF)
         {
-            /* Set array count to 0, no need to initialize contents. */
+            /* REPEATED: Set array count to 0, no need to initialize contents.
+               ONEOF: Set which_field to 0. */
             *(pb_size_t*)iter->pSize = 0;
             init_data = false;
         }
-        
+
         if (init_data)
         {
             if (PB_LTYPE(iter->pos->type) == PB_LTYPE_SUBMESSAGE)
@@ -779,7 +781,8 @@ static void pb_field_set_to_default(pb_field_iter_t *iter)
         *(void**)iter->pData = NULL;
         
         /* Initialize array count to 0. */
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
+            PB_HTYPE(type) == PB_HTYPE_ONEOF)
         {
             *(pb_size_t*)iter->pSize = 0;
         }
@@ -937,6 +940,12 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
 {
     pb_type_t type;
     type = iter->pos->type;
+
+    if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+    {
+        if (*(pb_size_t*)iter->pSize != iter->pos->tag)
+            return; /* This is not the current field in the union */
+    }
 
     /* Release anything contained inside an extension or submsg.
      * This has to be done even if the submsg itself is statically
