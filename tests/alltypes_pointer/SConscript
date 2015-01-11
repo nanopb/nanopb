@@ -27,7 +27,7 @@ valgrind = env.WhereIs('valgrind')
 kwargs = {}
 if valgrind:
     kwargs['COMMAND'] = valgrind
-    kwargs['ARGS'] = ["-q", dec[0].abspath]
+    kwargs['ARGS'] = ["-q", "--error-exitcode=99", dec[0].abspath]
 
 env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"], **kwargs)
 

@@ -101,6 +101,12 @@ message AllTypes {
     optional MyEnum     opt_enum    = 57 [default = Second];
     optional EmptyMessage opt_emptymsg = 58;
 
+    oneof oneof
+    {
+        SubMessage oneof_msg1 = 59;
+        EmptyMessage oneof_msg2 = 60;
+    }
+    
     // Check that extreme integer values are handled correctly
     required Limits     req_limits = 98;
 

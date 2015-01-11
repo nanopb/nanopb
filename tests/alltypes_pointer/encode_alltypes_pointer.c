@@ -84,6 +84,9 @@ int main(int argc, char **argv)
     MyEnum      opt_enum          = MyEnum_Truth;
     EmptyMessage opt_emptymsg     = {0};
 
+    static int32_t oneof_substuff = 4059;
+    SubMessage  oneof_msg1        = {"4059", &oneof_substuff};
+
     /* Values for the Limits message. */
     static int32_t  int32_min  = INT32_MIN;
     static int32_t  int32_max  = INT32_MAX;
@@ -164,6 +167,9 @@ int main(int argc, char **argv)
         alltypes.opt_submsg        = &opt_submsg;
         alltypes.opt_enum          = &opt_enum;
         alltypes.opt_emptymsg      = &opt_emptymsg;
+
+        alltypes.which_oneof = AllTypes_oneof_msg1_tag;
+        alltypes.oneof.oneof_msg1 = &oneof_msg1;
     }
     
     alltypes.end = &end;

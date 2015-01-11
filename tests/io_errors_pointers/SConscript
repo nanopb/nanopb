@@ -19,7 +19,7 @@ valgrind = env.WhereIs('valgrind')
 kwargs = {}
 if valgrind:
     kwargs['COMMAND'] = valgrind
-    kwargs['ARGS'] = ["-q", ioerr[0].abspath]
+    kwargs['ARGS'] = ["-q", "--error-exitcode=99", ioerr[0].abspath]
 
 env.RunTest("io_errors.output", [ioerr, "$BUILD/alltypes/encode_alltypes.output"], **kwargs)
 

@@ -202,6 +202,8 @@ int main(int argc, char **argv)
     double      opt_double      = 3053.0f;
     SubMessage  opt_submsg      = {"3056", 3056};
     
+    SubMessage  oneof_msg1      = {"4059", 4059};
+
     /* Bind callbacks for required fields */
     AllTypes alltypes = {{{0}}};
     
@@ -372,6 +374,9 @@ int main(int argc, char **argv)
         alltypes.opt_enum.arg = (void*)MyEnum_Truth;
         
         alltypes.opt_emptymsg.funcs.encode = &write_emptymsg;
+
+        alltypes.oneof_msg1.funcs.encode = &write_submsg;
+        alltypes.oneof_msg1.arg = &oneof_msg1;
     }
     
     alltypes.end.funcs.encode = &write_varint;

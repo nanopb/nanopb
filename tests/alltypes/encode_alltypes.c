@@ -121,6 +121,10 @@ int main(int argc, char **argv)
         alltypes.has_opt_enum = true;
         alltypes.opt_enum = MyEnum_Truth;
         alltypes.has_opt_emptymsg = true;
+
+        alltypes.which_oneof = AllTypes_oneof_msg1_tag;
+        strcpy(alltypes.oneof.oneof_msg1.substuff1, "4059");
+        alltypes.oneof.oneof_msg1.substuff2 = 4059;
     }
     
     alltypes.end = 1099;
