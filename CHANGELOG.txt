@@ -1,3 +1,14 @@
+nanopb-0.3.2 (2015-01-xx)
+ Fix memory leaks with PB_ENABLE_MALLOC with some submessage hierarchies (issue 138)
+ Implement support for oneofs (C unions). (issue 131)
+ Add int_size option for generator (issue 139)
+ Add compilation option to disable struct packing. (issue 136)
+ Change PB_RETURN_ERROR() macro to avoid compiler warnings (issue 140)
+ Fix build problems with protoc 3.0.0
+ Add support for POINTER type in extensions
+ Initialize also extension fields to defaults in pb_decode().
+ Detect too large varint values when decoding.
+
 nanopb-0.3.1 (2014-09-11)
  Fix security issue due to size_t overflows. (issue 132)
  Fix memory leak with duplicated fields and PB_ENABLE_MALLOC
