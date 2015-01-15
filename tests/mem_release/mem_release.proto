@@ -22,3 +22,13 @@ extend TestMessage
     optional SubMessage static_ext = 101 [(nanopb).type = FT_STATIC];
 }
 
+message OneofMessage
+{
+    required int32 first = 1;
+    oneof msgs
+    {
+        TestMessage msg1 = 2;
+        SubMessage msg2 = 3;
+    }
+    required int32 last = 4;
+}

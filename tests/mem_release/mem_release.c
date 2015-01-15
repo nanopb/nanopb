@@ -14,8 +14,31 @@
 
 static char *test_str_arr[] = {"1", "2", ""};
 static SubMessage test_msg_arr[] = {SubMessage_init_zero, SubMessage_init_zero};
+static pb_extension_t ext1, ext2;
 
-static bool do_test()
+static void fill_TestMessage(TestMessage *msg)
+{
+    msg->static_req_submsg.dynamic_str = "12345";
+    msg->static_req_submsg.dynamic_str_arr_count = 3;
+    msg->static_req_submsg.dynamic_str_arr = test_str_arr;
+    msg->static_req_submsg.dynamic_submsg_count = 2;
+    msg->static_req_submsg.dynamic_submsg = test_msg_arr;
+    msg->static_req_submsg.dynamic_submsg[1].dynamic_str = "abc";
+    msg->static_opt_submsg.dynamic_str = "abc";
+    msg->has_static_opt_submsg = true;
+    msg->dynamic_submsg = &msg->static_req_submsg;
+
+    msg->extensions = &ext1;
+    ext1.type = &dynamic_ext;
+    ext1.dest = &msg->static_req_submsg;
+    ext1.next = &ext2;
+    ext2.type = &static_ext;
+    ext2.dest = &msg->static_req_submsg;
+    ext2.next = NULL;
+}
+
+/* Basic fields, nested submessages, extensions */
+static bool test_TestMessage()
 {
     uint8_t buffer[256];
     size_t msgsize;
@@ -23,25 +46,9 @@ static bool do_test()
     /* Construct a message with various fields filled in */
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_extension_t ext1, ext2;
         pb_ostream_t stream;
-        msg.static_req_submsg.dynamic_str = "12345";
-        msg.static_req_submsg.dynamic_str_arr_count = 3;
-        msg.static_req_submsg.dynamic_str_arr = test_str_arr;
-        msg.static_req_submsg.dynamic_submsg_count = 2;
-        msg.static_req_submsg.dynamic_submsg = test_msg_arr;
-        msg.static_req_submsg.dynamic_submsg[1].dynamic_str = "abc";
-        msg.static_opt_submsg.dynamic_str = "abc";
-        msg.has_static_opt_submsg = true;
-        msg.dynamic_submsg = &msg.static_req_submsg;
-        
-        msg.extensions = &ext1;
-        ext1.type = &dynamic_ext;
-        ext1.dest = &msg.static_req_submsg;
-        ext1.next = &ext2;
-        ext2.type = &static_ext;
-        ext2.dest = &msg.static_req_submsg;
-        ext2.next = NULL;
+
+        fill_TestMessage(&msg);
         
         stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
         if (!pb_encode(&stream, TestMessage_fields, &msg))
@@ -61,8 +68,7 @@ static bool do_test()
         TestMessage msg = TestMessage_init_zero;
         pb_istream_t stream;
         SubMessage ext2_dest;
-        pb_extension_t ext1, ext2;
-        
+
         msg.extensions = &ext1;
         ext1.type = &dynamic_ext;
         ext1.dest = NULL;
@@ -102,9 +108,76 @@ static bool do_test()
     return true;
 }
 
+/* Oneofs */
+static bool test_OneofMessage()
+{
+    uint8_t buffer[256];
+    size_t msgsize;
+
+    {
+        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+
+        /* Encode first with TestMessage */
+        {
+            OneofMessage msg = OneofMessage_init_zero;
+            msg.which_msgs = OneofMessage_msg1_tag;
+
+            fill_TestMessage(&msg.msgs.msg1);
+
+            if (!pb_encode(&stream, OneofMessage_fields, &msg))
+            {
+                fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
+                return false;
+            }
+        }
+
+        /* Encode second with SubMessage, invoking 'merge' behaviour */
+        {
+            OneofMessage msg = OneofMessage_init_zero;
+            msg.which_msgs = OneofMessage_msg2_tag;
+
+            msg.first = 999;
+            msg.msgs.msg2.dynamic_str = "ABCD";
+            msg.last = 888;
+
+            if (!pb_encode(&stream, OneofMessage_fields, &msg))
+            {
+                fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
+                return false;
+            }
+        }
+        msgsize = stream.bytes_written;
+    }
+
+    {
+        OneofMessage msg = OneofMessage_init_zero;
+        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        if (!pb_decode(&stream, OneofMessage_fields, &msg))
+        {
+            fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&stream));
+            return false;
+        }
+
+        TEST(msg.first == 999);
+        TEST(msg.which_msgs == OneofMessage_msg2_tag);
+        TEST(msg.msgs.msg2.dynamic_str);
+        TEST(strcmp(msg.msgs.msg2.dynamic_str, "ABCD") == 0);
+        TEST(msg.msgs.msg2.dynamic_str_arr == NULL);
+        TEST(msg.msgs.msg2.dynamic_submsg == NULL);
+        TEST(msg.last == 888);
+
+        pb_release(OneofMessage_fields, &msg);
+        TEST(get_alloc_count() == 0);
+        pb_release(OneofMessage_fields, &msg);
+        TEST(get_alloc_count() == 0);
+    }
+
+    return true;
+}
+
 int main()
 {
-    if (do_test())
+    if (test_TestMessage() && test_OneofMessage())
         return 0;
     else
         return 1;
