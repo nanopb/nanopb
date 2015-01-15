@@ -43,18 +43,18 @@
         TEST(pb_decode(&s, IntSizes_fields, &msg2) == expected_result);     \
         if (expected_result)                                                \
         {                                                                   \
-            TEST(msg2.req_int8   == int8);                                  \
-            TEST(msg2.req_uint8  == uint8);                                 \
-            TEST(msg2.req_sint8  == sint8);                                 \
-            TEST(msg2.req_int16  == int16);                                 \
-            TEST(msg2.req_uint16 == uint16);                                \
-            TEST(msg2.req_sint16 == sint16);                                \
-            TEST(msg2.req_int32  == int32);                                 \
-            TEST(msg2.req_uint32 == uint32);                                \
-            TEST(msg2.req_sint32 == sint32);                                \
-            TEST(msg2.req_int64  == int64);                                 \
-            TEST(msg2.req_uint64 == uint64);                                \
-            TEST(msg2.req_sint64 == sint64);                                \
+            TEST( (int64_t)msg2.req_int8   == int8);                        \
+            TEST((uint64_t)msg2.req_uint8  == uint8);                       \
+            TEST( (int64_t)msg2.req_sint8  == sint8);                       \
+            TEST( (int64_t)msg2.req_int16  == int16);                       \
+            TEST((uint64_t)msg2.req_uint16 == uint16);                      \
+            TEST( (int64_t)msg2.req_sint16 == sint16);                      \
+            TEST( (int64_t)msg2.req_int32  == int32);                       \
+            TEST((uint64_t)msg2.req_uint32 == uint32);                      \
+            TEST( (int64_t)msg2.req_sint32 == sint32);                      \
+            TEST( (int64_t)msg2.req_int64  == int64);                       \
+            TEST((uint64_t)msg2.req_uint64 == uint64);                      \
+            TEST( (int64_t)msg2.req_sint64 == sint64);                      \
         }                                                                   \
     }                                                                       \
                                                                             \
@@ -114,7 +114,7 @@ int main()
                    -32768,    0, -32769,
                    INT32_MIN, 0, INT32_MIN,
                    INT64_MIN, 0, INT64_MIN, false);
-    
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 
