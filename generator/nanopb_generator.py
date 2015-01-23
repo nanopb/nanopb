@@ -641,7 +641,17 @@ class OneOf(Field):
         return max([f.largest_field_value() for f in self.fields])
 
     def encoded_size(self, allmsgs):
-        return max([f.encoded_size(allmsgs) for f in self.fields])
+        largest = EncodedSize(0)
+        for f in self.fields:
+            size = f.encoded_size(allmsgs)
+            if size is None:
+                return None
+            elif size.symbols:
+                return None # Cannot resolve maximum of symbols
+            elif size.value > largest.value:
+                largest = size
+
+        return largest
 
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
