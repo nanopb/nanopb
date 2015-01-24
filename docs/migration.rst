@@ -11,7 +11,7 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.3.2 (2015-01-xx)
+Nanopb-0.3.2 (2015-01-24)
 =========================
 
 Add support for OneOfs

@@ -1,6 +1,6 @@
-nanopb-0.3.2 (2015-01-xx)
+nanopb-0.3.2 (2015-01-24)
  Fix memory leaks with PB_ENABLE_MALLOC with some submessage hierarchies (issue 138)
- Implement support for oneofs (C unions). (issue 131)
+ Implement support for oneofs (C unions). (issues 131, 141)
  Add int_size option for generator (issue 139)
  Add compilation option to disable struct packing. (issue 136)
  Change PB_RETURN_ERROR() macro to avoid compiler warnings (issue 140)
