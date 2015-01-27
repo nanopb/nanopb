@@ -633,7 +633,6 @@ class OneOf(Field):
         return '\n'.join([f.tags() for f in self.fields])
 
     def pb_field_t(self, prev_field_name):
-        prev_field_name = prev_field_name or self.name
         result = ',\n'.join([f.pb_field_t(prev_field_name) for f in self.fields])
         return result
 
