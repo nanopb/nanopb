@@ -15,11 +15,4 @@ On Linux, create a build directory and then call cmake:
 
 After that, you can run it with the command: ./simple
 
-#On other platforms, you first have to compile the protocol definition using
-#the following command::
-#
-#  ../../generator-bin/protoc --nanopb_out=. simple.proto
-#
-#After that, add the following four files to your project and compile:
-#
-#  simple.c  simple.pb.c  pb_encode.c  pb_decode.c
+On other platforms supported by CMake, refer to CMake instructions.
