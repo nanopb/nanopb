@@ -128,10 +128,36 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   set(${SRCS})
   set(${HDRS})
   get_filename_component(GENERATOR_PATH ${NANOPB_GENERATOR_EXECUTABLE} PATH)
+  set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
+  set(GENERATOR_CORE_SRC
+      ${GENERATOR_CORE_DIR}/nanopb.proto
+      ${GENERATOR_CORE_DIR}/plugin.proto)
+
+  set(GENERATOR_CORE_PYTHON_SRC)
+  foreach(FIL ${GENERATOR_CORE_SRC})
+      get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
+      get_filename_component(FIL_WE ${FIL} NAME_WE)
+
+      set(output "${GENERATOR_CORE_DIR}/${FIL_WE}_pb2.py")
+      set(GENERATOR_CORE_PYTHON_SRC ${GENERATOR_CORE_PYTHON_SRC} ${output})
+      add_custom_command(
+        OUTPUT ${output}
+        COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
+        ARGS -I${GENERATOR_PATH}/proto
+          --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
+        DEPENDS ${ABS_FIL}
+        VERBATIM)
+  endforeach()
 
   foreach(FIL ${ARGN})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     get_filename_component(FIL_WE ${FIL} NAME_WE)
+    get_filename_component(FIL_DIR ${FIL} PATH)
+    set(NANOPB_OPTIONS_FILE ${FIL_DIR}/${FIL_WE}.options)
+    set(NANOPB_OPTIONS)
+    if(EXISTS ${NANOPB_OPTIONS_FILE})
+        set(NANOPB_OPTIONS -f ${NANOPB_OPTIONS_FILE})
+    endif()
 
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c")
     list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h")
@@ -139,16 +165,18 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS -I${GENERATOR_PATH} -I${CMAKE_CURRENT_BINARY_DIR} ${_nanobp_include_path} -o${FIL_WE}.pb ${ABS_FIL}
-      DEPENDS ${ABS_FIL}
+      ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
+        -I${CMAKE_CURRENT_BINARY_DIR} ${_nanobp_include_path}
+        -o${FIL_WE}.pb ${ABS_FIL}
+      DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
       COMMENT "Running C++ protocol buffer compiler on ${FIL}"
       VERBATIM )
 
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-      COMMAND python
-      ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb
+      COMMAND ${PYTHON2_EXECUTABLE}
+      ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb ${NANOPB_OPTIONS}
       DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
       COMMENT "Running nanopb generator on ${FIL_WE}.pb"
       VERBATIM )
@@ -215,6 +243,19 @@ find_file(NANOPB_GENERATOR_EXECUTABLE
     ${NANOPB_SRC_ROOT_FOLDER}/generator
 )
 mark_as_advanced(NANOPB_GENERATOR_EXECUTABLE)
+
+# If python3 has already been found, save it and look for python2.7
+if(${PYTHON_VERSION_MAJOR} EQUAL 3)
+    set(PYTHON3_EXECUTABLE ${PYTHON_EXECUTABLE})
+    set(PYTHON_EXECUTABLE PYTHON_EXECUTABLE-NOTFOUND)
+endif()
+
+find_package(PythonInterp 2.7 REQUIRED)
+set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
+
+if(${PYTHON_VERSION_MAJOR} EQUAL 3)
+    set(PYTHON_EXECUTABLE ${PYTHON3_EXECUTABLE})
+endif()
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(NANOPB DEFAULT_MSG
