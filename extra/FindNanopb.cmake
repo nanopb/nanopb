@@ -244,17 +244,16 @@ find_file(NANOPB_GENERATOR_EXECUTABLE
 )
 mark_as_advanced(NANOPB_GENERATOR_EXECUTABLE)
 
-# If python3 has already been found, save it and look for python2.7
-if(${PYTHON_VERSION_MAJOR} EQUAL 3)
+# If python3 has already been found, save it and look for python2.6
+if(${PYTHON_VERSION_MAJOR} AND ${PYTHON_VERSION_MAJOR} EQUAL 3)
     set(PYTHON3_EXECUTABLE ${PYTHON_EXECUTABLE})
     set(PYTHON_EXECUTABLE PYTHON_EXECUTABLE-NOTFOUND)
-endif()
-
-find_package(PythonInterp 2.7 REQUIRED)
-set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
-
-if(${PYTHON_VERSION_MAJOR} EQUAL 3)
+    find_package(PythonInterp 2.6 REQUIRED)
+    set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
     set(PYTHON_EXECUTABLE ${PYTHON3_EXECUTABLE})
+else()
+    find_package(PythonInterp 2.6 REQUIRED)
+    set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
 endif()
 
 include(FindPackageHandleStandardArgs)
