@@ -31,7 +31,8 @@ rm $DEST/generator/protoc-gen-nanopb.py
 # Package the protoc compiler
 cp `which protoc` $DEST/generator-bin/protoc.bin
 LIBPROTOC=$(ldd `which protoc` | grep -o '/.*libprotoc[^ ]*')
-cp $LIBPROTOC $DEST/generator-bin/
+LIBPROTOBUF=$(ldd `which protoc` | grep -o '/.*libprotobuf[^ ]*')
+cp $LIBPROTOC $LIBPROTOBUF $DEST/generator-bin/
 cat > $DEST/generator-bin/protoc << EOF
 #!/bin/bash
 SCRIPTDIR=\$(dirname "\$0")
