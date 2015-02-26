@@ -587,6 +587,9 @@ class OneOf(Field):
         self.name = oneof_desc.name
         self.ctype = 'union'
         self.fields = []
+        self.allocation = 'ONEOF'
+        self.default = None
+        self.rules = 'ONEOF'
 
     def add_field(self, field):
         if field.allocation == 'CALLBACK':

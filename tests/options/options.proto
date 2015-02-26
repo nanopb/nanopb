@@ -75,3 +75,12 @@ message SkippedMessage
     option (nanopb_msgopt).skip_message = true;
     required int32 foo = 1;
 }
+
+// Message with oneof field
+message OneofMessage
+{
+    oneof foo {
+        int32 bar = 1;
+    }
+}
+
