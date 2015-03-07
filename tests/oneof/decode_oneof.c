@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pb_decode.h>
 #include "oneof.pb.h"
 #include "test_helpers.h"
@@ -10,8 +11,11 @@
 /* Test the 'OneOfMessage' */
 int test_oneof_1(pb_istream_t *stream, int option)
 {
-    OneOfMessage msg = OneOfMessage_init_zero;
+    OneOfMessage msg;
     int status = 0;
+
+    /* To better catch initialization errors */
+    memset(&msg, 0xAA, sizeof(msg));
 
     if (!pb_decode(stream, OneOfMessage_fields, &msg))
     {

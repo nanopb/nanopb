@@ -396,6 +396,10 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
 
         case PB_HTYPE_ONEOF:
             *(pb_size_t*)iter->pSize = iter->pos->tag;
+            if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+            {
+                pb_message_set_to_defaults((const pb_field_t*)iter->pos->ptr, iter->pData);
+            }
             return func(stream, iter->pos, iter->pData);
 
         default:
