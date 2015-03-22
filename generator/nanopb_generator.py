@@ -667,6 +667,9 @@ class Message:
         self.oneofs = {}
         no_unions = []
 
+        if message_options.msgid:
+            self.msgid = message_options.msgid
+
         if hasattr(desc, 'oneof_decl'):
             for i, f in enumerate(desc.oneof_decl):
                 oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
@@ -854,7 +857,7 @@ def parse_file(fdesc, file_options):
         
         if message_options.skip_message:
             continue
-        
+   
         messages.append(Message(names, message, message_options))
         for enum in message.enum_type:
             enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
@@ -917,7 +920,7 @@ def make_identifier(headername):
             result += '_'
     return result
 
-def generate_header(dependencies, headername, enums, messages, extensions, options):
+def generate_header(noext, dependencies, headername, enums, messages, extensions, options):
     '''Generate content for a header file.
     Generates strings, which should be concatenated and stored to file.
     '''
@@ -1001,7 +1004,30 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
             identifier = '%s_size' % msg.name
             yield '#define %-40s %s\n' % (identifier, msize)
     yield '\n'
-    
+
+    yield '/* helper macros for message type ids if set with */\n'
+    yield '/* option (nanopb_msgopt).msgid = <id>; */\n\n'
+
+    yield '#ifdef PB_MSGID\n'
+    for msg in messages:
+        if hasattr(msg,'msgid'):
+            yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
+    yield '\n'
+
+    yield '#define %s_MESSAGES \\\n' % (noext.upper())
+
+    for msg in messages:
+        m = "-1"
+        msize = msg.encoded_size(messages)
+        if msize is not None:
+            m = msize
+        if hasattr(msg,'msgid'):
+            yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
+    yield '\n'
+
+    yield '#endif\n\n'
+
+
     yield '#ifdef __cplusplus\n'
     yield '} /* extern "C" */\n'
     yield '#endif\n'
@@ -1287,7 +1313,7 @@ def process_file(filename, fdesc, options):
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     dependencies = [d for d in fdesc.dependency if d not in excludes]
     
-    headerdata = ''.join(generate_header(dependencies, headerbasename, enums,
+    headerdata = ''.join(generate_header(noext,dependencies, headerbasename, enums,
                                          messages, extensions, options))
 
     sourcedata = ''.join(generate_source(headerbasename, enums,
