@@ -920,7 +920,7 @@ def make_identifier(headername):
             result += '_'
     return result
 
-def generate_header(noext, dependencies, headername, enums, messages, extensions, options):
+def generate_header(dependencies, headername, enums, messages, extensions, options):
     '''Generate content for a header file.
     Generates strings, which should be concatenated and stored to file.
     '''
@@ -1014,7 +1014,8 @@ def generate_header(noext, dependencies, headername, enums, messages, extensions
             yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
     yield '\n'
 
-    yield '#define %s_MESSAGES \\\n' % (noext.upper())
+    symbol = make_identifier(headername.split('.')[0])
+    yield '#define %s_MESSAGES \\\n' % symbol
 
     for msg in messages:
         m = "-1"
@@ -1313,7 +1314,7 @@ def process_file(filename, fdesc, options):
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     dependencies = [d for d in fdesc.dependency if d not in excludes]
     
-    headerdata = ''.join(generate_header(noext,dependencies, headerbasename, enums,
+    headerdata = ''.join(generate_header(dependencies, headerbasename, enums,
                                          messages, extensions, options))
 
     sourcedata = ''.join(generate_source(headerbasename, enums,
