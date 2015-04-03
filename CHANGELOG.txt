@@ -1,3 +1,15 @@
+nanopb-0.3.3 (2015-04-xx)
+ Fix missing files in Linux binary package (issue 146)
+ Fix generator bug when oneof is first field in a message. (issue 142)
+ Fix generator error when long_names:false is combined with Oneofs. (issue 147)
+ Fix oneof submessage initialization bug. (issue 149)
+ Don't crash when callback is inside oneof field. (issue 148)
+ Always define enum long names so that cross-file references work. (issue 118)
+ Add msgid generator option. (issue 151)
+ Improve comment support in .options files. (issue 145)
+ Updates for the CMake rule file, add cmake example.
+ Better error messages for syntax errors in .options file
+
 nanopb-0.3.2 (2015-01-24)
  Fix memory leaks with PB_ENABLE_MALLOC with some submessage hierarchies (issue 138)
  Implement support for oneofs (C unions). (issues 131, 141)
