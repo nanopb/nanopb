@@ -1005,9 +1005,8 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
             yield '#define %-40s %s\n' % (identifier, msize)
     yield '\n'
 
-    yield '/* helper macros for message type ids if set with */\n'
-    yield '/* option (nanopb_msgopt).msgid = <id>; */\n\n'
-
+    yield '/* Message IDs (where set with "msgid" option) */\n'
+    
     yield '#ifdef PB_MSGID\n'
     for msg in messages:
         if hasattr(msg,'msgid'):
@@ -1024,6 +1023,11 @@ def generate_header(dependencies, headername, enums, messages, extensions, optio
             m = msize
         if hasattr(msg,'msgid'):
             yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
+    yield '\n'
+
+    for msg in messages:
+        if hasattr(msg,'msgid'):
+            yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
     yield '\n'
 
     yield '#endif\n\n'
