@@ -4,6 +4,7 @@
 nanopb_version = "nanopb-0.3.3-dev"
 
 import sys
+import re
 
 try:
     # Add some dummy imports to keep packaging tools happy.
@@ -1164,9 +1165,13 @@ def read_options_file(infile):
         [(namemask, options), ...]
     '''
     results = []
-    for i, line in enumerate(infile):
+    data = infile.read()
+    data = re.sub('/\*.*?\*/', '', data, flags = re.MULTILINE)
+    data = re.sub('//.*?$', '', data, flags = re.MULTILINE)
+    data = re.sub('#.*?$', '', data, flags = re.MULTILINE)
+    for i, line in enumerate(data.split('\n')):
         line = line.strip()
-        if not line or line.startswith('//') or line.startswith('#'):
+        if not line:
             continue
         
         parts = line.split(None, 1)

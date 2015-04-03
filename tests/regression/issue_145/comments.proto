@@ -1,0 +1,5 @@
+message DummyMessage {
+    required string foo = 1;
+    required string bar = 2;
+}
+
