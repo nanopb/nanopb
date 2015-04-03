@@ -164,6 +164,13 @@ class Enum:
         result = 'typedef enum _%s {\n' % self.names
         result += ',\n'.join(["    %s = %d" % x for x in self.values])
         result += '\n} %s;' % self.names
+        
+        if not self.options.long_names:
+            # Define the long names always so that enum value references
+            # from other files work properly.
+            for i, x in enumerate(self.values):
+                result += '\n#define %s %s' % (self.value_longnames[i], x[0])
+        
         return result
 
 class Field:
