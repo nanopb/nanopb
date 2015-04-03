@@ -91,6 +91,10 @@ packed_struct                  Make the generated structures packed.
                                NOTE: This cannot be used on CPUs that break
                                on unaligned accesses to variables.
 skip_message                   Skip the whole message from generation.
+no_unions                      Generate 'oneof' fields as optional fields
+                               instead of C unions.
+msgid                          Specifies a unique id for this message type.
+                               Can be used by user code as an identifier.
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted

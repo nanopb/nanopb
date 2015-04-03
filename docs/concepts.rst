@@ -299,6 +299,25 @@ An example of this is available in *tests/test_encode_extensions.c* and
 
 .. _`extension fields`: https://developers.google.com/protocol-buffers/docs/proto#extensions
 
+Message framing
+===============
+Protocol Buffers does not specify a method of framing the messages for transmission.
+This is something that must be provided by the library user, as there is no one-size-fits-all
+solution. Typical needs for a framing format are to:
+
+1. Encode the message length.
+2. Encode the message type.
+3. Perform any synchronization and error checking that may be needed depending on application.
+
+For example UDP packets already fullfill all the requirements, and TCP streams typically only
+need a way to identify the message length and type. Lower level interfaces such as serial ports
+may need a more robust frame format, such as HDLC (high-level data link control).
+
+Nanopb provides a few helpers to facilitate implementing framing formats:
+
+1. Functions *pb_encode_delimited* and *pb_decode_delimited* prefix the message data with a varint-encoded length.
+2. Union messages and oneofs are supported in order to implement top-level container messages.
+3. Message IDs can be specified using the *(nanopb_msgopt).msgid* option and can then be accessed from the header.
 
 Return values and error handling
 ================================
