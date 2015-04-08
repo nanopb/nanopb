@@ -1384,8 +1384,15 @@ def main_plugin():
     data = sys.stdin.read()
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
     
+    try:
+        # Versions of Python prior to 2.7.3 do not support unicode
+        # input to shlex.split(). Try to convert to str if possible.
+        params = str(request.parameter)
+    except UnicodeEncodeError:
+        params = request.parameter
+    
     import shlex
-    args = shlex.split(request.parameter)
+    args = shlex.split(params)
     options, dummy = optparser.parse_args(args)
     
     Globals.verbose_options = options.verbose
