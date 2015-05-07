@@ -3,7 +3,7 @@ especially suitable for use in microcontrollers, but fits any memory
 restricted system.
 
 Homepage: http://kapsi.fi/~jpa/nanopb/
-
+Downloads: http://koti.kapsi.fi/~jpa/nanopb/download/
 
 
 
