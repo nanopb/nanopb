@@ -11,11 +11,12 @@
     "email": "jpa@nanopb.mail.kapsi.fi",
     "url": "http://koti.kapsi.fi/jpa/nanopb/"
   }],
-  "frameworks": [
-    "arduino"
+  "include": [
+    "*.c",
+    "*.cpp",
+    "*.h"
   ],
-  "platforms": [
-    "atmelavr",
-    "teensy"
-  ]
+  "examples": "examples/*/*.c",
+  "frameworks": "*",
+  "platforms": "*"
 }
