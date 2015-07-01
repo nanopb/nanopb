@@ -4,6 +4,7 @@ restricted system.
 
 Homepage: http://kapsi.fi/~jpa/nanopb/
 Downloads: http://koti.kapsi.fi/~jpa/nanopb/download/
+Forum: https://groups.google.com/forum/#!forum/nanopb
 
 
 
