@@ -84,7 +84,7 @@ if not env.GetOption('clean'):
             conf.env.Append(LINKFLAGS = '-fmudflap')
     
     # Check if we can use extra strict warning flags (only with GCC)
-    extra = '-Wcast-qual -Wlogical-op -Wconversion'
+    extra = '-Wcast-qual -Wconversion'
     extra += ' -fstrict-aliasing -Wstrict-aliasing=1'
     extra += ' -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls'
     extra += ' -Wstack-protector '
@@ -107,7 +107,7 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage ')
+    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage -Wno-extended-offsetof ')
     env.Append(CORECFLAGS = '-Wextra')
     env.Append(LINKFLAGS = '-g --coverage')
     
