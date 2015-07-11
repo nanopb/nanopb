@@ -59,4 +59,7 @@ so you need to have that installed. To run the tests:
 This will show the progress of various test cases. If the output does not
 end in an error, the test cases were successful.
 
-
+Note: Mac OS X by default aliases 'clang' as 'gcc', while not actually
+supporting the same command line options as gcc does. To run tests on
+Mac OS X, use: "scons CC=clang CXX=clang". Same way can be used to run
+tests with different compilers on any platform.
