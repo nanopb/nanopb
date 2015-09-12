@@ -9,8 +9,7 @@ message Callback2Message {
 
 message OneofMessage {
     oneof msgs {
-        TestMessage tstmsg = 1;
-        SubMessage submsg = 2;
+        StaticMessage tstmsg = 1;
     }
 }
 

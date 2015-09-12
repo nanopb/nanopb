@@ -490,7 +490,8 @@ class Field:
                 encsize += varint_max_size(encsize.upperlimit())
             else:
                 # Submessage cannot be found, this currently occurs when
-                # the submessage type is defined in a different file.
+                # the submessage type is defined in a different file and
+                # not using the protoc plugin.
                 # Instead of direct numeric value, reference the size that
                 # has been #defined in the other file.
                 encsize = EncodedSize(self.submsgname + 'size')
@@ -544,7 +545,7 @@ class ExtensionRange(Field):
     def tags(self):
         return ''
     
-    def encoded_size(self, allmsgs):
+    def encoded_size(self, dependencies):
         # We exclude extensions from the count, because they cannot be known
         # until runtime. Other option would be to return None here, but this
         # way the value remains useful if extensions are not used.
@@ -662,10 +663,10 @@ class OneOf(Field):
     def largest_field_value(self):
         return max([f.largest_field_value() for f in self.fields])
 
-    def encoded_size(self, allmsgs):
+    def encoded_size(self, dependencies):
         largest = EncodedSize(0)
         for f in self.fields:
-            size = f.encoded_size(allmsgs)
+            size = f.encoded_size(dependencies)
             if size is None:
                 return None
             elif size.symbols:
@@ -812,13 +813,13 @@ class Message:
         result += '    PB_LAST_FIELD\n};'
         return result
 
-    def encoded_size(self, allmsgs):
+    def encoded_size(self, dependencies):
         '''Return the maximum size that this message can take when encoded.
         If the size cannot be determined, returns None.
         '''
         size = EncodedSize(0)
         for field in self.fields:
-            fsize = field.encoded_size(allmsgs)
+            fsize = field.encoded_size(dependencies)
             if fsize is None:
                 return None
             size += fsize
@@ -1290,6 +1291,9 @@ optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION",
     help="Set extension to use instead of '.pb' for generated files. [default: %default]")
 optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
     help="Set name of a separate generator options file.")
+optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
+    action="append", default = [],
+    help="Search for .options files additionally in this path")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"\n',
     help="Set format string to use for including other .pb.h files. [default: %default]")
@@ -1305,19 +1309,8 @@ optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", def
 optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
     help="Set generator option (max_size, max_count etc.).")
 
-def process_file(filename, fdesc, options):
-    '''Process a single file.
-    filename: The full path to the .proto or .pb source file, as string.
-    fdesc: The loaded FileDescriptorSet, or None to read from the input file.
-    options: Command line options as they come from OptionsParser.
-    
-    Returns a dict:
-        {'headername': Name of header file,
-         'headerdata': Data for the .h header file,
-         'sourcename': Name of the source code file,
-         'sourcedata': Data for the .c source code file
-        }
-    '''
+def parse_file(filename, fdesc, options):
+    '''Parse a single file. Returns a ProtoFile instance.'''
     toplevel_options = nanopb_pb2.NanoPBOptions()
     for s in options.settings:
         text_format.Merge(s, toplevel_options)
@@ -1335,18 +1328,20 @@ def process_file(filename, fdesc, options):
         optfilename = options.options_file
         had_abspath = True
 
-    if os.path.isfile(optfilename):
-        if options.verbose:
-            sys.stderr.write('Reading options from ' + optfilename + '\n')
-
-        Globals.separate_options = read_options_file(open(optfilename, "rU"))
+    paths = ['.'] + options.options_path
+    for p in paths:
+        if os.path.isfile(os.path.join(p, optfilename)):
+            optfilename = os.path.join(p, optfilename)
+            if options.verbose:
+                sys.stderr.write('Reading options from ' + optfilename + '\n')
+            Globals.separate_options = read_options_file(open(optfilename, "rU"))
+            break
     else:
         # If we are given a full filename and it does not exist, give an error.
         # However, don't give error when we automatically look for .options file
         # with the same name as .proto.
         if options.verbose or had_abspath:
-            sys.stderr.write('Options file not found: ' + optfilename)
-
+            sys.stderr.write('Options file not found: ' + optfilename + '\n')
         Globals.separate_options = []
 
     Globals.matched_namemasks = set()
@@ -1354,6 +1349,29 @@ def process_file(filename, fdesc, options):
     # Parse the file
     file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
     f = ProtoFile(fdesc, file_options)
+    f.optfilename = optfilename
+    
+    return f
+
+def process_file(filename, fdesc, options, other_files = {}):
+    '''Process a single file.
+    filename: The full path to the .proto or .pb source file, as string.
+    fdesc: The loaded FileDescriptorSet, or None to read from the input file.
+    options: Command line options as they come from OptionsParser.
+    
+    Returns a dict:
+        {'headername': Name of header file,
+         'headerdata': Data for the .h header file,
+         'sourcename': Name of the source code file,
+         'sourcedata': Data for the .c source code file
+        }
+    '''
+    f = parse_file(filename, fdesc, options)
+
+    # Provide dependencies if available
+    for dep in f.fdesc.dependency:
+        if dep in other_files:
+            f.add_dependency(other_files[dep])
 
     # Decide the file names
     noext = os.path.splitext(filename)[0]
@@ -1364,7 +1382,7 @@ def process_file(filename, fdesc, options):
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
-    includes = [d for d in fdesc.dependency if d not in excludes]
+    includes = [d for d in f.fdesc.dependency if d not in excludes]
     
     headerdata = ''.join(f.generate_header(includes, headerbasename, options))
     sourcedata = ''.join(f.generate_source(headerbasename, options))
@@ -1372,7 +1390,7 @@ def process_file(filename, fdesc, options):
     # Check if there were any lines in .options that did not match a member
     unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
     if unmatched and not options.quiet:
-        sys.stderr.write("Following patterns in " + optfilename + " did not match any fields: "
+        sys.stderr.write("Following patterns in " + f.optfilename + " did not match any fields: "
                          + ', '.join(unmatched) + "\n")
         if not Globals.verbose_options:
             sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
@@ -1432,10 +1450,22 @@ def main_plugin():
     
     response = plugin_pb2.CodeGeneratorResponse()
     
+    # Google's protoc does not currently indicate the full path of proto files.
+    # Instead always add the main file path to the search dirs, that works for
+    # the common case.
+    import os.path
+    options.options_path.append(os.path.dirname(request.file_to_generate[0]))
+    
+    # Process any include files first, in order to have them
+    # available as dependencies
+    other_files = {}
+    for fdesc in request.proto_file:
+        other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
+    
     for filename in request.file_to_generate:
         for fdesc in request.proto_file:
             if fdesc.name == filename:
-                results = process_file(filename, fdesc, options)
+                results = process_file(filename, fdesc, options, other_files)
                 
                 f = response.file.add()
                 f.name = results['headername']

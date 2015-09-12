@@ -14,6 +14,10 @@ message TestMessage {
     repeated string repeatedstring = 6;
 }
 
+message StaticMessage {
+    repeated fixed32 repint32 = 1;
+}
+
 enum SignedEnum {
     SE_MIN = -128;
     SE_MAX = 127;
