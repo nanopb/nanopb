@@ -162,6 +162,12 @@ class Enum:
         self.value_longnames = [self.names + x.name for x in desc.value]
         self.packed = enum_options.packed_enum
     
+    def has_negative(self):
+        for n, v in self.values:
+            if v < 0:
+                return True
+        return False
+    
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
         result += ',\n'.join(["    %s = %d" % x for x in self.values])
@@ -342,7 +348,7 @@ class Field:
                 inner_init = '""'
             elif self.pbtype == 'BYTES':
                 inner_init = '{0, {0}}'
-            elif self.pbtype == 'ENUM':
+            elif self.pbtype in ('ENUM', 'UENUM'):
                 inner_init = '(%s)0' % self.ctype
             else:
                 inner_init = '0'
@@ -600,6 +606,7 @@ class OneOf(Field):
         self.struct_name = struct_name
         self.name = oneof_desc.name
         self.ctype = 'union'
+        self.pbtype = 'oneof'
         self.fields = []
         self.allocation = 'ONEOF'
         self.default = None
@@ -890,6 +897,14 @@ def parse_file(fdesc, file_options):
                     if field.default in enum.value_longnames:
                         idx = enum.value_longnames.index(field.default)
                         field.default = enum.values[idx][0]
+    
+    # Fix field data types where enums have negative values.
+    for enum in enums:
+        if not enum.has_negative():
+            for message in messages:
+                for field in message.fields:
+                    if field.pbtype == 'ENUM' and field.ctype == enum.names:
+                        field.pbtype = 'UENUM'
     
     return enums, messages, extensions
 

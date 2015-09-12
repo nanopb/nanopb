@@ -468,6 +468,7 @@ struct pb_extension_s {
 #define PB_LTYPE_MAP_BYTES      PB_LTYPE_BYTES
 #define PB_LTYPE_MAP_DOUBLE     PB_LTYPE_FIXED64
 #define PB_LTYPE_MAP_ENUM       PB_LTYPE_VARINT
+#define PB_LTYPE_MAP_UENUM      PB_LTYPE_UVARINT
 #define PB_LTYPE_MAP_FIXED32    PB_LTYPE_FIXED32
 #define PB_LTYPE_MAP_FIXED64    PB_LTYPE_FIXED64
 #define PB_LTYPE_MAP_FLOAT      PB_LTYPE_FIXED32
@@ -486,7 +487,7 @@ struct pb_extension_s {
 /* This is the actual macro used in field descriptions.
  * It takes these arguments:
  * - Field tag number
- * - Field type:   BOOL, BYTES, DOUBLE, ENUM, FIXED32, FIXED64,
+ * - Field type:   BOOL, BYTES, DOUBLE, ENUM, UENUM, FIXED32, FIXED64,
  *                 FLOAT, INT32, INT64, MESSAGE, SFIXED32, SFIXED64
  *                 SINT32, SINT64, STRING, UINT32, UINT64 or EXTENSION
  * - Field rules:  REQUIRED, OPTIONAL or REPEATED
