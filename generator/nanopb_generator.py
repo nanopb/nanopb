@@ -160,11 +160,17 @@ class Enum:
             self.values = [(names + x.name, x.number) for x in desc.value] 
         
         self.value_longnames = [self.names + x.name for x in desc.value]
+        self.packed = enum_options.packed_enum
     
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
         result += ',\n'.join(["    %s = %d" % x for x in self.values])
-        result += '\n} %s;' % self.names
+        result += '\n}'
+        
+        if self.packed:
+            result += ' pb_packed'
+        
+        result += ' %s;' % self.names
         
         if not self.options.long_names:
             # Define the long names always so that enum value references

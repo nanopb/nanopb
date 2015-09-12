@@ -51,6 +51,9 @@ message NanoPBOptions {
   // accesses to variables.
   optional bool packed_struct = 5 [default = false];
   
+  // Add 'packed' attribute to generated enums.
+  optional bool packed_enum = 10 [default = false];
+  
   // Skip this message
   optional bool skip_message = 6 [default = false];
 
