@@ -14,3 +14,15 @@ message TestMessage {
     repeated string repeatedstring = 6;
 }
 
+enum SignedEnum {
+    SE_MIN = -128;
+    SE_MAX = 127;
+}
+
+enum UnsignedEnum {
+    UE_MIN = 0;
+    UE_MAX = 255;
+}
+
+
+

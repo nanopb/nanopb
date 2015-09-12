@@ -1,0 +1,21 @@
+// Test if including generated header file for this file + implicit include of
+// multifile2.pb.h still compiles. Used with test_compiles.c.
+import "multifile1.proto";
+
+message Callback2Message {
+    required TestMessage tstmsg = 1;
+    required SubMessage submsg = 2;
+}
+
+message OneofMessage {
+    oneof msgs {
+        TestMessage tstmsg = 1;
+        SubMessage submsg = 2;
+    }
+}
+
+message Enums {
+    required SignedEnum senum = 1;
+    required UnsignedEnum uenum = 2;
+}
+
