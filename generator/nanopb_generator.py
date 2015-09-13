@@ -100,11 +100,14 @@ def names_from_type_name(type_name):
 
 def varint_max_size(max_value):
     '''Returns the maximum number of bytes a varint can take when encoded.'''
+    if max_value < 0:
+        max_value = 2**64 - max_value
     for i in range(1, 11):
         if (max_value >> (i * 7)) == 0:
             return i
     raise ValueError("Value too large for varint: " + str(max_value))
 
+assert varint_max_size(-1) == 10
 assert varint_max_size(0) == 1
 assert varint_max_size(127) == 1
 assert varint_max_size(128) == 2
@@ -167,6 +170,9 @@ class Enum:
             if v < 0:
                 return True
         return False
+    
+    def encoded_size(self):
+        return max([varint_max_size(v) for n,v in self.values])
     
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
@@ -267,7 +273,7 @@ class Field:
             self.ctype = names_from_type_name(desc.type_name)
             if self.default is not None:
                 self.default = self.ctype + self.default
-            self.enc_size = 5 # protoc rejects enum values > 32 bits
+            self.enc_size = None # Needs to be filled in when enum values are known
         elif desc.type == FieldD.TYPE_STRING:
             self.pbtype = 'STRING'
             self.ctype = 'char'
@@ -499,6 +505,14 @@ class Field:
                 # We will have to make a conservative assumption on the length
                 # prefix size, though.
                 encsize += 5
+
+        elif self.pbtype in ['ENUM', 'UENUM']:
+            if str(self.ctype) in dependencies:
+                enumtype = dependencies[str(self.ctype)]
+                encsize = enumtype.encoded_size()
+            else:
+                # Conservative assumption
+                encsize = 10
 
         elif self.enc_size is None:
             raise RuntimeError("Could not determine encoded size for %s.%s"
