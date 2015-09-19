@@ -1440,14 +1440,15 @@ def main_cli():
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
 
-    import sys
+    import io, sys
     if sys.platform == "win32":
         import os, msvcrt
         # Set stdin and stdout to binary mode
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
     
-    data = sys.stdin.read()
+    data = io.open(sys.stdin.fileno(), "rb").read()
+
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
     
     try:
@@ -1490,7 +1491,7 @@ def main_plugin():
                 f.name = results['sourcename']
                 f.content = results['sourcedata']    
     
-    sys.stdout.write(response.SerializeToString())
+    io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 
 if __name__ == '__main__':
     # Check if we are running as a plugin under protoc
