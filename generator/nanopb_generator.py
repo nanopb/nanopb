@@ -314,8 +314,8 @@ class Field:
         else:
             raise NotImplementedError(desc.type)
         
-    def __cmp__(self, other):
-        return cmp(self.tag, other.tag)
+    def __lt__(self, other):
+        return self.tag < other.tag
     
     def __str__(self):
         result = ''
@@ -660,9 +660,6 @@ class OneOf(Field):
 
         # Sort by the lowest tag number inside union
         self.tag = min([f.tag for f in self.fields])
-
-    def __cmp__(self, other):
-        return cmp(self.tag, other.tag)
 
     def __str__(self):
         result = ''
