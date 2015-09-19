@@ -5,6 +5,7 @@ nanopb_version = "nanopb-0.3.4-dev"
 
 import sys
 import re
+from functools import reduce
 
 try:
     # Add some dummy imports to keep packaging tools happy.
@@ -82,7 +83,7 @@ class Names:
         return '_'.join(self.parts)
 
     def __add__(self, other):
-        if isinstance(other, (str, unicode)):
+        if isinstance(other, str):
             return Names(self.parts + (other,))
         elif isinstance(other, tuple):
             return Names(self.parts + other)
@@ -123,7 +124,7 @@ class EncodedSize:
         self.symbols = symbols
     
     def __add__(self, other):
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             return EncodedSize(self.value + other, self.symbols)
         elif isinstance(other, (str, Names)):
             return EncodedSize(self.value, self.symbols + [str(other)])
@@ -133,7 +134,7 @@ class EncodedSize:
             raise ValueError("Cannot add size: " + repr(other))
 
     def __mul__(self, other):
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             return EncodedSize(self.value * other, [str(other) + '*' + s for s in self.symbols])
         else:
             raise ValueError("Cannot multiply size: " + repr(other))
@@ -260,7 +261,7 @@ class Field:
             raise NotImplementedError(field_options.type)
         
         # Decide the C data type to use in the struct.
-        if datatypes.has_key(desc.type):
+        if desc.type in datatypes:
             self.ctype, self.pbtype, self.enc_size, isa = datatypes[desc.type]
 
             # Override the field size if user wants to use smaller integers
@@ -875,17 +876,17 @@ def toposort2(data):
     From http://code.activestate.com/recipes/577413-topological-sort/
     This function is under the MIT license.
     '''
-    for k, v in data.items():
+    for k, v in list(data.items()):
         v.discard(k) # Ignore self dependencies
-    extra_items_in_deps = reduce(set.union, data.values(), set()) - set(data.keys())
+    extra_items_in_deps = reduce(set.union, list(data.values()), set()) - set(data.keys())
     data.update(dict([(item, set()) for item in extra_items_in_deps]))
     while True:
-        ordered = set(item for item,dep in data.items() if not dep)
+        ordered = set(item for item,dep in list(data.items()) if not dep)
         if not ordered:
             break
         for item in sorted(ordered):
             yield item
-        data = dict([(item, (dep - ordered)) for item,dep in data.items()
+        data = dict([(item, (dep - ordered)) for item,dep in list(data.items())
                 if item not in ordered])
     assert not data, "A cyclic dependency exists amongst %r" % data
 
@@ -1145,7 +1146,7 @@ class ProtoFile:
             checks_msgnames.append(msg.name)
             for field in msg.fields:
                 status = field.largest_field_value()
-                if isinstance(status, (str, unicode)):
+                if isinstance(status, str):
                     checks.append(status)
                 elif status > worst:
                     worst = status
@@ -1237,7 +1238,7 @@ def read_options_file(infile):
         
         try:
             text_format.Merge(parts[1], opts)
-        except Exception, e:
+        except Exception as e:
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
                              "Unparseable option line: '%s'. " % line +
                              "Error: %s\n" % str(e))
