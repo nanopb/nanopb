@@ -193,6 +193,24 @@ class Enum:
         
         return result
 
+class FieldMaxSize:
+    def __init__(self, worst = 0, checks = [], field_name = 'undefined'):
+        if isinstance(worst, list):
+            self.worst = max(i for i in worst if i is not None)
+        else:
+            self.worst = worst
+
+        self.worst_field = field_name
+        self.checks = checks
+
+    def extend(self, extend, field_name = None):
+        self.worst = max(self.worst, extend.worst)
+
+        if self.worst == extend.worst:
+            self.worst_field = extend.worst_field
+
+        self.checks.extend(extend.checks)
+
 class Field:
     def __init__(self, struct_name, desc, field_options):
         '''desc is FieldDescriptorProto'''
@@ -468,15 +486,18 @@ class Field:
     def largest_field_value(self):
         '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
         Returns numeric value or a C-expression for assert.'''
+        check = []
         if self.pbtype == 'MESSAGE':
             if self.rules == 'REPEATED' and self.allocation == 'STATIC':
-                return 'pb_membersize(%s, %s[0])' % (self.struct_name, self.name)
+                check.append('pb_membersize(%s, %s[0])' % (self.struct_name, self.name))
             elif self.rules == 'ONEOF':
-                return 'pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name)
+                check.append('pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name))
             else:
-                return 'pb_membersize(%s, %s)' % (self.struct_name, self.name)
+                check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
 
-        return max(self.tag, self.max_size, self.max_count)        
+        return FieldMaxSize([self.tag, self.max_size, self.max_count],
+                            check,
+                            ('%s.%s' % (self.struct_name, self.name)))
 
     def encoded_size(self, dependencies):
         '''Return the maximum size that this field can take when encoded,
@@ -676,7 +697,10 @@ class OneOf(Field):
         return result
 
     def largest_field_value(self):
-        return max([f.largest_field_value() for f in self.fields])
+        largest = FieldMaxSize()
+        for f in self.fields:
+            largest.extend(f.largest_field_value())
+        return largest
 
     def encoded_size(self, dependencies):
         largest = EncodedSize(0)
@@ -1137,20 +1161,17 @@ class ProtoFile:
                 yield '#error Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
                 yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
                 yield '#endif\n'
-        
-        worst = 0
-        worst_field = ''
-        checks = []
+
+        max_field = FieldMaxSize()
         checks_msgnames = []
         for msg in self.messages:
             checks_msgnames.append(msg.name)
             for field in msg.fields:
-                status = field.largest_field_value()
-                if isinstance(status, str):
-                    checks.append(status)
-                elif status > worst:
-                    worst = status
-                    worst_field = str(field.struct_name) + '.' + str(field.name)
+                max_field.extend(field.largest_field_value())
+
+        worst = max_field.worst
+        worst_field = max_field.worst_field
+        checks = max_field.checks
 
         if worst > 255 or checks:
             yield '\n/* Check that field information fits in pb_field_t */\n'
