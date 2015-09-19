@@ -379,12 +379,10 @@ class Field:
                 inner_init = '0'
         else:
             if self.pbtype == 'STRING':
-                inner_init = self.default.encode('utf-8').encode('string_escape')
-                inner_init = inner_init.replace('"', '\\"')
+                inner_init = self.default.replace('"', '\\"')
                 inner_init = '"' + inner_init + '"'
             elif self.pbtype == 'BYTES':
-                data = str(self.default).decode('string_escape')
-                data = ['0x%02x' % ord(c) for c in data]
+                data = ['0x%02x' % ord(c) for c in self.default]
                 if len(data) == 0:
                     inner_init = '{0, {0}}'
                 else:
