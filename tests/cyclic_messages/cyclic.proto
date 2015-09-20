@@ -2,6 +2,8 @@
 // These can only be handled in pointer/callback mode,
 // see associated .options files.
 
+syntax = "proto2";
+
 message TreeNode
 {
     optional int32 leaf = 1;

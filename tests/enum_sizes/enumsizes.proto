@@ -4,6 +4,8 @@
  * a bit of a problem for the encoder/decoder (issue #164).
  */
 
+syntax = "proto2";
+
 import 'nanopb.proto';
 
 option (nanopb_fileopt).long_names = false;

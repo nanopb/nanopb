@@ -6,6 +6,8 @@
  * otherwise. E.g. uint32 + IS_8 => uint8_t
  */
 
+syntax = "proto2";
+
 import 'nanopb.proto';
 
 message IntSizes {

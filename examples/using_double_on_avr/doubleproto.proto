@@ -1,4 +1,6 @@
 // A message containing doubles, as used by other applications.
+syntax = "proto2";
+
 message DoubleMessage {
     required double field1 = 1;
     required double field2 = 2;
