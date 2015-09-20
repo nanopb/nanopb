@@ -1,3 +1,5 @@
+syntax = "proto2";
+
 message Message1
 {
 	optional uint32	fieldA = 1;

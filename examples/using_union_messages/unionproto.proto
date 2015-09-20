@@ -5,6 +5,8 @@
 // but they are commonly implemented by filling out exactly one of
 // several optional fields.
 
+syntax = "proto2";
+
 message MsgType1
 {
     required int32 value = 1;

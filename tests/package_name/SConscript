@@ -3,14 +3,16 @@
 
 Import("env")
 
-# Build a modified alltypes.proto
-def modify_proto(target, source, env):
-    '''Add a "package test.package;" directive to the beginning of the .proto file.'''
-    data = open(str(source[0]), 'r').read()
-    open(str(target[0]), 'w').write("package test.package;\n\n" + data)
-    return 0
+def set_pkgname(src, dst, pkgname):
+    data = open(str(src)).read()
+    placeholder = '// package name placeholder'
+    assert placeholder in data
+    data = data.replace(placeholder, 'package %s;' % pkgname)
+    open(str(dst), 'w').write(data)
 
-env.Command("alltypes.proto", "#alltypes/alltypes.proto", modify_proto)
+# Build a modified alltypes.proto
+env.Command("alltypes.proto", "#alltypes/alltypes.proto",
+            lambda target, source, env: set_pkgname(source[0], target[0], 'test.package'))
 env.Command("alltypes.options", "#alltypes/alltypes.options", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["alltypes", "alltypes.options"])
 

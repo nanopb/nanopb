@@ -2,16 +2,19 @@
 
 Import("env", "malloc_env")
 
+def set_pkgname(src, dst, pkgname):
+    data = open(str(src)).read()
+    placeholder = '// package name placeholder'
+    assert placeholder in data
+    data = data.replace(placeholder, 'package %s;' % pkgname)
+    open(str(dst), 'w').write(data)
+
 # We want both pointer and static versions of the AllTypes message
 # Prefix them with package name.
 env.Command("alltypes_static.proto", "#alltypes/alltypes.proto",
-            lambda target, source, env:
-                open(str(target[0]), 'w').write("package alltypes_static;\n"
-                                                + open(str(source[0])).read()))
+            lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_static'))
 env.Command("alltypes_pointer.proto", "#alltypes/alltypes.proto",
-            lambda target, source, env:
-                open(str(target[0]), 'w').write("package alltypes_pointer;\n"
-                                                + open(str(source[0])).read()))
+            lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_pointer'))
 
 p1 = env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
 p2 = env.NanopbProto(["alltypes_static", "alltypes_static.options"])

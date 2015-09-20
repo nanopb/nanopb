@@ -1,5 +1,7 @@
 /* Test for one missing field among many */
 
+syntax = "proto2";
+
 message AllFields
 {
     required int32 field1 = 1;
