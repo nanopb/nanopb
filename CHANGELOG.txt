@@ -1,4 +1,12 @@
-nanopb-0.3.3 (2015-04-xx)
+nanopb-0.3.4 (2015-09-xx)
+ Fix handling of unsigned 8- and 16-bit enums (issue 164)
+ Fix generator on systems where python = python3. (issue 155)
+ Make the generator better handle imported .protos (issue 165)
+ Add packed_enum option to generator.
+ Add syntax= line to .proto files (issue 167)
+ Add PlatformIO registry manifest file. (pr 156)
+
+nanopb-0.3.3 (2015-04-10)
  Fix missing files in Linux binary package (issue 146)
  Fix generator bug when oneof is first field in a message. (issue 142)
  Fix generator error when long_names:false is combined with Oneofs. (issue 147)
