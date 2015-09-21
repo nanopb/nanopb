@@ -43,13 +43,11 @@ before_install:
 #        - $HOME/protobuf
 
 install:
-    - pip install protobuf
-    - test \! -d $HOME/protobuf
-      && curl -L https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.bz2 | tar xjf -
-      && pushd protobuf-2.6.1
+    - curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-1/protobuf-python-3.0.0-alpha-4.tar.gz | tar xzf -
+      && pushd protobuf-3.0.0-alpha-4
       && ./configure --prefix=$HOME/protobuf && make && make install
+      && pushd python && python setup.py build && python setup.py install && popd
       && popd
-      || true # True if test is false as the cache exists
 
 script:
     - pushd generator/proto && make && popd
