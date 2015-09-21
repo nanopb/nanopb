@@ -85,7 +85,14 @@ class Names:
         return '_'.join(self.parts)
 
     def __add__(self, other):
-        if isinstance(other, str):
+        # The fdesc names are unicode and need to be handled for
+        # python2 and python3
+        try:
+              realstr = unicode
+        except NameError:
+              realstr = str
+
+        if isinstance(other, realstr):
             return Names(self.parts + (other,))
         elif isinstance(other, tuple):
             return Names(self.parts + other)
