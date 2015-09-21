@@ -886,7 +886,8 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
         if (PB_HTYPE(iter.pos->type) == PB_HTYPE_REQUIRED
             && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
         {
-            fields_seen[iter.required_field_index >> 3] |= (uint8_t)(1 << (iter.required_field_index & 7));
+            uint8_t tmp = (uint8_t)(1 << (iter.required_field_index & 7));
+            fields_seen[iter.required_field_index >> 3] |= tmp;
         }
             
         if (!decode_field(stream, wire_type, &iter))
