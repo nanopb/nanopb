@@ -1,0 +1,28 @@
+language: c
+
+compiler:
+    - gcc
+    - clang
+
+before_install:
+    - export PATH=$HOME/.local/bin:$HOME/protobuf/bin:$PATH
+    - export MAKEFLAGS=-j$(grep processor /proc/cpuinfo | wc -l)
+    - $CC --version
+    - python --version
+    - lsb_release -a
+
+cache:
+    directories:
+        - $HOME/protobuf
+install:
+    - pip install --user protobuf
+    - test \! -d $HOME/protobuf
+      && curl -L https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.bz2 | tar xjf -
+      && pushd protobuf-2.6.1
+      && ./configure --prefix=$HOME/protobuf && make && make install
+      && popd
+      || true # True if test is false as the cache exists
+
+script: 
+    - pushd generator/proto && make && popd
+    - pushd tests && scons && popd
