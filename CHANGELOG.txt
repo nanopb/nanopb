@@ -1,6 +1,7 @@
-nanopb-0.3.4 (2015-09-xx)
+nanopb-0.3.4 (2015-09-26)
  Fix handling of unsigned 8- and 16-bit enums (issue 164)
  Fix generator on systems where python = python3. (issue 155)
+ Fix compiler warning on GCC 5.x (issue 171)
  Make the generator better handle imported .protos (issue 165)
  Add packed_enum option to generator.
  Add syntax= line to .proto files (issue 167)
