@@ -74,6 +74,12 @@ intsizes = {
     nanopb_pb2.IS_64:    'int64_t',
 }
 
+# String types (for python 2 / python 3 compatibility)
+try:
+    strtypes = (unicode, str)
+except NameError:
+    strtypes = (str, )
+
 class Names:
     '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
@@ -85,14 +91,7 @@ class Names:
         return '_'.join(self.parts)
 
     def __add__(self, other):
-        # The fdesc names are unicode and need to be handled for
-        # python2 and python3
-        try:
-              realstr = unicode
-        except NameError:
-              realstr = str
-
-        if isinstance(other, realstr):
+        if isinstance(other, strtypes):
             return Names(self.parts + (other,))
         elif isinstance(other, tuple):
             return Names(self.parts + other)
@@ -126,7 +125,7 @@ class EncodedSize:
     '''Class used to represent the encoded size of a field or a message.
     Consists of a combination of symbolic sizes and integer sizes.'''
     def __init__(self, value = 0, symbols = []):
-        if isinstance(value, (str, Names)):
+        if isinstance(value, strtypes + (Names,)):
             symbols = [str(value)]
             value = 0
         self.value = value
@@ -135,7 +134,7 @@ class EncodedSize:
     def __add__(self, other):
         if isinstance(other, int):
             return EncodedSize(self.value + other, self.symbols)
-        elif isinstance(other, (str, Names)):
+        elif isinstance(other, strtypes + (Names,)):
             return EncodedSize(self.value, self.symbols + [str(other)])
         elif isinstance(other, EncodedSize):
             return EncodedSize(self.value + other.value, self.symbols + other.symbols)
