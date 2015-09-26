@@ -1,15 +1,20 @@
+Nanopb - Protocol Buffers for Embedded Systems
+==============================================
+
+[![Build Status](https://travis-ci.org/nanopb/nanopb.svg?branch=master)](https://travis-ci.org/nanopb/nanopb)
+
 Nanopb is a small code-size Protocol Buffers implementation in ansi C. It is
 especially suitable for use in microcontrollers, but fits any memory
 restricted system.
 
-Homepage: http://kapsi.fi/~jpa/nanopb/
-Downloads: http://koti.kapsi.fi/~jpa/nanopb/download/
-Forum: https://groups.google.com/forum/#!forum/nanopb
+* **Homepage:** http://kapsi.fi/~jpa/nanopb/
+* **Downloads:** http://koti.kapsi.fi/~jpa/nanopb/download/
+* **Forum:** https://groups.google.com/forum/#!forum/nanopb
 
 
 
 Using the nanopb library
-========================
+------------------------
 To use the nanopb library, you need to do two things:
 
 1) Compile your .proto files for nanopb, using protoc.
@@ -23,7 +28,7 @@ README.txt in that folder.
 
 
 Using the Protocol Buffers compiler (protoc)
-============================================
+--------------------------------------------
 The nanopb generator is implemented as a plugin for the Google's own protoc
 compiler. This has the advantage that there is no need to reimplement the
 basic parsing of .proto files. However, it does mean that you need the
@@ -47,7 +52,7 @@ protoc, you need to manually give the path to nanopb generator:
 
 
 Running the tests
-=================
+-----------------
 If you want to perform further development of the nanopb core, or to verify
 its functionality using your compiler and platform, you'll want to run the
 test suite. The build rules for the test suite are implemented using Scons,
