@@ -175,7 +175,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
-      COMMAND ${PYTHON2_EXECUTABLE}
+      COMMAND ${PYTHON_EXECUTABLE}
       ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb ${NANOPB_OPTIONS}
       DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
       COMMENT "Running nanopb generator on ${FIL_WE}.pb"
@@ -244,17 +244,7 @@ find_file(NANOPB_GENERATOR_EXECUTABLE
 )
 mark_as_advanced(NANOPB_GENERATOR_EXECUTABLE)
 
-# If python3 has already been found, save it and look for python2.6
-if(${PYTHON_VERSION_MAJOR} AND ${PYTHON_VERSION_MAJOR} EQUAL 3)
-    set(PYTHON3_EXECUTABLE ${PYTHON_EXECUTABLE})
-    set(PYTHON_EXECUTABLE PYTHON_EXECUTABLE-NOTFOUND)
-    find_package(PythonInterp 2.6 REQUIRED)
-    set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
-    set(PYTHON_EXECUTABLE ${PYTHON3_EXECUTABLE})
-else()
-    find_package(PythonInterp 2.6 REQUIRED)
-    set(PYTHON2_EXECUTABLE ${PYTHON_EXECUTABLE})
-endif()
+find_package(PythonInterp REQUIRED)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(NANOPB DEFAULT_MSG

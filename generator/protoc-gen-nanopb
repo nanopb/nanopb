@@ -10,5 +10,4 @@
 # --plugin= on the command line.
 
 MYPATH=$(dirname "$0")
-PYTHON=$(which python2 || which python)
-exec $PYTHON "$MYPATH/nanopb_generator.py" --protoc-plugin
+exec "$MYPATH/nanopb_generator.py" --protoc-plugin
