@@ -165,7 +165,7 @@ static void run_iteration()
     size_t msglen;
     bool status;
     
-    msglen = fread(buffer, BUFSIZE, 1, stdin);
+    msglen = fread(buffer, 1, BUFSIZE, stdin);
 
     status = do_static_decode(buffer, msglen, false);
     
