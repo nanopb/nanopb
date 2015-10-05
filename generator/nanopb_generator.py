@@ -514,18 +514,18 @@ class Field:
             return None
         
         if self.pbtype == 'MESSAGE':
+            encsize = None
             if str(self.submsgname) in dependencies:
                 submsg = dependencies[str(self.submsgname)]
                 encsize = submsg.encoded_size(dependencies)
-                if encsize is None:
-                    return None # Submessage size is indeterminate
-                    
-                # Include submessage length prefix
-                encsize += varint_max_size(encsize.upperlimit())
-            else:
-                # Submessage cannot be found, this currently occurs when
-                # the submessage type is defined in a different file and
-                # not using the protoc plugin.
+                if encsize is not None:
+                    # Include submessage length prefix
+                    encsize += varint_max_size(encsize.upperlimit())
+
+            if encsize is None:
+                # Submessage or its size cannot be found.
+                # This can occur if submessage is defined in different
+                # file, and it or its .options could not be found.
                 # Instead of direct numeric value, reference the size that
                 # has been #defined in the other file.
                 encsize = EncodedSize(self.submsgname + 'size')
