@@ -86,7 +86,7 @@ class Names:
         if isinstance(parts, Names):
             parts = parts.parts
         self.parts = tuple(parts)
-    
+
     def __str__(self):
         return '_'.join(self.parts)
 
@@ -97,10 +97,10 @@ class Names:
             return Names(self.parts + other)
         else:
             raise ValueError("Name parts should be of type str")
-    
+
     def __eq__(self, other):
         return isinstance(other, Names) and self.parts == other.parts
-    
+
 def names_from_type_name(type_name):
     '''Parse Names() from FieldDescriptorProto type_name'''
     if type_name[0] != '.':
@@ -130,7 +130,7 @@ class EncodedSize:
             value = 0
         self.value = value
         self.symbols = symbols
-    
+
     def __add__(self, other):
         if isinstance(other, int):
             return EncodedSize(self.value + other, self.symbols)
@@ -162,43 +162,43 @@ class EncodedSize:
 class Enum:
     def __init__(self, names, desc, enum_options):
         '''desc is EnumDescriptorProto'''
-        
+
         self.options = enum_options
         self.names = names + desc.name
-        
+
         if enum_options.long_names:
-            self.values = [(self.names + x.name, x.number) for x in desc.value]            
+            self.values = [(self.names + x.name, x.number) for x in desc.value]
         else:
-            self.values = [(names + x.name, x.number) for x in desc.value] 
-        
+            self.values = [(names + x.name, x.number) for x in desc.value]
+
         self.value_longnames = [self.names + x.name for x in desc.value]
         self.packed = enum_options.packed_enum
-    
+
     def has_negative(self):
         for n, v in self.values:
             if v < 0:
                 return True
         return False
-    
+
     def encoded_size(self):
         return max([varint_max_size(v) for n,v in self.values])
-    
+
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
         result += ',\n'.join(["    %s = %d" % x for x in self.values])
         result += '\n}'
-        
+
         if self.packed:
             result += ' pb_packed'
-        
+
         result += ' %s;' % self.names
-        
+
         if not self.options.long_names:
             # Define the long names always so that enum value references
             # from other files work properly.
             for i, x in enumerate(self.values):
                 result += '\n#define %s %s' % (self.value_longnames[i], x[0])
-        
+
         return result
 
 class FieldMaxSize:
@@ -232,17 +232,17 @@ class Field:
         self.array_decl = ""
         self.enc_size = None
         self.ctype = None
-        
+
         # Parse field options
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
-        
+
         if field_options.HasField("max_count"):
             self.max_count = field_options.max_count
-        
+
         if desc.HasField('default_value'):
             self.default = desc.default_value
-           
+
         # Check field rules, i.e. required/optional/repeated.
         can_be_static = True
         if desc.label == FieldD.LABEL_REQUIRED:
@@ -257,26 +257,26 @@ class Field:
                 self.array_decl = '[%d]' % self.max_count
         else:
             raise NotImplementedError(desc.label)
-        
+
         # Check if the field can be implemented with static allocation
         # i.e. whether the data size is known.
         if desc.type == FieldD.TYPE_STRING and self.max_size is None:
             can_be_static = False
-        
+
         if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
             can_be_static = False
-        
+
         # Decide how the field data will be allocated
         if field_options.type == nanopb_pb2.FT_DEFAULT:
             if can_be_static:
                 field_options.type = nanopb_pb2.FT_STATIC
             else:
                 field_options.type = nanopb_pb2.FT_CALLBACK
-        
+
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field %s is defined as static, but max_size or "
                             "max_count is not given." % self.name)
-        
+
         if field_options.type == nanopb_pb2.FT_STATIC:
             self.allocation = 'STATIC'
         elif field_options.type == nanopb_pb2.FT_POINTER:
@@ -285,7 +285,7 @@ class Field:
             self.allocation = 'CALLBACK'
         else:
             raise NotImplementedError(field_options.type)
-        
+
         # Decide the C data type to use in the struct.
         if desc.type in datatypes:
             self.ctype, self.pbtype, self.enc_size, isa = datatypes[desc.type]
@@ -321,16 +321,16 @@ class Field:
             self.enc_size = None # Needs to be filled in after the message type is available
         else:
             raise NotImplementedError(desc.type)
-        
+
     def __lt__(self, other):
         return self.tag < other.tag
-    
+
     def __str__(self):
         result = ''
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 result += '    pb_size_t ' + self.name + '_count;\n'
-            
+
             if self.pbtype == 'MESSAGE':
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
@@ -348,7 +348,7 @@ class Field:
                 result += '    pb_size_t ' + self.name + '_count;\n'
             result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
-    
+
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
@@ -356,7 +356,7 @@ class Field:
         else:
             result = ''
         return result
-    
+
     def get_dependencies(self):
         '''Get list of type names used by this field.'''
         if self.allocation == 'STATIC':
@@ -403,7 +403,7 @@ class Field:
                 inner_init = str(self.default) + 'll'
             else:
                 inner_init = str(self.default)
-        
+
         if inner_init_only:
             return inner_init
 
@@ -438,7 +438,7 @@ class Field:
         ctype = self.ctype
         default = self.get_initializer(False, True)
         array_decl = ''
-        
+
         if self.pbtype == 'STRING':
             if self.allocation != 'STATIC':
                 return None # Not implemented
@@ -446,17 +446,17 @@ class Field:
         elif self.pbtype == 'BYTES':
             if self.allocation != 'STATIC':
                 return None # Not implemented
-        
+
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
         else:
             return 'const %s %s_default%s = %s;' % (ctype, self.struct_name + self.name, array_decl, default)
-    
+
     def tags(self):
         '''Return the #define for the tag number of this field.'''
         identifier = '%s_%s_tag' % (self.struct_name, self.name)
         return '#define %-40s %d\n' % (identifier, self.tag)
-    
+
     def pb_field_t(self, prev_field_name):
         '''Return the pb_field_t initializer to use in the constant array.
         prev_field_name is the name of the previous field or None.
@@ -475,7 +475,7 @@ class Field:
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
-        
+
         if self.pbtype == 'MESSAGE':
             result += '&%s_fields)' % self.submsgname
         elif self.default is None:
@@ -486,9 +486,9 @@ class Field:
             result += '0)' # Default value for extensions is not implemented
         else:
             result += '&%s_default)' % (self.struct_name + self.name)
-        
+
         return result
-    
+
     def largest_field_value(self):
         '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
         Returns numeric value or a C-expression for assert.'''
@@ -509,10 +509,10 @@ class Field:
         '''Return the maximum size that this field can take when encoded,
         including the field tag. If the size cannot be determined, returns
         None.'''
-        
+
         if self.allocation != 'STATIC':
             return None
-        
+
         if self.pbtype == 'MESSAGE':
             encsize = None
             if str(self.submsgname) in dependencies:
@@ -547,7 +547,7 @@ class Field:
                                % (self.struct_name, self.name))
         else:
             encsize = EncodedSize(self.enc_size)
-        
+
         encsize += varint_max_size(self.tag << 3) # Tag + wire type
 
         if self.rules == 'REPEATED':
@@ -555,7 +555,7 @@ class Field:
             # Therefore we have to reserve space for it, even though
             # we emit packed arrays ourselves.
             encsize *= self.max_count
-        
+
         return encsize
 
 
@@ -577,16 +577,16 @@ class ExtensionRange(Field):
         self.default = None
         self.max_size = 0
         self.max_count = 0
-        
+
     def __str__(self):
         return '    pb_extension_t *extensions;'
-    
+
     def types(self):
         return ''
-    
+
     def tags(self):
         return ''
-    
+
     def encoded_size(self, dependencies):
         # We exclude extensions from the count, because they cannot be known
         # until runtime. Other option would be to return None here, but this
@@ -598,7 +598,7 @@ class ExtensionField(Field):
         self.fullname = struct_name + desc.name
         self.extendee_name = names_from_type_name(desc.extendee)
         Field.__init__(self, self.fullname + 'struct', desc, field_options)
-        
+
         if self.rules != 'OPTIONAL':
             self.skip = True
         else:
@@ -616,7 +616,7 @@ class ExtensionField(Field):
             msg = '/* Extension field %s was skipped because only "optional"\n' % self.fullname
             msg +='   type of extension fields is currently supported. */\n'
             return msg
-        
+
         return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
             (self.fullname, str(self).strip()))
 
@@ -758,13 +758,13 @@ class Message:
                     self.oneofs[f.oneof_index].add_field(field)
             else:
                 self.fields.append(field)
-        
+
         if len(desc.extension_range) > 0:
             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
             range_start = min([r.start for r in desc.extension_range])
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
-        
+
         self.packed = message_options.packed_struct
         self.ordered_fields = self.fields[:]
         self.ordered_fields.sort()
@@ -775,7 +775,7 @@ class Message:
         for f in self.fields:
             deps += f.get_dependencies()
         return deps
-    
+
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
 
@@ -786,30 +786,30 @@ class Message:
 
         result += '\n'.join([str(f) for f in self.ordered_fields])
         result += '\n}'
-        
+
         if self.packed:
             result += ' pb_packed'
-        
+
         result += ' %s;' % self.name
-        
+
         if self.packed:
             result = 'PB_PACKED_STRUCT_START\n' + result
             result += '\nPB_PACKED_STRUCT_END'
-        
+
         return result
-    
+
     def types(self):
         return ''.join([f.types() for f in self.fields])
 
     def get_initializer(self, null_init):
         if not self.ordered_fields:
             return '{0}'
-    
+
         parts = []
         for field in self.ordered_fields:
             parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
-    
+
     def default_decl(self, declaration_only = False):
         result = ""
         for field in self.fields:
@@ -842,7 +842,7 @@ class Message:
 
     def fields_definition(self):
         result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, self.count_all_fields() + 1)
-        
+
         prev = None
         for field in self.ordered_fields:
             result += field.pb_field_t(prev)
@@ -851,7 +851,7 @@ class Message:
                 prev = field.name + '.' + field.fields[-1].name
             else:
                 prev = field.name
-        
+
         result += '    PB_LAST_FIELD\n};'
         return result
 
@@ -865,7 +865,7 @@ class Message:
             if fsize is None:
                 return None
             size += fsize
-        
+
         return size
 
 
@@ -879,11 +879,11 @@ def iterate_messages(desc, names = Names()):
         submsgs = desc.message_type
     else:
         submsgs = desc.nested_type
-    
+
     for submsg in submsgs:
         sub_names = names + submsg.name
         yield sub_names, submsg
-        
+
         for x in iterate_messages(submsg, sub_names):
             yield x
 
@@ -924,7 +924,7 @@ def sort_dependencies(messages):
     for message in messages:
         dependencies[str(message.name)] = set(message.get_dependencies())
         message_by_name[str(message.name)] = message
-    
+
     for msgname in toposort2(dependencies):
         if msgname in message_by_name:
             yield message_by_name[msgname]
@@ -946,7 +946,7 @@ class ProtoFile:
         self.file_options = file_options
         self.dependencies = {}
         self.parse()
-        
+
         # Some of types used in this file probably come from the file itself.
         # Thus it has implicit dependency on itself.
         self.add_dependency(self)
@@ -955,39 +955,39 @@ class ProtoFile:
         self.enums = []
         self.messages = []
         self.extensions = []
-        
+
         if self.fdesc.package:
             base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
-    
+
         for enum in self.fdesc.enum_type:
             enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
             self.enums.append(Enum(base_name, enum, enum_options))
-        
+
         for names, message in iterate_messages(self.fdesc, base_name):
             message_options = get_nanopb_suboptions(message, self.file_options, names)
-            
+
             if message_options.skip_message:
                 continue
-       
+
             self.messages.append(Message(names, message, message_options))
             for enum in message.enum_type:
                 enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
                 self.enums.append(Enum(names, enum, enum_options))
-        
+
         for names, extension in iterate_extensions(self.fdesc, base_name):
             field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.extensions.append(ExtensionField(names, extension, field_options))
-    
+
     def add_dependency(self, other):
         for enum in other.enums:
             self.dependencies[str(enum.names)] = enum
-        
+
         for msg in other.messages:
             self.dependencies[str(msg.name)] = msg
-        
+
         # Fix field default values where enum short names are used.
         for enum in other.enums:
             if not enum.options.long_names:
@@ -996,7 +996,7 @@ class ProtoFile:
                         if field.default in enum.value_longnames:
                             idx = enum.value_longnames.index(field.default)
                             field.default = enum.values[idx][0]
-        
+
         # Fix field data types where enums have negative values.
         for enum in other.enums:
             if not enum.has_negative():
@@ -1009,13 +1009,13 @@ class ProtoFile:
         '''Generate content for a header file.
         Generates strings, which should be concatenated and stored to file.
         '''
-        
+
         yield '/* Automatically generated nanopb header */\n'
         if options.notimestamp:
             yield '/* Generated by %s */\n\n' % (nanopb_version)
         else:
             yield '/* Generated by %s at %s. */\n\n' % (nanopb_version, time.asctime())
-        
+
         symbol = make_identifier(headername)
         yield '#ifndef PB_%s_INCLUDED\n' % symbol
         yield '#define PB_%s_INCLUDED\n' % symbol
@@ -1025,7 +1025,7 @@ class ProtoFile:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
         yield '\n'
-        
+
         for incfile in includes:
             noext = os.path.splitext(incfile)[0]
             yield options.genformat % (noext + options.extension + '.h')
@@ -1039,30 +1039,30 @@ class ProtoFile:
         yield '#ifdef __cplusplus\n'
         yield 'extern "C" {\n'
         yield '#endif\n\n'
-        
+
         if self.enums:
             yield '/* Enum definitions */\n'
             for enum in self.enums:
                 yield str(enum) + '\n\n'
-        
+
         if self.messages:
             yield '/* Struct definitions */\n'
             for msg in sort_dependencies(self.messages):
                 yield msg.types()
                 yield str(msg) + '\n\n'
-        
+
         if self.extensions:
             yield '/* Extensions */\n'
             for extension in self.extensions:
                 yield extension.extension_decl()
             yield '\n'
-        
+
         if self.messages:
             yield '/* Default values for struct fields */\n'
             for msg in self.messages:
                 yield msg.default_decl(True)
             yield '\n'
-        
+
             yield '/* Initializer values for message structs */\n'
             for msg in self.messages:
                 identifier = '%s_init_default' % msg.name
@@ -1071,7 +1071,7 @@ class ProtoFile:
                 identifier = '%s_init_zero' % msg.name
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
             yield '\n'
-        
+
             yield '/* Field tags (for use in manual encoding/decoding) */\n'
             for msg in sort_dependencies(self.messages):
                 for field in msg.fields:
@@ -1079,12 +1079,12 @@ class ProtoFile:
             for extension in self.extensions:
                 yield extension.tags()
             yield '\n'
-        
+
             yield '/* Struct field encoding specification for nanopb */\n'
             for msg in self.messages:
                 yield msg.fields_declaration() + '\n'
             yield '\n'
-        
+
             yield '/* Maximum encoded size of messages (where known) */\n'
             for msg in self.messages:
                 msize = msg.encoded_size(self.dependencies)
@@ -1094,7 +1094,7 @@ class ProtoFile:
             yield '\n'
 
             yield '/* Message IDs (where set with "msgid" option) */\n'
-            
+
             yield '#ifdef PB_MSGID\n'
             for msg in self.messages:
                 if hasattr(msg,'msgid'):
@@ -1123,13 +1123,13 @@ class ProtoFile:
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
         yield '#endif\n'
-        
+
         # End of header
         yield '\n#endif\n'
 
     def generate_source(self, headername, options):
         '''Generate content for a source file.'''
-        
+
         yield '/* Automatically generated nanopb constant definitions */\n'
         if options.notimestamp:
             yield '/* Generated by %s */\n\n' % (nanopb_version)
@@ -1137,23 +1137,23 @@ class ProtoFile:
             yield '/* Generated by %s at %s. */\n\n' % (nanopb_version, time.asctime())
         yield options.genformat % (headername)
         yield '\n'
-        
+
         yield '#if PB_PROTO_HEADER_VERSION != 30\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
-        
+
         for msg in self.messages:
             yield msg.default_decl(False)
-        
+
         yield '\n\n'
-        
+
         for msg in self.messages:
             yield msg.fields_definition() + '\n\n'
-        
+
         for ext in self.extensions:
             yield ext.extension_def() + '\n'
-            
+
         # Add checks for numeric limits
         if self.messages:
             largest_msg = max(self.messages, key = lambda m: m.count_required_fields())
@@ -1178,7 +1178,7 @@ class ProtoFile:
 
         if worst > 255 or checks:
             yield '\n/* Check that field information fits in pb_field_t */\n'
-            
+
             if worst > 65535 or checks:
                 yield '#if !defined(PB_FIELD_32BIT)\n'
                 if worst > 65535:
@@ -1195,7 +1195,7 @@ class ProtoFile:
                     yield ' */\n'
                     yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
                 yield '#endif\n\n'
-            
+
             if worst < 65536:
                 yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
                 if worst > 255:
@@ -1212,14 +1212,14 @@ class ProtoFile:
                     yield ' */\n'
                     yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
                 yield '#endif\n\n'
-        
+
         # Add check for sizeof(double)
         has_double = False
         for msg in self.messages:
             for field in msg.fields:
                 if field.ctype == 'double':
                     has_double = True
-        
+
         if has_double:
             yield '\n'
             yield '/* On some platforms (such as AVR), double is really float.\n'
@@ -1227,7 +1227,7 @@ class ProtoFile:
             yield ' * To get rid of this error, remove any double fields from your .proto.\n'
             yield ' */\n'
             yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
-        
+
         yield '\n'
 
 # ---------------------------------------------------------------------------
@@ -1249,17 +1249,17 @@ def read_options_file(infile):
         line = line.strip()
         if not line:
             continue
-        
+
         parts = line.split(None, 1)
-        
+
         if len(parts) < 2:
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
                              "Option lines should have space between field name and options. " +
                              "Skipping line: '%s'\n" % line)
             continue
-        
+
         opts = nanopb_pb2.NanoPBOptions()
-        
+
         try:
             text_format.Merge(parts[1], opts)
         except Exception as e:
@@ -1281,14 +1281,14 @@ def get_nanopb_suboptions(subdesc, options, name):
     '''Get copy of options, and merge information from subdesc.'''
     new_options = nanopb_pb2.NanoPBOptions()
     new_options.CopyFrom(options)
-    
+
     # Handle options defined in a separate file
     dotname = '.'.join(name.parts)
     for namemask, options in Globals.separate_options:
         if fnmatch(dotname, namemask):
             Globals.matched_namemasks.add(namemask)
             new_options.MergeFrom(options)
-    
+
     # Handle options defined in .proto
     if isinstance(subdesc.options, descriptor.FieldOptions):
         ext_type = nanopb_pb2.nanopb
@@ -1300,15 +1300,15 @@ def get_nanopb_suboptions(subdesc, options, name):
         ext_type = nanopb_pb2.nanopb_enumopt
     else:
         raise Exception("Unknown options type")
-    
+
     if subdesc.options.HasExtension(ext_type):
         ext = subdesc.options.Extensions[ext_type]
         new_options.MergeFrom(ext)
-    
+
     if Globals.verbose_options:
         sys.stderr.write("Options for " + dotname + ": ")
         sys.stderr.write(text_format.MessageToString(new_options) + "\n")
-    
+
     return new_options
 
 
@@ -1317,7 +1317,7 @@ def get_nanopb_suboptions(subdesc, options, name):
 # ---------------------------------------------------------------------------
 
 import sys
-import os.path    
+import os.path
 from optparse import OptionParser
 
 optparser = OptionParser(
@@ -1353,11 +1353,11 @@ def parse_file(filename, fdesc, options):
     toplevel_options = nanopb_pb2.NanoPBOptions()
     for s in options.settings:
         text_format.Merge(s, toplevel_options)
-    
+
     if not fdesc:
         data = open(filename, 'rb').read()
         fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
-    
+
     # Check if there is a separate .options file
     had_abspath = False
     try:
@@ -1384,12 +1384,12 @@ def parse_file(filename, fdesc, options):
         Globals.separate_options = []
 
     Globals.matched_namemasks = set()
-    
+
     # Parse the file
     file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
     f = ProtoFile(fdesc, file_options)
     f.optfilename = optfilename
-    
+
     return f
 
 def process_file(filename, fdesc, options, other_files = {}):
@@ -1397,7 +1397,7 @@ def process_file(filename, fdesc, options, other_files = {}):
     filename: The full path to the .proto or .pb source file, as string.
     fdesc: The loaded FileDescriptorSet, or None to read from the input file.
     options: Command line options as they come from OptionsParser.
-    
+
     Returns a dict:
         {'headername': Name of header file,
          'headerdata': Data for the .h header file,
@@ -1417,12 +1417,12 @@ def process_file(filename, fdesc, options, other_files = {}):
     headername = noext + options.extension + '.h'
     sourcename = noext + options.extension + '.c'
     headerbasename = os.path.basename(headername)
-    
+
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     includes = [d for d in f.fdesc.dependency if d not in excludes]
-    
+
     headerdata = ''.join(f.generate_header(includes, headerbasename, options))
     sourcedata = ''.join(f.generate_source(headerbasename, options))
 
@@ -1436,30 +1436,30 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     return {'headername': headername, 'headerdata': headerdata,
             'sourcename': sourcename, 'sourcedata': sourcedata}
-    
+
 def main_cli():
     '''Main function when invoked directly from the command line.'''
-    
+
     options, filenames = optparser.parse_args()
-    
+
     if not filenames:
         optparser.print_help()
         sys.exit(1)
-    
+
     if options.quiet:
         options.verbose = False
 
     Globals.verbose_options = options.verbose
-    
+
     for filename in filenames:
         results = process_file(filename, None, options)
-        
+
         if not options.quiet:
             sys.stderr.write("Writing to " + results['headername'] + " and "
                              + results['sourcename'] + "\n")
-    
+
         open(results['headername'], 'w').write(results['headerdata'])
-        open(results['sourcename'], 'w').write(results['sourcedata'])        
+        open(results['sourcename'], 'w').write(results['sourcedata'])
 
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
@@ -1470,51 +1470,51 @@ def main_plugin():
         # Set stdin and stdout to binary mode
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-    
+
     data = io.open(sys.stdin.fileno(), "rb").read()
 
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
-    
+
     try:
         # Versions of Python prior to 2.7.3 do not support unicode
         # input to shlex.split(). Try to convert to str if possible.
         params = str(request.parameter)
     except UnicodeEncodeError:
         params = request.parameter
-    
+
     import shlex
     args = shlex.split(params)
     options, dummy = optparser.parse_args(args)
-    
+
     Globals.verbose_options = options.verbose
-    
+
     response = plugin_pb2.CodeGeneratorResponse()
-    
+
     # Google's protoc does not currently indicate the full path of proto files.
     # Instead always add the main file path to the search dirs, that works for
     # the common case.
     import os.path
     options.options_path.append(os.path.dirname(request.file_to_generate[0]))
-    
+
     # Process any include files first, in order to have them
     # available as dependencies
     other_files = {}
     for fdesc in request.proto_file:
         other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
-    
+
     for filename in request.file_to_generate:
         for fdesc in request.proto_file:
             if fdesc.name == filename:
                 results = process_file(filename, fdesc, options, other_files)
-                
+
                 f = response.file.add()
                 f.name = results['headername']
                 f.content = results['headerdata']
 
                 f = response.file.add()
                 f.name = results['sourcename']
-                f.content = results['sourcedata']    
-    
+                f.content = results['sourcedata']
+
     io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 
 if __name__ == '__main__':
