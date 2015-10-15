@@ -1,10 +1,6 @@
 # This is an example script for use with CMake projects for locating and configuring
 # the nanopb library.
 #
-# The following varialbes have to be set:
-#
-#   NANOPB_SRC_ROOT_FOLDER  - Path to nanopb source folder
-#
 # The following variables can be set and are optional:
 #
 #
@@ -215,6 +211,12 @@ endfunction()
 # for each directory where a proto file is referenced.
 if(NOT DEFINED NANOPB_GENERATE_CPP_APPEND_PATH)
   set(NANOPB_GENERATE_CPP_APPEND_PATH TRUE)
+endif()
+
+# Make a really good guess regarding location of NANOPB_SRC_ROOT_FOLDER
+if(NOT DEFINED NANOPB_SRC_ROOT_FOLDER)
+  get_filename_component(NANOPB_SRC_ROOT_FOLDER
+                         ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
 endif()
 
 # Find the include directory
