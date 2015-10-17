@@ -1,10 +1,6 @@
 # This is an example script for use with CMake projects for locating and configuring
 # the nanopb library.
 #
-# The following varialbes have to be set:
-#
-#   NANOPB_SRC_ROOT_FOLDER  - Path to nanopb source folder
-#
 # The following variables can be set and are optional:
 #
 #
@@ -26,8 +22,8 @@
 #   NANOPB_INCLUDE_DIRS - Include directories for Google Protocol Buffers
 #
 # The following cache variables are also available to set or use:
-#   NANOPB_GENERATOR_EXECUTABLE - The nanopb generator
 #   PROTOBUF_PROTOC_EXECUTABLE - The protoc compiler
+#   NANOPB_GENERATOR_SOURCE_DIR - The nanopb generator source
 #
 #  ====================================================================
 #
@@ -127,11 +123,28 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
   set(${SRCS})
   set(${HDRS})
-  get_filename_component(GENERATOR_PATH ${NANOPB_GENERATOR_EXECUTABLE} PATH)
+
+  set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb/generator)
+
+  set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
+
   set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto
       ${GENERATOR_CORE_DIR}/plugin.proto)
+
+  # Treat the source diretory as immutable.
+  #
+  # Copy the generator directory to the build directory before
+  # compiling python and proto files.  Fixes issues when using the
+  # same build directory with different python/protobuf versions
+  # as the binary build directory is discarded across builds.
+  #
+  add_custom_command(
+      OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+      ARGS ${NANOPB_GENERATOR_SOURCE_DIR} ${GENERATOR_PATH}
+      VERBATIM)
 
   set(GENERATOR_CORE_PYTHON_SRC)
   foreach(FIL ${GENERATOR_CORE_SRC})
@@ -200,6 +213,12 @@ if(NOT DEFINED NANOPB_GENERATE_CPP_APPEND_PATH)
   set(NANOPB_GENERATE_CPP_APPEND_PATH TRUE)
 endif()
 
+# Make a really good guess regarding location of NANOPB_SRC_ROOT_FOLDER
+if(NOT DEFINED NANOPB_SRC_ROOT_FOLDER)
+  get_filename_component(NANOPB_SRC_ROOT_FOLDER
+                         ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
+endif()
+
 # Find the include directory
 find_path(NANOPB_INCLUDE_DIRS
     pb.h
@@ -235,14 +254,14 @@ find_program(PROTOBUF_PROTOC_EXECUTABLE
 )
 mark_as_advanced(PROTOBUF_PROTOC_EXECUTABLE)
 
-# Find nanopb generator
-find_file(NANOPB_GENERATOR_EXECUTABLE
+# Find nanopb generator source dir
+find_path(NANOPB_GENERATOR_SOURCE_DIR
     NAMES nanopb_generator.py
-    DOC "nanopb generator"
+    DOC "nanopb generator source"
     PATHS
     ${NANOPB_SRC_ROOT_FOLDER}/generator
 )
-mark_as_advanced(NANOPB_GENERATOR_EXECUTABLE)
+mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 
 find_package(PythonInterp REQUIRED)
 
@@ -250,6 +269,6 @@ include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(NANOPB DEFAULT_MSG
   NANOPB_INCLUDE_DIRS
   NANOPB_SRCS NANOPB_HDRS
-  NANOPB_GENERATOR_EXECUTABLE
+  NANOPB_GENERATOR_SOURCE_DIR
   PROTOBUF_PROTOC_EXECUTABLE
   )
