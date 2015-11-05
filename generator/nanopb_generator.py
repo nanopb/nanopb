@@ -653,6 +653,7 @@ class OneOf(Field):
         self.allocation = 'ONEOF'
         self.default = None
         self.rules = 'ONEOF'
+        self.anonymous = False
 
     def add_field(self, field):
         if field.allocation == 'CALLBACK':
@@ -674,7 +675,10 @@ class OneOf(Field):
             result += '    union {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
-            result += '    } ' + self.name + ';'
+            if self.anonymous:
+                result += '    };'
+            else:
+                result += '    } ' + self.name + ';'
         return result
 
     def types(self):
@@ -742,6 +746,8 @@ class Message:
                     pass # No union and skip fields also
                 else:
                     oneof = OneOf(self.name, f)
+                    if oneof_options.anonymous:
+                        oneof.anonymous = True
                     self.oneofs[i] = oneof
                     self.fields.append(oneof)
 
