@@ -463,7 +463,10 @@ class Field:
         '''
 
         if self.rules == 'ONEOF':
-            result = '    PB_ONEOF_FIELD(%s, ' % self.union_name
+            if self.anonymous:
+                result = '    PB_ANONYMOUS_ONEOF_FIELD(%s, ' % self.union_name
+            else:
+                result = '    PB_ONEOF_FIELD(%s, ' % self.union_name
         else:
             result = '    PB_FIELD('
 
@@ -497,7 +500,10 @@ class Field:
             if self.rules == 'REPEATED' and self.allocation == 'STATIC':
                 check.append('pb_membersize(%s, %s[0])' % (self.struct_name, self.name))
             elif self.rules == 'ONEOF':
-                check.append('pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name))
+                if self.anonymous:
+                    check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
+                else:
+                    check.append('pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name))
             else:
                 check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
 
@@ -653,6 +659,7 @@ class OneOf(Field):
         self.allocation = 'ONEOF'
         self.default = None
         self.rules = 'ONEOF'
+        self.anonymous = False
 
     def add_field(self, field):
         if field.allocation == 'CALLBACK':
@@ -661,6 +668,7 @@ class OneOf(Field):
 
         field.union_name = self.name
         field.rules = 'ONEOF'
+        field.anonymous = self.anonymous
         self.fields.append(field)
         self.fields.sort(key = lambda f: f.tag)
 
@@ -674,7 +682,10 @@ class OneOf(Field):
             result += '    union {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
-            result += '    } ' + self.name + ';'
+            if self.anonymous:
+                result += '    };'
+            else:
+                result += '    } ' + self.name + ';'
         return result
 
     def types(self):
@@ -742,6 +753,8 @@ class Message:
                     pass # No union and skip fields also
                 else:
                     oneof = OneOf(self.name, f)
+                    if oneof_options.anonymous_oneof:
+                        oneof.anonymous = True
                     self.oneofs[i] = oneof
                     self.fields.append(oneof)
 

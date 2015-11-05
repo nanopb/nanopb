@@ -518,8 +518,23 @@ struct pb_extension_s {
     pb_membersize(st, u.m[0]), 0, ptr}
 
 #define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
-        PB_ ## rules ## _ ## allocation(union_name, tag, message, field, \
+        PB_ ## ONEOF_ ## allocation(union_name, tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, union_name.field, prevfield), \
+        PB_LTYPE_MAP_ ## type, ptr)
+
+#define PB_ANONYMOUS_ONEOF_STATIC(u, tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_ONEOF | ltype, \
+    fd, pb_delta(st, which_ ## u, m), \
+    pb_membersize(st, m), 0, ptr}
+
+#define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+    fd, pb_delta(st, which_ ## u, m), \
+    pb_membersize(st, m[0]), 0, ptr}
+
+#define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
+        PB_ ## ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
+        PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
 /* These macros are used for giving out error messages.
