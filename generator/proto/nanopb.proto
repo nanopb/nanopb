@@ -62,6 +62,9 @@ message NanoPBOptions {
 
   // integer type tag for a message
   optional uint32 msgid = 9;
+
+  // declare union or sub-message as an anonymous union/struct
+  optional bool anonymous = 11 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
