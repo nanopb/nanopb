@@ -518,7 +518,7 @@ struct pb_extension_s {
     pb_membersize(st, u.m[0]), 0, ptr}
 
 #define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
-        PB_ ## ONEOF_ ## allocation(union_name, tag, message, field, \
+        PB_ONEOF_ ## allocation(union_name, tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, union_name.field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
@@ -533,7 +533,7 @@ struct pb_extension_s {
     pb_membersize(st, m[0]), 0, ptr}
 
 #define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
-        PB_ ## ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
+        PB_ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 

@@ -492,6 +492,9 @@ class Field:
 
         return result
 
+    def get_last_field_name(self):
+        return self.name
+
     def largest_field_value(self):
         '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
         Returns numeric value or a C-expression for assert.'''
@@ -704,11 +707,17 @@ class OneOf(Field):
         return None
 
     def tags(self):
-        return '\n'.join([f.tags() for f in self.fields])
+        return ''.join([f.tags() for f in self.fields])
 
     def pb_field_t(self, prev_field_name):
         result = ',\n'.join([f.pb_field_t(prev_field_name) for f in self.fields])
         return result
+
+    def get_last_field_name(self):
+        if self.anonymous:
+            return self.fields[-1].name
+        else:
+            return self.name + '.' + self.fields[-1].name
 
     def largest_field_value(self):
         largest = FieldMaxSize()
@@ -860,10 +869,7 @@ class Message:
         for field in self.ordered_fields:
             result += field.pb_field_t(prev)
             result += ',\n'
-            if isinstance(field, OneOf):
-                prev = field.name + '.' + field.fields[-1].name
-            else:
-                prev = field.name
+            prev = field.get_last_field_name()
 
         result += '    PB_LAST_FIELD\n};'
         return result
