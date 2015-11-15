@@ -16,7 +16,8 @@ if env.GetOption('clean') or (match and (version[0] > 2 or (version[0] == 2 and 
     # Anonymous oneofs are supported by clang and gcc
     if 'clang' in env['CC'] or 'gcc' in env['CC']:
         env2 = env.Clone()
-        env2['CFLAGS'].remove('-pedantic')
+        if '-pedantic' in env2['CFLAGS']:
+            env2['CFLAGS'].remove('-pedantic')
         env2.NanopbProto('oneof')
 
         dec = env2.Program(['decode_oneof.c',
