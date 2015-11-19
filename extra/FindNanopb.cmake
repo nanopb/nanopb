@@ -263,6 +263,7 @@ find_path(NANOPB_GENERATOR_SOURCE_DIR
 )
 mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 
+set(Python_ADDITIONAL_VERSIONS 2)
 find_package(PythonInterp REQUIRED)
 
 include(FindPackageHandleStandardArgs)
