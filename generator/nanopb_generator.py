@@ -125,11 +125,15 @@ class EncodedSize:
     '''Class used to represent the encoded size of a field or a message.
     Consists of a combination of symbolic sizes and integer sizes.'''
     def __init__(self, value = 0, symbols = []):
-        if isinstance(value, strtypes + (Names,)):
-            symbols = [str(value)]
-            value = 0
-        self.value = value
-        self.symbols = symbols
+        if isinstance(value, EncodedSize):
+            self.value = value.value
+            self.symbols = value.symbols
+        elif isinstance(value, strtypes + (Names,)):
+            self.symbols = [str(value)]
+            self.value = 0
+        else:
+            self.value = value
+            self.symbols = symbols
 
     def __add__(self, other):
         if isinstance(other, int):
@@ -728,7 +732,7 @@ class OneOf(Field):
     def encoded_size(self, dependencies):
         largest = EncodedSize(0)
         for f in self.fields:
-            size = f.encoded_size(dependencies)
+            size = EncodedSize(f.encoded_size(dependencies))
             if size is None:
                 return None
             elif size.symbols:
