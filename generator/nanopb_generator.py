@@ -730,10 +730,11 @@ class OneOf(Field):
         return largest
 
     def encoded_size(self, dependencies):
+        '''Returns the size of the largest oneof field.'''
         largest = EncodedSize(0)
         for f in self.fields:
             size = EncodedSize(f.encoded_size(dependencies))
-            if size is None:
+            if size.value is None:
                 return None
             elif size.symbols:
                 return None # Cannot resolve maximum of symbols
