@@ -74,8 +74,8 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
 
 static bool checkreturn buf_read(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
-    uint8_t *source = (uint8_t*)stream->state;
-    stream->state = source + count;
+    const uint8_t *source = (const uint8_t*)stream->state;
+    stream->state = (uint8_t*)stream->state + count;
     
     if (buf != NULL)
     {
@@ -131,7 +131,7 @@ static bool checkreturn pb_readbyte(pb_istream_t *stream, uint8_t *buf)
     if (!stream->callback(stream, buf, 1))
         PB_RETURN_ERROR(stream, "io error");
 #else
-    *buf = *(uint8_t*)stream->state;
+    *buf = *(const uint8_t*)stream->state;
     stream->state = (uint8_t*)stream->state + 1;
 #endif
 
@@ -140,15 +140,23 @@ static bool checkreturn pb_readbyte(pb_istream_t *stream, uint8_t *buf)
     return true;    
 }
 
-pb_istream_t pb_istream_from_buffer(uint8_t *buf, size_t bufsize)
+pb_istream_t pb_istream_from_buffer(const uint8_t *buf, size_t bufsize)
 {
     pb_istream_t stream;
+    /* Cast away the const from buf without a compiler error.  We are
+     * careful to use it only in a const manner in the callbacks.
+     */
+    union {
+        void *state;
+        const void *c_state;
+    } state;
 #ifdef PB_BUFFER_ONLY
     stream.callback = NULL;
 #else
     stream.callback = &buf_read;
 #endif
-    stream.state = buf;
+    state.c_state = buf;
+    stream.state = state.state;
     stream.bytes_left = bufsize;
 #ifndef PB_NO_ERRMSG
     stream.errmsg = NULL;
