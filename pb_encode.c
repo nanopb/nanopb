@@ -22,7 +22,7 @@
  **************************************/
 typedef bool (*pb_encoder_t)(pb_ostream_t *stream, const pb_field_t *field, const void *src) checkreturn;
 
-static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+static bool checkreturn buf_write(pb_ostream_t *stream, const uint_least8_t *buf, size_t count);
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field, const void *pData, size_t count, pb_encoder_t func);
 static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
@@ -56,18 +56,19 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
  * pb_ostream_t implementation *
  *******************************/
 
-static bool checkreturn buf_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+static bool checkreturn buf_write(pb_ostream_t *stream, const uint_least8_t *buf, size_t count)
 {
-    uint8_t *dest = (uint8_t*)stream->state;
+    uint_least8_t *dest = (uint_least8_t*)stream->state;
     stream->state = dest + count;
     
-    while (count--)
+    while (count--){
         *dest++ = *buf++;
+    }
     
     return true;
 }
 
-pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize)
+pb_ostream_t pb_ostream_from_buffer(uint_least8_t *buf, size_t bufsize)
 {
     pb_ostream_t stream;
 #ifdef PB_BUFFER_ONLY
@@ -84,7 +85,7 @@ pb_ostream_t pb_ostream_from_buffer(uint8_t *buf, size_t bufsize)
     return stream;
 }
 
-bool checkreturn pb_write(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool checkreturn pb_write(pb_ostream_t *stream, const uint_least8_t *buf, size_t count)
 {
     if (stream->callback != NULL)
     {
@@ -413,15 +414,15 @@ bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *sr
  ********************/
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, uint64_t value)
 {
-    uint8_t buffer[10];
+    uint_least8_t buffer[10];
     size_t i = 0;
     
     if (value == 0)
-        return pb_write(stream, (uint8_t*)&value, 1);
+        return pb_write(stream, (uint_least8_t*)&value, 1);
     
     while (value)
     {
-        buffer[i] = (uint8_t)((value & 0x7F) | 0x80);
+        buffer[i] = (uint_least8_t)((value & 0x7F) | 0x80);
         value >>= 7;
         i++;
     }
@@ -443,35 +444,47 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
 
 bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
+    const uint32_t *words = (const uint32_t*)value;
+    uint_least8_t bytes[4];
     #ifdef __BIG_ENDIAN__
-    const uint8_t *bytes = value;
-    uint8_t lebytes[4];
-    lebytes[0] = bytes[3];
-    lebytes[1] = bytes[2];
-    lebytes[2] = bytes[1];
-    lebytes[3] = bytes[0];
-    return pb_write(stream, lebytes, 4);
+    bytes[0] = (uint_least8_t)(*words >> 24) & 0xFF;
+    bytes[1] = (uint_least8_t)(*words >> 16) & 0xFF;
+    bytes[2] = (uint_least8_t)(*words >> 8) & 0xFF;
+    bytes[3] = (uint_least8_t)(*words) & 0xFF;
+    return pb_write(stream, bytes, 4);
     #else
-    return pb_write(stream, (const uint8_t*)value, 4);
+    bytes[3] = (uint_least8_t)(*words >> 24) & 0xFF;
+    bytes[2] = (uint_least8_t)(*words >> 16) & 0xFF;
+    bytes[1] = (uint_least8_t)(*words >> 8) & 0xFF;
+    bytes[0] = (uint_least8_t)(*words) & 0xFF;
+    return pb_write(stream, bytes, 4);
     #endif
 }
 
 bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
+    const uint64_t *words = (const uint64_t*)value;
+    uint_least8_t bytes[8];
     #ifdef __BIG_ENDIAN__
-    const uint8_t *bytes = value;
-    uint8_t lebytes[8];
-    lebytes[0] = bytes[7];
-    lebytes[1] = bytes[6];
-    lebytes[2] = bytes[5];
-    lebytes[3] = bytes[4];
-    lebytes[4] = bytes[3];
-    lebytes[5] = bytes[2];
-    lebytes[6] = bytes[1];
-    lebytes[7] = bytes[0];
-    return pb_write(stream, lebytes, 8);
+    bytes[0] = (uint_least8_t)(*words >> 56) & 0xFF;
+    bytes[1] = (uint_least8_t)(*words >> 48) & 0xFF;
+    bytes[2] = (uint_least8_t)(*words >> 40) & 0xFF;
+    bytes[3] = (uint_least8_t)(*words >> 32) & 0xFF;
+    bytes[4] = (uint_least8_t)(*words >> 24) & 0xFF;
+    bytes[5] = (uint_least8_t)(*words >> 16) & 0xFF;
+    bytes[6] = (uint_least8_t)(*words >> 8) & 0xFF;
+    bytes[7] = (uint_least8_t)(*words) & 0xFF;
+    return pb_write(stream, bytes, 8);
     #else
-    return pb_write(stream, (const uint8_t*)value, 8);
+    bytes[7] = (uint_least8_t)(*words >> 56) & 0xFF;
+    bytes[6] = (uint_least8_t)(*words >> 48) & 0xFF;
+    bytes[5] = (uint_least8_t)(*words >> 40) & 0xFF;
+    bytes[4] = (uint_least8_t)(*words >> 32) & 0xFF;
+    bytes[3] = (uint_least8_t)(*words >> 24) & 0xFF;
+    bytes[2] = (uint_least8_t)(*words >> 16) & 0xFF;
+    bytes[1] = (uint_least8_t)(*words >> 8) & 0xFF;
+    bytes[0] = (uint_least8_t)(*words) & 0xFF;
+    return pb_write(stream, bytes, 8);
     #endif
 }
 
@@ -513,7 +526,7 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
     return pb_encode_tag(stream, wiretype, field->tag);
 }
 
-bool checkreturn pb_encode_string(pb_ostream_t *stream, const uint8_t *buffer, size_t size)
+bool checkreturn pb_encode_string(pb_ostream_t *stream, const uint_least8_t *buffer, size_t size)
 {
     if (!pb_encode_varint(stream, (uint64_t)size))
         return false;
@@ -581,8 +594,8 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
      * or enums, and for int_size option. */
     switch (field->data_size)
     {
-        case 1: value = *(const int8_t*)src; break;
-        case 2: value = *(const int16_t*)src; break;
+        case 1: value = *(const int_least8_t*)src; break;
+        case 2: value = *(const int_least16_t*)src; break;
         case 4: value = *(const int32_t*)src; break;
         case 8: value = *(const int64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
@@ -597,8 +610,8 @@ static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
-        case 1: value = *(const uint8_t*)src; break;
-        case 2: value = *(const uint16_t*)src; break;
+        case 1: value = *(const uint_least8_t*)src; break;
+        case 2: value = *(const uint_least16_t*)src; break;
         case 4: value = *(const uint32_t*)src; break;
         case 8: value = *(const uint64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
@@ -613,8 +626,8 @@ static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *f
     
     switch (field->data_size)
     {
-        case 1: value = *(const int8_t*)src; break;
-        case 2: value = *(const int16_t*)src; break;
+        case 1: value = *(const int_least8_t*)src; break;
+        case 2: value = *(const int_least16_t*)src; break;
         case 4: value = *(const int32_t*)src; break;
         case 8: value = *(const int64_t*)src; break;
         default: PB_RETURN_ERROR(stream, "invalid data_size");
@@ -677,7 +690,7 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
         }
     }
 
-    return pb_encode_string(stream, (const uint8_t*)src, size);
+    return pb_encode_string(stream, (const uint_least8_t*)src, size);
 }
 
 static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src)
