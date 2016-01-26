@@ -443,36 +443,28 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, int64_t value)
 
 bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
-    #ifdef __BIG_ENDIAN__
-    const uint8_t *bytes = value;
-    uint8_t lebytes[4];
-    lebytes[0] = bytes[3];
-    lebytes[1] = bytes[2];
-    lebytes[2] = bytes[1];
-    lebytes[3] = bytes[0];
-    return pb_write(stream, lebytes, 4);
-    #else
-    return pb_write(stream, (const uint8_t*)value, 4);
-    #endif
+    uint32_t val = *(const uint32_t*)value;
+    uint8_t bytes[4];
+    bytes[0] = (uint8_t)(val & 0xFF);
+    bytes[1] = (uint8_t)((val >> 8) & 0xFF);
+    bytes[2] = (uint8_t)((val >> 16) & 0xFF);
+    bytes[3] = (uint8_t)((val >> 24) & 0xFF);
+    return pb_write(stream, bytes, 4);
 }
 
 bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
-    #ifdef __BIG_ENDIAN__
-    const uint8_t *bytes = value;
-    uint8_t lebytes[8];
-    lebytes[0] = bytes[7];
-    lebytes[1] = bytes[6];
-    lebytes[2] = bytes[5];
-    lebytes[3] = bytes[4];
-    lebytes[4] = bytes[3];
-    lebytes[5] = bytes[2];
-    lebytes[6] = bytes[1];
-    lebytes[7] = bytes[0];
-    return pb_write(stream, lebytes, 8);
-    #else
-    return pb_write(stream, (const uint8_t*)value, 8);
-    #endif
+    uint64_t val = *(const uint64_t*)value;
+    uint8_t bytes[8];
+    bytes[0] = (uint8_t)(val & 0xFF);
+    bytes[1] = (uint8_t)((val >> 8) & 0xFF);
+    bytes[2] = (uint8_t)((val >> 16) & 0xFF);
+    bytes[3] = (uint8_t)((val >> 24) & 0xFF);
+    bytes[4] = (uint8_t)((val >> 32) & 0xFF);
+    bytes[5] = (uint8_t)((val >> 40) & 0xFF);
+    bytes[6] = (uint8_t)((val >> 48) & 0xFF);
+    bytes[7] = (uint8_t)((val >> 56) & 0xFF);
+    return pb_write(stream, bytes, 8);
 }
 
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number)

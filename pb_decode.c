@@ -1106,44 +1106,35 @@ bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest)
 
 bool pb_decode_fixed32(pb_istream_t *stream, void *dest)
 {
-    #ifdef __BIG_ENDIAN__
-    uint8_t *bytes = (uint8_t*)dest;
-    uint8_t lebytes[4];
-    
-    if (!pb_read(stream, lebytes, 4))
+    uint8_t bytes[4];
+
+    if (!pb_read(stream, bytes, 4))
         return false;
     
-    bytes[0] = lebytes[3];
-    bytes[1] = lebytes[2];
-    bytes[2] = lebytes[1];
-    bytes[3] = lebytes[0];
+    *(uint32_t*)dest = ((uint32_t)bytes[0] << 0) |
+                       ((uint32_t)bytes[1] << 8) |
+                       ((uint32_t)bytes[2] << 16) |
+                       ((uint32_t)bytes[3] << 24);
     return true;
-    #else
-    return pb_read(stream, (uint8_t*)dest, 4);
-    #endif   
 }
 
 bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 {
-    #ifdef __BIG_ENDIAN__
-    uint8_t *bytes = (uint8_t*)dest;
-    uint8_t lebytes[8];
-    
-    if (!pb_read(stream, lebytes, 8))
+    uint8_t bytes[8];
+
+    if (!pb_read(stream, bytes, 8))
         return false;
     
-    bytes[0] = lebytes[7];
-    bytes[1] = lebytes[6];
-    bytes[2] = lebytes[5];
-    bytes[3] = lebytes[4];
-    bytes[4] = lebytes[3];
-    bytes[5] = lebytes[2];
-    bytes[6] = lebytes[1];
-    bytes[7] = lebytes[0];
+    *(uint64_t*)dest = ((uint64_t)bytes[0] << 0) |
+                       ((uint64_t)bytes[1] << 8) |
+                       ((uint64_t)bytes[2] << 16) |
+                       ((uint64_t)bytes[3] << 24) |
+                       ((uint64_t)bytes[4] << 32) |
+                       ((uint64_t)bytes[5] << 40) |
+                       ((uint64_t)bytes[6] << 48) |
+                       ((uint64_t)bytes[7] << 56);
+    
     return true;
-    #else
-    return pb_read(stream, (uint8_t*)dest, 8);
-    #endif   
 }
 
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
