@@ -41,6 +41,10 @@
  * This was the default until nanopb-0.2.1. */
 /* #define PB_OLD_CALLBACK_STYLE */
 
+/* Switch this on if target platform provide unusual integer sizes.
+ * This takes places on platforms with minimal addreassable space bigger than
+ * one byte. Some TI's MCU or DSP for an example. */
+/* #define PB_UNUSUAL_INT_SIZE */
 
 /******************************************************************
  * You usually don't need to change anything below this line.     *
@@ -55,7 +59,7 @@
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
  * - strlen, memcpy, memset functions
- * - [u]int8_t, [u]int16_t, [u]int32_t, [u]int64_t
+ * - [u]int_least8_t, [u]int_least16_t, [u]int32_t, [u]int64_t
  * - size_t
  * - bool
  *
@@ -144,7 +148,7 @@
  * Most-significant 4 bits specify repeated/required/packed etc.
  */
 
-typedef uint8_t pb_type_t;
+typedef uint_least8_t pb_type_t;
 
 /**** Field data types ****/
 
@@ -205,13 +209,13 @@ typedef uint8_t pb_type_t;
     typedef uint32_t pb_size_t;
     typedef int32_t pb_ssize_t;
 #elif defined(PB_FIELD_16BIT)
-#define PB_SIZE_MAX ((uint16_t)-1)
-    typedef uint16_t pb_size_t;
-    typedef int16_t pb_ssize_t;
+#define PB_SIZE_MAX ((uint_least16_t)-1)
+    typedef uint_least16_t pb_size_t;
+    typedef int_least16_t pb_ssize_t;
 #else
-#define PB_SIZE_MAX ((uint8_t)-1)
-    typedef uint8_t pb_size_t;
-    typedef int8_t pb_ssize_t;
+#define PB_SIZE_MAX ((uint_least8_t)-1)
+    typedef uint_least8_t pb_size_t;
+    typedef int_least8_t pb_ssize_t;
 #endif
 
 /* This structure is used in auto-generated constants
@@ -245,25 +249,28 @@ PB_PACKED_STRUCT_END
  * If you get errors here, it probably means that your stdint.h is not
  * correct for your platform.
  */
-PB_STATIC_ASSERT(sizeof(int8_t) == 1, INT8_T_WRONG_SIZE)
-PB_STATIC_ASSERT(sizeof(uint8_t) == 1, UINT8_T_WRONG_SIZE)
-PB_STATIC_ASSERT(sizeof(int16_t) == 2, INT16_T_WRONG_SIZE)
-PB_STATIC_ASSERT(sizeof(uint16_t) == 2, UINT16_T_WRONG_SIZE)
+
+#ifndef PB_UNUSUAL_INT_SIZE
+PB_STATIC_ASSERT(sizeof(int_least8_t) == 1, INT8_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint_least8_t) == 1, UINT8_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(int_least16_t) == 2, INT16_T_WRONG_SIZE)
+PB_STATIC_ASSERT(sizeof(uint_least16_t) == 2, UINT16_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(int32_t) == 4, INT32_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(uint32_t) == 4, UINT32_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(int64_t) == 8, INT64_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(uint64_t) == 8, UINT64_T_WRONG_SIZE)
+#endif
 
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
  */
-#define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; uint8_t bytes[n]; }
+#define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; uint_least8_t bytes[n]; }
 #define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
 
 struct pb_bytes_array_s {
     pb_size_t size;
-    uint8_t bytes[1];
+    uint_least8_t bytes[1];
 };
 typedef struct pb_bytes_array_s pb_bytes_array_t;
 
