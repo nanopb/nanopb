@@ -20,10 +20,6 @@ You must have the same settings for the nanopb library and all code that
 includes pb.h.
 
 ============================  ================================================
-__BIG_ENDIAN__                 Set this if your platform stores integers and
-                               floats in big-endian format. Mixed-endian
-                               systems (different layout for ints and floats)
-                               are currently not supported.
 PB_NO_PACKED_STRUCTS           Disable packed structs. Increases RAM usage but
                                is necessary on some platforms that do not
                                support unaligned memory access.

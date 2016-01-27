@@ -13,10 +13,6 @@
 /* Enable support for dynamically allocated fields */
 /* #define PB_ENABLE_MALLOC 1 */
 
-/* Define this if your CPU architecture is big endian, i.e. it
- * stores the most-significant byte first. */
-/* #define __BIG_ENDIAN__ 1 */
-
 /* Define this if your CPU / compiler combination does not support
  * unaligned memory access to packed structures. */
 /* #define PB_NO_PACKED_STRUCTS 1 */
