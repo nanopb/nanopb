@@ -572,16 +572,16 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
 {
     int64_t value = 0;
     
-    /* Cases 1 and 2 are for compilers that have smaller types for bool
-     * or enums, and for int_size option. */
-    switch (field->data_size)
-    {
-        case 1: value = *(const int_least8_t*)src; break;
-        case 2: value = *(const int_least16_t*)src; break;
-        case 4: value = *(const int32_t*)src; break;
-        case 8: value = *(const int64_t*)src; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    if (field->data_size == sizeof(int_least8_t))
+        value = *(const int_least8_t*)src;
+    else if (field->data_size == sizeof(int_least16_t))
+        value = *(const int_least16_t*)src;
+    else if (field->data_size == sizeof(int32_t))
+        value = *(const int32_t*)src;
+    else if (field->data_size == sizeof(int64_t))
+        value = *(const int64_t*)src;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
     
     return pb_encode_varint(stream, (uint64_t)value);
 }
@@ -590,14 +590,16 @@ static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *f
 {
     uint64_t value = 0;
     
-    switch (field->data_size)
-    {
-        case 1: value = *(const uint_least8_t*)src; break;
-        case 2: value = *(const uint_least16_t*)src; break;
-        case 4: value = *(const uint32_t*)src; break;
-        case 8: value = *(const uint64_t*)src; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    if (field->data_size == sizeof(uint_least8_t))
+        value = *(const uint_least8_t*)src;
+    else if (field->data_size == sizeof(uint_least16_t))
+        value = *(const uint_least16_t*)src;
+    else if (field->data_size == sizeof(uint32_t))
+        value = *(const uint32_t*)src;
+    else if (field->data_size == sizeof(uint64_t))
+        value = *(const uint64_t*)src;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
     
     return pb_encode_varint(stream, value);
 }
@@ -606,14 +608,16 @@ static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *f
 {
     int64_t value = 0;
     
-    switch (field->data_size)
-    {
-        case 1: value = *(const int_least8_t*)src; break;
-        case 2: value = *(const int_least16_t*)src; break;
-        case 4: value = *(const int32_t*)src; break;
-        case 8: value = *(const int64_t*)src; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    if (field->data_size == sizeof(int_least8_t))
+        value = *(const int_least8_t*)src;
+    else if (field->data_size == sizeof(int_least16_t))
+        value = *(const int_least16_t*)src;
+    else if (field->data_size == sizeof(int32_t))
+        value = *(const int32_t*)src;
+    else if (field->data_size == sizeof(int64_t))
+        value = *(const int64_t*)src;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
     
     return pb_encode_svarint(stream, value);
 }

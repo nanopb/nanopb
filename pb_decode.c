@@ -1155,19 +1155,22 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *fi
      * not break decoding of such messages, we cast <=32 bit fields to
      * int32_t first to get the sign correct.
      */
-    if (field->data_size == 8)
+    if (field->data_size == sizeof(int64_t))
         svalue = (int64_t)value;
     else
         svalue = (int32_t)value;
 
-    switch (field->data_size)
-    {
-        case 1: clamped = *(int8_t*)dest = (int8_t)svalue; break;
-        case 2: clamped = *(int16_t*)dest = (int16_t)svalue; break;
-        case 4: clamped = *(int32_t*)dest = (int32_t)svalue; break;
-        case 8: clamped = *(int64_t*)dest = svalue; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    /* Cast to the proper field size, while checking for overflows */
+    if (field->data_size == sizeof(int64_t))
+        clamped = *(int64_t*)dest = svalue;
+    else if (field->data_size == sizeof(int32_t))
+        clamped = *(int32_t*)dest = (int32_t)svalue;
+    else if (field->data_size == sizeof(int_least16_t))
+        clamped = *(int_least16_t*)dest = (int_least16_t)svalue;
+    else if (field->data_size == sizeof(int_least8_t))
+        clamped = *(int_least8_t*)dest = (int_least8_t)svalue;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
 
     if (clamped != svalue)
         PB_RETURN_ERROR(stream, "integer too large");
@@ -1181,14 +1184,17 @@ static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *f
     if (!pb_decode_varint(stream, &value))
         return false;
     
-    switch (field->data_size)
-    {
-        case 1: clamped = *(uint_least8_t*)dest = (uint_least8_t)value; break;
-        case 2: clamped = *(uint_least16_t*)dest = (uint_least16_t)value; break;
-        case 4: clamped = *(uint32_t*)dest = (uint32_t)value; break;
-        case 8: clamped = *(uint64_t*)dest = value; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    /* Cast to the proper field size, while checking for overflows */
+    if (field->data_size == sizeof(uint64_t))
+        clamped = *(uint64_t*)dest = value;
+    else if (field->data_size == sizeof(uint32_t))
+        clamped = *(uint32_t*)dest = (uint32_t)value;
+    else if (field->data_size == sizeof(uint_least16_t))
+        clamped = *(uint_least16_t*)dest = (uint_least16_t)value;
+    else if (field->data_size == sizeof(uint_least8_t))
+        clamped = *(uint_least8_t*)dest = (uint_least8_t)value;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
     
     if (clamped != value)
         PB_RETURN_ERROR(stream, "integer too large");
@@ -1202,14 +1208,17 @@ static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *f
     if (!pb_decode_svarint(stream, &value))
         return false;
     
-    switch (field->data_size)
-    {
-        case 1: clamped = *(int_least8_t*)dest = (int_least8_t)value; break;
-        case 2: clamped = *(int_least16_t*)dest = (int_least16_t)value; break;
-        case 4: clamped = *(int32_t*)dest = (int32_t)value; break;
-        case 8: clamped = *(int64_t*)dest = value; break;
-        default: PB_RETURN_ERROR(stream, "invalid data_size");
-    }
+    /* Cast to the proper field size, while checking for overflows */
+    if (field->data_size == sizeof(int64_t))
+        clamped = *(int64_t*)dest = value;
+    else if (field->data_size == sizeof(int32_t))
+        clamped = *(int32_t*)dest = (int32_t)value;
+    else if (field->data_size == sizeof(int_least16_t))
+        clamped = *(int_least16_t*)dest = (int_least16_t)value;
+    else if (field->data_size == sizeof(int_least8_t))
+        clamped = *(int_least8_t*)dest = (int_least8_t)value;
+    else
+        PB_RETURN_ERROR(stream, "invalid data_size");
 
     if (clamped != value)
         PB_RETURN_ERROR(stream, "integer too large");
