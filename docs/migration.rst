@@ -11,7 +11,7 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.3.5 (2016-xx-xx)
+Nanopb-0.3.5 (2016-02-13)
 =========================
 
 Add support for platforms without uint8_t

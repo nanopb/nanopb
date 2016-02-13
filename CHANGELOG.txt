@@ -1,4 +1,7 @@
-nanopb-0.3.5 (2016-02-xx)
+nanopb-0.3.5 (2016-02-13)
+ NOTE: If you are using pb_syshdr.h, you will need to add uint_least8_t
+ definition. See docs/migration.rst for details.
+
  Fix generator crash with Enum inside Oneof (#188)
  Fix some generator regressions related to .options file path (#172)
  Add support for platforms without uint8_t (#191)
