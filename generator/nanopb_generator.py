@@ -197,6 +197,10 @@ class Enum:
 
         result += ' %s;' % self.names
 
+        result += '\n#define _%s_MIN %s' % (self.names, self.values[0][0])
+        result += '\n#define _%s_MAX %s' % (self.names, self.values[-1][0])
+        result += '\n#define _%s_ARRAYSIZE ((%s)(%s+1))' % (self.names, self.names, self.values[-1][0])
+
         if not self.options.long_names:
             # Define the long names always so that enum value references
             # from other files work properly.
