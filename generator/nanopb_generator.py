@@ -1055,7 +1055,7 @@ class ProtoFile:
             noext = os.path.splitext(incfile)[0]
             yield options.genformat % (noext + options.extension + '.h')
             yield '\n'
-            
+
         yield '/* @@protoc_insertion_point(includes) */\n'
 
         yield '#if PB_PROTO_HEADER_VERSION != 30\n'
@@ -1363,6 +1363,9 @@ optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE"
 optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
     action="append", default = [],
     help="Search for .options files additionally in this path")
+optparser.add_option("-D", "--output-dir", dest="output_dir",
+                     metavar="OUTPUTDIR", default=None,
+                     help="Output directory of .pb.h and .pb.c files")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"\n',
     help="Set format string to use for including other .pb.h files. [default: %default]")
@@ -1479,17 +1482,29 @@ def main_cli():
     if options.quiet:
         options.verbose = False
 
-    Globals.verbose_options = options.verbose
+    if options.output_dir and not os.path.exists(options.output_dir):
+        optparser.print_help()
+        sys.stderr.write("\noutput_dir does not exist: %s\n" % options.output_dir)
+        sys.exit(1)
 
+
+    Globals.verbose_options = options.verbose
     for filename in filenames:
         results = process_file(filename, None, options)
 
-        if not options.quiet:
-            sys.stderr.write("Writing to " + results['headername'] + " and "
-                             + results['sourcename'] + "\n")
+        base_dir = options.output_dir or ''
+        to_write = [
+            (os.path.join(base_dir, results['headername']), results['headerdata']),
+            (os.path.join(base_dir, results['sourcename']), results['sourcedata']),
+        ]
 
-        open(results['headername'], 'w').write(results['headerdata'])
-        open(results['sourcename'], 'w').write(results['sourcedata'])
+        if not options.quiet:
+            paths = " and ".join([x[0] for x in to_write])
+            sys.stderr.write("Writing to %s\n" % paths)
+
+        for path, data in to_write:
+            with open(path, 'w') as f:
+                f.write(data)
 
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
@@ -1553,4 +1568,3 @@ if __name__ == '__main__':
         main_plugin()
     else:
         main_cli()
-
