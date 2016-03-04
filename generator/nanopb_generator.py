@@ -1119,9 +1119,11 @@ class ProtoFile:
             yield '/* Maximum encoded size of messages (where known) */\n'
             for msg in self.messages:
                 msize = msg.encoded_size(self.dependencies)
+                identifier = '%s_size' % msg.name
                 if msize is not None:
-                    identifier = '%s_size' % msg.name
                     yield '#define %-40s %s\n' % (identifier, msize)
+                else:
+                    yield '/* %s depends on runtime parameters */\n' % identifier
             yield '\n'
 
             yield '/* Message IDs (where set with "msgid" option) */\n'
