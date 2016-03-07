@@ -91,6 +91,7 @@ no_unions                      Generate 'oneof' fields as optional fields
                                instead of C unions.
 msgid                          Specifies a unique id for this message type.
                                Can be used by user code as an identifier.
+anonymous_oneof                Generate 'oneof' fields as anonymous unions.
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted
@@ -198,9 +199,18 @@ The options can be defined in file, message and field scopes::
 pb.h
 ====
 
+pb_byte_t
+---------
+Type used for storing byte-sized data, such as raw binary input and bytes-type fields. ::
+
+    typedef uint_least8_t pb_byte_t;
+
+For most platforms this is equivalent to `uint8_t`. Some platforms however do not support
+8-bit variables, and on those platforms 16 or 32 bits need to be used for each byte.
+
 pb_type_t
 ---------
-Defines the encoder/decoder behaviour that should be used for a field. ::
+Type used to store the type of each field, to control the encoder/decoder behaviour. ::
 
     typedef uint_least8_t pb_type_t;
 
