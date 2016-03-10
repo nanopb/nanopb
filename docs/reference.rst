@@ -651,7 +651,7 @@ This function is compatible with *writeDelimitedTo* in the Google's Protocol Buf
 
 pb_release
 ----------
-Releases any dynamically allocated fields.
+Releases any dynamically allocated fields::
 
     void pb_release(const pb_field_t fields[], void *dest_struct);
 
