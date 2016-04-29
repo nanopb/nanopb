@@ -176,11 +176,11 @@ class Enum:
         self.names_upper = str(self.names).upper()
 
         if enum_options.long_names:
-            self.values = [(self.names + x.name, x.number) for x in desc.value]
+            self.values = [(str(self.names + x.name).upper(), x.number) for x in desc.value]
         else:
-            self.values = [(names + x.name, x.number) for x in desc.value]
+            self.values = [(str(names + x.name).upper(), x.number) for x in desc.value]
 
-        self.value_longnames = [self.names + x.name for x in desc.value]
+        self.value_longnames = [str(self.names + x.name).upper() for x in desc.value]
         self.packed = enum_options.packed_enum
 
     def has_negative(self):
@@ -425,7 +425,7 @@ class Field:
             elif self.pbtype in ['SFIXED64', 'INT64']:
                 inner_init = str(self.default) + 'll'
             else:
-                inner_init = str(self.default)
+                inner_init = str(self.default).upper()
 
         if inner_init_only:
             return inner_init

@@ -13,17 +13,12 @@ def split_camel_case(input):
 
     underscore_split = input.split("_")
     retval = ""
-    should_be_upper = False
     for i in underscore_split:
-        if i.isupper():
-            should_be_upper = True
         if is_camel_case_name(i):
             retval += remove_camel_case(i) + "_"
         else:
             retval += i + "_"
 
-    if should_be_upper:
-        retval = retval.upper()
     return retval[:-1].replace("__", "_")
 
 
