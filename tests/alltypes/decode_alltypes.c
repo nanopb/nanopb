@@ -173,7 +173,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_enum == MY_ENUM_TRUTH);
         TEST(alltypes.has_opt_emptymsg  == true);
 
-        TEST(alltypes.which_oneof == all_types_t_oneof_msg1_tag);
+        TEST(alltypes.which_oneof == ALL_TYPES_ONEOF_MSG1_TAG);
         TEST(strcmp(alltypes.oneof.oneof_msg1.substuff1, "4059") == 0);
         TEST(alltypes.oneof.oneof_msg1.substuff2 == 4059);
     }
