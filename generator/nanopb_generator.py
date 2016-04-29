@@ -424,8 +424,10 @@ class Field:
                 inner_init = str(self.default) + 'ull'
             elif self.pbtype in ['SFIXED64', 'INT64']:
                 inner_init = str(self.default) + 'll'
-            else:
+            elif self.pbtype in ('ENUM', 'UENUM'):
                 inner_init = str(self.default).upper()
+            else:
+                inner_init = str(self.default)
 
         if inner_init_only:
             return inner_init
