@@ -458,7 +458,7 @@ class Field:
         if self.default is None:
             return None
 
-        ctype = self.ctype
+        ctype = self.ctype_t
         default = self.get_initializer(False, True)
         array_decl = ''
 
