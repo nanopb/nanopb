@@ -217,7 +217,7 @@ class FieldMaxSize:
             self.worst = worst
 
         self.worst_field = field_name
-        self.checks = checks
+        self.checks = list(checks)
 
     def extend(self, extend, field_name = None):
         self.worst = max(self.worst, extend.worst)
