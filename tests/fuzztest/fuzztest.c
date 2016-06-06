@@ -192,6 +192,7 @@ static bool do_static_encode(uint8_t *buffer, size_t *msglen)
     assert(stream.bytes_written <= alltypes_static_AllTypes_size);
     
     *msglen = stream.bytes_written;
+    pb_release(alltypes_static_AllTypes_fields, msg);
     free_with_check(msg);
     
     return status;
