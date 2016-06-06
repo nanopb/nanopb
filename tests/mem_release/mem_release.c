@@ -25,6 +25,8 @@ static void fill_TestMessage(TestMessage *msg)
     msg->static_req_submsg.dynamic_submsg = test_msg_arr;
     msg->static_req_submsg.dynamic_submsg[1].dynamic_str = "abc";
     msg->static_opt_submsg.dynamic_str = "abc";
+    msg->static_rep_submsg_count = 2;
+    msg->static_rep_submsg[1].dynamic_str = "abc";
     msg->has_static_opt_submsg = true;
     msg->dynamic_submsg = &msg->static_req_submsg;
 
