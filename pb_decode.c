@@ -992,6 +992,12 @@ static void pb_release_single_field(const pb_field_iterator_t *iter)
         if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
             count = *(pb_size_t*)iter->pSize;
+
+            if (PB_ATYPE(type) == PB_ATYPE_STATIC && count > iter->pos->array_size)
+            {
+                /* Protect against corrupted _count fields */
+                count = iter->pos->array_size;
+            }
         }
         
         if (pItem)
