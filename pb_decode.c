@@ -1034,13 +1034,13 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
         
         if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
-            if(PB_ATYPE(type) == PB_ATYPE_POINTER)
-            {
-                count = *(pb_size_t*)iter->pSize;
-            }
-            else if(PB_ATYPE(type) == PB_ATYPE_STATIC)
+            if(PB_ATYPE(type) == PB_ATYPE_STATIC)
             {
                 count = iter->pos->array_size;
+            }
+            else
+            {
+                count = *(pb_size_t*)iter->pSize;
             }
         }
         
