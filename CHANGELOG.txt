@@ -1,3 +1,6 @@
+nanopb-0.2.9.3 (2016-06-19)
+ Protect against corrupted _count fields in pb_release (#205)
+
 nanopb-0.2.9.2 (2015-01-24)
  Fix memory leaks with PB_ENABLE_MALLOC with some submessage hierarchies (issue 138)
  Fix compilation error with generated initializers for repeated pointer fields
