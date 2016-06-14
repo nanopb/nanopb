@@ -1,3 +1,12 @@
+nanopb-0.3.6 (2016-06-xx)
+ Protect against corrupted _count fields in pb_release (#205)
+ Fix error in STATIC_ASSERT with multiple files (#203)
+ Add -D option to specify output directory (#193)
+ Generate MIN/MAX/ARRAYSIZE defines for enums (#194)
+ Generate comments about uncalculable message sizes (#195)
+ Documentation updates (#196, #201)
+ Improvements to test cases.
+
 nanopb-0.3.5 (2016-02-13)
  NOTE: If you are using pb_syshdr.h, you will need to add uint_least8_t
  definition. See docs/migration.rst for details.
