@@ -1,4 +1,4 @@
-nanopb-0.3.6 (2016-06-xx)
+nanopb-0.3.6 (2016-06-19)
  Protect against corrupted _count fields in pb_release (#205)
  Fix error in STATIC_ASSERT with multiple files (#203)
  Add -D option to specify output directory (#193)
