@@ -20,13 +20,13 @@
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
     /* Uses _init_default to just make sure that it works. */
-    AllTypes alltypes = AllTypes_init_default;
+    all_types_t alltypes = ALL_TYPES_INIT_DEFAULT;
     
     /* Fill with garbage to better detect initialization errors */
     memset(&alltypes, 0xAA, sizeof(alltypes));
     alltypes.extensions = 0;
     
-    if (!pb_decode(stream, AllTypes_fields, &alltypes))
+    if (!pb_decode(stream, all_types_fields, &alltypes))
         return false;
     
     TEST(alltypes.req_int32         == -1001);
@@ -51,7 +51,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(strcmp(alltypes.req_submsg.substuff1, "1016") == 0);
     TEST(alltypes.req_submsg.substuff2 == 1016);
     TEST(alltypes.req_submsg.substuff3 == 3);
-    TEST(alltypes.req_enum == MyEnum_Truth);
+    TEST(alltypes.req_enum == MY_ENUM_TRUTH);
     
     TEST(alltypes.rep_int32_count == 5 && alltypes.rep_int32[4] == -2001 && alltypes.rep_int32[0] == 0);
     TEST(alltypes.rep_int64_count == 5 && alltypes.rep_int64[4] == -2002 && alltypes.rep_int64[0] == 0);
@@ -78,7 +78,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_submsg[4].substuff2 == 2016 && alltypes.rep_submsg[0].substuff2 == 0);
     TEST(alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == 3);
     
-    TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
+    TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MY_ENUM_TRUTH && alltypes.rep_enum[0] == MY_ENUM_ZERO);
     TEST(alltypes.rep_emptymsg_count == 5);
     
     if (mode == 0)
@@ -123,7 +123,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_submsg.substuff2 == 2);
         TEST(alltypes.opt_submsg.substuff3 == 3);
         TEST(alltypes.has_opt_enum     == false);
-        TEST(alltypes.opt_enum == MyEnum_Second);
+        TEST(alltypes.opt_enum == MY_ENUM_SECOND);
         TEST(alltypes.has_opt_emptymsg == false);
 
         TEST(alltypes.which_oneof == 0);
@@ -170,10 +170,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_submsg.substuff2 == 3056);
         TEST(alltypes.opt_submsg.substuff3 == 3);
         TEST(alltypes.has_opt_enum      == true);
-        TEST(alltypes.opt_enum == MyEnum_Truth);
+        TEST(alltypes.opt_enum == MY_ENUM_TRUTH);
         TEST(alltypes.has_opt_emptymsg  == true);
 
-        TEST(alltypes.which_oneof == AllTypes_oneof_msg1_tag);
+        TEST(alltypes.which_oneof == ALL_TYPES_ONEOF_MSG1_TAG);
         TEST(strcmp(alltypes.oneof.oneof_msg1.substuff1, "4059") == 0);
         TEST(alltypes.oneof.oneof_msg1.substuff2 == 4059);
     }
@@ -186,8 +186,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.req_limits.int64_max  == INT64_MAX);
     TEST(alltypes.req_limits.uint64_min == 0);
     TEST(alltypes.req_limits.uint64_max == UINT64_MAX);
-    TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
-    TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
+    TEST(alltypes.req_limits.enum_min   == HUGE_ENUM_NEGATIVE);
+    TEST(alltypes.req_limits.enum_max   == HUGE_ENUM_POSITIVE);
     
     TEST(alltypes.end == 1099);
     
