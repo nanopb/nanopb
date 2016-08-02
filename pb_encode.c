@@ -49,7 +49,8 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_bytes,
     &pb_enc_string,
     &pb_enc_submessage,
-    NULL /* extensions */
+    NULL, /* extensions */
+    &pb_enc_bytes /* PB_LTYPE_FIXED_LENGTH_BYTES */
 };
 
 /*******************************
@@ -498,6 +499,7 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
         case PB_LTYPE_BYTES:
         case PB_LTYPE_STRING:
         case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_FIXED_LENGTH_BYTES:
             wiretype = PB_WT_STRING;
             break;
         
@@ -636,11 +638,16 @@ static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *f
 
 static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)src;
+    const pb_bytes_array_t *bytes = NULL;
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
+        return pb_encode_string(stream, (const pb_byte_t*)src, field->data_size);
+
+    bytes = (const pb_bytes_array_t*)src;
     
     if (src == NULL)
     {
-        /* Threat null pointer as an empty bytes field */
+        /* Treat null pointer as an empty bytes field */
         return pb_encode_string(stream, NULL, 0);
     }
     
@@ -664,7 +671,7 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
 
     if (src == NULL)
     {
-        size = 0; /* Threat null pointer as an empty string */
+        size = 0; /* Treat null pointer as an empty string */
     }
     else
     {

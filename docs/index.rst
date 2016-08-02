@@ -7,7 +7,7 @@ Nanopb: Protocol Buffers with small code size
 Nanopb is an ANSI-C library for encoding and decoding messages in Google's `Protocol Buffers`__ format with minimal requirements for RAM and code space.
 It is primarily suitable for 32-bit microcontrollers.
 
-__ http://code.google.com/apis/protocolbuffers/
+__ https://developers.google.com/protocol-buffers/docs/reference/overview
 
 Overall structure
 =================
@@ -54,7 +54,7 @@ Features and limitations
 #) Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
 #) Unknown fields are not preserved when decoding and re-encoding a message.
 #) Reflection (runtime introspection) is not supported. E.g. you can't request a field by giving its name in a string.
-#) Numeric arrays are always encoded as packed, even if not marked as packed in .proto..
+#) Numeric arrays are always encoded as packed, even if not marked as packed in .proto.
 #) Cyclic references between messages are supported only in callback and malloc mode.
 
 Getting started

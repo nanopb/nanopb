@@ -77,9 +77,11 @@ int_size                       Override the integer type of a field.
 type                           Type of the generated field. Default value
                                is *FT_DEFAULT*, which selects automatically.
                                You can use *FT_CALLBACK*, *FT_POINTER*,
-                               *FT_STATIC* or *FT_IGNORE* to force a callback
-                               field, a dynamically allocated field, a static
-                               field or to completely ignore the field.
+                               *FT_STATIC*, *FT_IGNORE*, or *FT_INLINE* to
+                               force a callback field, a dynamically
+                               allocated field, a static field, to
+                               completely ignore the field or to
+                               generate an inline bytes field.
 long_names                     Prefix the enum name to the enum value in
                                definitions, i.e. *EnumName_EnumValue*. Enabled
                                by default.
@@ -216,17 +218,20 @@ Type used to store the type of each field, to control the encoder/decoder behavi
 
 The low-order nibble of the enumeration values defines the function that can be used for encoding and decoding the field data:
 
-==================== ===== ================================================
-LTYPE identifier     Value Storage format
-==================== ===== ================================================
-PB_LTYPE_VARINT      0x00  Integer.
-PB_LTYPE_SVARINT     0x01  Integer, zigzag encoded.
-PB_LTYPE_FIXED32     0x02  32-bit integer or floating point.
-PB_LTYPE_FIXED64     0x03  64-bit integer or floating point.
-PB_LTYPE_BYTES       0x04  Structure with *size_t* field and byte array.
-PB_LTYPE_STRING      0x05  Null-terminated string.
-PB_LTYPE_SUBMESSAGE  0x06  Submessage structure.
-==================== ===== ================================================
+=========================== ===== ================================================
+LTYPE identifier            Value Storage format
+=========================== ===== ================================================
+PB_LTYPE_VARINT             0x00  Integer.
+PB_LTYPE_UVARINT            0x01  Unsigned integer.
+PB_LTYPE_SVARINT            0x02  Integer, zigzag encoded.
+PB_LTYPE_FIXED32            0x03  32-bit integer or floating point.
+PB_LTYPE_FIXED64            0x04  64-bit integer or floating point.
+PB_LTYPE_BYTES              0x05  Structure with *size_t* field and byte array.
+PB_LTYPE_STRING             0x06  Null-terminated string.
+PB_LTYPE_SUBMESSAGE         0x07  Submessage structure.
+PB_LTYPE_EXTENSION          0x08  Point to *pb_extension_t*.
+PB_LTYPE_FIXED_LENGTH_BYTES 0x09  Inline *pb_byte_t* array of fixed size.
+=========================== ===== ================================================
 
 The bits 4-5 define whether the field is required, optional or repeated:
 
@@ -489,14 +494,14 @@ This function only considers the LTYPE of the field. You can use it from your fi
 
 Wire type mapping is as follows:
 
-========================= ============
-LTYPEs                    Wire type
-========================= ============
-VARINT, SVARINT           PB_WT_VARINT
-FIXED64                   PB_WT_64BIT  
-STRING, BYTES, SUBMESSAGE PB_WT_STRING 
-FIXED32                   PB_WT_32BIT
-========================= ============
+============================================= ============
+LTYPEs                                        Wire type
+============================================= ============
+VARINT, UVARINT, SVARINT                      PB_WT_VARINT
+FIXED64                                       PB_WT_64BIT
+STRING, BYTES, SUBMESSAGE, FIXED_LENGTH_BYTES PB_WT_STRING
+FIXED32                                       PB_WT_32BIT
+============================================= ============
 
 pb_encode_varint
 ----------------
