@@ -148,6 +148,7 @@ Most Protocol Buffers datatypes have directly corresponding C datatypes, such as
 
 1) Strings, bytes and repeated fields of any type map to callback functions by default.
 2) If there is a special option *(nanopb).max_size* specified in the .proto file, string maps to null-terminated char array and bytes map to a structure containing a char array and a size field.
+3) If *(nanopb).type* is set to *FT_INLINE* and *(nanopb).max_size* is also set, then bytes map to an inline byte array of fixed size.
 3) If there is a special option *(nanopb).max_count* specified on a repeated field, it maps to an array of whatever type is being repeated. Another field will be created for the actual number of entries stored.
 
 =============================================================================== =======================
@@ -160,9 +161,10 @@ repeated string name = 1 [(nanopb).max_size = 40, (nanopb).max_count = 5];      
                                                                                 | char name[5][40];
 required bytes data = 1 [(nanopb).max_size = 40];                               | typedef struct {
                                                                                 |    size_t size;
-                                                                                |    uint8_t bytes[40];
+                                                                                |    pb_byte_t bytes[40];
                                                                                 | } Person_data_t;
                                                                                 | Person_data_t data;
+required bytes data = 1 [(nanopb).max_size = 40, (nanopb.type) = FT_INLINE];    | pb_byte_t data[40];
 =============================================================================== =======================
 
 The maximum lengths are checked in runtime. If string/bytes/array exceeds the allocated length, *pb_decode* will return false.

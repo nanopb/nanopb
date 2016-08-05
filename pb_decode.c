@@ -65,7 +65,8 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_bytes,
     &pb_dec_string,
     &pb_dec_submessage,
-    NULL /* extensions */
+    NULL, /* extensions */
+    &pb_dec_bytes /* PB_LTYPE_FIXED_LENGTH_BYTES */
 };
 
 /*******************************
@@ -1272,6 +1273,12 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
     }
     else
     {
+        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES) {
+            if (size != field->data_size)
+                PB_RETURN_ERROR(stream, "incorrect inline bytes size");
+            return pb_read(stream, (pb_byte_t*)dest, field->data_size);
+        }
+
         if (alloc_size > field->data_size)
             PB_RETURN_ERROR(stream, "bytes overflow");
         bdest = (pb_bytes_array_t*)dest;
