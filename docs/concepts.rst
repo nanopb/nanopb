@@ -164,7 +164,7 @@ required bytes data = 1 [(nanopb).max_size = 40];                               
                                                                                 |    pb_byte_t bytes[40];
                                                                                 | } Person_data_t;
                                                                                 | Person_data_t data;
-required bytes data = 1 [(nanopb).max_size = 40, (nanopb.type) = FT_INLINE];    | pb_byte_t data[40];
+required bytes data = 1 [(nanopb).max_size = 40, (nanopb).type = FT_INLINE];    | pb_byte_t data[40];
 =============================================================================== =======================
 
 The maximum lengths are checked in runtime. If string/bytes/array exceeds the allocated length, *pb_decode* will return false.
