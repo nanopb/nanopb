@@ -360,7 +360,8 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             return func(stream, iter->pos, iter->pData);
             
         case PB_HTYPE_OPTIONAL:
-            *(bool*)iter->pSize = true;
+            if (iter->pSize != iter->pData)
+                *(bool*)iter->pSize = true;
             return func(stream, iter->pos, iter->pData);
     
         case PB_HTYPE_REPEATED:
@@ -772,7 +773,8 @@ static void pb_field_set_to_default(pb_field_iter_t *iter)
         {
             /* Set has_field to false. Still initialize the optional field
              * itself also. */
-            *(bool*)iter->pSize = false;
+            if (iter->pSize != iter->pData)
+                *(bool*)iter->pSize = false;
         }
         else if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
                  PB_HTYPE(type) == PB_HTYPE_ONEOF)
