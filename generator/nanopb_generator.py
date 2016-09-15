@@ -237,6 +237,7 @@ class Field:
         self.default = None
         self.max_size = None
         self.max_count = None
+        self.implicit_has = False
         self.array_decl = ""
         self.enc_size = None
         self.ctype = None
@@ -255,6 +256,9 @@ class Field:
 
         if desc.HasField('default_value'):
             self.default = desc.default_value
+
+        if field_options.HasField("optional_implicit_has"):
+            self.implicit_has = field_options.optional_implicit_has
 
         # Check field rules, i.e. required/optional/repeated.
         can_be_static = True
@@ -360,7 +364,8 @@ class Field:
         elif self.allocation == 'CALLBACK':
             result += '    pb_callback_t %s;' % self.name
         else:
-            if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+            if (self.rules == 'OPTIONAL' and self.allocation == 'STATIC'
+                    and not self.implicit_has):
                 result += '    bool has_' + self.name + ';\n'
             elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
                 result += '    pb_size_t ' + self.name + '_count;\n'
@@ -441,7 +446,10 @@ class Field:
                 outer_init += ', '.join([inner_init] * self.max_count)
                 outer_init += '}'
             elif self.rules == 'OPTIONAL':
-                outer_init = 'false, ' + inner_init
+                if self.implicit_has:
+                    outer_init = "" + inner_init
+                else:
+                    outer_init = 'false, ' + inner_init
             else:
                 outer_init = inner_init
         elif self.allocation == 'POINTER':
@@ -501,7 +509,8 @@ class Field:
 
         result += '%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
-        result += '%s, ' % self.rules
+        result += '%s, ' % (self.rules + ("_IMPLICIT" if self.implicit_has
+                                            else ""))
         result += '%-8s, ' % (self.allocation if not self.inline else "INLINE")
         result += '%s, ' % ("FIRST" if not prev_field_name else "OTHER")
         result += '%s, ' % self.struct_name

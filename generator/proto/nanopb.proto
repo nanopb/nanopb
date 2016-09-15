@@ -66,6 +66,9 @@ message NanoPBOptions {
 
   // decode oneof as anonymous union
   optional bool anonymous_oneof = 11 [default = false];
+
+  // Optional field does not generate a "has_" flag
+  optional bool optional_implicit_has = 12 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
