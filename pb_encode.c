@@ -210,6 +210,23 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
     
     if (field->size_offset)
         pSize = (const char*)pData + field->size_offset;
+    else if (!field->size_offset && PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
+    {
+        /* In proto3 there are optional fields but no has_ flag, do not encode this fields 
+         * when value is default or empty. */
+        if(PB_LTYPE(field->type) == PB_LTYPE_BYTES){
+            const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
+            if(bytes->size == 0)
+                implicit_has = false;
+        else if ((PB_LTYPE(field->type) == PB_LTYPE_STRING && *(const char*)pData == '\0') ||
+                (field->data_size == sizeof(uint_least8_t) && *(const uint_least8_t*)pData == 0) ||
+                (field->data_size == sizeof(uint_least16_t) && *(const uint_least16_t*)pData == 0) ||
+                (field->data_size == sizeof(uint32_t) && *(const uint_least32_t*)pData == 0) ||
+                (field->data_size == sizeof(uint64_t) && *(const uint_least64_t*)pData == 0))                   
+            implicit_has = false;
+        }
+        pSize = &implicit_has;
+    }
     else
         pSize = &implicit_has;
 
