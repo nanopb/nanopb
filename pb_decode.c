@@ -360,7 +360,8 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             return func(stream, iter->pos, iter->pData);
             
         case PB_HTYPE_OPTIONAL:
-            *(bool*)iter->pSize = true;
+            if (iter->pSize != iter->pData)
+                *(bool*)iter->pSize = true;
             return func(stream, iter->pos, iter->pData);
     
         case PB_HTYPE_REPEATED:

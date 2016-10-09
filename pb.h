@@ -413,6 +413,10 @@ struct pb_extension_s {
     pb_delta(st, has_ ## m, m), \
     pb_membersize(st, m), 0, ptr}
 
+#define PB_SINGULAR_STATIC(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+    fd, 0, pb_membersize(st, m), 0, ptr}
+
 /* Repeated fields have a _count field and also the maximum number of entries. */
 #define PB_REPEATED_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
@@ -444,6 +448,11 @@ struct pb_extension_s {
     {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m[0]), 0, ptr}
 
+/* Same as optional fields*/
+#define PB_SINGULAR_POINTER(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+
 /* Repeated fields have a _count field and a pointer to array of pointers */
 #define PB_REPEATED_POINTER(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
@@ -456,6 +465,10 @@ struct pb_extension_s {
     fd, 0, pb_membersize(st, m), 0, ptr}
 
 #define PB_OPTIONAL_CALLBACK(tag, st, m, fd, ltype, ptr) \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
+    fd, 0, pb_membersize(st, m), 0, ptr}
+
+#define PB_SINGULAR_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
     
