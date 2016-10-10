@@ -66,6 +66,9 @@ message NanoPBOptions {
 
   // decode oneof as anonymous union
   optional bool anonymous_oneof = 11 [default = false];
+
+  // Proto3 singular field does not generate a "has_" flag
+  optional bool proto3 = 12 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

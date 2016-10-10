@@ -258,16 +258,18 @@ class Field:
 
         # Check field rules, i.e. required/optional/repeated.
         can_be_static = True
-        if desc.label == FieldD.LABEL_REQUIRED:
-            self.rules = 'REQUIRED'
-        elif desc.label == FieldD.LABEL_OPTIONAL:
-            self.rules = 'OPTIONAL'
-        elif desc.label == FieldD.LABEL_REPEATED:
+        if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
             if self.max_count is None:
                 can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
+        elif field_options.HasField("proto3"):
+            self.rules = 'SINGULAR'
+        elif desc.label == FieldD.LABEL_REQUIRED:
+            self.rules = 'REQUIRED'
+        elif desc.label == FieldD.LABEL_OPTIONAL:
+            self.rules = 'OPTIONAL'
         else:
             raise NotImplementedError(desc.label)
 
