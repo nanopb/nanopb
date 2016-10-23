@@ -89,3 +89,9 @@ message OneofMessage
     }
 }
 
+// Proto3-style optional field in proto2 file
+message Proto3Field
+{
+    optional int32 proto3field = 1 [(nanopb).proto3 = true];
+}
+
