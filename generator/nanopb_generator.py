@@ -1356,6 +1356,9 @@ def get_nanopb_suboptions(subdesc, options, name):
             Globals.matched_namemasks.add(namemask)
             new_options.MergeFrom(options)
 
+    if hasattr(subdesc, 'syntax') and subdesc.syntax == "proto3":
+        new_options.proto3 = True
+
     # Handle options defined in .proto
     if isinstance(subdesc.options, descriptor.FieldOptions):
         ext_type = nanopb_pb2.nanopb
