@@ -530,8 +530,8 @@ class Field:
         '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
         Returns numeric value or a C-expression for assert.'''
         check = []
-        if self.pbtype == 'MESSAGE':
-            if self.rules == 'REPEATED' and self.allocation == 'STATIC':
+        if self.pbtype == 'MESSAGE' and self.allocation == 'STATIC':
+            if self.rules == 'REPEATED':
                 check.append('pb_membersize(%s, %s[0])' % (self.struct_name, self.name))
             elif self.rules == 'ONEOF':
                 if self.anonymous:
@@ -539,6 +539,9 @@ class Field:
                 else:
                     check.append('pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name))
             else:
+                check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
+        elif self.pbtype == 'BYTES' and self.allocation == 'STATIC':
+            if self.max_size > 251:
                 check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
 
         return FieldMaxSize([self.tag, self.max_size, self.max_count],
