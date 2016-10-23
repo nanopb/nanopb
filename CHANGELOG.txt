@@ -1,3 +1,14 @@
+nanopb-0.3.7 (2016-10-xx)
+ Add support for proto3-style singular fields (#182, #206, #216)
+ Add FT_INLINE allocation of bytes fields (#211)
+ Include package name in include guard (#207)
+ Fix missing warning with large bytes fields (issue #220)
+ Added CMake project (#208)
+ Add bazel BUILD file for nanopb (#209)
+ Added an AUTHORS file (#211)
+ Documentation updates
+ Improvements to test cases.
+
 nanopb-0.3.6 (2016-06-19)
  Protect against corrupted _count fields in pb_release (#205)
  Fix error in STATIC_ASSERT with multiple files (#203)
