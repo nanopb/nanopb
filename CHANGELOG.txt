@@ -1,5 +1,6 @@
 nanopb-0.3.7 (2016-10-xx)
  Add support for proto3-style singular fields (#182, #206, #216)
+ Updated binary package protoc to version 3.1.0
  Add FT_INLINE allocation of bytes fields (#211)
  Include package name in include guard (#207)
  Fix missing warning with large bytes fields (issue #220)
