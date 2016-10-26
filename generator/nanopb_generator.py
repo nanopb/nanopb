@@ -207,6 +207,27 @@ class Enum:
             for i, x in enumerate(self.values):
                 result += '\n#define %s %s' % (self.value_longnames[i], x[0])
 
+        if self.options.enum_to_string:
+            result += '\nconst char *%s_Name(%s v);\n' % (self.names, self.names)
+
+        return result
+
+    def enum_definition(self):
+        if not self.options.enum_to_string:
+            return ""
+
+        result = 'const char *%s_Name(%s v) {\n' % (self.names, self.names)
+        result += '    switch (v) {\n'
+
+        for ((enumname, _), strname) in zip(self.values, self.value_longnames):
+            # Strip off the leading type name from the string value.
+            strval = str(strname)[len(str(self.names)) + 1:]
+            result += '    case %s: return "%s";\n' % (enumname, strval)
+
+        result += '    }\n'
+        result += '    return "unknown";\n'
+        result += '}\n'
+
         return result
 
 class FieldMaxSize:
@@ -1219,6 +1240,9 @@ class ProtoFile:
 
         for ext in self.extensions:
             yield ext.extension_def() + '\n'
+
+        for enum in self.enums:
+            yield enum.enum_definition() + '\n'
 
         # Add checks for numeric limits
         if self.messages:
