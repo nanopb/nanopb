@@ -1,4 +1,4 @@
-nanopb-0.3.7 (2016-10-xx)
+nanopb-0.3.7 (2016-10-30)
  Add support for proto3-style singular fields (#182, #206, #216)
  Updated binary package protoc to version 3.1.0
  Add FT_INLINE allocation of bytes fields (#211)
