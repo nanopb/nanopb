@@ -7,9 +7,9 @@ Nanopb is a small code-size Protocol Buffers implementation in ansi C. It is
 especially suitable for use in microcontrollers, but fits any memory
 restricted system.
 
-* **Homepage:** http://kapsi.fi/~jpa/nanopb/
-* **Documentation:** http://kapsi.fi/~jpa/nanopb/docs/
-* **Downloads:** http://kapsi.fi/~jpa/nanopb/download/
+* **Homepage:** https://koti.kapsi.fi/jpa/nanopb/
+* **Documentation:** https://koti.kapsi.fi/jpa/nanopb/docs/
+* **Downloads:** https://koti.kapsi.fi/jpa/nanopb/download/
 * **Forum:** https://groups.google.com/forum/#!forum/nanopb
 
 
