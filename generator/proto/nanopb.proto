@@ -69,6 +69,9 @@ message NanoPBOptions {
 
   // Proto3 singular field does not generate a "has_" flag
   optional bool proto3 = 12 [default = false];
+
+  // Generate an enum->string mapping function (can take up lots of space).
+  optional bool enum_to_string = 13 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
