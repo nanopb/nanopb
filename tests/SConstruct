@@ -93,7 +93,9 @@ if not env.GetOption('clean'):
             conf.env.Append(CORECFLAGS = extra)
     
     # Check if we can use undefined behaviour sanitizer (only with clang)
-    extra = '-fsanitize=undefined '
+    # TODO: Fuzz test triggers the bool sanitizer, figure out whether to
+    #       modify the fuzz test or to keep ignoring the check.
+    extra = '-fsanitize=undefined -fno-sanitize-recover=undefined -fsanitize-recover=bool '
     if 'clang' in env['CC']:
         if conf.CheckCCFLAGS(extra, linkflags = extra):
             conf.env.Append(CORECFLAGS = extra)
