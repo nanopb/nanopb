@@ -220,11 +220,15 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
             if(bytes->size == 0)
                 implicit_has = false;
         }
-        else if ((PB_LTYPE(field->type) == PB_LTYPE_STRING && *(const char*)pData == '\0') ||
-                (field->data_size == sizeof(uint_least8_t) && *(const uint_least8_t*)pData == 0) ||
-                (field->data_size == sizeof(uint_least16_t) && *(const uint_least16_t*)pData == 0) ||
-                (field->data_size == sizeof(uint32_t) && *(const uint_least32_t*)pData == 0) ||
-                (field->data_size == sizeof(uint64_t) && *(const uint_least64_t*)pData == 0))                   
+        else if (PB_LTYPE(field->type) == PB_LTYPE_STRING )
+        {
+        	if( *(const char*)pData == '\0')
+				 implicit_has = false;
+        }
+		else if ((field->data_size == sizeof(uint_least8_t) && *(const uint_least8_t*)pData == 0) ||
+                 (field->data_size == sizeof(uint_least16_t) && *(const uint_least16_t*)pData == 0) ||
+                 (field->data_size == sizeof(uint32_t) && *(const uint_least32_t*)pData == 0) ||
+		         (field->data_size == sizeof(uint64_t) && *(const uint_least64_t*)pData == 0))
         {                   
             implicit_has = false;
         }
