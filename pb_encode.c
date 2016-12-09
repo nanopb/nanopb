@@ -197,45 +197,75 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     return true;
 }
 
+/* In proto3, all fields are optional and are only encoded if their value is "non-zero".
+ * This function implements the check for the zero value. */
+static bool pb_check_proto3_default_value(const pb_field_t *field, const void *pData)
+{
+    if(PB_LTYPE(field->type) == PB_LTYPE_BYTES)
+    {
+        const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
+        return bytes->size == 0;
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_STRING)
+    {
+        return *(const char*)pData == '\0';
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
+    {
+        /* Fixed length bytes is only empty if its length is fixed
+         * as 0. Which would be pretty strange, but we can check
+         * it anyway. */
+        return field->data_size == 0;
+    }
+	else
+	{
+	    /* PB_LTYPE_VARINT, UVARINT, SVARINT, FIXED32, FIXED64,
+	     * SUBMESSAGE, EXTENSION: These all have integer or pointer
+	     * value which can be compared with 0. This does the check
+	     * byte-by-byte to avoid the switch-cast logic used in
+	     * pb_enc_varint(). (Casting to char* is safe with regards
+	     * to C strict aliasing rules.)
+	     */
+	    uint_fast8_t i;
+	    const char *p = (const char*)pData;
+	    for (i = 0; i < field->data_size; i++)
+	    {
+	        if (p[i] != 0)
+	        {
+	            return false;
+	        }
+	    }
+
+	    return true;
+	}
+}
+
 /* Encode a field with static or pointer allocation, i.e. one whose data
  * is available to the encoder directly. */
 static bool checkreturn encode_basic_field(pb_ostream_t *stream,
     const pb_field_t *field, const void *pData)
 {
     pb_encoder_t func;
-    const void *pSize;
-    bool implicit_has = true;
+    bool implicit_has;
+    const void *pSize = &implicit_has;
     
     func = PB_ENCODERS[PB_LTYPE(field->type)];
     
     if (field->size_offset)
-        pSize = (const char*)pData + field->size_offset;
-    else if (!field->size_offset && PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
     {
-        /* In proto3 there are optional fields but no has_ flag, do not encode this fields 
-         * when value is default or empty. */
-        if(PB_LTYPE(field->type) == PB_LTYPE_BYTES)
-        {
-            const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
-            if(bytes->size == 0)
-                implicit_has = false;
-        }
-        else if (PB_LTYPE(field->type) == PB_LTYPE_STRING )
-        {
-        	if( *(const char*)pData == '\0')
-				 implicit_has = false;
-        }
-		else if ((field->data_size == sizeof(uint_least8_t) && *(const uint_least8_t*)pData == 0) ||
-                 (field->data_size == sizeof(uint_least16_t) && *(const uint_least16_t*)pData == 0) ||
-                 (field->data_size == sizeof(uint32_t) && *(const uint_least32_t*)pData == 0) ||
-		         (field->data_size == sizeof(uint64_t) && *(const uint_least64_t*)pData == 0))
-        {                   
-            implicit_has = false;
-        }
-        pSize = &implicit_has;
+        /* Static optional, repeated or oneof field */
+        pSize = (const char*)pData + field->size_offset;
+    }
+    else if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
+    {
+        /* Proto3 style field, optional but without explicit has_ field. */
+        implicit_has = !pb_check_proto3_default_value(field, pData);
     }
     else
-        pSize = &implicit_has;
+    {
+        /* Required field, always present */
+        implicit_has = true;
+    }
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
@@ -243,7 +273,6 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
          * the data. If the 2nd pointer is NULL, it is interpreted as if
          * the has_field was false.
          */
-        
         pData = *(const void* const*)pData;
         implicit_has = (pData != NULL);
     }
