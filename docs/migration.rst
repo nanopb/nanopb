@@ -11,6 +11,19 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
+Nanopb-0.3.8 (2017-xx-xx)
+=========================
+Fully drain substreams before closing
+
+**Rationale:** If the substream functions were called directly and the caller
+did not completely empty the substring before closing it, the parent stream
+would be put into an incorrect state.
+
+**Changes:** *pb_close_string_substream* can now error and returns a boolean.
+
+**Required actions:** Add error checking onto any call to
+*pb_close_string_substream*.
+
 Nanopb-0.3.5 (2016-02-13)
 =========================
 

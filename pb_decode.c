@@ -333,13 +333,19 @@ bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *su
     return true;
 }
 
-void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
+bool checkreturn pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
+    if (substream->bytes_left) {
+        if (!pb_read(substream, NULL, substream->bytes_left))
+            return false;
+    }
+
     stream->state = substream->state;
 
 #ifndef PB_NO_ERRMSG
     stream->errmsg = substream->errmsg;
 #endif
+    return true;
 }
 
 /*************************
@@ -385,11 +391,12 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                     }
                     (*size)++;
                 }
-                pb_close_string_substream(stream, &substream);
-                
+
                 if (substream.bytes_left != 0)
                     PB_RETURN_ERROR(stream, "array overflow");
-                
+                if (!pb_close_string_substream(stream, &substream))
+                    return false;
+
                 return status;
             }
             else
@@ -569,7 +576,8 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                     
                     (*size)++;
                 }
-                pb_close_string_substream(stream, &substream);
+                if (!pb_close_string_substream(stream, &substream))
+                    return false;
                 
                 return status;
             }
@@ -623,7 +631,9 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
                 PB_RETURN_ERROR(stream, "callback failed");
         } while (substream.bytes_left);
         
-        pb_close_string_substream(stream, &substream);
+        if (!pb_close_string_substream(stream, &substream))
+            return false;
+
         return true;
     }
     else
@@ -964,7 +974,9 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
         return false;
     
     status = pb_decode(&substream, fields, dest_struct);
-    pb_close_string_substream(stream, &substream);
+
+    if (!pb_close_string_substream(stream, &substream))
+        return false;
     return status;
 }
 
@@ -1343,6 +1355,7 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t
     else
         status = pb_decode_noinit(&substream, submsg_fields, dest);
     
-    pb_close_string_substream(stream, &substream);
+    if (!pb_close_string_substream(stream, &substream))
+        return false;
     return status;
 }
