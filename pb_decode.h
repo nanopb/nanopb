@@ -126,6 +126,10 @@ bool pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type);
  * int64, uint32 and uint64 field types. */
 bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest);
 
+/* Decode an integer in the varint format. This works for bool, enum, int32,
+ * and uint32 field types. */
+bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest);
+
 /* Decode an integer in the zig-zagged svarint format. This works for sint32
  * and sint64. */
 bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest);
