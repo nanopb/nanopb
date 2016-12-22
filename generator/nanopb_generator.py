@@ -285,7 +285,7 @@ class Field:
                 can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
-        elif field_options.HasField("proto3"):
+        elif field_options.proto3:
             self.rules = 'SINGULAR'
         elif desc.label == FieldD.LABEL_REQUIRED:
             self.rules = 'REQUIRED'
@@ -1373,15 +1373,15 @@ def get_nanopb_suboptions(subdesc, options, name):
     new_options = nanopb_pb2.NanoPBOptions()
     new_options.CopyFrom(options)
 
+    if hasattr(subdesc, 'syntax') and subdesc.syntax == "proto3":
+        new_options.proto3 = True
+
     # Handle options defined in a separate file
     dotname = '.'.join(name.parts)
     for namemask, options in Globals.separate_options:
         if fnmatch(dotname, namemask):
             Globals.matched_namemasks.add(namemask)
             new_options.MergeFrom(options)
-
-    if hasattr(subdesc, 'syntax') and subdesc.syntax == "proto3":
-        new_options.proto3 = True
 
     # Handle options defined in .proto
     if isinstance(subdesc.options, descriptor.FieldOptions):

@@ -1,0 +1,4 @@
+! bool has_proto3_default
+bool has_proto3_off
+! bool has_proto3_on
+
