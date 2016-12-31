@@ -509,9 +509,10 @@ class Field:
         identifier = '%s_%s_tag' % (self.struct_name, self.name)
         return '#define %-40s %d\n' % (identifier, self.tag)
 
-    def pb_field_t(self, prev_field_name):
+    def pb_field_t(self, prev_field_name, union_index = None):
         '''Return the pb_field_t initializer to use in the constant array.
-        prev_field_name is the name of the previous field or None.
+        prev_field_name is the name of the previous field or None. For OneOf
+        unions, union_index is the index of this field inside the OneOf.
         '''
 
         if self.rules == 'ONEOF':
@@ -526,7 +527,14 @@ class Field:
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
         result += '%-8s, ' % (self.allocation if not self.inline else "INLINE")
-        result += '%s, ' % ("FIRST" if not prev_field_name else "OTHER")
+        
+        if union_index is not None and union_index > 0:
+            result += 'UNION, '
+        elif prev_field_name is None:
+            result += 'FIRST, '
+        else:
+            result += 'OTHER, '
+        
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
@@ -767,8 +775,10 @@ class OneOf(Field):
         return ''.join([f.tags() for f in self.fields])
 
     def pb_field_t(self, prev_field_name):
-        result = ',\n'.join([f.pb_field_t(prev_field_name) for f in self.fields])
-        return result
+        parts = []
+        for union_index, field in enumerate(self.fields):
+            parts.append(field.pb_field_t(prev_field_name, union_index))
+        return ',\n'.join(parts)
 
     def get_last_field_name(self):
         if self.anonymous:

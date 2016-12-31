@@ -393,6 +393,8 @@ struct pb_extension_s {
 #define PB_DATAOFFSET_FIRST(st, m1, m2) (offsetof(st, m1))
 /* data_offset for subsequent fields */
 #define PB_DATAOFFSET_OTHER(st, m1, m2) (offsetof(st, m1) - offsetof(st, m2) - pb_membersize(st, m2))
+/* data offset for subsequent fields inside an union (oneof) */
+#define PB_DATAOFFSET_UNION(st, m1, m2) (PB_SIZE_MAX)
 /* Choose first/other based on m1 == m2 (deprecated, remains for backwards compatibility) */
 #define PB_DATAOFFSET_CHOOSE(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
                                   ? PB_DATAOFFSET_FIRST(st, m1, m2) \

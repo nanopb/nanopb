@@ -42,11 +42,11 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
         size_t prev_size = prev_field->data_size;
     
         if (PB_HTYPE(prev_field->type) == PB_HTYPE_ONEOF &&
-            PB_HTYPE(iter->pos->type) == PB_HTYPE_ONEOF)
+            PB_HTYPE(iter->pos->type) == PB_HTYPE_ONEOF &&
+            iter->pos->data_offset == PB_SIZE_MAX)
         {
             /* Don't advance pointers inside unions */
-            prev_size = 0;
-            iter->pData = (char*)iter->pData - prev_field->data_offset;
+            return true;
         }
         else if (PB_ATYPE(prev_field->type) == PB_ATYPE_STATIC &&
                  PB_HTYPE(prev_field->type) == PB_HTYPE_REPEATED)
