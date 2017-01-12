@@ -144,7 +144,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
 
 /* Make a limited-length substream for reading a PB_WT_STRING field. */
 bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
-void pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 
 #ifdef __cplusplus
 } /* extern "C" */
