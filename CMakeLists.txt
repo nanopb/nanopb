@@ -22,7 +22,7 @@ if(MSVC AND nanopb_MSVC_STATIC_RUNTIME)
     endforeach(flag_var)
 endif()
 
-add_library(libprotobuf-nanopb STATIC
+add_library(protobuf-nanopb STATIC
     pb.h
     pb_common.h
     pb_common.c
@@ -31,7 +31,7 @@ add_library(libprotobuf-nanopb STATIC
     pb_decode.h
     pb_decode.c)
 
-target_include_directories(libprotobuf-nanopb INTERFACE
+target_include_directories(protobuf-nanopb INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -41,7 +41,7 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "lib/cmake/nanopb")
 endif()
 
-install(TARGETS libprotobuf-nanopb EXPORT nanopb-targets
+install(TARGETS protobuf-nanopb EXPORT nanopb-targets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(EXPORT nanopb-targets
