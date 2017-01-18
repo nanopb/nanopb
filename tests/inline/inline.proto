@@ -4,14 +4,14 @@
 
 syntax = "proto2";
 
-import "nanopb.proto";
+import "nanopb/options.proto";
 
 message Message1
 {
-    required bytes data = 1 [(nanopb).type = FT_INLINE, (nanopb).max_size = 32];
+    required bytes data = 1 [(nanopb.fieldopt).type = FT_INLINE, (nanopb.fieldopt).max_size = 32];
 }
 
 message Message2
 {
-    optional bytes data = 1 [(nanopb).type = FT_INLINE, (nanopb).max_size = 64];
+    optional bytes data = 1 [(nanopb.fieldopt).type = FT_INLINE, (nanopb.fieldopt).max_size = 64];
 }

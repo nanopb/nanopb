@@ -1,11 +1,11 @@
 syntax = "proto2";
 
-import "nanopb.proto";
+import "nanopb/options.proto";
 
 message Person {
-  required string name = 1 [(nanopb).max_size = 40];
+  required string name = 1 [(nanopb.fieldopt).max_size = 40];
   required int32 id = 2;
-  optional string email = 3 [(nanopb).max_size = 40];
+  optional string email = 3 [(nanopb.fieldopt).max_size = 40];
   
   enum PhoneType {
     MOBILE = 0;
@@ -14,9 +14,9 @@ message Person {
   }
 
   message PhoneNumber {
-    required string number = 1 [(nanopb).max_size = 40];
+    required string number = 1 [(nanopb.fieldopt).max_size = 40];
     optional PhoneType type = 2 [default = HOME];
   }
 
-  repeated PhoneNumber phone = 4 [(nanopb).max_count = 5];
+  repeated PhoneNumber phone = 4 [(nanopb.fieldopt).max_count = 5];
 }

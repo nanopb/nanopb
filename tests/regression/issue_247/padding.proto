@@ -1,5 +1,5 @@
 syntax = "proto3";
-import "nanopb.proto";
+import "nanopb/options.proto";
 
 message SubMessage {
     bool boolfield = 1;

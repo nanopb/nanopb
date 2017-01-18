@@ -6,7 +6,7 @@ language: python
 
 python:
     - "2.7"
-    - "3.4"
+    - "3.6"
 
 # Manage the C/C++ compiler manually
 env:
@@ -14,24 +14,31 @@ env:
     - CC=gcc-4.8 CXX=g++-4.8
     - CC=gcc-4.9 CXX=g++-4.9
     - CC=gcc-5   CXX=g++-5
+    - CC=gcc-6   CXX=g++-6
     - CC=clang   CXX=clang++
 
 addons:
     apt:
         sources:
             - ubuntu-toolchain-r-test
+            - george-edison55-precise-backports
         packages:
+            - cmake
+            - cmake-data
             - gcc-4.8
             - g++-4.8
             - gcc-4.9
             - g++-4.9
             - gcc-5
             - g++-5
+            - gcc-6
+            - g++-6
 
 
 before_install:
     - export PATH=$HOME/.local/bin:$HOME/protobuf/bin:$PATH
     - export MAKEFLAGS=-j$(grep processor /proc/cpuinfo | wc -l)
+    - export PKG_CONFIG_PATH="$HOME/protobuf/lib/pkgconfig${PKG_CONFIG_PATH+:}$PKG_CONFIG_PATH"
     - $CC --version
     - $CXX --version
     - python --version
@@ -43,12 +50,26 @@ before_install:
 #        - $HOME/protobuf
 
 install:
-    - curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-1/protobuf-python-3.0.0-alpha-4.tar.gz | tar xzf -
-      && pushd protobuf-3.0.0-alpha-4
+    - env
+    - curl -L https://github.com/google/protobuf/releases/download/v3.1.0/protobuf-python-3.1.0.tar.gz | tar xzf -
+      && pushd protobuf-3.1.0
       && ./configure --prefix=$HOME/protobuf && make && make install
       && pushd python && python setup.py build && python setup.py install && popd
       && popd
 
 script:
-    - pushd generator/proto && make && popd
+    - pushd generator/nanopb && make && popd
+    - touch config.h
     - pushd tests && python2 $(which scons) CC=$CC CXX=$CXX && popd
+    - rm config.h
+    - SRC="$(pwd)" && mkdir $HOME/nanopb-{build,install} && pushd $HOME/nanopb-build
+      && cmake --trace --debug-output -DCMAKE_INSTALL_PREFIX="$HOME/nanopb-install" "$SRC"
+      && make && make install && popd
+    - export PATH="$HOME/nanopb-install/bin:$PATH"
+    - export PYTHONPATH="$(python -c "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix='$HOME/nanopb-install'))")"
+    - pushd "$HOME/nanopb-build"
+      && protoc --plugin=nanopb --nanopb_out=.
+        -I"$HOME/protobuf/include" -I"$HOME/nanopb-install/include" -I"$SRC/tests/inline"
+        "$SRC/tests/inline/inline.proto"
+      && gcc -I"$HOME/nanopb-install/include" -c -o inline.pb.o inline.pb.c
+      && popd

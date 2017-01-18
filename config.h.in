@@ -1,0 +1,15 @@
+#ifndef NANOPB_CONFIG_H
+#define NANOPB_CONFIG_H
+
+/* Default options for non-embedded userspace configs
+ * our target is to have the most compatability with generated
+ * protos
+ */
+
+#define PB_ENABLE_MALLOC 1
+#define PB_NO_PACKED_STRUCTS 1
+#define PB_MAX_REQUIRED_FIELDS 256
+#undef PB_FIELD_16BIT
+#define PB_FIELD_32BIT 1
+
+#endif

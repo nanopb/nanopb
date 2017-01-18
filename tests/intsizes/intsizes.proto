@@ -8,21 +8,21 @@
 
 syntax = "proto2";
 
-import 'nanopb.proto';
+import 'nanopb/options.proto';
 
 message IntSizes {
-    required int32  req_int8 =   1  [(nanopb).int_size = IS_8];
-    required uint32 req_uint8 =  2  [(nanopb).int_size = IS_8];
-    required sint32 req_sint8 =  3  [(nanopb).int_size = IS_8];
-    required int32  req_int16 =  4  [(nanopb).int_size = IS_16];
-    required uint32 req_uint16 = 5  [(nanopb).int_size = IS_16];
-    required sint32 req_sint16 = 6  [(nanopb).int_size = IS_16];
-    required int32  req_int32 =  7  [(nanopb).int_size = IS_32];
-    required uint32 req_uint32 = 8  [(nanopb).int_size = IS_32];
-    required sint32 req_sint32 = 9  [(nanopb).int_size = IS_32];
-    required int32  req_int64 =  10 [(nanopb).int_size = IS_64];
-    required uint32 req_uint64 = 11 [(nanopb).int_size = IS_64];
-    required sint32 req_sint64 = 12 [(nanopb).int_size = IS_64];
+    required int32  req_int8 =   1  [(nanopb.fieldopt).int_size = IS_8];
+    required uint32 req_uint8 =  2  [(nanopb.fieldopt).int_size = IS_8];
+    required sint32 req_sint8 =  3  [(nanopb.fieldopt).int_size = IS_8];
+    required int32  req_int16 =  4  [(nanopb.fieldopt).int_size = IS_16];
+    required uint32 req_uint16 = 5  [(nanopb.fieldopt).int_size = IS_16];
+    required sint32 req_sint16 = 6  [(nanopb.fieldopt).int_size = IS_16];
+    required int32  req_int32 =  7  [(nanopb.fieldopt).int_size = IS_32];
+    required uint32 req_uint32 = 8  [(nanopb.fieldopt).int_size = IS_32];
+    required sint32 req_sint32 = 9  [(nanopb.fieldopt).int_size = IS_32];
+    required int32  req_int64 =  10 [(nanopb.fieldopt).int_size = IS_64];
+    required uint32 req_uint64 = 11 [(nanopb.fieldopt).int_size = IS_64];
+    required sint32 req_sint64 = 12 [(nanopb.fieldopt).int_size = IS_64];
 }
 
 message DefaultSizes {

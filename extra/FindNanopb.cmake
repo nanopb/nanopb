@@ -128,10 +128,9 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
 
-  set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
+  set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/nanopb)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto
-      ${GENERATOR_CORE_DIR}/plugin.proto)
 
   # Treat the source diretory as immutable.
   #
@@ -156,7 +155,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       add_custom_command(
         OUTPUT ${output}
         COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
-        ARGS -I${GENERATOR_PATH}/proto
+		ARGS -I${GENERATOR_CORE_DIR}
           --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
         DEPENDS ${ABS_FIL}
         VERBATIM)

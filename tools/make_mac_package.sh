@@ -18,7 +18,7 @@ mkdir -p $DEST
 git archive HEAD | tar x -C $DEST
 
 # Rebuild the Python .proto files
-make -BC $DEST/generator/proto
+make -BC $DEST/generator/nanopb
 
 # Package the Python libraries
 ( cd $DEST/generator; pyinstaller nanopb_generator.py )

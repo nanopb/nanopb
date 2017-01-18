@@ -18,8 +18,8 @@ except:
     pass
 
 try:
-    import google.protobuf.text_format as text_format
-    import google.protobuf.descriptor_pb2 as descriptor
+    from google.protobuf import descriptor_pb2, text_format
+    from google.protobuf.compiler import plugin_pb2
 except:
     sys.stderr.write('''
          *************************************************************
@@ -30,8 +30,7 @@ except:
     raise
 
 try:
-    import proto.nanopb_pb2 as nanopb_pb2
-    import proto.plugin_pb2 as plugin_pb2
+    from nanopb import options_pb2
 except TypeError:
     sys.stderr.write('''
          ****************************************************************************
@@ -50,7 +49,7 @@ except:
     sys.stderr.write('''
          ********************************************************************
          *** Failed to import the protocol definitions for generator.     ***
-         *** You have to run 'make' in the nanopb/generator/proto folder. ***
+         *** You have to run 'make' in the nanopb/generator/nanopb folder. ***
          ********************************************************************
     ''' + '\n')
     raise
@@ -63,7 +62,7 @@ import time
 import os.path
 
 # Values are tuple (c type, pb type, encoded size, int_size_allowed)
-FieldD = descriptor.FieldDescriptorProto
+FieldD = descriptor_pb2.FieldDescriptorProto
 datatypes = {
     FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
     FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
@@ -82,10 +81,10 @@ datatypes = {
 
 # Integer size overrides (from .proto settings)
 intsizes = {
-    nanopb_pb2.IS_8:     'int8_t',
-    nanopb_pb2.IS_16:    'int16_t',
-    nanopb_pb2.IS_32:    'int32_t',
-    nanopb_pb2.IS_64:    'int64_t',
+    options_pb2.IS_8:     'int8_t',
+    options_pb2.IS_16:    'int16_t',
+    options_pb2.IS_32:    'int32_t',
+    options_pb2.IS_64:    'int64_t',
 }
 
 # String types (for python 2 / python 3 compatibility)
@@ -276,11 +275,11 @@ class Field:
         self.enc_size = None
         self.ctype = None
 
-        if field_options.type == nanopb_pb2.FT_INLINE:
+        if field_options.type == options_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
             # by setting type to FT_INLINE. But to handle pointer typed fields,
             # it makes sense to have it as a separate option.
-            field_options.type = nanopb_pb2.FT_STATIC
+            field_options.type = options_pb2.FT_STATIC
             field_options.fixed_length = True
 
         # Parse field options
@@ -323,21 +322,21 @@ class Field:
             can_be_static = False
 
         # Decide how the field data will be allocated
-        if field_options.type == nanopb_pb2.FT_DEFAULT:
+        if field_options.type == options_pb2.FT_DEFAULT:
             if can_be_static:
-                field_options.type = nanopb_pb2.FT_STATIC
+                field_options.type = options_pb2.FT_STATIC
             else:
-                field_options.type = nanopb_pb2.FT_CALLBACK
+                field_options.type = options_pb2.FT_CALLBACK
 
-        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
+        if field_options.type == options_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field %s is defined as static, but max_size or "
                             "max_count is not given." % self.name)
 
-        if field_options.type == nanopb_pb2.FT_STATIC:
+        if field_options.type == options_pb2.FT_STATIC:
             self.allocation = 'STATIC'
-        elif field_options.type == nanopb_pb2.FT_POINTER:
+        elif field_options.type == options_pb2.FT_POINTER:
             self.allocation = 'POINTER'
-        elif field_options.type == nanopb_pb2.FT_CALLBACK:
+        elif field_options.type == options_pb2.FT_CALLBACK:
             self.allocation = 'CALLBACK'
         else:
             raise NotImplementedError(field_options.type)
@@ -347,7 +346,7 @@ class Field:
             self.ctype, self.pbtype, self.enc_size, isa = datatypes[desc.type]
 
             # Override the field size if user wants to use smaller integers
-            if isa and field_options.int_size != nanopb_pb2.IS_DEFAULT:
+            if isa and field_options.int_size != options_pb2.IS_DEFAULT:
                 self.ctype = intsizes[field_options.int_size]
                 if desc.type == FieldD.TYPE_UINT32 or desc.type == FieldD.TYPE_UINT64:
                     self.ctype = 'u' + self.ctype;
@@ -848,7 +847,7 @@ class Message:
                 oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
                 if oneof_options.no_unions:
                     no_unions.append(i) # No union, but add fields normally
-                elif oneof_options.type == nanopb_pb2.FT_IGNORE:
+                elif oneof_options.type == options_pb2.FT_IGNORE:
                     pass # No union and skip fields also
                 else:
                     oneof = OneOf(self.name, f)
@@ -859,7 +858,7 @@ class Message:
 
         for f in desc.field:
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
-            if field_options.type == nanopb_pb2.FT_IGNORE:
+            if field_options.type == options_pb2.FT_IGNORE:
                 continue
 
             field = Field(self.name, f, field_options)
@@ -874,7 +873,7 @@ class Message:
         if len(desc.extension_range) > 0:
             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
             range_start = min([r.start for r in desc.extension_range])
-            if field_options.type != nanopb_pb2.FT_IGNORE:
+            if field_options.type != options_pb2.FT_IGNORE:
                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
 
         self.packed = message_options.packed_struct
@@ -1088,7 +1087,7 @@ class ProtoFile:
 
         for names, extension in iterate_extensions(self.fdesc, base_name):
             field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
-            if field_options.type != nanopb_pb2.FT_IGNORE:
+            if field_options.type != options_pb2.FT_IGNORE:
                 self.extensions.append(ExtensionField(names, extension, field_options))
 
     def add_dependency(self, other):
@@ -1381,7 +1380,7 @@ def read_options_file(infile):
                              "Skipping line: '%s'\n" % line)
             continue
 
-        opts = nanopb_pb2.NanoPBOptions()
+        opts = options_pb2.Options()
 
         try:
             text_format.Merge(parts[1], opts)
@@ -1402,7 +1401,7 @@ class Globals:
 
 def get_nanopb_suboptions(subdesc, options, name):
     '''Get copy of options, and merge information from subdesc.'''
-    new_options = nanopb_pb2.NanoPBOptions()
+    new_options = options_pb2.Options()
     new_options.CopyFrom(options)
 
     if hasattr(subdesc, 'syntax') and subdesc.syntax == "proto3":
@@ -1416,14 +1415,14 @@ def get_nanopb_suboptions(subdesc, options, name):
             new_options.MergeFrom(options)
 
     # Handle options defined in .proto
-    if isinstance(subdesc.options, descriptor.FieldOptions):
-        ext_type = nanopb_pb2.nanopb
-    elif isinstance(subdesc.options, descriptor.FileOptions):
-        ext_type = nanopb_pb2.nanopb_fileopt
-    elif isinstance(subdesc.options, descriptor.MessageOptions):
-        ext_type = nanopb_pb2.nanopb_msgopt
-    elif isinstance(subdesc.options, descriptor.EnumOptions):
-        ext_type = nanopb_pb2.nanopb_enumopt
+    if isinstance(subdesc.options, descriptor_pb2.FieldOptions):
+        ext_type = options_pb2.fieldopt
+    elif isinstance(subdesc.options, descriptor_pb2.FileOptions):
+        ext_type = options_pb2.fileopt
+    elif isinstance(subdesc.options, descriptor_pb2.MessageOptions):
+        ext_type = options_pb2.msgopt
+    elif isinstance(subdesc.options, descriptor_pb2.EnumOptions):
+        ext_type = options_pb2.enumopt
     else:
         raise Exception("Unknown options type")
 
@@ -1466,7 +1465,7 @@ optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"\n',
     help="Set format string to use for including other .pb.h files. [default: %default]")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
-    metavar="FORMAT", default='#include <%s>\n',
+    metavar="FORMAT", default='#include <nanopb/%s>\n',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=False,
     help="Don't add timestamp to .pb.h and .pb.c preambles")
@@ -1479,13 +1478,13 @@ optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="appe
 
 def parse_file(filename, fdesc, options):
     '''Parse a single file. Returns a ProtoFile instance.'''
-    toplevel_options = nanopb_pb2.NanoPBOptions()
+    toplevel_options = options_pb2.Options()
     for s in options.settings:
         text_format.Merge(s, toplevel_options)
 
     if not fdesc:
         data = open(filename, 'rb').read()
-        fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
+        fdesc = descriptor_pb2.FileDescriptorSet.FromString(data).file[0]
 
     # Check if there is a separate .options file
     had_abspath = False
@@ -1549,7 +1548,7 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
-    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
+    excludes = ['nanopb/options.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     includes = [d for d in f.fdesc.dependency if d not in excludes]
 
     headerdata = ''.join(f.generate_header(includes, headerbasename, options))

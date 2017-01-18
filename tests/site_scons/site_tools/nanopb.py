@@ -116,7 +116,7 @@ def generate(env):
     env['PROTOC'] = _detect_protoc(env)
     env['PROTOCFLAGS'] = _detect_protocflags(env)
     
-    env.SetDefault(PROTOCPATH = ['.', os.path.join(env['NANOPB'], 'generator', 'proto')])
+    env.SetDefault(PROTOCPATH = ['.', os.path.join(env['NANOPB'], 'generator')])
     
     env.SetDefault(NANOPB_PROTO_CMD = '$PROTOC $PROTOCFLAGS --nanopb_out=. $SOURCES')
     env['BUILDERS']['NanopbProto'] = _nanopb_proto_builder

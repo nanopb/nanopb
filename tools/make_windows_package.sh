@@ -17,7 +17,7 @@ mkdir -p $DEST
 git archive HEAD | tar x -C $DEST
 
 # Rebuild the Python .proto files
-make -BC $DEST/generator/proto
+make -BC $DEST/generator/nanopb
 
 # Make the nanopb generator available as a protoc plugin
 cp $DEST/generator/nanopb_generator.py $DEST/generator/protoc-gen-nanopb.py

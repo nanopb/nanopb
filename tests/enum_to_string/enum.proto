@@ -2,9 +2,9 @@
 
 syntax = "proto2";
 
-import "nanopb.proto";
+import "nanopb/options.proto";
 
-option (nanopb_fileopt).enum_to_string = true;
+option (nanopb.fileopt).enum_to_string = true;
 
 enum MyEnum {
     VALUE1 = 1;
@@ -13,7 +13,7 @@ enum MyEnum {
 }
 
 enum MyShortNameEnum {
-    option (nanopb_enumopt).long_names = false;
+    option (nanopb.enumopt).long_names = false;
     MSNE_VALUE256 = 256;
 }
 

@@ -1,10 +1,3 @@
-// This is a transitional file, to provide parallel support between the old
-// nanopb.proto and new options.proto files. Eventually nanopb.proto will
-// be left only for legacy code, but for now the generator is still also
-// using it. However, your new code can start using this file already now.
-// See pull request #241 for details:
-// https://github.com/nanopb/nanopb/pull/241
-
 // Custom options for defining:
 // - Maximum size of string/bytes
 // - Maximum number of elements in array
@@ -42,32 +35,32 @@ message Options {
   // Allocated size for 'bytes' and 'string' fields.
   // For string fields, this should include the space for null terminator.
   optional int32 max_size = 1;
-
+  
   // Maximum length for 'string' fields. Setting this is equivalent
   // to setting max_size to a value of length+1.
   optional int32 max_length = 14;
-
+  
   // Allocated number of entries in arrays ('repeated' fields)
   optional int32 max_count = 2;
-
+  
   // Size of integer fields. Can save some memory if you don't need
   // full 32 bits for the value.
   optional IntSize int_size = 7 [default = IS_DEFAULT];
 
   // Force type of field (callback or static allocation)
   optional FieldType type = 3 [default = FT_DEFAULT];
-
+  
   // Use long names for enums, i.e. EnumName_EnumValue.
   optional bool long_names = 4 [default = true];
-
+  
   // Add 'packed' attribute to generated structs.
   // Note: this cannot be used on CPUs that break on unaligned
   // accesses to variables.
   optional bool packed_struct = 5 [default = false];
-
+  
   // Add 'packed' attribute to generated enums.
   optional bool packed_enum = 10 [default = false];
-
+  
   // Skip this message
   optional bool skip_message = 6 [default = false];
 

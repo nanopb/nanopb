@@ -1,21 +1,21 @@
 syntax = "proto2";
 
-import 'nanopb.proto';
+import 'nanopb/options.proto';
 
 message IntegerArray {
-    repeated int32 data = 1 [(nanopb).max_count = 10];
+    repeated int32 data = 1 [(nanopb.fieldopt).max_count = 10];
 }
 
 message FloatArray {
-    repeated float data = 1 [(nanopb).max_count = 10];
+    repeated float data = 1 [(nanopb.fieldopt).max_count = 10];
 }
 
 message StringMessage {
-    required string data = 1 [(nanopb).max_size = 10];
+    required string data = 1 [(nanopb.fieldopt).max_size = 10];
 }
 
 message BytesMessage {
-    required bytes data = 1 [(nanopb).max_size = 16];
+    required bytes data = 1 [(nanopb.fieldopt).max_size = 16];
 }
 
 message CallbackArray {
@@ -38,6 +38,6 @@ message CallbackContainerContainer {
 }
 
 message StringPointerContainer {
-    repeated string rep_str = 1 [(nanopb).type = FT_POINTER];
+    repeated string rep_str = 1 [(nanopb.fieldopt).type = FT_POINTER];
 }
 

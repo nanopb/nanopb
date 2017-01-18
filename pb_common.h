@@ -2,8 +2,8 @@
  * These functions are rarely needed by applications directly.
  */
 
-#ifndef PB_COMMON_H_INCLUDED
-#define PB_COMMON_H_INCLUDED
+#ifndef NANOPB_PB_COMMON_H
+#define NANOPB_PB_COMMON_H
 
 #include "pb.h"
 

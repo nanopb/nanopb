@@ -1,3 +1,5 @@
+*.a
+*.cmake
 *.gcda
 *.gcno
 *.gcov
@@ -5,12 +7,18 @@
 *.pb.c
 *.pb.h
 *.pb
+*.pc
 *.pyc
 *_pb2.py
+*.so
 *~
 *.tar.gz
 .sconsign.dblite
+CMakeCache.txt
+CMakeFiles/*
+config.h
 config.log
+Makefile
 .sconf_temp
 tests/build
 julkaisu.txt

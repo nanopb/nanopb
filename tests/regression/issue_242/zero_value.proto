@@ -1,5 +1,5 @@
 syntax = "proto2";
-import "nanopb.proto";
+import "nanopb/options.proto";
 
 message Extendable {
     extensions 10 to 100;
@@ -10,6 +10,6 @@ extend Extendable {
 }
 
 message PointerMessage {
-    optional int32 opt_int32 = 11 [(nanopb).type = FT_POINTER];
+    optional int32 opt_int32 = 11 [(nanopb.fieldopt).type = FT_POINTER];
 }
 

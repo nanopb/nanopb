@@ -1,10 +1,10 @@
 syntax = "proto2";
 
-import 'nanopb.proto';
+import 'nanopb/options.proto';
 
 message SubMessage
 {
-    repeated int32 array = 1 [(nanopb).max_count = 8];
+    repeated int32 array = 1 [(nanopb.fieldopt).max_count = 8];
 }
 
 /* Oneof in a message with other fields */
@@ -14,7 +14,7 @@ message OneOfMessage
     oneof values
     {
         int32 first = 5;
-        string second = 6 [(nanopb).max_size = 8];
+        string second = 6 [(nanopb.fieldopt).max_size = 8];
         SubMessage third = 7;
     }
     required int32 suffix = 99;
@@ -26,7 +26,7 @@ message PlainOneOfMessage
     oneof values
     {
         int32 first = 5;
-        string second = 6 [(nanopb).max_size = 8];
+        string second = 6 [(nanopb.fieldopt).max_size = 8];
         SubMessage third = 7;
     }
 }

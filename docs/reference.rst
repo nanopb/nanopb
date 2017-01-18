@@ -169,8 +169,8 @@ you do define the options directly in the .proto file::
     import "nanopb.proto";
     
     message MyMessage {
-        required string name = 1 [(nanopb).max_size = 40];
-        repeated int32 ids = 4   [(nanopb).max_count = 5];
+        required string name = 1 [(nanopb.fieldopt).max_size = 40];
+        repeated int32 ids = 4   [(nanopb.fieldopt).max_count = 5];
     }
 
 A small complication is that you have to set the include path of protoc so that
@@ -183,10 +183,10 @@ protoc command similar to::
 
 The options can be defined in file, message and field scopes::
 
-    option (nanopb_fileopt).max_size = 20; // File scope
+    option (nanopb.fileopt).max_size = 20; // File scope
     message Message
     {
-        option (nanopb_msgopt).max_size = 30; // Message scope
+        option (nanopb.msgopt).max_size = 30; // Message scope
         required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
     }
 

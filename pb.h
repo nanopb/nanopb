@@ -2,47 +2,10 @@
  * stuff. For the high-level interface, see pb_encode.h and pb_decode.h.
  */
 
-#ifndef PB_H_INCLUDED
-#define PB_H_INCLUDED
+#ifndef NANOPB_PB_H
+#define NANOPB_PB_H
 
-/*****************************************************************
- * Nanopb compilation time options. You can change these here by *
- * uncommenting the lines, or on the compiler command line.      *
- *****************************************************************/
-
-/* Enable support for dynamically allocated fields */
-/* #define PB_ENABLE_MALLOC 1 */
-
-/* Define this if your CPU / compiler combination does not support
- * unaligned memory access to packed structures. */
-/* #define PB_NO_PACKED_STRUCTS 1 */
-
-/* Increase the number of required fields that are tracked.
- * A compiler warning will tell if you need this. */
-/* #define PB_MAX_REQUIRED_FIELDS 256 */
-
-/* Add support for tag numbers > 255 and fields larger than 255 bytes. */
-/* #define PB_FIELD_16BIT 1 */
-
-/* Add support for tag numbers > 65536 and fields larger than 65536 bytes. */
-/* #define PB_FIELD_32BIT 1 */
-
-/* Disable support for error messages in order to save some code space. */
-/* #define PB_NO_ERRMSG 1 */
-
-/* Disable support for custom streams (support only memory buffers). */
-/* #define PB_BUFFER_ONLY 1 */
-
-/* Switch back to the old-style callback function signature.
- * This was the default until nanopb-0.2.1. */
-/* #define PB_OLD_CALLBACK_STYLE */
-
-
-/******************************************************************
- * You usually don't need to change anything below this line.     *
- * Feel free to look around and use the defined macros, though.   *
- ******************************************************************/
-
+#include "config.h"
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */

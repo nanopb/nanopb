@@ -28,7 +28,7 @@ add_nanopb_builders(env)
 # Path to the files shared by tests, and to the nanopb core.
 env.Append(CPPPATH = ["#../", "$COMMON"])
 
-# Path for finding nanopb.proto
+# Path for finding nanopb generator protos
 env.Append(PROTOCPATH = '#../generator')
 
 # Check the compilation environment, unless we are just cleaning up.

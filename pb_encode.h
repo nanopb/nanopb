@@ -3,8 +3,8 @@
  * field descriptions created by nanopb_generator.py.
  */
 
-#ifndef PB_ENCODE_H_INCLUDED
-#define PB_ENCODE_H_INCLUDED
+#ifndef NANOPB_PB_ENCODE_H
+#define NANOPB_PB_ENCODE_H
 
 #include "pb.h"
 
