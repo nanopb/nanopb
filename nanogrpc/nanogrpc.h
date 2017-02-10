@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include "pb.h"
 #include "nanogrpc.pb.h"
+#include "pb_encode.h"
+#include "pb_decode.h"
 
 
 typedef uint32_t ng_GrpcStatus_t;
@@ -20,8 +22,10 @@ struct ng_method_s {
     ng_GrpcStatus_t (*callback)(void* request, void* response);
     void *request_holder;
     void *request_fields;
+    void (*request_fillWithZeros)(void *ptr);
     void *response_holder;
     void *response_fields;
+    void (*response_fillWithZeros)(void *ptr);
     ng_method_t * next; /**< Holder for next method */
 };
 
@@ -48,8 +52,14 @@ struct ng_service_s {
 typedef struct ng_grpc_handle_s ng_grpc_handle_t;
 struct ng_grpc_handle_s {
     ng_service_t *serviceHolder;
+    pb_istream_t *input;
+    pb_ostream_t *output;
+    GrpcRequest request;
+    GrpcResponse response;
+    ng_GrpcStatus_t lastStatus;
 };
 
+bool ng_GrpcParse(ng_grpc_handle_t *handle);
 ng_GrpcStatus_t ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service);
 ng_GrpcStatus_t GrpcParsebuffer(ng_grpc_handle_t *handle, uint8_t *buf, uint32_t len);
 ng_GrpcStatus_t ng_addMethodToService(ng_service_t *service, ng_method_t * method);

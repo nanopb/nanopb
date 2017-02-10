@@ -3,4 +3,4 @@ GrpcRequest.path type:FT_POINTER
 
 GrpcRequest msgid:345
 
-GrpcResponse.data type:FT_POINTER
+# GrpcResponse.data type:FT_POINTER
