@@ -478,9 +478,14 @@ struct pb_extension_s {
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
 
-/* Optional extensions don't have the has_ field, as that would be redundant. */
+/* Optional extensions don't have the has_ field, as that would be redundant.
+ * Furthermore, the combination of OPTIONAL without has_ field is used
+ * for indicating proto3 style fields. Extensions exist in proto2 mode only,
+ * so they should be encoded according to proto2 rules. To avoid the conflict,
+ * extensions are marked as REQUIRED instead.
+ */
 #define PB_OPTEXT_STATIC(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
     0, \
     0, \
     pb_membersize(st, m), 0, ptr}
