@@ -35,55 +35,6 @@ static bool encodeResponseCallback(pb_ostream_t *stream, const pb_field_t *field
 }
 
 
-
-// static ng_GrpcStatus_t HandleRequest(ng_grpc_handle_t *handle){
-//   if (handle->request == NULL){
-//     return GrpcStatus_INTERNAL;
-//   }
-//   pb_istream_t input = pb_istream_from_buffer(handle->request->data->bytes, handle->request->data->size);
-//   ng_GrpcStatus_t status;
-//   ng_method_t *method = NULL;
-//
-//   method = getMethodByHash(handle, handle->request->path_crc);
-//   if (method != NULL) {
-//     if (method->handler != NULL){
-//       status = method->handler(&input, NULL);
-//       if (!status){
-//         return status;
-//       }
-//     } else if (method->callback != NULL){
-//       method->request_init_zero(method->request_holder);
-//       if (pb_decode(&input, method->request_fields, method->request_holder))
-//       {
-//         method->response_init_zero(method->request_holder);
-//         status = method->callback(method->request_holder, method->response_holder);
-//         // pb_encode(handle->output, )
-//         handle->response = GrpcResponse_init_zero;
-//         handle->response.grpc_status = GrpcStatus_OK;
-//         handle->response.data.encode = &encodeResponseCallback;
-//         handle->response.data.arg = method;
-//
-//         // encoding needs to be here, because we cannot clean (release) after
-//         // method outside this function. Or we can store pointer to last method
-//         // in grpc handle
-//         status = pb_encode(handle->output, GrpcResponse_fields, handle->response);
-//         // for now we don't need to release GrpcResponse as long it dosn't
-//         // have dynamically allocated fields
-//         pb_release(method->request_fields, method->request_holder); // TODO release always?
-//         pb_release(method->response_fields, method->response_holder);
-//         return GrpcStatus_OK;
-//       } else {
-//         return GrpcStatus_INTERNAL;
-//       }
-//     } else {
-//       return GrpcStatus_UNIMPLEMENTED;
-//     }
-//   } else {
-//     return GrpcStatus_NOT_FOUND;
-//   }
-//   return GrpcStatus_INTERNAL; // shouldn't be reached
-// }
-
 /**
  * [ng_GrpcParse description]
  * @param  handle [description]
@@ -97,18 +48,9 @@ bool ng_GrpcParse(ng_grpc_handle_t *handle){
   }
   ng_GrpcStatus_t status;
  bool ret = true;
-
-  // handle->request = GrpcRequest_init_zero;
-  // handle->request = {0, NULL, NULL};
-  // handle->response = GrpcResponse_init_zero;
   GrpcRequest_fillWithZeros(&handle->request);
   GrpcResponse_fillWithZeros(&handle->response);
   if (pb_decode(handle->input, GrpcRequest_fields, &handle->request)){
-    // code from function below desn't neet to b in separate function
-    // moreover it is confusing which of those will clean after
-    // calling method
-    // HandleRequest(handle);
-    // inser handle start
     pb_istream_t input = pb_istream_from_buffer(handle->request.data->bytes, handle->request.data->size);
     ng_method_t *method = NULL;
 
@@ -123,11 +65,26 @@ bool ng_GrpcParse(ng_grpc_handle_t *handle){
       } else */ if (method->callback != NULL){ // callback found
         method->request_fillWithZeros(method->request_holder);
         if (pb_decode(&input, method->request_fields, method->request_holder)){
-          method->response_fillWithZeros(method->request_holder);
+          method->response_fillWithZeros(method->response_holder);
           status = method->callback(method->request_holder, method->response_holder);
-          handle->response.grpc_status = GrpcStatus_OK;
-          handle->response.data.funcs.encode = &encodeResponseCallback;
-          handle->response.data.arg = method;
+          // try to encode method response to make sure, that it will be
+          // possible to encode it callback.
+          bool validResponse;
+          size_t responseSize;
+          validResponse = pb_get_encoded_size(&responseSize,
+                                              method->response_fields,
+                                              method->response_holder);
+          if (status == GrpcStatus_OK && validResponse){
+            handle->response.grpc_status = status;
+            handle->response.data.funcs.encode = &encodeResponseCallback;
+            handle->response.data.arg = method;
+          } else if (status == GrpcStatus_OK && !validResponse){ // status ok, unable to encode
+            handle->response.grpc_status = GrpcStatus_INTERNAL;
+            // TODO insert here message about not being able to
+            // encode method request
+          } else { // callback failed, we ony encode its status.
+            handle->response.grpc_status = status;
+          }
           //ready to encode and return
           #ifdef PB_ENABLE_MALLOC
           // In case response would have dynamically allocated fields
@@ -153,7 +110,7 @@ bool ng_GrpcParse(ng_grpc_handle_t *handle){
 
   status = pb_encode(handle->output, GrpcResponse_fields, &handle->response);
   if (!status){
-    // unable to encode
+    // TODO unable to encode
     ret = false;
   }
 
