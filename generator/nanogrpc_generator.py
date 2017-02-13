@@ -49,22 +49,22 @@ import time
 import os.path
 
 # Values are tuple (c type, pb type, encoded size, int_size_allowed)
-FieldD = descriptor.FieldDescriptorProto
-datatypes = {
-    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
-    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
-    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  False),
-    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  False),
-    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  False),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  True),
-    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  True),
-    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  False),
-    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  False),
-    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  True),
-    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  True),
-    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  True),
-    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  True)
-}
+# FieldD = descriptor.FieldDescriptorProto
+# datatypes = {
+#     FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
+#     FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
+#     FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  False),
+#     FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  False),
+#     FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  False),
+#     FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  True),
+#     FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  True),
+#     FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  False),
+#     FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  False),
+#     FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  True),
+#     FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  True),
+#     FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  True),
+#     FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  True)
+# }
 
 
 
@@ -95,11 +95,11 @@ class Names:
     def __eq__(self, other):
         return isinstance(other, Names) and self.parts == other.parts
 
-def names_from_type_name(type_name):
-    '''Parse Names() from FieldDescriptorProto type_name'''
-    if type_name[0] != '.':
-        raise NotImplementedError("Lookup of non-absolute type names is not supported")
-    return Names(type_name[1:].split('.'))
+# def names_from_type_name(type_name):
+#     '''Parse Names() from FieldDescriptorProto type_name'''
+#     if type_name[0] != '.':
+#         raise NotImplementedError("Lookup of non-absolute type names is not supported")
+#     return Names(type_name[1:].split('.'))
 
 
 # ---------------------------------------------------------------------------
@@ -107,181 +107,239 @@ def names_from_type_name(type_name):
 # ---------------------------------------------------------------------------
 
 
-class Message:
-    def __init__(self, names, desc, message_options):
+# class Message:
+#     def __init__(self, names, desc, message_options):
+#         self.name = names
+#         self.fields = []
+#         self.oneofs = {}
+#         no_unions = []
+#
+#         if message_options.msgid:
+#             self.msgid = message_options.msgid
+#
+#         if hasattr(desc, 'oneof_decl'):
+#             for i, f in enumerate(desc.oneof_decl):
+#                 oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
+#                 if oneof_options.no_unions:
+#                     no_unions.append(i) # No union, but add fields normally
+#                 elif oneof_options.type == nanopb_pb2.FT_IGNORE:
+#                     pass # No union and skip fields also
+#                 else:
+#                     oneof = OneOf(self.name, f)
+#                     if oneof_options.anonymous_oneof:
+#                         oneof.anonymous = True
+#                     self.oneofs[i] = oneof
+#                     self.fields.append(oneof)
+#
+#         for f in desc.field:
+#             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
+#             if field_options.type == nanopb_pb2.FT_IGNORE:
+#                 continue
+#
+#             field = Field(self.name, f, field_options)
+#             if (hasattr(f, 'oneof_index') and
+#                 f.HasField('oneof_index') and
+#                 f.oneof_index not in no_unions):
+#                 if f.oneof_index in self.oneofs:
+#                     self.oneofs[f.oneof_index].add_field(field)
+#             else:
+#                 self.fields.append(field)
+#
+#         if len(desc.extension_range) > 0:
+#             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
+#             range_start = min([r.start for r in desc.extension_range])
+#             if field_options.type != nanopb_pb2.FT_IGNORE:
+#                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
+#
+#         self.packed = message_options.packed_struct
+#         self.ordered_fields = self.fields[:]
+#         self.ordered_fields.sort()
+#
+#     def get_dependencies(self):
+#         '''Get list of type names that this structure refers to.'''
+#         deps = []
+#         for f in self.fields:
+#             deps += f.get_dependencies()
+#         return deps
+#
+#     def __str__(self):
+#         result = 'typedef struct _%s {\n' % self.name
+#
+#         if not self.ordered_fields:
+#             # Empty structs are not allowed in C standard.
+#             # Therefore add a dummy field if an empty message occurs.
+#             result += '    char dummy_field;'
+#
+#         result += '\n'.join([str(f) for f in self.ordered_fields])
+#         result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
+#         result += '\n}'
+#
+#         if self.packed:
+#             result += ' pb_packed'
+#
+#         result += ' %s;' % self.name
+#
+#         if self.packed:
+#             result = 'PB_PACKED_STRUCT_START\n' + result
+#             result += '\nPB_PACKED_STRUCT_END'
+#
+#         return result
+#
+#     def types(self):
+#         return ''.join([f.types() for f in self.fields])
+#
+#     def get_initializer(self, null_init):
+#         if not self.ordered_fields:
+#             return '{0}'
+#
+#         parts = []
+#         for field in self.ordered_fields:
+#             parts.append(field.get_initializer(null_init))
+#         return '{' + ', '.join(parts) + '}'
+#
+#     def default_decl(self, declaration_only = False):
+#         result = ""
+#         for field in self.fields:
+#             default = field.default_decl(declaration_only)
+#             if default is not None:
+#                 result += default + '\n'
+#         return result
+#
+#     def count_required_fields(self):
+#         '''Returns number of required fields inside this message'''
+#         count = 0
+#         for f in self.fields:
+#             if not isinstance(f, OneOf):
+#                 if f.rules == 'REQUIRED':
+#                     count += 1
+#         return count
+#
+#     def count_all_fields(self):
+#         count = 0
+#         for f in self.fields:
+#             if isinstance(f, OneOf):
+#                 count += len(f.fields)
+#             else:
+#                 count += 1
+#         return count
+#
+#     def fields_declaration(self):
+#         result = 'extern const pb_field_t %s_fields[%d];' % (self.name, self.count_all_fields() + 1)
+#         return result
+#
+#     def fields_definition(self):
+#         result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, self.count_all_fields() + 1)
+#
+#         prev = None
+#         for field in self.ordered_fields:
+#             result += field.pb_field_t(prev)
+#             result += ',\n'
+#             prev = field.get_last_field_name()
+#
+#         result += '    PB_LAST_FIELD\n};'
+#         return result
+#
+#     def encoded_size(self, dependencies):
+#         '''Return the maximum size that this message can take when encoded.
+#         If the size cannot be determined, returns None.
+#         '''
+#         size = EncodedSize(0)
+#         for field in self.fields:
+#             fsize = field.encoded_size(dependencies)
+#             if fsize is None:
+#                 return None
+#             size += fsize
+#
+#         return size
+
+# ---------------------------------------------------------------------------
+#                   Generation of Methods
+# ---------------------------------------------------------------------------
+
+class Method:
+    def __init__(self, names, desc, method_options):
         self.name = names
-        self.fields = []
-        self.oneofs = {}
-        no_unions = []
+        self.input = None
+        self.output = None
 
-        if message_options.msgid:
-            self.msgid = message_options.msgid
+        if hasattr(desc, 'input_type'):
+            self.input = desc.input_type
+        else:
+            sys.stderr.write('''
+                 *************************************************************
+                 ***  Method withoud argument not supported yet            ***
+                 *************************************************************
+            ''' + '\n')
+            raise
 
-        if hasattr(desc, 'oneof_decl'):
-            for i, f in enumerate(desc.oneof_decl):
-                oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
-                if oneof_options.no_unions:
-                    no_unions.append(i) # No union, but add fields normally
-                elif oneof_options.type == nanopb_pb2.FT_IGNORE:
-                    pass # No union and skip fields also
-                else:
-                    oneof = OneOf(self.name, f)
-                    if oneof_options.anonymous_oneof:
-                        oneof.anonymous = True
-                    self.oneofs[i] = oneof
-                    self.fields.append(oneof)
+        if hasattr(desc, 'output_type'):
+            self.output = desc.output_type
+        else:
+            sys.stderr.write('''
+                 *************************************************************
+                 ***  Method withoud response not supported yet            ***
+                 *************************************************************
+            ''' + '\n')
+            raise
 
-        for f in desc.field:
-            field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
-            if field_options.type == nanopb_pb2.FT_IGNORE:
-                continue
+        print('new method named: {}, input: {}, output: {}'.format(self.name,
+                                                                self.input,
+                                                                self.output))
+# ---------------------------------------------------------------------------
+#                   Generation of Services
+# ---------------------------------------------------------------------------
 
-            field = Field(self.name, f, field_options)
-            if (hasattr(f, 'oneof_index') and
-                f.HasField('oneof_index') and
-                f.oneof_index not in no_unions):
-                if f.oneof_index in self.oneofs:
-                    self.oneofs[f.oneof_index].add_field(field)
-            else:
-                self.fields.append(field)
+class Service:
+    def __init__(self, names, desc, service_options):
+        self.name = names
+        self.methods = []
 
-        if len(desc.extension_range) > 0:
-            field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
-            range_start = min([r.start for r in desc.extension_range])
-            if field_options.type != nanopb_pb2.FT_IGNORE:
-                self.fields.append(ExtensionRange(self.name, range_start, field_options))
-
-        self.packed = message_options.packed_struct
-        self.ordered_fields = self.fields[:]
-        self.ordered_fields.sort()
-
-    def get_dependencies(self):
-        '''Get list of type names that this structure refers to.'''
-        deps = []
-        for f in self.fields:
-            deps += f.get_dependencies()
-        return deps
-
-    def __str__(self):
-        result = 'typedef struct _%s {\n' % self.name
-
-        if not self.ordered_fields:
-            # Empty structs are not allowed in C standard.
-            # Therefore add a dummy field if an empty message occurs.
-            result += '    char dummy_field;'
-
-        result += '\n'.join([str(f) for f in self.ordered_fields])
-        result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
-        result += '\n}'
-
-        if self.packed:
-            result += ' pb_packed'
-
-        result += ' %s;' % self.name
-
-        if self.packed:
-            result = 'PB_PACKED_STRUCT_START\n' + result
-            result += '\nPB_PACKED_STRUCT_END'
-
-        return result
-
-    def types(self):
-        return ''.join([f.types() for f in self.fields])
-
-    def get_initializer(self, null_init):
-        if not self.ordered_fields:
-            return '{0}'
-
-        parts = []
-        for field in self.ordered_fields:
-            parts.append(field.get_initializer(null_init))
-        return '{' + ', '.join(parts) + '}'
-
-    def default_decl(self, declaration_only = False):
-        result = ""
-        for field in self.fields:
-            default = field.default_decl(declaration_only)
-            if default is not None:
-                result += default + '\n'
-        return result
-
-    def count_required_fields(self):
-        '''Returns number of required fields inside this message'''
-        count = 0
-        for f in self.fields:
-            if not isinstance(f, OneOf):
-                if f.rules == 'REQUIRED':
-                    count += 1
-        return count
-
-    def count_all_fields(self):
-        count = 0
-        for f in self.fields:
-            if isinstance(f, OneOf):
-                count += len(f.fields)
-            else:
-                count += 1
-        return count
-
-    def fields_declaration(self):
-        result = 'extern const pb_field_t %s_fields[%d];' % (self.name, self.count_all_fields() + 1)
-        return result
-
-    def fields_definition(self):
-        result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, self.count_all_fields() + 1)
-
-        prev = None
-        for field in self.ordered_fields:
-            result += field.pb_field_t(prev)
-            result += ',\n'
-            prev = field.get_last_field_name()
-
-        result += '    PB_LAST_FIELD\n};'
-        return result
-
-    def encoded_size(self, dependencies):
-        '''Return the maximum size that this message can take when encoded.
-        If the size cannot be determined, returns None.
-        '''
-        size = EncodedSize(0)
-        for field in self.fields:
-            fsize = field.encoded_size(dependencies)
-            if fsize is None:
-                return None
-            size += fsize
-
-        return size
-
+        for name, method in iterate_methods(desc, None):
+            # print (name, method)
+            self.methods.append(Method('_'.join([self.name, name]), method, method_options=None))
 
 # ---------------------------------------------------------------------------
 #                    Processing of entire .proto files
 # ---------------------------------------------------------------------------
 
-def iterate_messages(desc, names = Names()):
-    '''Recursively find all messages. For each, yield name, DescriptorProto.'''
-    if hasattr(desc, 'message_type'):
-        submsgs = desc.message_type
-    else:
-        submsgs = desc.nested_type
+# def iterate_messages(desc, names = Names()):
+#     '''Recursively find all messages. For each, yield name, DescriptorProto.'''
+#     if hasattr(desc, 'message_type'):
+#         submsgs = desc.message_type
+#     else:
+#         submsgs = desc.nested_type
+#
+#     for submsg in submsgs:
+#         sub_names = names + submsg.name
+#         yield sub_names, submsg
+#
+#         for x in iterate_messages(submsg, sub_names):
+#             yield x
+#
+# def iterate_extensions(desc, names = Names()):
+#     '''Recursively find all extensions.
+#     For each, yield name, FieldDescriptorProto.
+#     '''
+#     for extension in desc.extension:
+#         yield names, extension
+#
+#     for subname, subdesc in iterate_messages(desc, names):
+#         for extension in subdesc.extension:
+#             yield subname, extension
 
-    for submsg in submsgs:
-        sub_names = names + submsg.name
-        yield sub_names, submsg
-
-        for x in iterate_messages(submsg, sub_names):
-            yield x
-
-def iterate_extensions(desc, names = Names()):
-    '''Recursively find all extensions.
-    For each, yield name, FieldDescriptorProto.
+def iterate_servies(desc, names=Names()):
+    '''Recursively find all services.
+    for each, yield name, ServiceDescriptorProto
     '''
-    for extension in desc.extension:
-        yield names, extension
+    for service in desc.service:
+        sub_name = service.name
+        yield sub_name, service
 
-    for subname, subdesc in iterate_messages(desc, names):
-        for extension in subdesc.extension:
-            yield subname, extension
-
+def iterate_methods(desc, names=Names()):
+    if hasattr(desc, 'method'):
+        for method in desc.method:
+            sub_name = method.name
+            yield sub_name, method
 
 def toposort2(data):
     '''Topological sort.
@@ -334,37 +392,41 @@ class ProtoFile:
 
         # Some of types used in this file probably come from the file itself.
         # Thus it has implicit dependency on itself.
-        self.add_dependency(self)
+        # self.add_dependency(self)
 
     def parse(self):
         self.enums = []
-        self.messages = []
-        self.extensions = []
+        # self.messages = []
+        # self.extensions = []
+        self.services = []
 
         if self.fdesc.package:
             base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
 
-        for enum in self.fdesc.enum_type:
-            enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
-            self.enums.append(Enum(base_name, enum, enum_options))
+        for names, service in iterate_servies(self.fdesc, base_name):
+            print(names, service)
+            self.services.append(Service(names, service, service_options=None))
+        # for enum in self.fdesc.enum_type:
+        #     enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
+        #     self.enums.append(Enum(base_name, enum, enum_options))
 
-        for names, message in iterate_messages(self.fdesc, base_name):
-            message_options = get_nanopb_suboptions(message, self.file_options, names)
+        # for names, message in iterate_messages(self.fdesc, base_name):
+        #     message_options = get_nanopb_suboptions(message, self.file_options, names)
+        #
+        #     if message_options.skip_message:
+        #         continue
+        #
+        #     self.messages.append(Message(names, message, message_options))
+        #     for enum in message.enum_type:
+        #         enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
+        #         self.enums.append(Enum(names, enum, enum_options))
 
-            if message_options.skip_message:
-                continue
-
-            self.messages.append(Message(names, message, message_options))
-            for enum in message.enum_type:
-                enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-                self.enums.append(Enum(names, enum, enum_options))
-
-        for names, extension in iterate_extensions(self.fdesc, base_name):
-            field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
-            if field_options.type != nanopb_pb2.FT_IGNORE:
-                self.extensions.append(ExtensionField(names, extension, field_options))
+        # for names, extension in iterate_extensions(self.fdesc, base_name):
+        #     field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
+        #     if field_options.type != nanopb_pb2.FT_IGNORE:
+        #         self.extensions.append(ExtensionField(names, extension, field_options))
 
     def add_dependency(self, other):
         for enum in other.enums:
@@ -724,7 +786,7 @@ from optparse import OptionParser
 optparser = OptionParser(
     usage = "Usage: nanopb_generator.py [options] file.pb ...",
     epilog = "Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. " +
-             "Output will be written to file.pb.h and file.pb.c.")
+             "Output will be written to file.ng.h and file.ng.c.")
 optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
     help="Exclude file from generated #include list.")
 optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default=".pb",
@@ -812,9 +874,9 @@ def process_file(filename, fdesc, options, other_files = {}):
     f = parse_file(filename, fdesc, options)
 
     # Provide dependencies if available
-    for dep in f.fdesc.dependency:
-        if dep in other_files:
-            f.add_dependency(other_files[dep])
+    # for dep in f.fdesc.dependency:
+    #     if dep in other_files:
+    #         f.add_dependency(other_files[dep])
 
     # Decide the file names
     noext = os.path.splitext(filename)[0]
@@ -827,8 +889,8 @@ def process_file(filename, fdesc, options, other_files = {}):
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     includes = [d for d in f.fdesc.dependency if d not in excludes]
 
-    headerdata = ''.join(f.generate_header(includes, headerbasename, options))
-    sourcedata = ''.join(f.generate_source(headerbasename, options))
+    headerdata = 'nothing' # ''.join(f.generate_header(includes, headerbasename, options))
+    sourcedata = 'nothin' # ''.join(f.generate_source(headerbasename, options))
 
     # Check if there were any lines in .options that did not match a member
     unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
