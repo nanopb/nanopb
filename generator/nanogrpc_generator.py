@@ -412,16 +412,17 @@ class ProtoFile:
         #     enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
         #     self.enums.append(Enum(base_name, enum, enum_options))
 
-        # for names, message in iterate_messages(self.fdesc, base_name):
-        #     message_options = get_nanopb_suboptions(message, self.file_options, names)
-        #
-        #     if message_options.skip_message:
-        #         continue
-        #
-        #     self.messages.append(Message(names, message, message_options))
-        #     for enum in message.enum_type:
-        #         enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-        #         self.enums.append(Enum(names, enum, enum_options))
+        for names, message in iterate_messages(self.fdesc, base_name):
+            print(names, message)
+            # message_options = get_nanopb_suboptions(message, self.file_options, names)
+            #
+            # if message_options.skip_message:
+            #     continue
+            #
+            # self.messages.append(Message(names, message, message_options))
+            # for enum in message.enum_type:
+            #     enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
+            #     self.enums.append(Enum(names, enum, enum_options))
 
         # for names, extension in iterate_extensions(self.fdesc, base_name):
         #     field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
