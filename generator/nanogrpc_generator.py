@@ -95,11 +95,11 @@ class Names:
     def __eq__(self, other):
         return isinstance(other, Names) and self.parts == other.parts
 
-# def names_from_type_name(type_name):
-#     '''Parse Names() from FieldDescriptorProto type_name'''
-#     if type_name[0] != '.':
-#         raise NotImplementedError("Lookup of non-absolute type names is not supported")
-#     return Names(type_name[1:].split('.'))
+def names_from_type_name(type_name):
+    '''Parse Names() from FieldDescriptorProto type_name'''
+    if type_name[0] != '.':
+        raise NotImplementedError("Lookup of non-absolute type names is not supported")
+    return Names(type_name[1:].split('.'))
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ class Method:
         self.output = None
 
         if hasattr(desc, 'input_type'):
-            self.input = desc.input_type
+            self.input = names_from_type_name(desc.input_type)
         else:
             sys.stderr.write('''
                  *************************************************************
@@ -273,7 +273,7 @@ class Method:
             raise
 
         if hasattr(desc, 'output_type'):
-            self.output = desc.output_type
+            self.output = names_from_type_name(desc.output_type)
         else:
             sys.stderr.write('''
                  *************************************************************
@@ -285,6 +285,26 @@ class Method:
         print('new method named: {}, input: {}, output: {}'.format(self.name,
                                                                 self.input,
                                                                 self.output))
+
+    def method_declaration(self):
+        result = 'extern ng_method_t {}_method'.format(self.name)
+        return result
+
+    def method_definition(self):
+        result =  'ng_method-t {}_method = {\n'.format(self.name)
+        result += ' "{}",\n'.format(self.name)
+        result += ' 0,\n'  # TODO place method id option here
+        result += ' NULL,\n'
+        result += ' NULL,\n'
+        result += ' NULL,\n'
+        result += ' {}_feilds\n'.format(self.input)
+        result += ' &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input)
+        result += ' NULL,\n'
+        result += ' {}_feilds\n'.format(self.ouptut)
+        result += ' &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
+        result += ' NULL,\n'
+        result += '};'
+        return result
 # ---------------------------------------------------------------------------
 #                   Generation of Services
 # ---------------------------------------------------------------------------
@@ -302,19 +322,19 @@ class Service:
 #                    Processing of entire .proto files
 # ---------------------------------------------------------------------------
 
-# def iterate_messages(desc, names = Names()):
-#     '''Recursively find all messages. For each, yield name, DescriptorProto.'''
-#     if hasattr(desc, 'message_type'):
-#         submsgs = desc.message_type
-#     else:
-#         submsgs = desc.nested_type
-#
-#     for submsg in submsgs:
-#         sub_names = names + submsg.name
-#         yield sub_names, submsg
-#
-#         for x in iterate_messages(submsg, sub_names):
-#             yield x
+def iterate_messages(desc, names = Names()):
+    '''Recursively find all messages. For each, yield name, DescriptorProto.'''
+    if hasattr(desc, 'message_type'):
+        submsgs = desc.message_type
+    else:
+        submsgs = desc.nested_type
+
+    for submsg in submsgs:
+        sub_names = names + submsg.name
+        yield sub_names, submsg
+
+        for x in iterate_messages(submsg, sub_names):
+            yield x
 #
 # def iterate_extensions(desc, names = Names()):
 #     '''Recursively find all extensions.
@@ -412,17 +432,17 @@ class ProtoFile:
         #     enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
         #     self.enums.append(Enum(base_name, enum, enum_options))
 
-        for names, message in iterate_messages(self.fdesc, base_name):
-            print(names, message)
-            # message_options = get_nanopb_suboptions(message, self.file_options, names)
-            #
-            # if message_options.skip_message:
-            #     continue
-            #
-            # self.messages.append(Message(names, message, message_options))
-            # for enum in message.enum_type:
-            #     enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-            #     self.enums.append(Enum(names, enum, enum_options))
+        # for names, message in iterate_messages(self.fdesc, base_name):
+        #     print(names, message)
+        #     message_options = get_nanopb_suboptions(message, self.file_options, names)
+        #
+        #     if message_options.skip_message:
+        #         continue
+        #
+        #     self.messages.append(Message(names, message, message_options))
+        #     for enum in message.enum_type:
+        #         enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
+        #         self.enums.append(Enum(names, enum, enum_options))
 
         # for names, extension in iterate_extensions(self.fdesc, base_name):
         #     field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
