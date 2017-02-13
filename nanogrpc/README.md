@@ -6,6 +6,18 @@ Instead of [standard HTTP protocol](https://github.com/grpc/grpc/blob/master/doc
 it wraps request and response into `protobuf` messages which definition can be
 found in `nanogrpc.proto` file.
 
+This implementation is not going to provide server functionality. User needs to
+implement it separately and provide `istream` and `ostream` to `ng_GrpcParse`
+function which decodes `GrpcRequest`, looks for specific method, decodes it
+with call callback (specified by user), and encodes everything back to ostream.
+
+For now I am encoding data into frames base64 encoded wrapped in `>` `<`
+```
+>TGlrZSB0aGlz<
+```
+But it can be eaistly integrated for example with
+[HLDC](https://en.wikipedia.org/wiki/High-Level_Data_Link_Control) (which is my goal)
+
 ## Path
 
 GRPC identifies methods by paths, which are basically strings.
