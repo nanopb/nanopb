@@ -1,10 +1,27 @@
-## Callback issue
+# About
+this is grpc implementaiton which aims communication over serial interfaces
+like UART or RS232.
 
-User needs to decode incomming data by himself, because it is impossible to set init structure
-For now `nanogrpc` uses doubled buffers.
+Instead of [standard HTTP protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
+it wraps request and response into `protobuf` messages which definition can be
+found in `nanogrpc.proto` file.
 
-## Using buffers.
-When first stream arrives, grpc
+## Path
+
+GRPC identifies methods by paths, which are basically strings.
+In order to reduce traffic on serial line (which in real world might be very slow)
+there is option of identifying method by hash of path, which could be for
+example CRC32 from path. For now in `nanogrpc.proto` field `name_crc` is marked
+required, because for now `nanopb` doesn't allow to use `oneOf`'s with dynamically allocated memory.
+
+## Examples
+
+For now I am testing it on STM32F4DISCOVERY board as submodule so that I didn't
+provide any examples yet. But I will do it as soon as I will have generator
+working.
+
+
+### other disorganized thoughts
 
 When encoding `GrpcResponse` we could use callback to decode method request
 on the fly, but we would have to be sure, that field with path have been decoded

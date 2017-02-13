@@ -1,0 +1,3 @@
+# maximuum buffer length
+# SendRequest.Data max_size:256
+HelloRequest.test_string type:FT_POINTER
