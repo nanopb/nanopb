@@ -95,6 +95,9 @@ class Names:
     def __eq__(self, other):
         return isinstance(other, Names) and self.parts == other.parts
 
+    def __hash__(self):
+        return hash(str(self))
+
 def names_from_type_name(type_name):
     '''Parse Names() from FieldDescriptorProto type_name'''
     if type_name[0] != '.':
@@ -258,7 +261,8 @@ def names_from_type_name(type_name):
 
 class Method:
     def __init__(self, names, desc, method_options):
-        self.name = names
+        self.full_name = names
+        self.name = desc.name
         self.input = None
         self.output = None
 
@@ -282,29 +286,34 @@ class Method:
             ''' + '\n')
             raise
 
-        print('new method named: {}, input: {}, output: {}'.format(self.name,
-                                                                self.input,
-                                                                self.output))
+        # print('new method named: {}, input: {}, output: {}'.format(self.name,
+        #                                                         self.input,
+        #                                                         self.output))
 
-    def method_declaration(self):
-        result = 'extern ng_method_t {}_method'.format(self.name)
+    def get_declaration(self):
+        result = 'extern ng_method_t {}_method;'.format(self.full_name)
         return result
 
-    def method_definition(self):
-        result =  'ng_method-t {}_method = {\n'.format(self.name)
-        result += ' "{}",\n'.format(self.name)
-        result += ' 0,\n'  # TODO place method id option here
-        result += ' NULL,\n'
-        result += ' NULL,\n'
-        result += ' NULL,\n'
-        result += ' {}_feilds\n'.format(self.input)
-        result += ' &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input)
-        result += ' NULL,\n'
-        result += ' {}_feilds\n'.format(self.ouptut)
-        result += ' &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
-        result += ' NULL,\n'
+    def get_definition(self):
+        result = ''
+        # result += 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(self.input)
+        # result += 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(self.output)
+        # result += '\n'
+        result += 'ng_method-t {}_method = {{\n'.format(self.full_name)
+        result += '    "{}",\n'.format(self.name)
+        result += '    0,\n'  # TODO place method id option here
+        result += '    NULL,\n'
+        result += '    NULL,\n'
+        result += '    NULL,\n'
+        result += '    {}_feilds\n'.format(self.input)
+        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input)
+        result += '    NULL,\n'
+        result += '    {}_feilds\n'.format(self.output)
+        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
+        result += '    NULL,\n'
         result += '};'
         return result
+
 # ---------------------------------------------------------------------------
 #                   Generation of Services
 # ---------------------------------------------------------------------------
@@ -315,8 +324,22 @@ class Service:
         self.methods = []
 
         for name, method in iterate_methods(desc, None):
-            # print (name, method)
             self.methods.append(Method('_'.join([self.name, name]), method, method_options=None))
+
+    def get_declaration(self):
+        result = 'extern ng_service_t {}_service;'.format(self.name)
+        return result
+
+    def get_definition(self):
+        result =  'ng_service_t {}_service = {{\n'.format(self.name)
+        result += '    "{}",\n'.format(self.name)
+        result += '    0,\n'
+        result += '    NULL,\n'
+        result += '};'
+        return result
+
+    def get_methods(self):
+        return self.methods
 
 # ---------------------------------------------------------------------------
 #                    Processing of entire .proto files
@@ -426,28 +449,11 @@ class ProtoFile:
             base_name = Names()
 
         for names, service in iterate_servies(self.fdesc, base_name):
-            print(names, service)
+            # print(names, service)
             self.services.append(Service(names, service, service_options=None))
         # for enum in self.fdesc.enum_type:
         #     enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
         #     self.enums.append(Enum(base_name, enum, enum_options))
-
-        # for names, message in iterate_messages(self.fdesc, base_name):
-        #     print(names, message)
-        #     message_options = get_nanopb_suboptions(message, self.file_options, names)
-        #
-        #     if message_options.skip_message:
-        #         continue
-        #
-        #     self.messages.append(Message(names, message, message_options))
-        #     for enum in message.enum_type:
-        #         enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-        #         self.enums.append(Enum(names, enum, enum_options))
-
-        # for names, extension in iterate_extensions(self.fdesc, base_name):
-        #     field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
-        #     if field_options.type != nanopb_pb2.FT_IGNORE:
-        #         self.extensions.append(ExtensionField(names, extension, field_options))
 
     def add_dependency(self, other):
         for enum in other.enums:
@@ -473,6 +479,18 @@ class ProtoFile:
                         if field.pbtype == 'ENUM' and field.ctype == enum.names:
                             field.pbtype = 'UENUM'
 
+    def get_all_used_messages(self):
+        methods = set()
+        if self.services:
+            for service in self.services:
+                if service.methods:
+                    for m in service.methods:
+                        methods.add(m.input)
+                        # print(str(m.input))
+                        methods.add(m.output)
+                        # print(m.output)
+        return methods
+
     def generate_header(self, includes, headername, options):
         '''Generate content for a header file.
         Generates strings, which should be concatenated and stored to file.
@@ -488,10 +506,11 @@ class ProtoFile:
             symbol = make_identifier(self.fdesc.package + '_' + headername)
         else:
             symbol = make_identifier(headername)
-        yield '#ifndef PB_%s_INCLUDED\n' % symbol
-        yield '#define PB_%s_INCLUDED\n' % symbol
+        yield '#ifndef NG_%s_INCLUDED\n' % symbol
+        yield '#define NG_%s_INCLUDED\n' % symbol
         try:
             yield options.libformat % ('pb.h')
+            yield options.libformat % ('ng.h')
         except TypeError:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
@@ -501,6 +520,7 @@ class ProtoFile:
             noext = os.path.splitext(incfile)[0]
             yield options.genformat % (noext + options.extension + '.h')
             yield '\n'
+        # yield '#include "ng.h"\n'
 
         yield '/* @@protoc_insertion_point(includes) */\n'
 
@@ -513,87 +533,177 @@ class ProtoFile:
         yield 'extern "C" {\n'
         yield '#endif\n\n'
 
-        if self.enums:
-            yield '/* Enum definitions */\n'
-            for enum in self.enums:
-                yield str(enum) + '\n\n'
+        if self.services:
+            yield '/* Services definitions */\n'
+            for service in self.services:
+                yield service.get_declaration()
+                yield '\n'
+                for method in service.get_methods():
+                    yield method.get_declaration()
+                    yield '\n'
+                yield '\n'
 
-        if self.messages:
-            yield '/* Struct definitions */\n'
-            for msg in sort_dependencies(self.messages):
-                yield msg.types()
-                yield str(msg) + '\n\n'
-
-        if self.extensions:
-            yield '/* Extensions */\n'
-            for extension in self.extensions:
-                yield extension.extension_decl()
-            yield '\n'
-
-        if self.messages:
-            yield '/* Default values for struct fields */\n'
-            for msg in self.messages:
-                yield msg.default_decl(True)
-            yield '\n'
-
-            yield '/* Initializer values for message structs */\n'
-            for msg in self.messages:
-                identifier = '%s_init_default' % msg.name
-                yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
-            for msg in self.messages:
-                identifier = '%s_init_zero' % msg.name
-                yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
-            yield '\n'
-
-            yield '/* Field tags (for use in manual encoding/decoding) */\n'
-            for msg in sort_dependencies(self.messages):
-                for field in msg.fields:
-                    yield field.tags()
-            for extension in self.extensions:
-                yield extension.tags()
-            yield '\n'
-
-            yield '/* Struct field encoding specification for nanopb */\n'
-            for msg in self.messages:
-                yield msg.fields_declaration() + '\n'
-            yield '\n'
-
-            yield '/* Maximum encoded size of messages (where known) */\n'
-            for msg in self.messages:
-                msize = msg.encoded_size(self.dependencies)
-                identifier = '%s_size' % msg.name
-                if msize is not None:
-                    yield '#define %-40s %s\n' % (identifier, msize)
-                else:
-                    yield '/* %s depends on runtime parameters */\n' % identifier
-            yield '\n'
-
-            yield '/* Message IDs (where set with "msgid" option) */\n'
-
-            yield '#ifdef PB_MSGID\n'
-            for msg in self.messages:
-                if hasattr(msg,'msgid'):
-                    yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
-            yield '\n'
-
-            symbol = make_identifier(headername.split('.')[0])
-            yield '#define %s_MESSAGES \\\n' % symbol
-
-            for msg in self.messages:
-                m = "-1"
-                msize = msg.encoded_size(self.dependencies)
-                if msize is not None:
-                    m = msize
-                if hasattr(msg,'msgid'):
-                    yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
-            yield '\n'
-
-            for msg in self.messages:
-                if hasattr(msg,'msgid'):
-                    yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
-            yield '\n'
-
-            yield '#endif\n\n'
+        # if self.enums:
+        #     yield '/* Enum definitions */\n'
+        #     for enum in self.enums:
+        #         yield str(enum) + '\n\n'
+        #
+        # if self.messages:
+        #     yield '/* Struct definitions */\n'
+        #     for msg in sort_dependencies(self.messages):
+        #         yield msg.types()
+        #         yield str(msg) + '\n\n'
+        #
+        # if self.extensions:
+        #     yield '/* Extensions */\n'
+        #     for extension in self.extensions:
+        #         yield extension.extension_decl()
+        #     yield '\n'
+        #
+        # if self.messages:
+        #     yield '/* Default values for struct fields */\n'
+        #     for msg in self.messages:
+        #         yield msg.default_decl(True)
+        #     yield '\n'
+        #
+        #     yield '/* Initializer values for message structs */\n'
+        #     for msg in self.messages:
+        #         identifier = '%s_init_default' % msg.name
+        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
+        #     for msg in self.messages:
+        #         identifier = '%s_init_zero' % msg.name
+        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
+        #     yield '\n'
+        #
+        #     yield '/* Field tags (for use in manual encoding/decoding) */\n'
+        #     for msg in sort_dependencies(self.messages):
+        #         for field in msg.fields:
+        #             yield field.tags()
+        #     for extension in self.extensions:
+        #         yield extension.tags()
+        #     yield '\n'
+        #
+        #     yield '/* Struct field encoding specification for nanopb */\n'
+        #     for msg in self.messages:
+        #         yield msg.fields_declaration() + '\n'
+        #     yield '\n'
+        #
+        #     yield '/* Maximum encoded size of messages (where known) */\n'
+        #     for msg in self.messages:
+        #         msize = msg.encoded_size(self.dependencies)
+        #         identifier = '%s_size' % msg.name
+        #         if msize is not None:
+        #             yield '#define %-40s %s\n' % (identifier, msize)
+        #         else:
+        #             yield '/* %s depends on runtime parameters */\n' % identifier
+        #     yield '\n'
+        #
+        #     yield '/* Message IDs (where set with "msgid" option) */\n'
+        #
+        #     yield '#ifdef PB_MSGID\n'
+        #     for msg in self.messages:
+        #         if hasattr(msg,'msgid'):
+        #             yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
+        #     yield '\n'
+        #
+        #     symbol = make_identifier(headername.split('.')[0])
+        #     yield '#define %s_MESSAGES \\\n' % symbol
+        #
+        #     for msg in self.messages:
+        #         m = "-1"
+        #         msize = msg.encoded_size(self.dependencies)
+        #         if msize is not None:enums:
+        #     yield '/* Enum definitions */\n'
+        #     for enum in self.enums:
+        #         yield str(enum) + '\n\n'
+        #
+        # if self.messages:
+        #     yield '/* Struct definitions */\n'
+        #     for msg in sort_dependencies(self.messages):
+        #         yield msg.types()
+        #         yield str(msg) + '\n\n'
+        #
+        # if self.extensions:
+        #     yield '/* Extensions */\n'
+        #     for extension in self.extensions:
+        #         yield extension.extension_decl()
+        #     yield '\n'
+        #
+        # if self.messages:
+        #     yield '/* Default values for struct fields */\n'
+        #     for msg in self.messages:
+        #         yield msg.default_decl(True)
+        #     yield '\n'
+        #
+        #     yield '/* Initializer values for message structs */\n'
+        #     for msg in self.messages:
+        #         identifier = '%s_init_default' % msg.name
+        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
+        #     for msg in self.messages:
+        #         identifier = '%s_init_zero' % msg.name
+        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
+        #     yield '\n'
+        #
+        #     yield '/* Field tags (for use in manual encoding/decoding) */\n'
+        #     for msg in sort_dependencies(self.messages):
+        #         for field in msg.fields:
+        #             yield field.tags()
+        #     for extension in self.extensions:
+        #         yield extension.tags()
+        #     yield '\n'
+        #
+        #     yield '/* Struct field encoding specification for nanopb */\n'
+        #     for msg in self.messages:
+        #         yield msg.fields_declaration() + '\n'
+        #     yield '\n'
+        #
+        #     yield '/* Maximum encoded size of messages (where known) */\n'
+        #     for msg in self.messages:
+        #         msize = msg.encoded_size(self.dependencies)
+        #         identifier = '%s_size' % msg.name
+        #         if msize is not None:
+        #             yield '#define %-40s %s\n' % (identifier, msize)
+        #         else:
+        #             yield '/* %s depends on runtime parameters */\n' % identifier
+        #     yield '\n'
+        #
+        #     yield '/* Message IDs (where set with "msgid" option) */\n'
+        #
+        #     yield '#ifdef PB_MSGID\n'
+        #     for msg in self.messages:
+        #         if hasattr(msg,'msgid'):
+        #             yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
+        #     yield '\n'
+        #
+        #     symbol = make_identifier(headername.split('.')[0])
+        #     yield '#define %s_MESSAGES \\\n' % symbol
+        #
+        #     for msg in self.messages:
+        #         m = "-1"
+        #         msize = msg.encoded_size(self.dependencies)
+        #         if msize is not None:
+        #             m = msize
+        #         if hasattr(msg,'msgid'):
+        #             yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
+        #     yield '\n'
+        #
+        #     for msg in self.messages:
+        #         if hasattr(msg,'msgid'):
+        #             yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
+        #     yield '\n'
+        #
+        #     yield '#endif
+        #             m = msize
+        #         if hasattr(msg,'msgid'):
+        #             yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
+        #     yield '\n'
+        #
+        #     for msg in self.messages:
+        #         if hasattr(msg,'msgid'):
+        #             yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
+        #     yield '\n'
+        #
+        #     yield '#endif\n\n'
 
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
@@ -620,93 +730,22 @@ class ProtoFile:
         yield '#endif\n'
         yield '\n'
 
-        for msg in self.messages:
-            yield msg.default_decl(False)
+        # for msg in self.messages:
+        #     yield msg.default_decl(False)
 
         yield '\n\n'
-
-        for msg in self.messages:
-            yield msg.fields_definition() + '\n\n'
-
-        for ext in self.extensions:
-            yield ext.extension_def() + '\n'
-
-        for enum in self.enums:
-            yield enum.enum_to_string_definition() + '\n'
-
-        # Add checks for numeric limits
-        if self.messages:
-            largest_msg = max(self.messages, key = lambda m: m.count_required_fields())
-            largest_count = largest_msg.count_required_fields()
-            if largest_count > 64:
-                yield '\n/* Check that missing required fields will be properly detected */\n'
-                yield '#if PB_MAX_REQUIRED_FIELDS < %d\n' % largest_count
-                yield '#error Properly detecting missing required fields in %s requires \\\n' % largest_msg.name
-                yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
-                yield '#endif\n'
-
-        max_field = FieldMaxSize()
-        checks_msgnames = []
-        for msg in self.messages:
-            checks_msgnames.append(msg.name)
-            for field in msg.fields:
-                max_field.extend(field.largest_field_value())
-
-        worst = max_field.worst
-        worst_field = max_field.worst_field
-        checks = max_field.checks
-
-        if worst > 255 or checks:
-            yield '\n/* Check that field information fits in pb_field_t */\n'
-
-            if worst > 65535 or checks:
-                yield '#if !defined(PB_FIELD_32BIT)\n'
-                if worst > 65535:
-                    yield '#error Field descriptor for %s is too large. Define PB_FIELD_32BIT to fix this.\n' % worst_field
-                else:
-                    assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
-                    msgs = '_'.join(str(n) for n in checks_msgnames)
-                    yield '/* If you get an error here, it means that you need to define PB_FIELD_32BIT\n'
-                    yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
-                    yield ' * The reason you need to do this is that some of your messages contain tag\n'
-                    yield ' * numbers or field sizes that are larger than what can fit in 8 or 16 bit\n'
-                    yield ' * field descriptors.\n'
-                    yield ' */\n'
-                    yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-                yield '#endif\n\n'
-
-            if worst < 65536:
-                yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
-                if worst > 255:
-                    yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
-                else:
-                    assertion = ' && '.join(str(c) + ' < 256' for c in checks)
-                    msgs = '_'.join(str(n) for n in checks_msgnames)
-                    yield '/* If you get an error here, it means that you need to define PB_FIELD_16BIT\n'
-                    yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
-                    yield ' * The reason you need to do this is that some of your messages contain tag\n'
-                    yield ' * numbers or field sizes that are larger than what can fit in the default\n'
-                    yield ' * 8 bit descriptors.\n'
-                    yield ' */\n'
-                    yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-                yield '#endif\n\n'
-
-        # Add check for sizeof(double)
-        has_double = False
-        for msg in self.messages:
-            for field in msg.fields:
-                if field.ctype == 'double':
-                    has_double = True
-
-        if has_double:
-            yield '\n'
-            yield '/* On some platforms (such as AVR), double is really float.\n'
-            yield ' * These are not directly supported by nanopb, but see example_avr_double.\n'
-            yield ' * To get rid of this error, remove any double fields from your .proto.\n'
-            yield ' */\n'
-            yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
+        for msg in self.get_all_used_messages():
+            yield 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(msg)
+            print(msg)
+        yield '\n'
+        if self.services:
+            for service in self.services:
+                yield service.get_definition()
+                yield '\n\n'
+                for method in service.get_methods():
+                    yield method.get_definition()
+                    yield '\n\n'
+                yield '\n'
 
         yield '\n'
         yield '/* @@protoc_insertion_point(eof) */\n'
@@ -810,8 +849,12 @@ optparser = OptionParser(
              "Output will be written to file.ng.h and file.ng.c.")
 optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
     help="Exclude file from generated #include list.")
+
 optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default=".pb",
-    help="Set extension to use instead of '.pb' for generated files. [default: %default]")
+    help="Set extension of coresponding nanopb files to be included. [default: %default]")
+optparser.add_option("-g", "--grpc_extension", dest="grpc_extension", metavar="EXTENSION", default=".ng",
+    help="Set extension to use instead of '.ng' for generated files. [default: %default]")
+
 optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
     help="Set name of a separate generator options file.")
 optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
@@ -901,17 +944,19 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     # Decide the file names
     noext = os.path.splitext(filename)[0]
-    headername = noext + options.extension + '.h'
-    sourcename = noext + options.extension + '.c'
+    headername = noext + options.grpc_extension + '.h'
+    sourcename = noext + options.grpc_extension + '.c'
     headerbasename = os.path.basename(headername)
 
+    print(headername)
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     includes = [d for d in f.fdesc.dependency if d not in excludes]
+    includes.append(noext)
 
-    headerdata = 'nothing' # ''.join(f.generate_header(includes, headerbasename, options))
-    sourcedata = 'nothin' # ''.join(f.generate_source(headerbasename, options))
+    headerdata = ''.join(f.generate_header(includes, headerbasename, options))
+    sourcedata = ''.join(f.generate_source(headerbasename, options))
 
     # Check if there were any lines in .options that did not match a member
     unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
