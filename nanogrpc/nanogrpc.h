@@ -21,10 +21,10 @@ struct ng_method_s {
     // callback, if not NULL, then it will be aclled
     ng_GrpcStatus_t (*callback)(void* request, void* response);
     void *request_holder;
-    void *request_fields;
+    const void * request_fields;
     void (*request_fillWithZeros)(void *ptr);
     void *response_holder;
-    void *response_fields;
+    const void * response_fields;
     void (*response_fillWithZeros)(void *ptr);
     ng_method_t * next; /**< Holder for next method */
 };

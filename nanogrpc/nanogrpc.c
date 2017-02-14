@@ -158,7 +158,7 @@ ng_GrpcStatus_t ng_setMethodCallback(ng_method_t *method,
                                                             void* response),
                                       void *request_holder,
                                       void *response_holder){
-  if (callback != NULL && request_holder != NULL, response_holder != NULL){
+  if (callback != NULL && request_holder != NULL && response_holder != NULL){
     method->callback = callback;
     method->request_holder = request_holder;
     method->response_holder = response_holder;
