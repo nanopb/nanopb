@@ -96,6 +96,7 @@ class Names:
         return isinstance(other, Names) and self.parts == other.parts
 
     def __hash__(self):
+        '''Hash function required for creating sets of Names'''
         return hash(str(self))
 
 def names_from_type_name(type_name):
@@ -104,156 +105,6 @@ def names_from_type_name(type_name):
         raise NotImplementedError("Lookup of non-absolute type names is not supported")
     return Names(type_name[1:].split('.'))
 
-
-# ---------------------------------------------------------------------------
-#                   Generation of messages (structures)
-# ---------------------------------------------------------------------------
-
-
-# class Message:
-#     def __init__(self, names, desc, message_options):
-#         self.name = names
-#         self.fields = []
-#         self.oneofs = {}
-#         no_unions = []
-#
-#         if message_options.msgid:
-#             self.msgid = message_options.msgid
-#
-#         if hasattr(desc, 'oneof_decl'):
-#             for i, f in enumerate(desc.oneof_decl):
-#                 oneof_options = get_nanopb_suboptions(desc, message_options, self.name + f.name)
-#                 if oneof_options.no_unions:
-#                     no_unions.append(i) # No union, but add fields normally
-#                 elif oneof_options.type == nanopb_pb2.FT_IGNORE:
-#                     pass # No union and skip fields also
-#                 else:
-#                     oneof = OneOf(self.name, f)
-#                     if oneof_options.anonymous_oneof:
-#                         oneof.anonymous = True
-#                     self.oneofs[i] = oneof
-#                     self.fields.append(oneof)
-#
-#         for f in desc.field:
-#             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
-#             if field_options.type == nanopb_pb2.FT_IGNORE:
-#                 continue
-#
-#             field = Field(self.name, f, field_options)
-#             if (hasattr(f, 'oneof_index') and
-#                 f.HasField('oneof_index') and
-#                 f.oneof_index not in no_unions):
-#                 if f.oneof_index in self.oneofs:
-#                     self.oneofs[f.oneof_index].add_field(field)
-#             else:
-#                 self.fields.append(field)
-#
-#         if len(desc.extension_range) > 0:
-#             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
-#             range_start = min([r.start for r in desc.extension_range])
-#             if field_options.type != nanopb_pb2.FT_IGNORE:
-#                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
-#
-#         self.packed = message_options.packed_struct
-#         self.ordered_fields = self.fields[:]
-#         self.ordered_fields.sort()
-#
-#     def get_dependencies(self):
-#         '''Get list of type names that this structure refers to.'''
-#         deps = []
-#         for f in self.fields:
-#             deps += f.get_dependencies()
-#         return deps
-#
-#     def __str__(self):
-#         result = 'typedef struct _%s {\n' % self.name
-#
-#         if not self.ordered_fields:
-#             # Empty structs are not allowed in C standard.
-#             # Therefore add a dummy field if an empty message occurs.
-#             result += '    char dummy_field;'
-#
-#         result += '\n'.join([str(f) for f in self.ordered_fields])
-#         result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
-#         result += '\n}'
-#
-#         if self.packed:
-#             result += ' pb_packed'
-#
-#         result += ' %s;' % self.name
-#
-#         if self.packed:
-#             result = 'PB_PACKED_STRUCT_START\n' + result
-#             result += '\nPB_PACKED_STRUCT_END'
-#
-#         return result
-#
-#     def types(self):
-#         return ''.join([f.types() for f in self.fields])
-#
-#     def get_initializer(self, null_init):
-#         if not self.ordered_fields:
-#             return '{0}'
-#
-#         parts = []
-#         for field in self.ordered_fields:
-#             parts.append(field.get_initializer(null_init))
-#         return '{' + ', '.join(parts) + '}'
-#
-#     def default_decl(self, declaration_only = False):
-#         result = ""
-#         for field in self.fields:
-#             default = field.default_decl(declaration_only)
-#             if default is not None:
-#                 result += default + '\n'
-#         return result
-#
-#     def count_required_fields(self):
-#         '''Returns number of required fields inside this message'''
-#         count = 0
-#         for f in self.fields:
-#             if not isinstance(f, OneOf):
-#                 if f.rules == 'REQUIRED':
-#                     count += 1
-#         return count
-#
-#     def count_all_fields(self):
-#         count = 0
-#         for f in self.fields:
-#             if isinstance(f, OneOf):
-#                 count += len(f.fields)
-#             else:
-#                 count += 1
-#         return count
-#
-#     def fields_declaration(self):
-#         result = 'extern const pb_field_t %s_fields[%d];' % (self.name, self.count_all_fields() + 1)
-#         return result
-#
-#     def fields_definition(self):
-#         result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, self.count_all_fields() + 1)
-#
-#         prev = None
-#         for field in self.ordered_fields:
-#             result += field.pb_field_t(prev)
-#             result += ',\n'
-#             prev = field.get_last_field_name()
-#
-#         result += '    PB_LAST_FIELD\n};'
-#         return result
-#
-#     def encoded_size(self, dependencies):
-#         '''Return the maximum size that this message can take when encoded.
-#         If the size cannot be determined, returns None.
-#         '''
-#         size = EncodedSize(0)
-#         for field in self.fields:
-#             fsize = field.encoded_size(dependencies)
-#             if fsize is None:
-#                 return None
-#             size += fsize
-#
-#         return size
 
 # ---------------------------------------------------------------------------
 #                   Generation of Methods
@@ -341,34 +192,6 @@ class Service:
     def get_methods(self):
         return self.methods
 
-# ---------------------------------------------------------------------------
-#                    Processing of entire .proto files
-# ---------------------------------------------------------------------------
-
-def iterate_messages(desc, names = Names()):
-    '''Recursively find all messages. For each, yield name, DescriptorProto.'''
-    if hasattr(desc, 'message_type'):
-        submsgs = desc.message_type
-    else:
-        submsgs = desc.nested_type
-
-    for submsg in submsgs:
-        sub_names = names + submsg.name
-        yield sub_names, submsg
-
-        for x in iterate_messages(submsg, sub_names):
-            yield x
-#
-# def iterate_extensions(desc, names = Names()):
-#     '''Recursively find all extensions.
-#     For each, yield name, FieldDescriptorProto.
-#     '''
-#     for extension in desc.extension:
-#         yield names, extension
-#
-#     for subname, subdesc in iterate_messages(desc, names):
-#         for extension in subdesc.extension:
-#             yield subname, extension
 
 def iterate_servies(desc, names=Names()):
     '''Recursively find all services.
@@ -403,17 +226,17 @@ def toposort2(data):
                 if item not in ordered])
     assert not data, "A cyclic dependency exists amongst %r" % data
 
-def sort_dependencies(messages):
-    '''Sort a list of Messages based on dependencies.'''
-    dependencies = {}
-    message_by_name = {}
-    for message in messages:
-        dependencies[str(message.name)] = set(message.get_dependencies())
-        message_by_name[str(message.name)] = message
-
-    for msgname in toposort2(dependencies):
-        if msgname in message_by_name:
-            yield message_by_name[msgname]
+# def sort_dependencies(messages):
+#     '''Sort a list of Messages based on dependencies.'''
+#     dependencies = {}
+#     message_by_name = {}
+#     for message in messages:
+#         dependencies[str(message.name)] = set(message.get_dependencies())
+#         message_by_name[str(message.name)] = message
+#
+#     for msgname in toposort2(dependencies):
+#         if msgname in message_by_name:
+#             yield message_by_name[msgname]
 
 def make_identifier(headername):
     '''Make #ifndef identifier that contains uppercase A-Z and digits 0-9'''
@@ -746,8 +569,7 @@ class ProtoFile:
                     yield method.get_definition()
                     yield '\n\n'
                 yield '\n'
-
-        yield '\n'
+        # yield '\n'
         yield '/* @@protoc_insertion_point(eof) */\n'
 
 # ---------------------------------------------------------------------------
