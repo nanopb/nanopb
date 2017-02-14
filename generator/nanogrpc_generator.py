@@ -357,16 +357,15 @@ class ProtoFile:
         yield 'extern "C" {\n'
         yield '#endif\n\n'
 
-        if self.services:
-            yield '/* Services definitions */\n'
-            for service in self.services:
-                yield service.get_declaration()
+        yield '/* Services definitions */\n'
+        for service in self.services:
+            yield service.get_declaration()
+            yield '\n'
+            for method in service.get_methods():
+                yield method.get_declaration()
                 yield '\n'
-                for method in service.get_methods():
-                    yield method.get_declaration()
-                    yield '\n'
-                yield '\n'
-
+            yield 'ng_GrpcStatus_t {}_service_init();\n'.format(service.name)
+        yield '\n'
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
         yield '#endif\n'
@@ -405,12 +404,13 @@ class ProtoFile:
                     yield method.get_definition()
                     yield '\n\n'
                 yield '\n'
-        yield 'uint32_t Greeter_init(){\n'
         for service in self.services:
+            yield 'ng_GrpcStatus_t {}_service_init(){{\n'.format(service.name)
             for method in service.methods:
                 yield '    ng_addMethodToService(&{}_service, &{}_method);\n'.format(service.name, method.full_name)
+            yield '    return 0;\n'
+            yield '}\n'
             yield '\n'
-        yield '}\n'
         yield '/* @@protoc_insertion_point(eof) */\n'
 
 # ---------------------------------------------------------------------------
