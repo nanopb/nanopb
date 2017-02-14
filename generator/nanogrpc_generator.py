@@ -150,16 +150,16 @@ class Method:
         # result += 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(self.input)
         # result += 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(self.output)
         # result += '\n'
-        result += 'ng_method-t {}_method = {{\n'.format(self.full_name)
+        result += 'ng_method_t {}_method = {{\n'.format(self.full_name)
         result += '    "{}",\n'.format(self.name)
         result += '    0,\n'  # TODO place method id option here
         result += '    NULL,\n'
         result += '    NULL,\n'
         result += '    NULL,\n'
-        result += '    {}_feilds\n'.format(self.input)
+        result += '    {}_fields,\n'.format(self.input)
         result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input)
         result += '    NULL,\n'
-        result += '    {}_feilds\n'.format(self.output)
+        result += '    {}_fields,\n'.format(self.output)
         result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
         result += '    NULL,\n'
         result += '};'
@@ -334,6 +334,7 @@ class ProtoFile:
         try:
             yield options.libformat % ('pb.h')
             yield options.libformat % ('ng.h')
+            yield options.libformat % ('nanogrpc.h')
         except TypeError:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
@@ -366,168 +367,6 @@ class ProtoFile:
                     yield '\n'
                 yield '\n'
 
-        # if self.enums:
-        #     yield '/* Enum definitions */\n'
-        #     for enum in self.enums:
-        #         yield str(enum) + '\n\n'
-        #
-        # if self.messages:
-        #     yield '/* Struct definitions */\n'
-        #     for msg in sort_dependencies(self.messages):
-        #         yield msg.types()
-        #         yield str(msg) + '\n\n'
-        #
-        # if self.extensions:
-        #     yield '/* Extensions */\n'
-        #     for extension in self.extensions:
-        #         yield extension.extension_decl()
-        #     yield '\n'
-        #
-        # if self.messages:
-        #     yield '/* Default values for struct fields */\n'
-        #     for msg in self.messages:
-        #         yield msg.default_decl(True)
-        #     yield '\n'
-        #
-        #     yield '/* Initializer values for message structs */\n'
-        #     for msg in self.messages:
-        #         identifier = '%s_init_default' % msg.name
-        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
-        #     for msg in self.messages:
-        #         identifier = '%s_init_zero' % msg.name
-        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
-        #     yield '\n'
-        #
-        #     yield '/* Field tags (for use in manual encoding/decoding) */\n'
-        #     for msg in sort_dependencies(self.messages):
-        #         for field in msg.fields:
-        #             yield field.tags()
-        #     for extension in self.extensions:
-        #         yield extension.tags()
-        #     yield '\n'
-        #
-        #     yield '/* Struct field encoding specification for nanopb */\n'
-        #     for msg in self.messages:
-        #         yield msg.fields_declaration() + '\n'
-        #     yield '\n'
-        #
-        #     yield '/* Maximum encoded size of messages (where known) */\n'
-        #     for msg in self.messages:
-        #         msize = msg.encoded_size(self.dependencies)
-        #         identifier = '%s_size' % msg.name
-        #         if msize is not None:
-        #             yield '#define %-40s %s\n' % (identifier, msize)
-        #         else:
-        #             yield '/* %s depends on runtime parameters */\n' % identifier
-        #     yield '\n'
-        #
-        #     yield '/* Message IDs (where set with "msgid" option) */\n'
-        #
-        #     yield '#ifdef PB_MSGID\n'
-        #     for msg in self.messages:
-        #         if hasattr(msg,'msgid'):
-        #             yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
-        #     yield '\n'
-        #
-        #     symbol = make_identifier(headername.split('.')[0])
-        #     yield '#define %s_MESSAGES \\\n' % symbol
-        #
-        #     for msg in self.messages:
-        #         m = "-1"
-        #         msize = msg.encoded_size(self.dependencies)
-        #         if msize is not None:enums:
-        #     yield '/* Enum definitions */\n'
-        #     for enum in self.enums:
-        #         yield str(enum) + '\n\n'
-        #
-        # if self.messages:
-        #     yield '/* Struct definitions */\n'
-        #     for msg in sort_dependencies(self.messages):
-        #         yield msg.types()
-        #         yield str(msg) + '\n\n'
-        #
-        # if self.extensions:
-        #     yield '/* Extensions */\n'
-        #     for extension in self.extensions:
-        #         yield extension.extension_decl()
-        #     yield '\n'
-        #
-        # if self.messages:
-        #     yield '/* Default values for struct fields */\n'
-        #     for msg in self.messages:
-        #         yield msg.default_decl(True)
-        #     yield '\n'
-        #
-        #     yield '/* Initializer values for message structs */\n'
-        #     for msg in self.messages:
-        #         identifier = '%s_init_default' % msg.name
-        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
-        #     for msg in self.messages:
-        #         identifier = '%s_init_zero' % msg.name
-        #         yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
-        #     yield '\n'
-        #
-        #     yield '/* Field tags (for use in manual encoding/decoding) */\n'
-        #     for msg in sort_dependencies(self.messages):
-        #         for field in msg.fields:
-        #             yield field.tags()
-        #     for extension in self.extensions:
-        #         yield extension.tags()
-        #     yield '\n'
-        #
-        #     yield '/* Struct field encoding specification for nanopb */\n'
-        #     for msg in self.messages:
-        #         yield msg.fields_declaration() + '\n'
-        #     yield '\n'
-        #
-        #     yield '/* Maximum encoded size of messages (where known) */\n'
-        #     for msg in self.messages:
-        #         msize = msg.encoded_size(self.dependencies)
-        #         identifier = '%s_size' % msg.name
-        #         if msize is not None:
-        #             yield '#define %-40s %s\n' % (identifier, msize)
-        #         else:
-        #             yield '/* %s depends on runtime parameters */\n' % identifier
-        #     yield '\n'
-        #
-        #     yield '/* Message IDs (where set with "msgid" option) */\n'
-        #
-        #     yield '#ifdef PB_MSGID\n'
-        #     for msg in self.messages:
-        #         if hasattr(msg,'msgid'):
-        #             yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
-        #     yield '\n'
-        #
-        #     symbol = make_identifier(headername.split('.')[0])
-        #     yield '#define %s_MESSAGES \\\n' % symbol
-        #
-        #     for msg in self.messages:
-        #         m = "-1"
-        #         msize = msg.encoded_size(self.dependencies)
-        #         if msize is not None:
-        #             m = msize
-        #         if hasattr(msg,'msgid'):
-        #             yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
-        #     yield '\n'
-        #
-        #     for msg in self.messages:
-        #         if hasattr(msg,'msgid'):
-        #             yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
-        #     yield '\n'
-        #
-        #     yield '#endif
-        #             m = msize
-        #         if hasattr(msg,'msgid'):
-        #             yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
-        #     yield '\n'
-        #
-        #     for msg in self.messages:
-        #         if hasattr(msg,'msgid'):
-        #             yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
-        #     yield '\n'
-        #
-        #     yield '#endif\n\n'
-
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
         yield '#endif\n'
@@ -553,9 +392,6 @@ class ProtoFile:
         yield '#endif\n'
         yield '\n'
 
-        # for msg in self.messages:
-        #     yield msg.default_decl(False)
-
         yield '\n\n'
         for msg in self.get_all_used_messages():
             yield 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(msg)
@@ -569,7 +405,12 @@ class ProtoFile:
                     yield method.get_definition()
                     yield '\n\n'
                 yield '\n'
-        # yield '\n'
+        yield 'uint32_t Greeter_init(){\n'
+        for service in self.services:
+            for method in service.methods:
+                yield '    ng_addMethodToService(&{}_service, &{}_method);\n'.format(service.name, method.full_name)
+            yield '\n'
+        yield '}\n'
         yield '/* @@protoc_insertion_point(eof) */\n'
 
 # ---------------------------------------------------------------------------

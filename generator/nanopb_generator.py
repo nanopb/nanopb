@@ -527,14 +527,14 @@ class Field:
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
         result += '%-8s, ' % (self.allocation if not self.inline else "INLINE")
-        
+
         if union_index is not None and union_index > 0:
             result += 'UNION, '
         elif prev_field_name is None:
             result += 'FIRST, '
         else:
             result += 'OTHER, '
-        
+
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
