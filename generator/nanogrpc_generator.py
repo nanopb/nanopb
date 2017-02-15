@@ -48,26 +48,6 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb type, encoded size, int_size_allowed)
-# FieldD = descriptor.FieldDescriptorProto
-# datatypes = {
-#     FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
-#     FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
-#     FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  False),
-#     FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  False),
-#     FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  False),
-#     FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  True),
-#     FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  True),
-#     FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  False),
-#     FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  False),
-#     FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  True),
-#     FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  True),
-#     FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  True),
-#     FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  True)
-# }
-
-
-
 # String types (for python 2 / python 3 compatibility)
 try:
     strtypes = (unicode, str)
@@ -262,8 +242,6 @@ class ProtoFile:
 
     def parse(self):
         self.enums = []
-        # self.messages = []
-        # self.extensions = []
         self.services = []
 
         if self.fdesc.package:
@@ -272,11 +250,8 @@ class ProtoFile:
             base_name = Names()
 
         for names, service in iterate_servies(self.fdesc, base_name):
-            # print(names, service)
             self.services.append(Service(names, service, service_options=None))
-        # for enum in self.fdesc.enum_type:
-        #     enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
-        #     self.enums.append(Enum(base_name, enum, enum_options))
+
 
     def add_dependency(self, other):
         for enum in other.enums:
@@ -394,7 +369,6 @@ class ProtoFile:
         yield '\n\n'
         for msg in self.get_all_used_messages():
             yield 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(msg)
-            print(msg)
         yield '\n'
         if self.services:
             for service in self.services:
@@ -611,7 +585,6 @@ def process_file(filename, fdesc, options, other_files = {}):
     sourcename = noext + options.grpc_extension + '.c'
     headerbasename = os.path.basename(headername)
 
-    print(headername)
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
