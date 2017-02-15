@@ -59,14 +59,13 @@ struct ng_grpc_handle_s {
     ng_GrpcStatus_t lastStatus;
 };
 
-bool ng_GrpcParse(ng_grpc_handle_t *handle);
-ng_GrpcStatus_t ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service);
-ng_GrpcStatus_t GrpcParsebuffer(ng_grpc_handle_t *handle, uint8_t *buf, uint32_t len);
-ng_GrpcStatus_t ng_addMethodToService(ng_service_t *service, ng_method_t * method);
-ng_GrpcStatus_t ng_setMethodHandler(ng_method_t *method,
-                                ng_GrpcStatus_t (*handler)(pb_istream_t * input,
-                                                      pb_ostream_t * output));
-ng_GrpcStatus_t ng_setMethodCallback(ng_method_t *method,
+bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle);
+bool ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service);
+bool ng_addMethodToService(ng_service_t *service, ng_method_t * method);
+// ng_GrpcStatus_t ng_setMethodHandler(ng_method_t *method,
+//                                 ng_GrpcStatus_t (*handler)(pb_istream_t * input,
+//                                                       pb_ostream_t * output));
+bool ng_setMethodCallback(ng_method_t *method,
                                       ng_GrpcStatus_t (*callback)(void* request,
                                                             void* response),
                                       void *request_holder,

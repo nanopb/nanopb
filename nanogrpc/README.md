@@ -2,7 +2,8 @@
 this is grpc implementaiton which aims communication over serial interfaces
 like UART or RS232.
 
-Instead of [standard HTTP protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
+Instead of
+[standard HTTP protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)
 it wraps request and response into `protobuf` messages which definition can be
 found in `nanogrpc.proto` file.
 
@@ -16,15 +17,29 @@ For now I am encoding data into frames base64 encoded wrapped in `>` `<`
 >TGlrZSB0aGlz<
 ```
 But it can be eaistly integrated for example with
-[HLDC](https://en.wikipedia.org/wiki/High-Level_Data_Link_Control) (which is my goal)
+[HLDC](https://en.wikipedia.org/wiki/High-Level_Data_Link_Control) (which is my
+goal)
 
-## Path
-
+## Path to methods
 GRPC identifies methods by paths, which are basically strings.
-In order to reduce traffic on serial line (which in real world might be very slow)
+In order to reduce traffic on serial line (which in real world might be very
+  slow)
 there is option of identifying method by hash of path, which could be for
 example CRC32 from path. For now in `nanogrpc.proto` field `name_crc` is marked
-required, because for now `nanopb` doesn't allow to use `oneOf`'s with dynamically allocated memory.
+required, because for now `nanopb` doesn't allow to use `oneOf`'s with
+dynamically allocated memory.
+
+### Method naming
+Different services may have methods with same names, but they won't be the same
+methods. There are two ways to solve this problem:
+* Use unique names for methods
+* Use separate source file for each service, define methods as static, but
+adding callbacks or manipulating method request/response holders would require
+referencing them by path (as string), and it sounds like a mess.
+
+## Generator
+`nanogrpc_generator.py` is a copy of `nanopb_generator.py` with removed unused
+classes and methods.
 
 ## Examples
 
@@ -32,6 +47,9 @@ For now I am testing it on STM32F4DISCOVERY board as submodule so that I didn't
 provide any examples yet. But I will do it as soon as I will have generator
 working.
 
+## Roadmap
+* Non blocking request parsing with (optional) timeout support
+* server to client streaming
 
 ### other disorganized thoughts
 

@@ -4,7 +4,16 @@
 #include "pb_decode.h"
 
 
-
+/*!
+ * @brief Returns method with given hash.
+ *
+ * Function Iterates over all methods found in servies registered in
+ * given grpc handle.
+ * @param  handle pointer to grpc handle
+ * @param  hash   hash of method to find
+ * @return        pointer to first method whose hash match given one,
+ *                Null if not found.
+ */
 static ng_method_t * getMethodByHash(ng_grpc_handle_t *handle, ng_hash_t hash){
   ng_method_t *method = NULL;
   ng_service_t *service = handle->serviceHolder;
@@ -23,6 +32,17 @@ static ng_method_t * getMethodByHash(ng_grpc_handle_t *handle, ng_hash_t hash){
   return NULL;
 }
 
+/*!
+ * @brief Callback for encoding response into output stream.
+ *
+ * This callback is called during encoding GrpcResponse. In case of fail
+ * bytes will be alread written into stream, so that it is essential to
+ * calculate size and ensuring that output will fit into it.
+ * @param  stream pointer to stream
+ * @param  field  pointer to response fields
+ * @param  arg    pointer to current method
+ * @return        true if successfully encoded message, false if not
+ */
 static bool encodeResponseCallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     ng_method_t *method = (ng_method_t*)*arg;
@@ -35,14 +55,19 @@ static bool encodeResponseCallback(pb_ostream_t *stream, const pb_field_t *field
 }
 
 
-/**
- * [ng_GrpcParse description]
- * @param  handle [description]
+/*!
+ * @brief Parses input stream and prepares ouptu stream.
+ *
+ * This method should be called when data to be parsed are stored in
+ * input stream. Before calling user have to ensure, that ouptut stream
+ * will be capable for encoding output.
+ *
+ * @param  handle pointer to grpc handle
  * @return        true if succed in encoding response to output stream
  *                false if didn't manage to encode output stream or in
  *                case of input problem
  */
-bool ng_GrpcParse(ng_grpc_handle_t *handle){
+bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
   if (handle->input == NULL || handle->output == NULL){
     return false;
   }
@@ -121,39 +146,46 @@ bool ng_GrpcParse(ng_grpc_handle_t *handle){
   return ret; // default true
 }
 
-
-ng_GrpcStatus_t GrpcParsebuffer(ng_grpc_handle_t *handle, uint8_t *buf, uint32_t len){
-  // GrpcRequest request;
-  pb_istream_t input = pb_istream_from_buffer(buf, len);
-  pb_ostream_t output = PB_OSTREAM_SIZING; // empty stream
-  handle->input = &input;
-  handle->output = &output;
-  ng_GrpcParse(handle);
-
-
-  return 0;
-}
-
-
-ng_GrpcStatus_t ng_addMethodToService(ng_service_t * service, ng_method_t * method){
+/*!
+ * @brief Adds given method to given service.
+ * @param  service pointer to service
+ * @param  method  pointer to method to be added to service
+ * @return         true if successfully added method, fasle if not
+ */
+bool ng_addMethodToService(ng_service_t * service, ng_method_t * method){
   if (method != NULL && service != NULL){
     method->next = service->method;
     service->method = method;
     // TODO set here method name hash (as endpoint)
-    return GrpcStatus_OK;
+    return true;
   } else {
-    return GrpcStatus_INTERNAL;
+    return false;
   }
 }
 
-ng_GrpcStatus_t ng_setMethodHandler(ng_method_t * method,
-                                ng_GrpcStatus_t (*handler)(pb_istream_t * input,
-                                                      pb_ostream_t * output)){
-  method->handler = handler;
-  return GrpcStatus_OK;
-}
+/*!
+ * @brief Sets handler in given method.
+ *
+ * Currently unused.
+ * @param  method  [description]
+ * @param  handler [description]
+ * @return         [description]
+ */
+// ng_GrpcStatus_t ng_setMethodHandler(ng_method_t * method,
+//                                 ng_GrpcStatus_t (*handler)(pb_istream_t * input,
+//                                                       pb_ostream_t * output)){
+//   method->handler = handler;
+//   return GrpcStatus_OK;
+// }
 
-ng_GrpcStatus_t ng_setMethodCallback(ng_method_t *method,
+
+/*!
+ * @brief Sets given callback to given method
+ * @param  method   pointer to method
+ * @param  callback pointer to callback
+ * @return          true if success, false if not
+ */
+bool ng_setMethodCallback(ng_method_t *method,
                                       ng_GrpcStatus_t (*callback)(void* request,
                                                             void* response),
                                       void *request_holder,
@@ -162,18 +194,24 @@ ng_GrpcStatus_t ng_setMethodCallback(ng_method_t *method,
     method->callback = callback;
     method->request_holder = request_holder;
     method->response_holder = response_holder;
-    return GrpcStatus_OK;
+    return true;
   } else {
-    return GrpcStatus_INTERNAL;
+    return false;
   }
 }
 
-ng_GrpcStatus_t ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service){
+/*!
+ * @brief Registers service in given grpc handle.
+ * @param  handle  pointer to grpc handle
+ * @param  service pointer to service
+ * @return         true if success, false if not
+ */
+bool ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service){
   if (service != NULL && handle != NULL){
     service->next = handle->serviceHolder;
     handle->serviceHolder = service;
-    return GrpcStatus_OK;
+    return true;
   } else {
-    return GrpcStatus_INTERNAL;
+    return false;
   }
 }
