@@ -32,7 +32,12 @@ enum IntSize {
 // fields.
 message NanoPBOptions {
   // Allocated size for 'bytes' and 'string' fields.
+  // For string fields, this should include the space for null terminator.
   optional int32 max_size = 1;
+  
+  // Maximum length for 'string' fields. Setting this is equivalent
+  // to setting max_size to a value of length+1.
+  optional int32 max_length = 14;
   
   // Allocated number of entries in arrays ('repeated' fields)
   optional int32 max_count = 2;
