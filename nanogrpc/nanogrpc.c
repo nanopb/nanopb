@@ -1,8 +1,12 @@
 #include "nanogrpc.h"
-#include "nanogrpc.ng.h"
+/* #include "nanogrpc.ng.h" */
 #include "pb_encode.h"
 #include "pb_decode.h"
+#include "ng.h"
 
+
+static DEFINE_FILL_WITH_ZEROS_FUNCTION(GrpcRequest)
+static DEFINE_FILL_WITH_ZEROS_FUNCTION(GrpcResponse)
 
 /*!
  * @brief Returns method with given hash.
@@ -18,9 +22,9 @@ static ng_method_t * getMethodByHash(ng_grpc_handle_t *handle, ng_hash_t hash){
   ng_method_t *method = NULL;
   ng_service_t *service = handle->serviceHolder;
 
-  while (service != NULL){ // Iterate over services
+  while (service != NULL){ /* Iterate over services */
     method = service->method;
-    while (method != NULL){ // Iterate over methods in service
+    while (method != NULL){ /* Iterate over methods in service */
       if (method->nameHash == hash){
         return method;
       } else {
@@ -46,11 +50,11 @@ static ng_method_t * getMethodByHash(ng_grpc_handle_t *handle, ng_hash_t hash){
 static bool encodeResponseCallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     ng_method_t *method = (ng_method_t*)*arg;
-    // char *str = get_string_from_somewhere();
+    /* char *str = get_string_from_somewhere(); */
     if (!pb_encode_tag_for_field(stream, field))
         return false;
-    // we are encoding tag for bytes, but writeing submessage,
-    // as long it is prepended with size same as bytes
+    /* we are encoding tag for bytes, but writeing submessage, */
+    /* as long it is prepended with size same as bytes */
     return pb_encode_submessage(stream, method->response_fields, method->response_holder);
 }
 
@@ -81,19 +85,19 @@ bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
 
     method = getMethodByHash(handle, handle->request.path_crc);
     if (method != NULL) {
-      // currently using handler is unimplemented
+      /* currently using handler is unimplemented */
       /* if (method->handler != NULL){ // handler found
         status = method->handler(&input, NULL);
         if (!status){
           return status;
         }
-      } else */ if (method->callback != NULL){ // callback found
+      } else */ if (method->callback != NULL){ /* callback found */
         method->request_fillWithZeros(method->request_holder);
         if (pb_decode(&input, method->request_fields, method->request_holder)){
           method->response_fillWithZeros(method->response_holder);
           status = method->callback(method->request_holder, method->response_holder);
-          // try to encode method response to make sure, that it will be
-          // possible to encode it callback.
+          /* try to encode method response to make sure, that it will be
+           * possible to encode it callback.  */
           bool validResponse;
           size_t responseSize;
           validResponse = pb_get_encoded_size(&responseSize,
@@ -103,47 +107,47 @@ bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
             handle->response.grpc_status = status;
             handle->response.data.funcs.encode = &encodeResponseCallback;
             handle->response.data.arg = method;
-          } else if (status == GrpcStatus_OK && !validResponse){ // status ok, unable to encode
+          } else if (status == GrpcStatus_OK && !validResponse){ /* status ok, unable to encode */
             handle->response.grpc_status = GrpcStatus_INTERNAL;
-            // TODO insert here message about not being able to
-            // encode method request
-          } else { // callback failed, we ony encode its status.
+            /* TODO insert here message about not being able to
+             * encode method request */
+          } else { /* callback failed, we ony encode its status. */
             handle->response.grpc_status = status;
           }
-          //ready to encode and return
+          /*ready to encode and return */
           #ifdef PB_ENABLE_MALLOC
-          // In case response would have dynamically allocated fields
-          pb_release(method->request_fields, method->request_holder); // TODO release always?
+          /* In case response would have dynamically allocated fields */
+          pb_release(method->request_fields, method->request_holder); /* TODO release always?*/
           pb_release(method->response_fields, method->response_holder);
           #endif
-//          ret = GrpcStatus_OK;
-        } else { // unable to decode message from request holder
+         /* ret = GrpcStatus_OK; */
+       } else { /* unable to decode message from request holder */
           handle->response.grpc_status = GrpcStatus_INVALID_ARGUMENT;
         }
-      } else { // handler or callback not found
+      } else { /* handler or callback not found */
         handle->response.grpc_status = GrpcStatus_UNIMPLEMENTED;
       }
-    } else { // No method found
+    } else { /* No method found*/
       handle->response.grpc_status = GrpcStatus_NOT_FOUND;
     }
-    // inser handle end
-  } else { // Unable to decode GrpcRequest
-	  // unable to pase GrpcRequest
-    // return fasle // TODO ?
+    /* inser handle end */
+  } else { /* Unable to decode GrpcRequest */
+	  /* unable to pase GrpcRequest */
+    /* return fasle // TODO ? */
     handle->response.grpc_status = GrpcStatus_DATA_LOSS;
   }
 
   status = pb_encode(handle->output, GrpcResponse_fields, &handle->response);
   if (!status){
-    // TODO unable to encode
+    /* TODO unable to encode */
     ret = false;
   }
 
   #ifdef PB_ENABLE_MALLOC
   pb_release(GrpcRequest_fields, &handle->request);
-  pb_release(GrpcResponse_fields, &handle->response); // TODO leave it here?
+  pb_release(GrpcResponse_fields, &handle->response); /* TODO leave it here? */
   #endif
-  return ret; // default true
+  return ret; /* default true */
 }
 
 /*!
@@ -156,7 +160,7 @@ bool ng_addMethodToService(ng_service_t * service, ng_method_t * method){
   if (method != NULL && service != NULL){
     method->next = service->method;
     service->method = method;
-    // TODO set here method name hash (as endpoint)
+    /* TODO set here method name hash (as endpoint) */
     return true;
   } else {
     return false;
@@ -171,12 +175,12 @@ bool ng_addMethodToService(ng_service_t * service, ng_method_t * method){
  * @param  handler [description]
  * @return         [description]
  */
-// ng_GrpcStatus_t ng_setMethodHandler(ng_method_t * method,
-//                                 ng_GrpcStatus_t (*handler)(pb_istream_t * input,
-//                                                       pb_ostream_t * output)){
-//   method->handler = handler;
-//   return GrpcStatus_OK;
-// }
+/* ng_GrpcStatus_t ng_setMethodHandler(ng_method_t * method,
+                                ng_GrpcStatus_t (*handler)(pb_istream_t * input,
+                                                      pb_ostream_t * output)){
+  method->handler = handler;
+  return GrpcStatus_OK;
+} */
 
 
 /*!
