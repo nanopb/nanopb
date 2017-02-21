@@ -12,4 +12,4 @@
 
 #define FILL_WITH_ZEROS_FUNCTION_NAME(X) X ## _fillWithZeros
 
-#endif // __NG_H__
+#endif 

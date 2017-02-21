@@ -1,0 +1,23 @@
+// This defines protocol for a simple server that lists files.
+//
+// See also the nanopb-specific options in fileproto.options.
+
+syntax = "proto2";
+
+service FileServer {
+  rpc ListFiles (Path) returns (FileList);
+}
+
+message Path {
+    optional string path = 1 [default = "/"];
+}
+
+message FileInfo {
+    required uint64 inode = 1;
+    required string name = 2;
+}
+
+message FileList {
+    optional bool path_error = 1 [default = false];
+    repeated FileInfo file = 2;
+}
