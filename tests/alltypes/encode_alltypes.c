@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     strcpy(alltypes.req_submsg.substuff1, "1016");
     alltypes.req_submsg.substuff2 = 1016;
     alltypes.req_enum = MyEnum_Truth;
+    memcpy(alltypes.req_fbytes, "1019", 4);
     
     alltypes.rep_int32_count = 5; alltypes.rep_int32[4] = -2001;
     alltypes.rep_int64_count = 5; alltypes.rep_int64[4] = -2002;
@@ -66,6 +67,9 @@ int main(int argc, char **argv)
     
     alltypes.rep_enum_count = 5; alltypes.rep_enum[4] = MyEnum_Truth;
     alltypes.rep_emptymsg_count = 5;
+    
+    alltypes.rep_fbytes_count = 5;
+    memcpy(alltypes.rep_fbytes[4], "2019", 4);
     
     alltypes.req_limits.int32_min  = INT32_MIN;
     alltypes.req_limits.int32_max  = INT32_MAX;
@@ -121,6 +125,8 @@ int main(int argc, char **argv)
         alltypes.has_opt_enum = true;
         alltypes.opt_enum = MyEnum_Truth;
         alltypes.has_opt_emptymsg = true;
+        alltypes.has_opt_fbytes = true;
+        memcpy(alltypes.opt_fbytes, "3059", 4);
 
         alltypes.which_oneof = AllTypes_oneof_msg1_tag;
         strcpy(alltypes.oneof.oneof_msg1.substuff1, "4059");

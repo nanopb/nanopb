@@ -218,11 +218,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     SubMessage  oneof_msg1      = {"4059", 4059};
     
     /* Bind callbacks for required fields */
-    AllTypes alltypes;
-    
-    /* Fill with garbage to better detect initialization errors */
-    memset(&alltypes, 0xAA, sizeof(alltypes));
-    alltypes.extensions = 0;
+    AllTypes alltypes = AllTypes_init_zero;
     
     alltypes.req_int32.funcs.decode = &read_varint;
     alltypes.req_int32.arg = (void*)-1001;

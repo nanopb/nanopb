@@ -55,6 +55,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
     TEST(alltypes.rep_emptymsg_count == 5);
     
+    TEST(alltypes.rep_fbytes_count == 5);
+    TEST(alltypes.rep_fbytes[0][0] == 0 && alltypes.rep_fbytes[0][3] == 0);
+    TEST(memcmp(alltypes.rep_fbytes[4], "2019", 4) == 0);
+    
     if (mode == 0)
     {
         /* Expect default values */
@@ -80,6 +84,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.sng_submsg.substuff2 == 0);
         TEST(alltypes.sng_submsg.substuff3 == 0);
         TEST(alltypes.sng_enum == MyEnum_Zero);
+        TEST(alltypes.sng_fbytes[0] == 0 &&
+             alltypes.sng_fbytes[1] == 0 &&
+             alltypes.sng_fbytes[2] == 0 &&
+             alltypes.sng_fbytes[3] == 0);
 
         TEST(alltypes.which_oneof == 0);
     }
@@ -109,6 +117,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.sng_submsg.substuff2 == 3056);
         TEST(alltypes.sng_submsg.substuff3 == 0);
         TEST(alltypes.sng_enum == MyEnum_Truth);
+        TEST(memcmp(alltypes.sng_fbytes, "3059", 4) == 0);
 
         TEST(alltypes.which_oneof == AllTypes_oneof_msg1_tag);
         TEST(strcmp(alltypes.oneof.oneof_msg1.substuff1, "4059") == 0);

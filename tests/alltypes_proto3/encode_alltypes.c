@@ -43,6 +43,9 @@ int main(int argc, char **argv)
     alltypes.rep_enum_count = 5; alltypes.rep_enum[4] = MyEnum_Truth;
     alltypes.rep_emptymsg_count = 5;
     
+    alltypes.rep_fbytes_count = 5;
+    memcpy(alltypes.rep_fbytes[4], "2019", 4);
+    
     alltypes.req_limits.int32_min  = INT32_MIN;
     alltypes.req_limits.int32_max  = INT32_MAX;
     alltypes.req_limits.uint32_min = 0;
@@ -79,6 +82,7 @@ int main(int argc, char **argv)
         strcpy(alltypes.sng_submsg.substuff1, "3056");
         alltypes.sng_submsg.substuff2 = 3056;
         alltypes.sng_enum = MyEnum_Truth;
+        memcpy(alltypes.sng_fbytes, "3059", 4);
 
         alltypes.which_oneof = AllTypes_oneof_msg1_tag;
         strcpy(alltypes.oneof.oneof_msg1.substuff1, "4059");
