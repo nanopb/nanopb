@@ -35,6 +35,7 @@ static bool checkreturn pb_enc_fixed64(pb_ostream_t *stream, const pb_field_t *f
 static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
+static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
 /* --- Function pointers to field encoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
@@ -50,7 +51,7 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     &pb_enc_string,
     &pb_enc_submessage,
     NULL, /* extensions */
-    &pb_enc_bytes /* PB_LTYPE_FIXED_LENGTH_BYTES */
+    &pb_enc_fixed_length_bytes
 };
 
 /*******************************
@@ -694,9 +695,6 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *fie
 {
     const pb_bytes_array_t *bytes = NULL;
 
-    if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
-        return pb_encode_string(stream, (const pb_byte_t*)src, field->data_size);
-
     bytes = (const pb_bytes_array_t*)src;
     
     if (src == NULL)
@@ -746,5 +744,10 @@ static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t
         PB_RETURN_ERROR(stream, "invalid field descriptor");
     
     return pb_encode_submessage(stream, (const pb_field_t*)field->ptr, src);
+}
+
+static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    return pb_encode_string(stream, (const pb_byte_t*)src, field->data_size);
 }
 

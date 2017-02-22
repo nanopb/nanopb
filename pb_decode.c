@@ -42,6 +42,7 @@ static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *f
 static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_skip_varint(pb_istream_t *stream);
 static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
@@ -65,7 +66,7 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     &pb_dec_string,
     &pb_dec_submessage,
     NULL, /* extensions */
-    &pb_dec_bytes /* PB_LTYPE_FIXED_LENGTH_BYTES */
+    &pb_dec_fixed_length_bytes
 };
 
 /*******************************
@@ -1286,12 +1287,6 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
     }
     else
     {
-        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES) {
-            if (size != field->data_size)
-                PB_RETURN_ERROR(stream, "incorrect inline bytes size");
-            return pb_read(stream, (pb_byte_t*)dest, field->data_size);
-        }
-
         if (alloc_size > field->data_size)
             PB_RETURN_ERROR(stream, "bytes overflow");
         bdest = (pb_bytes_array_t*)dest;
@@ -1358,4 +1353,27 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t
     if (!pb_close_string_substream(stream, &substream))
         return false;
     return status;
+}
+
+static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
+{
+    uint32_t size;
+
+    if (!pb_decode_varint32(stream, &size))
+        return false;
+
+    if (size > PB_SIZE_MAX)
+        PB_RETURN_ERROR(stream, "bytes overflow");
+
+    if (size == 0)
+    {
+        /* As a special case, treat empty bytes string as all zeros for fixed_length_bytes. */
+        memset(dest, 0, field->data_size);
+        return true;
+    }
+
+    if (size != field->data_size)
+        PB_RETURN_ERROR(stream, "incorrect fixed length bytes size");
+
+    return pb_read(stream, (pb_byte_t*)dest, field->data_size);
 }
