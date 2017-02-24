@@ -395,7 +395,14 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         alltypes.oneof_msg1.arg = &oneof_msg1;
     }
     
-    return pb_decode(stream, AllTypes_fields, &alltypes);
+    bool status = pb_decode(stream, AllTypes_fields, &alltypes);
+    
+#ifdef PB_ENABLE_MALLOC
+    /* Just to check for any interference between pb_release() and callback fields */
+    pb_release(AllTypes_fields, &alltypes);
+#endif
+
+    return status;
 }
 
 int main(int argc, char **argv)
