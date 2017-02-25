@@ -35,6 +35,7 @@ NANOGRPC_DIR := $(NANOPB_DIR)/nanogrpc
 NANOGRPC_CORE = $(NANOGRPC_DIR)/nanogrpc.c
 # Compiler flags to enable all warnings & debug info
 CFLAGS = -ansi -Wall -Werror -g -O0
+CFLAGS += -DPB_ENABLE_MALLOC -DPB_FIELD_16BIT
 CFLAGS += -I$(NANOPB_DIR)
 CFLAGS += -I$(NANOGRPC_DIR)
 CFLAGS += -I$(abspath .)
@@ -55,7 +56,7 @@ vpath %.proto $(abspath ../../)
 vpath %.options $(abspath ../../)
 
 .PHONY: all
-all: server
+all: server client
 
 % : %.c common.c fileproto.pb.c fileproto.ng.c nanogrpc.pb.c
 	echo $@

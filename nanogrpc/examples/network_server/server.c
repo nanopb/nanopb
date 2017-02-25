@@ -37,26 +37,35 @@ pb_ostream_t ostream;
  */
 bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
-    DIR *dir = (DIR*) *arg;
+    /* DIR *dir = (DIR*) *arg; */
+    char * path = (char *)*arg;
+    DIR *dir = NULL;
+    dir = opendir(path);
     struct dirent *file;
     FileInfo fileinfo = {};
+    if (dir != NULL){
+      /* printf("list dir callback! dir: %d\n", (uint32_t)(uint64_t)readdir(dir)); */
+      while ((file = readdir(dir)) != NULL)
+      {
+          /* printf("file: %s\n", file->d_name); */
+          fileinfo.inode = file->d_ino;
+          strncpy(fileinfo.name, file->d_name, sizeof(fileinfo.name));
+          fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
+          /* This encodes the header for the field, based on the constant info
+           * from pb_field_t. */
+          if (!pb_encode_tag_for_field(stream, field)){
+              printf("encode tag failed: %s\n", stream->errmsg);
+              return false;
+            }
 
-    while ((file = readdir(dir)) != NULL)
-    {
-        fileinfo.inode = file->d_ino;
-        strncpy(fileinfo.name, file->d_name, sizeof(fileinfo.name));
-        fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
-
-        /* This encodes the header for the field, based on the constant info
-         * from pb_field_t. */
-        if (!pb_encode_tag_for_field(stream, field))
-            return false;
-
-        /* This encodes the data for the field, based on our FileInfo structure. */
-        if (!pb_encode_submessage(stream, FileInfo_fields, &fileinfo))
-            return false;
+          /* This encodes the data for the field, based on our FileInfo structure. */
+          if (!pb_encode_submessage(stream, FileInfo_fields, &fileinfo)){
+              printf("encode submessage failed: %s\n", stream->errmsg);
+              return false;
+            }
+      }
+      closedir(dir);
     }
-
     return true;
 }
 
@@ -64,7 +73,7 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
 ng_GrpcStatus_t FileServer_service_methodCallback(Path * request, FileList * response){
     DIR *directory = NULL;
     directory = opendir(request->path);
-    printf("Listing directory: %s\n", request->path);
+    /* printf("Listing directory: %s directory %d\n", request->path, (uint32_t)(uint64_t)directory); */
 
     if (directory == NULL)
     {
@@ -80,14 +89,15 @@ ng_GrpcStatus_t FileServer_service_methodCallback(Path * request, FileList * res
         /* Directory was found, transmit filenames */
         response->has_path_error = false;
         response->file.funcs.encode = &listdir_callback;
-        response->file.arg = directory;
+        response->file.arg = &request->path;
     }
 
     if (directory != NULL)
         closedir(directory);
-        
+
   return GrpcStatus_OK;
 }
+
 
 void myGrpcInit(){
   FileServer_service_init();
@@ -108,7 +118,6 @@ void handle_connection(int connfd)
 {
   *hGrpc.input = pb_istream_from_socket(connfd);
   *hGrpc.output = pb_ostream_from_socket(connfd);
-
   ng_GrpcParseBlocking(&hGrpc);
 }
 
@@ -117,6 +126,7 @@ int main(int argc, char **argv)
     int listenfd, connfd;
     struct sockaddr_in servaddr;
     int reuse = 1;
+    myGrpcInit();
 
     /* Listen on localhost:1234 for TCP connections */
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -131,7 +141,6 @@ int main(int argc, char **argv)
         perror("bind");
         return 1;
     }
-
     if (listen(listenfd, 5) != 0)
     {
         perror("listen");
