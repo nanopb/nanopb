@@ -27,6 +27,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
+static void *const_cast(const void *p);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
@@ -203,30 +204,53 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
  * This function implements the check for the zero value. */
 static bool pb_check_proto3_default_value(const pb_field_t *field, const void *pData)
 {
-    if(PB_LTYPE(field->type) == PB_LTYPE_BYTES)
+    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
     {
-        const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
-        return bytes->size == 0;
+        if (PB_LTYPE(field->type) == PB_LTYPE_BYTES)
+        {
+            const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
+            return bytes->size == 0;
+        }
+        else if (PB_LTYPE(field->type) == PB_LTYPE_STRING)
+        {
+            return *(const char*)pData == '\0';
+        }
+        else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
+        {
+            /* Fixed length bytes is only empty if its length is fixed
+             * as 0. Which would be pretty strange, but we can check
+             * it anyway. */
+            return field->data_size == 0;
+        }
+        else if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE)
+        {
+            /* Check all fields in the submessage to find if any of them
+             * are non-zero. The comparison cannot be done byte-per-byte
+             * because the C struct may contain padding bytes that must
+             * be skipped.
+             */
+            pb_field_iter_t iter;
+            if (pb_field_iter_begin(&iter, (const pb_field_t*)field->ptr, const_cast(pData)))
+            {
+                do
+                {
+                    if (!pb_check_proto3_default_value(iter.pos, iter.pData))
+                    {
+                        return false;
+                    }
+                } while (pb_field_iter_next(&iter));
+            }
+            return true;
+        }
     }
-    else if (PB_LTYPE(field->type) == PB_LTYPE_STRING)
-    {
-        return *(const char*)pData == '\0';
-    }
-    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
-    {
-        /* Fixed length bytes is only empty if its length is fixed
-         * as 0. Which would be pretty strange, but we can check
-         * it anyway. */
-        return field->data_size == 0;
-    }
-	else
+    
 	{
-	    /* PB_LTYPE_VARINT, UVARINT, SVARINT, FIXED32, FIXED64,
-	     * SUBMESSAGE, EXTENSION: These all have integer or pointer
-	     * value which can be compared with 0. This does the check
-	     * byte-by-byte to avoid the switch-cast logic used in
-	     * pb_enc_varint(). (Casting to char* is safe with regards
-	     * to C strict aliasing rules.)
+	    /* Catch-all branch that does byte-per-byte comparison for zero value.
+	     *
+	     * This is for all pointer fields, and for static PB_LTYPE_VARINT,
+	     * UVARINT, SVARINT, FIXED32, FIXED64, EXTENSION fields, and also
+	     * callback fields. These all have integer or pointer value which
+	     * can be compared with 0.
 	     */
 	    pb_size_t i;
 	    const char *p = (const char*)pData;
@@ -412,7 +436,7 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
  * Encode all fields *
  *********************/
 
-static void *remove_const(const void *p)
+static void *const_cast(const void *p)
 {
     /* Note: this casts away const, in order to use the common field iterator
      * logic for both encoding and decoding. */
@@ -427,7 +451,7 @@ static void *remove_const(const void *p)
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
     pb_field_iter_t iter;
-    if (!pb_field_iter_begin(&iter, fields, remove_const(src_struct)))
+    if (!pb_field_iter_begin(&iter, fields, const_cast(src_struct)))
         return true; /* Empty message type */
     
     do {
