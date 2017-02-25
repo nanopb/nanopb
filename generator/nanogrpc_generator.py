@@ -141,6 +141,7 @@ class Method:
         result += '    NULL,\n'
         result += '    {}_fields,\n'.format(self.output)
         result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
+        result += '    {NULL, NULL},\n' # cleanup
         result += '    NULL,\n'
         result += '};'
         return result
