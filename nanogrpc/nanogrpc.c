@@ -79,10 +79,10 @@ bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
  bool ret = true;
   GrpcRequest_fillWithZeros(&handle->request);
   GrpcResponse_fillWithZeros(&handle->response);
+  ng_method_t *method = NULL;
+
   if (pb_decode(handle->input, GrpcRequest_fields, &handle->request)){
     pb_istream_t input = pb_istream_from_buffer(handle->request.data->bytes, handle->request.data->size);
-    ng_method_t *method = NULL;
-
     method = getMethodByHash(handle, handle->request.path_crc);
     if (method != NULL) {
       /* currently using handler is unimplemented */
@@ -141,6 +141,11 @@ bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
   if (!status){
     /* TODO unable to encode */
     ret = false;
+  }
+  if (method != NULL){
+    if (method->cleanup.callback != NULL){
+      method->cleanup.callback(method->cleanup.arg);
+    }
   }
 
   #ifdef PB_ENABLE_MALLOC

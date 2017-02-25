@@ -12,6 +12,12 @@ typedef uint32_t ng_GrpcStatus_t;
 #define NG_PATH_DELIMITER   '/'
 typedef uint32_t ng_hash_t;
 
+typedef struct ng_cleanupCallback_s ng_callback_t;
+struct ng_cleanupCallback_s{
+  void (*callback)(void *arg);
+  void *arg;
+};
+
 typedef struct ng_method_s ng_method_t;
 struct ng_method_s {
     const char *name;
@@ -26,6 +32,7 @@ struct ng_method_s {
     void *response_holder;
     const void * response_fields;
     void (*response_fillWithZeros)(void *ptr);
+    ng_callback_t cleanup;
     ng_method_t * next; /**< Holder for next method */
 };
 
