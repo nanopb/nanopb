@@ -32,6 +32,20 @@ except:
 try:
     import proto.nanopb_pb2 as nanopb_pb2
     import proto.plugin_pb2 as plugin_pb2
+except TypeError:
+    sys.stderr.write('''
+         ****************************************************************************
+         *** Got TypeError when importing the protocol definitions for generator. ***
+         *** This usually means that the protoc in your path doesn't match the    ***
+         *** Python protobuf library version.                                     ***
+         ***                                                                      ***
+         *** Please check the output of the following commands:                   ***
+         *** which protoc                                                         ***
+         *** protoc --version                                                     ***
+         *** python -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
+         ****************************************************************************
+    ''' + '\n')
+    raise
 except:
     sys.stderr.write('''
          ********************************************************************
