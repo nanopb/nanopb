@@ -27,7 +27,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
-static void *const_cast(const void *p);
+static void *pb_const_cast(const void *p);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
@@ -230,7 +230,7 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
              * be skipped.
              */
             pb_field_iter_t iter;
-            if (pb_field_iter_begin(&iter, (const pb_field_t*)field->ptr, const_cast(pData)))
+            if (pb_field_iter_begin(&iter, (const pb_field_t*)field->ptr, pb_const_cast(pData)))
             {
                 do
                 {
@@ -436,7 +436,7 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream,
  * Encode all fields *
  *********************/
 
-static void *const_cast(const void *p)
+static void *pb_const_cast(const void *p)
 {
     /* Note: this casts away const, in order to use the common field iterator
      * logic for both encoding and decoding. */
@@ -451,7 +451,7 @@ static void *const_cast(const void *p)
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
     pb_field_iter_t iter;
-    if (!pb_field_iter_begin(&iter, fields, const_cast(src_struct)))
+    if (!pb_field_iter_begin(&iter, fields, pb_const_cast(src_struct)))
         return true; /* Empty message type */
     
     do {
