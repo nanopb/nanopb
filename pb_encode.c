@@ -228,7 +228,7 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
 	     * pb_enc_varint(). (Casting to char* is safe with regards
 	     * to C strict aliasing rules.)
 	     */
-	    uint_fast8_t i;
+	    pb_size_t i;
 	    const char *p = (const char*)pData;
 	    for (i = 0; i < field->data_size; i++)
 	    {
