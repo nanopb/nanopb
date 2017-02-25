@@ -32,7 +32,7 @@ endif
 BUILD_DIR = $(abspath .)
 
 NANOGRPC_DIR := $(NANOPB_DIR)/nanogrpc
-NANOGRPC_CORE = $(NANOGRPC_DIR)/nanogrpc.c
+NANOGRPC_CORE = $(NANOGRPC_DIR)/ng_server.c
 # Compiler flags to enable all warnings & debug info
 CFLAGS = -ansi -Wall -Werror -g -O0
 CFLAGS += -DPB_ENABLE_MALLOC -DPB_FIELD_16BIT

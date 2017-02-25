@@ -310,7 +310,7 @@ class ProtoFile:
         try:
             yield options.libformat % ('pb.h')
             yield options.libformat % ('ng.h')
-            yield options.libformat % ('nanogrpc.h')
+            yield options.libformat % ('ng_server.h')
         except TypeError:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
