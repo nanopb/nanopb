@@ -27,5 +27,7 @@ examples/using_union_messages/decode
 examples/using_union_messages/encode
 generator/nanopb_pb2.pyc
 
+*.ng.h
+*.ng.c
 nanogrpc/examples/network_server/client
 nanogrpc/examples/network_server/server
