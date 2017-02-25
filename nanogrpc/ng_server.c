@@ -1,4 +1,4 @@
-#include "nanogrpc.h"
+#include "ng+server.h"
 /* #include "nanogrpc.ng.h" */
 #include "pb_encode.h"
 #include "pb_decode.h"
