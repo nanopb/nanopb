@@ -177,6 +177,7 @@ static bool read_limits(pb_istream_t *stream, const pb_field_t *field, void **ar
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
     /* Values for use from callbacks through pointers. */
+    bool status;
     uint32_t    req_fixed32     = 1008;
     int32_t     req_sfixed32    = -1009;
     float       req_float       = 1010.0f;
@@ -218,11 +219,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     SubMessage  oneof_msg1      = {"4059", 4059};
     
     /* Bind callbacks for required fields */
-    AllTypes alltypes;
-    
-    /* Fill with garbage to better detect initialization errors */
-    memset(&alltypes, 0xAA, sizeof(alltypes));
-    alltypes.extensions = 0;
+    AllTypes alltypes = AllTypes_init_zero;
     
     alltypes.req_int32.funcs.decode = &read_varint;
     alltypes.req_int32.arg = (void*)-1001;
@@ -399,7 +396,14 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         alltypes.oneof_msg1.arg = &oneof_msg1;
     }
     
-    return pb_decode(stream, AllTypes_fields, &alltypes);
+    status = pb_decode(stream, AllTypes_fields, &alltypes);
+    
+#ifdef PB_ENABLE_MALLOC
+    /* Just to check for any interference between pb_release() and callback fields */
+    pb_release(AllTypes_fields, &alltypes);
+#endif
+
+    return status;
 }
 
 int main(int argc, char **argv)

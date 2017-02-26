@@ -1,6 +1,7 @@
 char filesize\[20\];
 char msgsize\[30\];
 char fieldsize\[40\];
+char fieldlen\[41\];
 pb_callback_t int32_callback;
 \sEnumValue1 = 1
 Message5_EnumValue1

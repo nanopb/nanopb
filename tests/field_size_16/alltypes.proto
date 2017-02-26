@@ -57,7 +57,7 @@ message AllTypes {
     required SubMessage req_submsg  = 16;
     required MyEnum     req_enum    = 17;
     required EmptyMessage req_emptymsg = 18;
-    
+    required bytes      req_fbytes  = 19;
     
     repeated int32      rep_int32   = 21;
     repeated int64      rep_int64   = 22;
@@ -80,6 +80,7 @@ message AllTypes {
     repeated SubMessage rep_submsg  = 10036;
     repeated MyEnum     rep_enum    = 10037;
     repeated EmptyMessage rep_emptymsg = 10038;
+    repeated bytes      rep_fbytes  = 10039;
     
     optional int32      opt_int32   = 10041 [default = 4041];
     optional int64      opt_int64   = 10042 [default = 4042];
@@ -102,11 +103,12 @@ message AllTypes {
     optional SubMessage opt_submsg  = 10056;
     optional MyEnum     opt_enum    = 10057 [default = Second];
     optional EmptyMessage opt_emptymsg = 10058;
+    optional bytes      opt_fbytes  = 10059 [default = "4059"];
 
     oneof oneof
     {
-        SubMessage oneof_msg1 = 10059;
-        EmptyMessage oneof_msg2 = 10060;
+        SubMessage oneof_msg1 = 10060;
+        EmptyMessage oneof_msg2 = 10061;
     }
 
     // Check that extreme integer values are handled correctly

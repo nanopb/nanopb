@@ -32,6 +32,20 @@ except:
 try:
     import proto.nanopb_pb2 as nanopb_pb2
     import proto.plugin_pb2 as plugin_pb2
+except TypeError:
+    sys.stderr.write('''
+         ****************************************************************************
+         *** Got TypeError when importing the protocol definitions for generator. ***
+         *** This usually means that the protoc in your path doesn't match the    ***
+         *** Python protobuf library version.                                     ***
+         ***                                                                      ***
+         *** Please check the output of the following commands:                   ***
+         *** which protoc                                                         ***
+         *** protoc --version                                                     ***
+         *** python -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
+         ****************************************************************************
+    ''' + '\n')
+    raise
 except:
     sys.stderr.write('''
          ********************************************************************
@@ -262,14 +276,20 @@ class Field:
         self.enc_size = None
         self.ctype = None
 
-        self.inline = None
         if field_options.type == nanopb_pb2.FT_INLINE:
+            # Before nanopb-0.3.8, fixed length bytes arrays were specified
+            # by setting type to FT_INLINE. But to handle pointer typed fields,
+            # it makes sense to have it as a separate option.
             field_options.type = nanopb_pb2.FT_STATIC
-            self.inline = nanopb_pb2.FT_INLINE
+            field_options.fixed_length = True
 
         # Parse field options
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
+        
+        if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
+            # max_length overrides max_size for strings
+            self.max_size = field_options.max_length + 1
 
         if field_options.HasField("max_count"):
             self.max_count = field_options.max_count
@@ -345,17 +365,17 @@ class Field:
                 self.array_decl += '[%d]' % self.max_size
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_BYTES:
-            self.pbtype = 'BYTES'
-            if self.allocation == 'STATIC':
-                # Inline STATIC for BYTES is like STATIC for STRING.
-                if self.inline:
-                    self.ctype = 'pb_byte_t'
-                    self.array_decl += '[%d]' % self.max_size
-                else:
-                    self.ctype = self.struct_name + self.name + 't'
+            if field_options.fixed_length:
+                self.pbtype = 'FIXED_LENGTH_BYTES'
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
-            elif self.allocation == 'POINTER':
+                self.ctype = 'pb_byte_t'
+                self.array_decl += '[%d]' % self.max_size
+            else:
+                self.pbtype = 'BYTES'
                 self.ctype = 'pb_bytes_array_t'
+                if self.allocation == 'STATIC':
+                    self.ctype = self.struct_name + self.name + 't'
+                    self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -375,6 +395,9 @@ class Field:
             if self.pbtype == 'MESSAGE':
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
+            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+                # Pointer to fixed size array
+                result += '    %s (*%s)%s;' % (self.ctype, self.name, self.array_decl)
             elif self.rules == 'REPEATED' and self.pbtype in ['STRING', 'BYTES']:
                 # String/bytes arrays need to be defined as pointers to pointers
                 result += '    %s **%s;' % (self.ctype, self.name)
@@ -392,7 +415,7 @@ class Field:
 
     def types(self):
         '''Return definitions for any special types this field might need.'''
-        if self.pbtype == 'BYTES' and self.allocation == 'STATIC' and not self.inline:
+        if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
             result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
         else:
             result = ''
@@ -421,10 +444,9 @@ class Field:
             if self.pbtype == 'STRING':
                 inner_init = '""'
             elif self.pbtype == 'BYTES':
-                if self.inline:
-                    inner_init = '{0}'
-                else:
-                    inner_init = '{0, {0}}'
+                inner_init = '{0, {0}}'
+            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+                inner_init = '{0}'
             elif self.pbtype in ('ENUM', 'UENUM'):
                 inner_init = '(%s)0' % self.ctype
             else:
@@ -436,15 +458,15 @@ class Field:
             elif self.pbtype == 'BYTES':
                 data = ['0x%02x' % ord(c) for c in self.default]
                 if len(data) == 0:
-                    if self.inline:
-                        inner_init = '{0}'
-                    else:
-                        inner_init = '{0, {0}}'
+                    inner_init = '{0, {0}}'
                 else:
-                    if self.inline:
-                        inner_init = '{%s}' % ','.join(data)
-                    else:
-                        inner_init = '{%d, {%s}}' % (len(data), ','.join(data))
+                    inner_init = '{%d, {%s}}' % (len(data), ','.join(data))
+            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+                data = ['0x%02x' % ord(c) for c in self.default]
+                if len(data) == 0:
+                    inner_init = '{0}'
+                else:
+                    inner_init = '{%s}' % ','.join(data)
             elif self.pbtype in ['FIXED32', 'UINT32']:
                 inner_init = str(self.default) + 'u'
             elif self.pbtype in ['FIXED64', 'UINT64']:
@@ -496,8 +518,10 @@ class Field:
         elif self.pbtype == 'BYTES':
             if self.allocation != 'STATIC':
                 return None # Not implemented
-            if self.inline:
-                array_decl = '[%d]' % self.max_size
+        elif self.pbtype == 'FIXED_LENGTH_BYTES':
+            if self.allocation != 'STATIC':
+                return None # Not implemented
+            array_decl = '[%d]' % self.max_size
 
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
@@ -526,8 +550,8 @@ class Field:
         result += '%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
         result += '%s, ' % self.rules
-        result += '%-8s, ' % (self.allocation if not self.inline else "INLINE")
-
+        result += '%-8s, ' % self.allocation
+        
         if union_index is not None and union_index > 0:
             result += 'UNION, '
         elif prev_field_name is None:
@@ -543,7 +567,7 @@ class Field:
             result += '&%s_fields)' % self.submsgname
         elif self.default is None:
             result += '0)'
-        elif self.pbtype in ['BYTES', 'STRING'] and self.allocation != 'STATIC':
+        elif self.pbtype in ['BYTES', 'STRING', 'FIXED_LENGTH_BYTES'] and self.allocation != 'STATIC':
             result += '0)' # Arbitrary size default values not implemented
         elif self.rules == 'OPTEXT':
             result += '0)' # Default value for extensions is not implemented
@@ -649,7 +673,6 @@ class ExtensionRange(Field):
         self.default = None
         self.max_size = 0
         self.max_count = 0
-        self.inline = None
 
     def __str__(self):
         return '    pb_extension_t *extensions;'
@@ -727,7 +750,6 @@ class OneOf(Field):
         self.default = None
         self.rules = 'ONEOF'
         self.anonymous = False
-        self.inline = None
 
     def add_field(self, field):
         if field.allocation == 'CALLBACK':

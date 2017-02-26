@@ -77,11 +77,10 @@ int_size                       Override the integer type of a field.
 type                           Type of the generated field. Default value
                                is *FT_DEFAULT*, which selects automatically.
                                You can use *FT_CALLBACK*, *FT_POINTER*,
-                               *FT_STATIC*, *FT_IGNORE*, or *FT_INLINE* to
+                               *FT_STATIC* or *FT_IGNORE* to
                                force a callback field, a dynamically
-                               allocated field, a static field, to
-                               completely ignore the field or to
-                               generate an inline bytes field.
+                               allocated field, a static field or to
+                               completely ignore the field.
 long_names                     Prefix the enum name to the enum value in
                                definitions, i.e. *EnumName_EnumValue*. Enabled
                                by default.
@@ -94,6 +93,7 @@ no_unions                      Generate 'oneof' fields as optional fields
 msgid                          Specifies a unique id for this message type.
                                Can be used by user code as an identifier.
 anonymous_oneof                Generate 'oneof' fields as anonymous unions.
+fixed_length                   Generate 'bytes' fields with constant length.
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted

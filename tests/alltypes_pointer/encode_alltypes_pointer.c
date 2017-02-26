@@ -32,6 +32,7 @@ int main(int argc, char **argv)
     SubMessage  req_submsg        = {"1016", &req_substuff};
     MyEnum      req_enum          = MyEnum_Truth;
     EmptyMessage req_emptymsg     = {0};
+    pb_byte_t   req_fbytes[4]     = {'1', '0', '1', '9'};
     
     int32_t     end               = 1099;
 
@@ -62,6 +63,7 @@ int main(int argc, char **argv)
                                      {"2016", &rep_substuff2, &rep_substuff3}};
     MyEnum      rep_enum[5]       = {0, 0, 0, 0, MyEnum_Truth};
     EmptyMessage rep_emptymsg[5]  = {{0}, {0}, {0}, {0}, {0}};
+    pb_byte_t   rep_fbytes[5][4]  = {{0}, {0}, {0}, {0}, {'2', '0', '1', '9'}};
 
     /* Values for optional fields */
     int32_t     opt_int32         = 3041;
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
     SubMessage  opt_submsg        = {"3056", &opt_substuff};
     MyEnum      opt_enum          = MyEnum_Truth;
     EmptyMessage opt_emptymsg     = {0};
+    pb_byte_t   opt_fbytes[4]     = {'3', '0', '5', '9'};
 
     static int32_t oneof_substuff = 4059;
     SubMessage  oneof_msg1        = {"4059", &oneof_substuff};
@@ -125,6 +128,7 @@ int main(int argc, char **argv)
     alltypes.req_submsg        = &req_submsg;
     alltypes.req_enum          = &req_enum;
     alltypes.req_emptymsg      = &req_emptymsg;
+    alltypes.req_fbytes        = &req_fbytes;
     alltypes.req_limits        = &req_limits;
     
     alltypes.rep_int32_count    = 5; alltypes.rep_int32     = rep_int32;
@@ -145,6 +149,7 @@ int main(int argc, char **argv)
     alltypes.rep_submsg_count   = 5; alltypes.rep_submsg    = rep_submsg;
     alltypes.rep_enum_count     = 5; alltypes.rep_enum      = rep_enum;
     alltypes.rep_emptymsg_count = 5; alltypes.rep_emptymsg  = rep_emptymsg;
+    alltypes.rep_fbytes_count   = 5; alltypes.rep_fbytes    = rep_fbytes;
     
     if (mode != 0)
     {
@@ -167,6 +172,7 @@ int main(int argc, char **argv)
         alltypes.opt_submsg        = &opt_submsg;
         alltypes.opt_enum          = &opt_enum;
         alltypes.opt_emptymsg      = &opt_emptymsg;
+        alltypes.opt_fbytes        = &opt_fbytes;
 
         alltypes.which_oneof = AllTypes_oneof_msg1_tag;
         alltypes.oneof.oneof_msg1 = &oneof_msg1;

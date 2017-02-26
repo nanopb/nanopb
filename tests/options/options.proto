@@ -26,6 +26,7 @@ message Message3
 {
     option (nanopb_msgopt).msgid = 103;
     required string fieldsize = 1 [(nanopb).max_size = 40];
+    required string fieldlen = 2 [(nanopb).max_length = 40];
 }
 
 // Forced callback field
