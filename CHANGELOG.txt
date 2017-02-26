@@ -1,3 +1,22 @@
+nanopb-0.3.8 (2016-03-xx)
+ Fix problems with multiple oneofs in same message (#229)
+ Zero-valued extension fields were mistakenly ignored by encoder (#242)
+ Various fixes related to proto3 encoding (#242, #245, #247)
+ Fix potential unaligned access (#226, #227)
+ Fix documentation for protoc --plugin argument (#239)
+ Extend inline / fixed length bytes array support (#244)
+ Add new option max_length for strings (#107)
+ Make string substream API more robust (#230)
+ Make pb_decode_varint32 public API (#231)
+ Allow overriding proto3 mode (#228)
+ Add optional enum->string mapping function (#223)
+ Add transitional options.proto file (#241)
+ Add better error message on Python library version imcompatibility (#240)
+ Include version number in PlatformIO library.json (#222)
+ CMake build script changes (#236, #237)
+ Change download links to https
+ Improvements to test cases.
+
 nanopb-0.3.7 (2016-10-30)
  Add support for proto3-style singular fields (#182, #206, #216)
  Updated binary package protoc to version 3.1.0
