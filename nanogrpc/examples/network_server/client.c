@@ -74,7 +74,7 @@ bool printfile_callback(pb_istream_t *stream, const pb_field_t *field, void **ar
 
 
 void dummyCallback(void * a, void *b){
-  
+
 }
 
 void myGrpcInit(){
@@ -123,7 +123,8 @@ bool listdir(int fd, char *path)
         }
 
 
-        gRequest.path_crc = 0;
+        gRequest.path_hash = 3;
+        gRequest.path = "/FileServer/ListFiles";
         gRequest.data.funcs.encode = &encodeRequestCallback;
         gRequest.data.arg = &FileServer_ListFiles_method;
 
@@ -163,6 +164,11 @@ bool listdir(int fd, char *path)
 
         FileList_holder.file.funcs.decode = &printfile_callback;
 
+        if (gResponse.data == NULL){
+          fprintf(stderr, "no data\n");
+          pb_release(TempGrpcResponse_fields, &gResponse);
+          return false;
+        }
         pb_istream_t input = pb_istream_from_buffer(gResponse.data->bytes, gResponse.data->size);
 
         if (!pb_decode(&input, FileList_fields, &FileList_holder))

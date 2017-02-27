@@ -11,7 +11,7 @@ message GrpcRequest {
   //   int32 path_crc = 1;
   //   string path = 2 [(nanopb).max_size = 8];
   // }
-  required int32 path_crc = 1;
+  required int32 path_hash = 1;
   optional string path = 2;
   required bytes data = 10;
 }
@@ -44,7 +44,7 @@ message GrpcResponse {
 }
 
 // Following messages are temporary, for client server example
-// It differs only in options file 
+// It differs only in options file
 
 message TempGrpcRequest {
   // This would be ideal to have oneof here,
@@ -54,7 +54,7 @@ message TempGrpcRequest {
   //   int32 path_crc = 1;
   //   string path = 2 [(nanopb).max_size = 8];
   // }
-  required int32 path_crc = 1;
+  required int32 path_hash = 1;
   optional string path = 2;
   required bytes data = 10;
 }

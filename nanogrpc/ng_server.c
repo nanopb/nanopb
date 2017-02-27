@@ -36,6 +36,66 @@ static ng_method_t * getMethodByHash(ng_grpc_handle_t *handle, ng_hash_t hash){
   return NULL;
 }
 
+
+/*!
+ * @brief Returns method with given name.
+ *
+ * Function Iterates over all methods found in servies registered in
+ * given grpc handle. Method name needs to start with '/' and have to be
+ * delimited with '/'.
+ * @param  handle pointer to grpc handle
+ * @param  name   name of method to find
+ * @return        pointer to first method whose hash match given one,
+ *                Null if not found.
+ */
+static ng_method_t * getMethodByPath(ng_grpc_handle_t *handle, char * path){
+  ng_method_t *method = NULL;
+  ng_service_t *service = handle->serviceHolder;
+  char * serviceName, * methodName;
+  size_t serviceNameLenth, methodNameLength;
+
+  if (path[0] != '/' || path[0] == '\0'){
+    return NULL;
+  }
+  serviceName = path + 1;
+  methodName = strpbrk(serviceName, "/");
+  if (methodName != NULL){
+    serviceNameLenth = methodName - serviceName;
+
+    if (serviceNameLenth > 0 && strlen(methodName) > 1){
+      methodName += 1;
+      methodNameLength = strlen(methodName);
+      if (strpbrk(methodName, "/") != NULL){ /* there should be no more delimiters in path*/
+        return NULL;
+      }
+    } else { /* service name or method name without characters  */
+      return NULL;
+    }
+  } else { /* no more slashes in path but should be one */
+    return NULL;
+  }
+
+  /* in order to compare names we could use strcmp, but it requires
+   * zero terminated string, but if we dpn't want to insert zeros into
+   * given string we have to use strncmp and compare names lengths. */
+  while (service != NULL){ /* Iterate over services */
+    if (strncmp(service->name, serviceName, serviceNameLenth) == 0 &&
+        strlen(service->name) == serviceNameLenth){ /* service name match */
+      method = service->method;
+      while (method != NULL){ /* Iterate over methods in service */
+        if (strncmp(method->name, methodName, methodNameLength) == 0 &&
+            strlen(method->name) == methodNameLength){ /* methodname match */
+          return method;
+        } else {
+          method = method->next;
+        }
+      }
+    }
+    service = service->next;
+  }
+  return NULL;
+}
+
 /*!
  * @brief Callback for encoding response into output stream.
  *
@@ -83,9 +143,19 @@ bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
 
   if (pb_decode(handle->input, GrpcRequest_fields, &handle->request)){
     pb_istream_t input = pb_istream_from_buffer(handle->request.data->bytes, handle->request.data->size);
-    method = getMethodByHash(handle, handle->request.path_crc);
+
+    /* look for method by hash only if it has been provided */
+    if (handle->request.path_hash != 0){
+      method = getMethodByHash(handle, handle->request.path_hash);
+    }
+    /* if hash hasn't been provided, we can still try to find by name */
+    if (method == NULL && handle->request.path != NULL){
+        method = getMethodByPath(handle, handle->request.path);
+    }
+
+
     if (method != NULL) {
-      /* currently using handler is unimplemented */
+      /* currently using handler is not implemented */
       /* if (method->handler != NULL){ // handler found
         status = method->handler(&input, NULL);
         if (!status){

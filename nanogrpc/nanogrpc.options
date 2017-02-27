@@ -1,4 +1,5 @@
 GrpcRequest.data type:FT_POINTER
 GrpcRequest.path type:FT_POINTER
 
+TempGrpcRequest.path type:FT_POINTER
 TempGrpcResponse.data type:FT_POINTER
