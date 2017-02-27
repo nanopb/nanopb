@@ -1,0 +1,13 @@
+# Build the common files needed by multiple test cases
+
+from SCons.Environment import apply_tools
+
+Import('env')
+
+# apply_tools(env, tools = ['nanogrpc'])
+
+# Protocol definitions for the encode/decode_unittests
+copy = env.Command('nanogrpc.pb.c', [], 'cd ../nanogrpc && protoc --plugin=../generator/protoc-gen-nanopb --nanopb_out=../tests/build/nanogrpc nanogrpc.proto')
+env.AlwaysBuild(copy)
+# env.NanopbProto("nanogrpce")
+# env.NanopbProto("nanogrpc")
