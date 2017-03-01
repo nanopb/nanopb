@@ -48,8 +48,19 @@ provide any examples yet. But I will do it as soon as I will have generator
 working.
 
 ## Roadmap
-* Non blocking request parsing with (optional) timeout support
+* Nonblocking request parsing with (optional) timeout support
 * server to client streaming
+
+### about nanogrpc.proto
+Inside of this file you can notice that messages are duplicated with `Temp`
+prefix. Those messages differ in options. On server side data from request
+needs to be stored in under pointer because during time of receiving we don't
+know what method is that (we could decode it immediately if we knew method id or
+path in advance, grpc allows to change of order of tags), but we can encode
+response in callback. On client side situation is opposite.
+There are two sollutions - having duplicated messages or specifying options
+during compilation time (which sounds problematic)
+
 
 ### other disorganized thoughts
 
