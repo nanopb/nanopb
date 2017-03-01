@@ -7,7 +7,8 @@ Import('env')
 # apply_tools(env, tools = ['nanogrpc'])
 
 # Protocol definitions for the encode/decode_unittests
-copy = env.Command('nanogrpc.pb.c', [], 'cd ../nanogrpc && protoc --plugin=../generator/protoc-gen-nanopb --nanopb_out=../tests/build/nanogrpc nanogrpc.proto')
+# TODO change this ugly way of compiling protofiles from place that is
+# outside working tree. I didn't manage to do ti even i classic makefile
+# withoud cd to directory with that file.
+copy = env.Command('dummy.file', [], 'cd ../nanogrpc && protoc --plugin=../generator/protoc-gen-nanopb --nanopb_out=../tests/build/nanogrpc nanogrpc.proto')
 env.AlwaysBuild(copy)
-# env.NanopbProto("nanogrpce")
-# env.NanopbProto("nanogrpc")

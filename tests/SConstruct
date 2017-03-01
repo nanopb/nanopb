@@ -45,7 +45,7 @@ if not env.GetOption('clean'):
         context.env.Replace(LINKFLAGS = oldlinkflags)
         context.Result(result)
         return result
-    
+
     conf = Configure(env, custom_tests = {'CheckCCFLAGS': check_ccflags})
 
     # If the platform doesn't support C99, use our own header file instead.
@@ -58,20 +58,20 @@ if not env.GetOption('clean'):
         conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
         conf.env.Append(CPPPATH = "#../extra")
 	conf.env.Append(SYSHDR = '\\"pb_syshdr.h\\"')
-        
+
         if stdbool: conf.env.Append(CPPDEFINES = {'HAVE_STDBOOL_H': 1})
         if stdint: conf.env.Append(CPPDEFINES = {'HAVE_STDINT_H': 1})
         if stddef: conf.env.Append(CPPDEFINES = {'HAVE_STDDEF_H': 1})
         if string: conf.env.Append(CPPDEFINES = {'HAVE_STRING_H': 1})
         if stdlib: conf.env.Append(CPPDEFINES = {'HAVE_STDLIB_H': 1})
-    
+
     # Check if we can use pkg-config to find protobuf include path
     status, output = conf.TryAction('pkg-config protobuf --variable=includedir > $TARGET')
     if status:
         conf.env.Append(PROTOCPATH = output.strip())
     else:
         conf.env.Append(PROTOCPATH = '/usr/include')
-    
+
     # Check protoc version
     status, output = conf.TryAction('$PROTOC --version > $TARGET')
     if status:
@@ -82,7 +82,7 @@ if not env.GetOption('clean'):
         if conf.CheckLib('mudflap'):
             conf.env.Append(CCFLAGS = '-fmudflap')
             conf.env.Append(LINKFLAGS = '-fmudflap')
-    
+
     # Check if we can use extra strict warning flags (only with GCC)
     extra = '-Wcast-qual -Wlogical-op -Wconversion'
     extra += ' -fstrict-aliasing -Wstrict-aliasing=1'
@@ -91,7 +91,7 @@ if not env.GetOption('clean'):
     if 'gcc' in env['CC']:
         if conf.CheckCCFLAGS(extra):
             conf.env.Append(CORECFLAGS = extra)
-    
+
     # Check if we can use undefined behaviour sanitizer (only with clang)
     # TODO: Fuzz test triggers the bool sanitizer, figure out whether to
     #       modify the fuzz test or to keep ignoring the check.
@@ -100,19 +100,19 @@ if not env.GetOption('clean'):
         if conf.CheckCCFLAGS(extra, linkflags = extra):
             conf.env.Append(CORECFLAGS = extra)
             conf.env.Append(LINKFLAGS = extra)
-    
+
     # End the config stuff
     env = conf.Finish()
 
 # Initialize the CCFLAGS according to the compiler
 if 'gcc' in env['CC']:
     # GNU Compiler Collection
-    
+
     # Debug info, warnings as errors
     env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage ')
     env.Append(CORECFLAGS = '-Wextra')
     env.Append(LINKFLAGS = '-g --coverage')
-    
+
     # We currently need uint64_t anyway, even though ANSI C90 otherwise..
     env.Append(CFLAGS = '-Wno-long-long')
 elif 'clang' in env['CC']:
@@ -121,11 +121,11 @@ elif 'clang' in env['CC']:
     env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
 elif 'cl' in env['CC']:
     # Microsoft Visual C++
-    
+
     # Debug info on, warning level 2 for tests, warnings as errors
     env.Append(CFLAGS = '/Zi /W2 /WX')
     env.Append(LINKFLAGS = '/DEBUG')
-    
+
     # More strict checks on the nanopb core
     env.Append(CORECFLAGS = '/W4')
 elif 'tcc' in env['CC']:
@@ -147,11 +147,13 @@ env['VARIANT_DIR'] = 'build'
 env['BUILD'] = '#' + env['VARIANT_DIR']
 env['COMMON'] = '#' + env['VARIANT_DIR'] + '/common'
 
+env['NANOGRPC_COMMON'] = '#' + env['VARIANT_DIR'] + '/nanogrpc'
+
 # Include common/SConscript first to make sure its exports are available
 # to other SConscripts.
 SConscript("common/SConscript", exports = 'env', variant_dir = env['VARIANT_DIR'] + '/common')
+SConscript("nanogrpc/SConscript", exports = 'env', variant_dir = env['VARIANT_DIR'] + '/nanogrpc')
 
-for subdir in Glob('*/SConscript') + Glob('regression/*/SConscript'):
+for subdir in Glob('*/SConscript') + Glob('regression/*/SConscript') + Glob('nanogrpc/*/SConscript'):
     if str(subdir).startswith("common"): continue
     SConscript(subdir, exports = 'env', variant_dir = env['VARIANT_DIR'] + '/' + os.path.dirname(str(subdir)))
-
