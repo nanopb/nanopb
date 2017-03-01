@@ -19,13 +19,27 @@
 typedef uint32_t ng_hash_t;
 typedef uint32_t ng_GrpcStatus_t;
 
-/* You can define custom functions for comparing strings
+/* You can define custom functions for strings operations
  * without includint whole string library */
 #ifndef ng_strcmp
 #include <string.h>
-#define ng_strcmp(X, Y) strcmp(X, Y)
+#define ng_strncmp(X, Y) strncmp(X, Y)
 #else
-extern int ng_strcmp( const char * str1, const char * str2 );
+extern int ng_strncmp( const char * str1, const char * str2 );
+#endif
+
+#ifndef ng_strnlen
+#include <string.h>
+#define ng_strnlen(X) strnlen(X)
+#else
+extern size_t ng_strnlen(const char *s, size_t maxlen);
+#endif
+
+#ifndef ng_strpbrk
+#include <string.h>
+#define ng_strpbrk(X, Y) strpbrk(x, Y)
+#else
+extern char * ng_strpbrk(char * str1, const char * str2 );
 #endif
 
 typedef struct ng_cleanupCallback_s ng_callback_t;

@@ -132,14 +132,14 @@ static bool encodeResponseCallback(pb_ostream_t *stream, const pb_field_t *field
  *                case of input problem
  */
 bool ng_GrpcParseBlocking(ng_grpc_handle_t *handle){
+  ng_GrpcStatus_t status;
+  ng_method_t *method = NULL;
   if (handle->input == NULL || handle->output == NULL){
     return false;
   }
-  ng_GrpcStatus_t status;
  bool ret = true;
   GrpcRequest_fillWithZeros(&handle->request);
   GrpcResponse_fillWithZeros(&handle->response);
-  ng_method_t *method = NULL;
 
   if (pb_decode(handle->input, GrpcRequest_fields, &handle->request)){
     pb_istream_t input = pb_istream_from_buffer(handle->request.data->bytes, handle->request.data->size);
