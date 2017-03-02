@@ -70,11 +70,15 @@ static bool read_string(pb_istream_t *stream, const pb_field_t *field, void **ar
 static bool read_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage submsg = {""};
+    SubMessage *ref = *arg;
     
     if (!pb_decode(stream, SubMessage_fields, &submsg))
         return false;
     
-    TEST(memcmp(&submsg, *arg, sizeof(submsg)));
+    TEST(strcmp(submsg.substuff1, ref->substuff1) == 0);
+    TEST(submsg.substuff2 == ref->substuff2);
+    TEST(submsg.has_substuff3 == ref->has_substuff3);
+    TEST(submsg.substuff3 == ref->substuff3); 
     return true;
 }
 
@@ -144,11 +148,16 @@ static bool read_repeated_string(pb_istream_t *stream, const pb_field_t *field, 
 static bool read_repeated_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage** expected = (SubMessage**)arg;
-    SubMessage decoded = {""};
-    if (!pb_decode(stream, SubMessage_fields, &decoded))
+    SubMessage submsg = {""};
+    if (!pb_decode(stream, SubMessage_fields, &submsg))
         return false;
 
-    TEST(memcmp((*expected)++, &decoded, sizeof(decoded)) == 0);
+    TEST(strcmp(submsg.substuff1, (*expected)->substuff1) == 0);
+    TEST(submsg.substuff2 == (*expected)->substuff2);
+    TEST(submsg.has_substuff3 == (*expected)->has_substuff3);
+    TEST(submsg.substuff3 == (*expected)->substuff3);
+    (*expected)++;
+
     return true;
 }
 
@@ -183,7 +192,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     uint64_t    req_fixed64     = 1011;
     int64_t     req_sfixed64    = -1012;
     double      req_double      = 1013.0;
-    SubMessage  req_submsg      = {"1016", 1016};
+    SubMessage  req_submsg      = {"1016", 1016, false, 3};
     
     int32_t     rep_int32[5]    = {0, 0, 0, 0, -2001};
     int32_t     rep_int64[5]    = {0, 0, 0, 0, -2002};
@@ -213,7 +222,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     uint64_t    opt_fixed64     = 3051;
     int64_t     opt_sfixed64    = 3052;
     double      opt_double      = 3053.0f;
-    SubMessage  opt_submsg      = {"3056", 3056};
+    SubMessage  opt_submsg      = {"3056", 3056, false, 3};
     
     /* Bind callbacks for required fields */
     AllTypes alltypes;
