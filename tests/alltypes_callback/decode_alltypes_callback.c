@@ -70,11 +70,15 @@ static bool read_string(pb_istream_t *stream, const pb_field_t *field, void **ar
 static bool read_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage submsg = {""};
+    SubMessage *ref = *arg;
     
     if (!pb_decode(stream, SubMessage_fields, &submsg))
         return false;
     
-    TEST(memcmp(&submsg, *arg, sizeof(submsg)) == 0);
+    TEST(strcmp(submsg.substuff1, ref->substuff1) == 0);
+    TEST(submsg.substuff2 == ref->substuff2);
+    TEST(submsg.has_substuff3 == ref->has_substuff3);
+    TEST(submsg.substuff3 == ref->substuff3); 
     return true;
 }
 
@@ -144,11 +148,16 @@ static bool read_repeated_string(pb_istream_t *stream, const pb_field_t *field, 
 static bool read_repeated_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage** expected = (SubMessage**)arg;
-    SubMessage decoded = {""};
-    if (!pb_decode(stream, SubMessage_fields, &decoded))
+    SubMessage submsg = {""};
+    if (!pb_decode(stream, SubMessage_fields, &submsg))
         return false;
 
-    TEST(memcmp((*expected)++, &decoded, sizeof(decoded)) == 0);
+    TEST(strcmp(submsg.substuff1, (*expected)->substuff1) == 0);
+    TEST(submsg.substuff2 == (*expected)->substuff2);
+    TEST(submsg.has_substuff3 == (*expected)->has_substuff3);
+    TEST(submsg.substuff3 == (*expected)->substuff3);
+    (*expected)++;
+
     return true;
 }
 
