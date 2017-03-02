@@ -74,7 +74,7 @@ static bool read_submsg(pb_istream_t *stream, const pb_field_t *field, void **ar
     if (!pb_decode(stream, SubMessage_fields, &submsg))
         return false;
     
-    TEST(memcmp(&submsg, *arg, sizeof(submsg)));
+    TEST(memcmp(&submsg, *arg, sizeof(submsg)) == 0);
     return true;
 }
 
@@ -184,7 +184,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     uint64_t    req_fixed64     = 1011;
     int64_t     req_sfixed64    = -1012;
     double      req_double      = 1013.0;
-    SubMessage  req_submsg      = {"1016", 1016};
+    SubMessage  req_submsg      = {"1016", 1016, false, 3};
     
     int32_t     rep_int32[5]    = {0, 0, 0, 0, -2001};
     int32_t     rep_int64[5]    = {0, 0, 0, 0, -2002};
@@ -214,9 +214,9 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     uint64_t    opt_fixed64     = 3051;
     int64_t     opt_sfixed64    = 3052;
     double      opt_double      = 3053.0f;
-    SubMessage  opt_submsg      = {"3056", 3056};
+    SubMessage  opt_submsg      = {"3056", 3056, false, 3};
 
-    SubMessage  oneof_msg1      = {"4059", 4059};
+    SubMessage  oneof_msg1      = {"4059", 4059, false, 3};
     
     /* Bind callbacks for required fields */
     AllTypes alltypes = AllTypes_init_zero;
