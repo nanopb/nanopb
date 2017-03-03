@@ -97,6 +97,9 @@ class Method:
         self.input = None
         self.output = None
 
+        self.server_streaming = desc.server_streaming
+        self.client_streaming = desc.client_streaming
+
         if hasattr(desc, 'input_type'):
             self.input = names_from_type_name(desc.input_type)
         else:
@@ -131,18 +134,29 @@ class Method:
         # result += 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(self.output)
         # result += '\n'
         result += 'ng_method_t {}_method = {{\n'.format(self.full_name)
-        result += '    "{}",\n'.format(self.name)
-        result += '    0,\n'  # TODO place method id option here
-        result += '    NULL,\n'
-        result += '    NULL,\n'
-        result += '    NULL,\n'
-        result += '    {}_fields,\n'.format(self.input)
-        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input)
-        result += '    NULL,\n'
-        result += '    {}_fields,\n'.format(self.output)
-        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output)
-        result += '    {NULL, NULL},\n' # cleanup
-        result += '    NULL,\n'
+        result += '    "{}",\n'.format(self.name)           # name
+        result += '    0,\n'  # TODO place method id option here # hasg
+        # result += '    NULL,\n'                           # handler
+        result += '    NULL,\n'                             # callback
+        result += '    NULL,\n'                             # request_holder
+        result += '    {}_fields,\n'.format(self.input)     # request_fields
+        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input) # request_fillWithZeros
+        result += '    NULL,\n'                             # response_holder
+        result += '    {}_fields,\n'.format(self.output)    # response_fields
+        result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output) # response_fillWithZeros
+
+        if self.server_streaming:
+            result += '    true,\n'
+        else:
+            result += '    false,\n'
+
+        if self.client_streaming:
+            result += '    true,\n'
+        else:
+            result += '    false,\n'
+
+        result += '    {NULL, NULL},\n'                     # cleanup
+        result += '    NULL,\n'                             # next
         result += '};'
         return result
 
