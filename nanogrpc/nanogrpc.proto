@@ -4,6 +4,7 @@ syntax = "proto2";
 // import 'nanopb.proto';
 
 message GrpcRequest {
+  required int32 call_id = 1;
   // This would be ideal to have oneof here,
   // but since callback inside oneof is not supported
   // I am leaving strign path as optional
@@ -11,8 +12,8 @@ message GrpcRequest {
   //   int32 path_crc = 1;
   //   string path = 2 [(nanopb).max_size = 8];
   // }
-  required int32 path_hash = 1;
-  optional string path = 2;
+  required int32 path_hash = 2;
+  optional string path = 3;
   required bytes data = 10;
 }
 
@@ -38,29 +39,32 @@ enum GrpcStatus {
 
 
 message GrpcResponse {
-  required GrpcStatus grpc_status = 1;
-  optional string grpc_mesage = 2;
+  required int32 call_id = 1;
+  required GrpcStatus grpc_status = 2;
+  optional string grpc_mesage = 3;
   optional bytes data = 10;
 }
 
-// Following messages are temporary, for client server example
-// It differs only in options file
+// Following messages are for client side implementation
+// they differ from only in options
 
-message TempGrpcRequest {
-  // This would be ideal to have oneof here,
-  // but since callback inside oneof is not supported
-  // I am leaving strign path as optional
-  // oneof Path_oneof{
-  //   int32 path_crc = 1;
-  //   string path = 2 [(nanopb).max_size = 8];
-  // }
-  required int32 path_hash = 1;
-  optional string path = 2;
-  required bytes data = 10;
+message GrpcRequest_CS {
+    required int32 call_id = 1;
+    // This would be ideal to have oneof here,
+    // but since callback inside oneof is not supported
+    // I am leaving strign path as optional
+    // oneof Path_oneof{
+    //   int32 path_crc = 1;
+    //   string path = 2 [(nanopb).max_size = 8];
+    // }
+    required int32 path_hash = 2;
+    optional string path = 3;
+    required bytes data = 10;
 }
 
-message TempGrpcResponse {
-  required GrpcStatus grpc_status = 1;
-  optional string grpc_mesage = 2;
+message GrpcResponse_CS {
+  required int32 call_id = 1;
+  required GrpcStatus grpc_status = 2;
+  optional string grpc_mesage = 3;
   optional bytes data = 10;
 }
