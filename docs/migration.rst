@@ -11,7 +11,7 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.3.8 (2017-xx-xx)
+Nanopb-0.3.8 (2017-03-05)
 =========================
 Fully drain substreams before closing
 

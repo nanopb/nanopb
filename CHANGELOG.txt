@@ -1,4 +1,4 @@
-nanopb-0.3.8 (2016-03-xx)
+nanopb-0.3.8 (2017-03-05)
  Fix problems with multiple oneofs in same message (#229)
  Zero-valued extension fields were mistakenly ignored by encoder (#242)
  Multiple fixes related to proto3 mode (#242, #245, #247, #249)
