@@ -42,11 +42,11 @@ if(nanopb_BUILD_GENERATOR)
     )
 
     foreach(generator_proto IN LISTS generator_protos)
-        string(REGEX REPLACE "([^;]+)" "generator/proto/\\1.proto" generator_proto_file "${generator_proto}")
+        string(REGEX REPLACE "([^;]+)" "${PROJECT_SOURCE_DIR}/generator/proto/\\1.proto" generator_proto_file "${generator_proto}")
         string(REGEX REPLACE "([^;]+)" "\\1_pb2.py" generator_proto_py_file "${generator_proto}")
         add_custom_command(
             OUTPUT ${generator_proto_py_file}
-            COMMAND protoc --python_out=${CMAKE_CURRENT_BINARY_DIR} -Igenerator/proto ${generator_proto_file}
+            COMMAND protoc --python_out=${CMAKE_CURRENT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/generator/proto ${generator_proto_file}
             DEPENDS ${generator_proto_file}
         )
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
