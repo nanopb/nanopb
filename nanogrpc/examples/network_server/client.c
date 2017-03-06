@@ -34,6 +34,7 @@ for client purposes. (temporary) */
 ng_grpc_handle_t hGrpc;
 Path Path_holder;
 FileList FileList_holder;
+ng_methodContext_t context;
 /* pb_istream_t istream;
 pb_ostream_t ostream; */
 
@@ -47,14 +48,16 @@ pb_ostream_t ostream; */
  */
 bool encodeRequestCallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
-    ng_method_t *method = (ng_method_t*)*arg;
-    /* char *str = get_string_from_somewhere(); */
-    if (!pb_encode_tag_for_field(stream, field))
-        return false;
-    /* we are encoding tag for bytes, but writeing submessage, */
-    /* as long it is prepended with size same as bytes */
-    return pb_encode_submessage(stream, method->request_fields, method->request_holder);
+  ng_encodeMessageCallbackArgument_t *argument = (ng_encodeMessageCallbackArgument_t*)*arg;
+  /* char *str = get_string_from_somewhere(); */
+  if (!pb_encode_tag_for_field(stream, field))
+      return false;
+  /* we are encoding tag for bytes, but writeing submessage, */
+  /* as long it is prepended with size same as bytes */
+  /*return pb_encode_submessage(stream, method->response_fields, method->response_holder);*/
+  return pb_encode_submessage(stream, argument->method->request_fields, argument->context->request);
 }
+
 
 /* This callback function will be called once for each filename received
  * from the server. The filenames will be printed out immediately, so that
@@ -80,7 +83,10 @@ void dummyCallback(void * a, void *b){
 void myGrpcInit(){
   /* FileServer_service_init(); */
   /* ng_setMethodHandler(&SayHello_method, &Greeter_methodHandler);*/
-  ng_setMethodCallback(&FileServer_ListFiles_method, (void *)&dummyCallback, (void *)&Path_holder, &FileList_holder);
+  context.request = (void *)&Path_holder;
+  context.response = &FileList_holder;
+  ng_setMethodContext(&FileServer_ListFiles_method, &context);
+  ng_setMethodCallback(&FileServer_ListFiles_method, (void *)&dummyCallback);
   /* ng_GrpcRegisterService(&hGrpc, &FileServer_service); */
   /* hGrpc.input = &istream;
   hGrpc.output = &ostream; */
@@ -126,7 +132,10 @@ bool listdir(int fd, char *path)
         gRequest.path_hash = 3;
         gRequest.path = "/FileServer/ListFiles";
         gRequest.data.funcs.encode = &encodeRequestCallback;
-        gRequest.data.arg = &FileServer_ListFiles_method;
+        ng_encodeMessageCallbackArgument_t arg;
+        arg.method = &FileServer_ListFiles_method;
+        arg.context = &context;
+        gRequest.data.arg = &arg;
 
         validRequest = pb_get_encoded_size(&requestSize,
                                             GrpcRequest_CS_fields,

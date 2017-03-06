@@ -138,10 +138,11 @@ class Method:
         result += '    0,\n'  # TODO place method id option here # hasg
         # result += '    NULL,\n'                           # handler
         result += '    NULL,\n'                             # callback
-        result += '    NULL,\n'                             # request_holder
+        # result += '    NULL,\n'                             # request_holder
+        result += '    NULL,\n'                             # context
         result += '    {}_fields,\n'.format(self.input)     # request_fields
         result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.input) # request_fillWithZeros
-        result += '    NULL,\n'                             # response_holder
+        # result += '    NULL,\n'                             # response_holder
         result += '    {}_fields,\n'.format(self.output)    # response_fields
         result += '    &FILL_WITH_ZEROS_FUNCTION_NAME({}),\n'.format(self.output) # response_fillWithZeros
 

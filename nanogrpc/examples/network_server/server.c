@@ -29,6 +29,7 @@ Path Path_holder;
 FileList FileList_holder;
 pb_istream_t istream;
 pb_ostream_t ostream;
+ng_methodContext_t context;
 
 /* This callback function will be called once during the encoding.
  * It will write out any number of FileInfo entries, without consuming unnecessary memory.
@@ -70,7 +71,9 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
 }
 
 
-ng_GrpcStatus_t FileServer_service_methodCallback(Path * request, FileList * response){
+ng_GrpcStatus_t FileServer_service_methodCallback(ng_methodContext_t* ctx){
+    Path * request = (Path*)ctx->request;
+    FileList * response = (FileList*)ctx->response;
     DIR *directory = NULL;
     directory = opendir(request->path);
     /* printf("Listing directory: %s directory %d\n", request->path, (uint32_t)(uint64_t)directory); */
@@ -102,7 +105,10 @@ ng_GrpcStatus_t FileServer_service_methodCallback(Path * request, FileList * res
 void myGrpcInit(){
   FileServer_service_init();
   /* ng_setMethodHandler(&SayHello_method, &Greeter_methodHandler);*/
-  ng_setMethodCallback(&FileServer_ListFiles_method, (void *)&FileServer_service_methodCallback, (void *)&Path_holder, &FileList_holder);
+  context.request = (void*)&Path_holder;
+  context.response = (void*)&FileList_holder;
+  ng_setMethodContext(&FileServer_ListFiles_method, &context);
+  ng_setMethodCallback(&FileServer_ListFiles_method, (void *)&FileServer_service_methodCallback);
   ng_GrpcRegisterService(&hGrpc, &FileServer_service);
   hGrpc.input = &istream;
   hGrpc.output = &ostream;
