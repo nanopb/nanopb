@@ -47,13 +47,35 @@ For now I am testing it on STM32F4DISCOVERY board as submodule so that I didn't
 provide any examples yet. But I will do it as soon as I will have generator
 working.
 
+## What is done so far, how to play with it
+##### Concept of call IDs
+When calling method, client needs to provide random/unique id, that will
+identify call. This allows to handle multuple methods as one time. In normal
+grpc it is being done with http2 connections, but in order not to implement
+whole stack and keep stuff simple (over single serial connection) call are
+being identified with IDs.
+
+##### Concept of contexts and non blocking parsing
+Each method can hold pointer to structure (`context`) which holds pointers to
+to request and response structures and pointer next context structure. It is
+needed for implementing non blocking parsing. When server calls callback it
+sends its context. Callback can response immediately, shedule response for later time or do both (and inform server by return code), but will allow for next
+responses only if method definition allows for server streaming.
+
+##### Blocking parsing
+Non blocking parsing is a little bit tricky so in order to leave for user easy
+to implement grpc there is `ng_GrpcParseBlocking` function which doesn't allow
+for scheduling responses for later time and uses only one (first) context per
+method, see `network_example`
+
 ## Roadmap
-* Nonblocking request parsing with (optional) timeout support
-* server to client streaming
+* tests
+* more examples
+* some client side implementations in python, c++, and node-red
 
 ### about nanogrpc.proto
-Inside of this file you can notice that messages are duplicated with `Temp`
-prefix. Those messages differ in options. On server side data from request
+Inside of this file you can notice that messages are duplicated with `_CS`
+postfix (for client side code). Those messages differ in options. On server side data from request
 needs to be stored in under pointer because during time of receiving we don't
 know what method is that (we could decode it immediately if we knew method id or
 path in advance, grpc allows to change of order of tags), but we can encode
