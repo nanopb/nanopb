@@ -382,7 +382,17 @@ class ProtoFile:
         yield '#endif\n'
         yield '\n'
 
-        yield '\n\n'
+        yield '#ifdef NG_USE_DEFAULT_CONTEXT\n'
+        yield '\n'
+        for service in self.services:
+            for method in service.methods:
+                yield '{} {}_DefaultRequest;\n'.format(method.input, method.full_name)
+                yield '{} {}_DefaultResponse;\n'.format(method.output, method.full_name)
+                yield 'ng_methodContext_t {}_DefaultContext;\n'.format(method.full_name)
+                yield '\n'
+        yield '#endif\n'
+
+        yield '\n'
         for msg in self.get_all_used_messages():
             yield 'DEFINE_FILL_WITH_ZEROS_FUNCTION({})\n'.format(msg)
         yield '\n'
@@ -398,6 +408,13 @@ class ProtoFile:
             yield 'ng_GrpcStatus_t {}_service_init(){{\n'.format(service.name)
             for method in service.methods:
                 yield '    ng_addMethodToService(&{}_service, &{}_method);\n'.format(service.name, method.full_name)
+
+            yield '#ifdef NG_USE_DEFAULT_CONTEXT\n'
+            for method in service.methods:
+                yield '    {}_DefaultContext.request = (void*)&{}_DefaultRequest;\n'.format(method.full_name, method.full_name)
+                yield '    {}_DefaultContext.response = (void*)&{}_DefaultResponse;\n'.format(method.full_name, method.full_name)
+                yield '    ng_setMethodContext(&{}_method, &{}_DefaultContext);\n'.format(method.full_name, method.full_name)
+            yield '#endif\n'
             yield '    return 0;\n'
             yield '}\n'
             yield '\n'
