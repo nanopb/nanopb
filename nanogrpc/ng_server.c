@@ -271,7 +271,7 @@ bool ng_setMethodContext(ng_method_t* method, ng_methodContext_t* ctx){
  * @return          true if success, false if not
  */
 bool ng_setMethodCallback(ng_method_t *method,
-                                      ng_GrpcStatus_t (*callback)(ng_methodContext_t* ctx)){
+		ng_CallbackStatus_t (*callback)(ng_methodContext_t* ctx)){
   if (callback != NULL){
     method->callback = callback;
     return true;
@@ -315,7 +315,7 @@ bool ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service){
 static bool ng_registerCall(ng_grpc_handle_t *handle, ng_methodContext_t *ctx, ng_callId_t id){
   uint32_t i;
   for (i=0; i< handle->callsHolderSize; i++){
-    if (handle->callsHolder[i].call_id != 0){
+    if (handle->callsHolder[i].call_id == 0){
       handle->callsHolder[i].call_id = id;
       handle->callsHolder[i].context = ctx;
       return true;
@@ -324,6 +324,18 @@ static bool ng_registerCall(ng_grpc_handle_t *handle, ng_methodContext_t *ctx, n
   return false;
 }
 
+
+static bool ng_endOfCall(ng_grpc_handle_t *handle, ng_callId_t id){
+  uint32_t i;
+  for (i=0; i< handle->callsHolderSize; i++){
+    if (handle->callsHolder[i].call_id == id){
+      handle->callsHolder[i].call_id = 0;
+      handle->callsHolder[i].context = NULL;
+      return true;
+    }
+  }
+  return false;
+}
 
 bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
   ng_CallbackStatus_t status;
@@ -357,43 +369,47 @@ bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
             (method->context->request && method->context->response):
             false)){ /* callback and context found */
         ctx = method->context;
-        method->request_fillWithZeros(ctx->request);
-        if (pb_decode(&input, method->request_fields, ctx->request)){
-          ctx->call_id = call_id;
-          method->response_fillWithZeros(ctx->response);
-          status = method->callback(ctx);
+        ctx->method = method;
+        if (ng_registerCall(handle, ctx, call_id)){
+          method->request_fillWithZeros(ctx->request);
+          if (pb_decode(&input, method->request_fields, ctx->request)){
+            ctx->call_id = call_id;
+            method->response_fillWithZeros(ctx->response);
+            status = method->callback(ctx);
 
-          if (status == CallbackStatus_Ok ||
-              status == CallbackStatus_WillContinueLater){
-            bool validResponse = false;
-            size_t responseSize;
-            /* try to encode method response to make sure, that it will be
-            * possible to encode it callback.  */
-            validResponse = pb_get_encoded_size(&responseSize,
-                                                method->response_fields,
-                                                ctx->response);
-            if (validResponse && ng_registerCall(handle, ctx, call_id)){
-              handle->response.grpc_status = GrpcStatus_OK;
-              handle->response.data.funcs.encode = &encodeResponseCallback;
-              handle->response.data.arg = ctx;
-            } else {
-              handle->response.grpc_status = GrpcStatus_INTERNAL;
-              /* TODO insert here message about not being able to
-              * encode method request? */
-            }
-          } else if (status == CallbackStatus_WillRespondLater){
-
-            if (ng_registerCall(handle, ctx, call_id)){
+            if (status == CallbackStatus_Ok ||
+                status == CallbackStatus_WillContinueLater){
+              bool validResponse = false;
+              size_t responseSize;
+              /* try to encode method response to make sure, that it will be
+              * possible to encode it callback.  */
+              validResponse = pb_get_encoded_size(&responseSize,
+                                                  method->response_fields,
+                                                  ctx->response);
+              if (validResponse){
+                handle->response.grpc_status = GrpcStatus_OK;
+                handle->response.data.funcs.encode = &encodeResponseCallback;
+                handle->response.data.arg = ctx;
+              } else {
+                handle->response.grpc_status = GrpcStatus_INTERNAL;
+                /* TODO insert here message about not being able to
+                * encode method request? */
+              }
+              if (status == CallbackStatus_Ok || method->server_streaming == false){
+                handle->response.has_response_type = true;
+                handle->response.response_type = GrpcResponseType_END_OF_CALL;
+                ng_endOfCall(handle, call_id);
+              }
+            } else if (status == CallbackStatus_WillRespondLater){
               sendNow = false;
-            } else { /* unable to register call, report error */
+            } else { /* callback failed. */
               handle->response.grpc_status = GrpcStatus_INTERNAL;
             }
-          } else { /* callback failed. */
-            handle->response.grpc_status = GrpcStatus_INTERNAL;
+         } else { /* unable to decode message from request holder */
+            handle->response.grpc_status = GrpcStatus_INVALID_ARGUMENT;
           }
-         /* ret = GrpcStatus_OK; */
-       } else { /* unable to decode message from request holder */
-          handle->response.grpc_status = GrpcStatus_INVALID_ARGUMENT;
+        } else { /* Unable to register call */
+          handle->response.grpc_status = GrpcStatus_INTERNAL;
         }
       } else { /* handler or callback not found */
         handle->response.grpc_status = GrpcStatus_UNIMPLEMENTED;
@@ -409,12 +425,12 @@ bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
     handle->response.grpc_status = GrpcStatus_DATA_LOSS;
   }
   if (sendNow){
-    if (handle->canIWriteToOutput()){
+    if (handle->canIWriteToOutput(handle)){
       if (!pb_encode(handle->output, GrpcResponse_fields, &handle->response)){
         /* TODO unable to encode */
         ret = false;
       }
-      handle->outputReady();
+      handle->outputReady(handle);
     } else {
       /* TODO handle error? */
     }
@@ -456,20 +472,13 @@ static ng_methodContext_t* getContextByCallId(ng_grpc_handle_t *handle, ng_callI
 }*/
 
 
-static bool ng_endOfCall(ng_grpc_handle_t *handle, ng_callId_t id){
-  uint32_t i;
-  for (i=0; i< handle->callsHolderSize; i++){
-    if (handle->callsHolder[i].call_id == id){
-      handle->callsHolder[i].call_id = 0;
-      handle->callsHolder[i].context = NULL;
-      return true;
-    }
-  }
-  return false;
-}
+
 
 static bool ng_isCallOngoing(ng_grpc_handle_t* handle, ng_callId_t id){
   uint32_t i;
+  if (handle == NULL || id == 0){
+    return false;
+  }
   for (i=0; i< handle->callsHolderSize; i++){
     if (handle->callsHolder[i].call_id == id){
       return true;
@@ -483,7 +492,7 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
   /* Theoreticaly canIWriteToOutput and ctx should be verified previously */
   if (handle != NULL && ctx != NULL){
     if (ng_isCallOngoing(handle, ctx->call_id)){
-      if (handle->canIWriteToOutput()){
+      if (handle->canIWriteToOutput(handle)){
 
         GrpcResponse_fillWithZeros(&handle->response);
         bool validResponse;
@@ -496,10 +505,11 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
           handle->response.grpc_status = GrpcStatus_OK;
           handle->response.data.funcs.encode = &encodeResponseCallback;
           handle->response.data.arg = ctx;
-          if (endOfCall){
+          if (endOfCall || ctx->method->server_streaming == false){
             handle->response.has_response_type = true;
             handle->response.response_type = GrpcResponseType_END_OF_CALL;
           } else {
+            handle->response.has_response_type = true;
             handle->response.response_type = GrpcResponseType_STREAM;
           }
 
@@ -507,14 +517,13 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
             /* TODO unable to encode */
             ret = false;
           } else {
-            if (endOfCall){
+            if (handle->outputReady != NULL){
+              handle->outputReady(handle);
+            }
+            if (endOfCall || ctx->method->server_streaming == false){
               ng_endOfCall(handle, ctx->call_id);
             }
-            if (handle->outputReady != NULL){
-              handle->outputReady();
-            }
           }
-
 
           #ifdef PB_ENABLE_MALLOC
           if (ctx != NULL){
@@ -539,6 +548,5 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
   } else { /* invalid handle and context */
     ret = false;
   }
-
   return ret;
 }

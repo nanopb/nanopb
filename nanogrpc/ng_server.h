@@ -31,7 +31,7 @@ bool ng_addMethodToService(ng_service_t *service, ng_method_t * method);
                                  ng_GrpcStatus_t (*handler)(pb_istream_t * input,
                                                        pb_ostream_t * output)); */
 bool ng_setMethodCallback(ng_method_t *method,
-                                      ng_GrpcStatus_t (*callback)(ng_methodContext_t* ctx));
+		ng_CallbackStatus_t (*callback)(ng_methodContext_t* ctx));
 bool ng_setMethodContext(ng_method_t* method, ng_methodContext_t* ctx);
 
 #endif

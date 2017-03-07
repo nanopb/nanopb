@@ -19,12 +19,21 @@
 typedef uint32_t ng_hash_t;
 typedef uint32_t ng_GrpcStatus_t;
 typedef uint32_t ng_callId_t;
+
 typedef enum _CallbackStatus {
   CallbackStatus_Ok, /*!< If streamin callback returns it, Response will have Enf of Call set */
   CallbackStatus_WillRespondLater, /*!< Status ok for streaming callback, no response prepared for encoding */
   CallbackStatus_WillContinueLater, /*!< Status ok for streaming callbcack, response prepared for encoding */
   CallbackStatus_Failed
 } ng_CallbackStatus_t;
+
+typedef enum
+{
+  NG_UNLOCKED = 0x00U,
+  NG_LOCKED   = 0x01U
+} ng_lock_t;
+
+
 /* You can define custom functions for strings operations
  * without includint whole string library */
 #ifndef ng_strcmp
@@ -109,10 +118,11 @@ struct ng_grpc_handle_s {
     GrpcRequest request;
     GrpcResponse response;
     ng_GrpcStatus_t lastStatus;
-    bool (* canIWriteToOutput)(void);
-    void (* outputReady)(void);
+    bool (* canIWriteToOutput)(ng_grpc_handle_t* handle);
+    void (* outputReady)(ng_grpc_handle_t* handle);
     ng_call_t *callsHolder;
     uint32_t callsHolderSize;
+    ng_lock_t lock;
 };
 
 /* I don't have idea for better name for this structure, but still it is better
