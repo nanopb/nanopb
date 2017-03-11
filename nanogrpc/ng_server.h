@@ -34,4 +34,11 @@ bool ng_setMethodCallback(ng_method_t *method,
 		ng_CallbackStatus_t (*callback)(ng_methodContext_t* ctx));
 bool ng_setMethodContext(ng_method_t* method, ng_methodContext_t* ctx);
 
+/* Non blocking functions */
+bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool endOfCall);
+bool ng_isCallOngoing(ng_grpc_handle_t* handle, ng_callId_t id);
+bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle);
+bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool endOfCall);
+bool ng_endOfCall(ng_grpc_handle_t* handle, ng_methodContext_t* ctx);
+
 #endif

@@ -325,7 +325,7 @@ static bool ng_registerCall(ng_grpc_handle_t *handle, ng_methodContext_t *ctx, n
 }
 
 
-static bool ng_endOfCall(ng_grpc_handle_t *handle, ng_callId_t id){
+static bool ng_removeCall(ng_grpc_handle_t *handle, ng_callId_t id){
   uint32_t i;
   for (i=0; i< handle->callsHolderSize; i++){
     if (handle->callsHolder[i].call_id == id){
@@ -337,7 +337,52 @@ static bool ng_endOfCall(ng_grpc_handle_t *handle, ng_callId_t id){
   return false;
 }
 
-bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
+bool ng_isContextUsedByOngoingCall(ng_grpc_handle_t* handle, ng_methodContext_t* ctx){
+  uint32_t i;
+  if (handle == NULL || ctx == NULL){
+    return false;
+  }
+  for (i=0; i< handle->callsHolderSize; i++){
+    if (handle->callsHolder[i].call_id != 0 &&
+        handle->callsHolder[i].context == ctx){
+      return true;
+    }
+  }
+  return false;
+}
+
+/*!
+ * @brief  Returns pointer to valid context which is not used by ongoing call.
+ * @param  handle pointer to grpc handle
+ * @param  method pointer to method
+ * @return        pointer to valid context, NULL if no such found
+ */
+ng_methodContext_t* ng_getValidContextFromMethod(ng_grpc_handle_t* handle, ng_method_t* method){
+  /* For now we are returning only first context, but just in case we are
+    checking if it is not being used by some ongoing call. In future in case
+    of having more contexts per method this function will handle providing
+    correct context (or something like this :) ) */
+    if (method->context != NULL){
+      if (method->context->request != NULL &&
+          method->context->response != NULL){
+        /*if (ng_isContextUsedByOngoingCall(handle, method->context)){
+          return NULL;
+        } else {
+          return method->context;
+        } */
+    	return method->context;
+      }
+    }
+
+    return NULL;
+}
+
+/*!
+ * Parsed input buffer in nonblocking manner
+ * @param  handle pointer to grpc handle
+ * @return        true if successfully paresed, false otherwise
+ */
+bool ng_GrpcParseNonBlocking(ng_grpc_handle_t* handle){
   ng_CallbackStatus_t status;
   ng_method_t *method = NULL;
   ng_methodContext_t* ctx = NULL;
@@ -365,9 +410,7 @@ bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
 
     if (method != NULL) {
       if (method->callback != NULL &&
-          ((method->context != NULL) ?
-            (method->context->request && method->context->response):
-            false)){ /* callback and context found */
+        ng_getValidContextFromMethod(handle, method) != NULL){ /* callback and context found */
         ctx = method->context;
         ctx->method = method;
         if (ng_registerCall(handle, ctx, call_id)){
@@ -398,7 +441,7 @@ bool ng_GrpcParseNonBlocking(ng_grpc_handle_t *handle){
               if (status == CallbackStatus_Ok || method->server_streaming == false){
                 handle->response.has_response_type = true;
                 handle->response.response_type = GrpcResponseType_END_OF_CALL;
-                ng_endOfCall(handle, call_id);
+                ng_removeCall(handle, call_id);
               }
             } else if (status == CallbackStatus_WillRespondLater){
               sendNow = false;
@@ -472,9 +515,7 @@ static ng_methodContext_t* getContextByCallId(ng_grpc_handle_t *handle, ng_callI
 }*/
 
 
-
-
-static bool ng_isCallOngoing(ng_grpc_handle_t* handle, ng_callId_t id){
+bool ng_isCallOngoing(ng_grpc_handle_t* handle, ng_callId_t id){
   uint32_t i;
   if (handle == NULL || id == 0){
     return false;
@@ -486,6 +527,7 @@ static bool ng_isCallOngoing(ng_grpc_handle_t* handle, ng_callId_t id){
   }
   return false;
 }
+
 
 bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool endOfCall){
   bool ret = true;
@@ -521,14 +563,22 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
               handle->outputReady(handle);
             }
             if (endOfCall || ctx->method->server_streaming == false){
-              ng_endOfCall(handle, ctx->call_id);
+              #ifdef PB_ENABLE_MALLOC
+              if (ctx != NULL){
+                /* In case response would have dynamically allocated fields */
+                if (ctx->request != NULL){
+                  pb_release(ctx->method->request_fields, ctx->request);
+                }
+              }
+              #endif
+              ng_removeCall(handle, ctx->call_id);
             }
           }
 
           #ifdef PB_ENABLE_MALLOC
           if (ctx != NULL){
             /* In case response would have dynamically allocated fields */
-            if (ctx->response){
+            if (ctx->response != NULL){
               pb_release(ctx->method->response_fields, ctx->response);
             }
           }
@@ -546,6 +596,49 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
       ret = false;
     }
   } else { /* invalid handle and context */
+    ret = false;
+  }
+  return ret;
+}
+
+
+bool ng_endOfCall(ng_grpc_handle_t* handle, ng_methodContext_t* ctx){
+  bool ret = true;
+  if(handle != NULL && ctx != NULL){
+    if (ng_isCallOngoing(handle, ctx->call_id)){
+      if (handle->canIWriteToOutput(handle)){
+        GrpcResponse_fillWithZeros(&handle->response);
+
+        handle->response.call_id = ctx->call_id;
+        handle->response.grpc_status = GrpcStatus_OK;
+        handle->response.has_response_type = true;
+        handle->response.response_type = GrpcResponseType_END_OF_CALL;
+
+        if (!pb_encode(handle->output, GrpcResponse_fields, &handle->response)){
+          /* TODO unable to encode */
+          ret = false;
+        } else {
+          if (handle->outputReady != NULL){
+            handle->outputReady(handle);
+          }
+          ng_removeCall(handle, ctx->call_id);
+          #ifdef PB_ENABLE_MALLOC
+          if (ctx != NULL){
+            /* In case response would have dynamically allocated fields */
+            if (ctx->response){
+              pb_release(ctx->method->request_fields, ctx->request);
+              pb_release(ctx->method->response_fields, ctx->response);
+            }
+          }
+          #endif
+        }
+      } else {
+        ret = false;
+      }
+    } else {
+      ret = false;
+    }
+  } else {
     ret = false;
   }
   return ret;
