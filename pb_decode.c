@@ -934,6 +934,9 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
         if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED && iter.pos->tag != 0)
             req_field_count++;
         
+        if (req_field_count > PB_MAX_REQUIRED_FIELDS)
+            req_field_count = PB_MAX_REQUIRED_FIELDS;
+
         if (req_field_count > 0)
         {
             /* Check the whole words */
@@ -943,9 +946,15 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
                     PB_RETURN_ERROR(stream, "missing required field");
             }
             
-            /* Check the remaining bits */
-            if (fields_seen[req_field_count >> 5] != (allbits >> (32 - (req_field_count & 31))))
-                PB_RETURN_ERROR(stream, "missing required field");
+            /* Check the remaining bits (if any) */
+            if ((req_field_count & 31) != 0)
+            {
+                if (fields_seen[req_field_count >> 5] !=
+                    (allbits >> (32 - (req_field_count & 31))))
+                {
+                    PB_RETURN_ERROR(stream, "missing required field");
+                }
+            }
         }
     }
     
