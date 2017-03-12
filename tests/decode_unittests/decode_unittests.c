@@ -150,13 +150,57 @@ int main()
     {
         pb_istream_t s;
         pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 8, 0, 0};
-        uint64_t d;
+        int64_t d;
         
-        COMMENT("Test pb_dec_svarint using uint64_t")
+        COMMENT("Test pb_dec_svarint using int64_t")
         TEST((s = S("\x01"), pb_dec_svarint(&s, &f, &d) && d == -1))
         TEST((s = S("\x02"), pb_dec_svarint(&s, &f, &d) && d == 1))
         TEST((s = S("\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MAX))
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &f, &d) && d == INT64_MIN))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 4, 0, 0};
+        int32_t d;
+        
+        COMMENT("Test pb_dec_svarint overflow detection using int32_t");
+        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d)));
+        TEST((s = S("\xfe\xff\xff\xff\x10"), !pb_dec_svarint(&s, &f, &d)));
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_svarint(&s, &f, &d)));
+        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_svarint(&s, &f, &d)));
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 4, 0, 0};
+        uint32_t d;
+        
+        COMMENT("Test pb_dec_uvarint using uint32_t")
+        TEST((s = S("\x01"), pb_dec_uvarint(&s, &f, &d) && d == 1))
+        TEST((s = S("\x02"), pb_dec_uvarint(&s, &f, &d) && d == 2))
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_uvarint(&s, &f, &d) && d == UINT32_MAX))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 8, 0, 0};
+        uint64_t d;
+        
+        COMMENT("Test pb_dec_uvarint using uint64_t")
+        TEST((s = S("\x01"), pb_dec_uvarint(&s, &f, &d) && d == 1))
+        TEST((s = S("\x02"), pb_dec_uvarint(&s, &f, &d) && d == 2))
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_uvarint(&s, &f, &d) && d == UINT64_MAX))
+    }
+    
+    {
+        pb_istream_t s;
+        pb_field_t f = {1, PB_LTYPE_SVARINT, 0, 0, 4, 0, 0};
+        uint32_t d;
+        
+        COMMENT("Test pb_dec_uvarint overflow detection using int32_t");
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_uvarint(&s, &f, &d)));
+        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_uvarint(&s, &f, &d)));
     }
     
     {
