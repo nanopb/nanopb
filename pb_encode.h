@@ -125,9 +125,17 @@ bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field
  * This works for bool, enum, int32, int64, uint32 and uint64 field types. */
 bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
 
+/* Encode an integer in the varint format.
+ * This works for bool, enum, int32 and uint32 field types. */
+bool pb_encode_varint32(pb_ostream_t *stream, uint32_t value);
+
 /* Encode an integer in the zig-zagged svarint format.
  * This works for sint32 and sint64. */
 bool pb_encode_svarint(pb_ostream_t *stream, int64_t value);
+
+/* Encode an integer in the zig-zagged svarint format.
+ * This works for sint32. */
+bool pb_encode_svarint32(pb_ostream_t *stream, int32_t value);
 
 /* Encode a string or bytes type field. For strings, pass strlen(s) as size. */
 bool pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer, size_t size);
