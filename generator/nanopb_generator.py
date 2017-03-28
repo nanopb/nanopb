@@ -649,8 +649,13 @@ class Field:
         if self.rules == 'REPEATED':
             # Decoders must be always able to handle unpacked arrays.
             # Therefore we have to reserve space for it, even though
-            # we emit packed arrays ourselves.
+            # we emit packed arrays ourselves. For length of 1, packed
+            # arrays are larger however so we need to add allowance
+            # for the length byte.
             encsize *= self.max_count
+
+            if self.max_count == 1:
+                encsize += 1
 
         return encsize
 
