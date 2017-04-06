@@ -126,7 +126,9 @@ bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field
 bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
 
 /* Encode an integer in the varint format.
- * This works for bool, enum, int32 and uint32 field types. */
+ * This works for bool, enum and uint32 field types.
+ * NOTE: Does not work for int32 since that should encode to 10 bytes to support
+ * promotion to int64 when decoded. */
 bool pb_encode_varint32(pb_ostream_t *stream, uint32_t value);
 
 /* Encode an integer in the zig-zagged svarint format.
