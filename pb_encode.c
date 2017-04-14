@@ -204,25 +204,51 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
  * This function implements the check for the zero value. */
 static bool pb_check_proto3_default_value(const pb_field_t *field, const void *pData)
 {
-    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
+    pb_type_t type = field->type;
+    const void *pSize = (const char*)pData + field->size_offset;
+
+    if (PB_HTYPE(type) == PB_HTYPE_REQUIRED)
     {
-        if (PB_LTYPE(field->type) == PB_LTYPE_BYTES)
+        /* Required proto2 fields inside proto3 submessage, pretty rare case */
+        return false;
+    }
+    else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+    {
+        /* Repeated fields inside proto3 submessage: present if count != 0 */
+        return *(const pb_size_t*)pSize == 0;
+    }
+    else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+    {
+        /* Oneof fields */
+        return *(const pb_size_t*)pSize == 0;
+    }
+    else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->size_offset)
+    {
+        /* Proto2 optional fields inside proto3 submessage */
+        return *(const bool*)pSize == false;
+    }
+
+    /* Rest is proto3 singular fields */
+
+    if (PB_ATYPE(type) == PB_ATYPE_STATIC)
+    {
+        if (PB_LTYPE(type) == PB_LTYPE_BYTES)
         {
             const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)pData;
             return bytes->size == 0;
         }
-        else if (PB_LTYPE(field->type) == PB_LTYPE_STRING)
+        else if (PB_LTYPE(type) == PB_LTYPE_STRING)
         {
             return *(const char*)pData == '\0';
         }
-        else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED_LENGTH_BYTES)
+        else if (PB_LTYPE(type) == PB_LTYPE_FIXED_LENGTH_BYTES)
         {
             /* Fixed length bytes is only empty if its length is fixed
              * as 0. Which would be pretty strange, but we can check
              * it anyway. */
             return field->data_size == 0;
         }
-        else if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE)
+        else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
         {
             /* Check all fields in the submessage to find if any of them
              * are non-zero. The comparison cannot be done byte-per-byte
