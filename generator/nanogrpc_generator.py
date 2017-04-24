@@ -622,7 +622,7 @@ def process_file(filename, fdesc, options, other_files = {}):
     # even if they are mentioned in the source .proto.
     excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
     includes = [d for d in f.fdesc.dependency if d not in excludes]
-    includes.append(noext)
+    includes.append(os.path.split(noext)[-1])
 
     headerdata = ''.join(f.generate_header(includes, headerbasename, options))
     sourcedata = ''.join(f.generate_source(headerbasename, options))
