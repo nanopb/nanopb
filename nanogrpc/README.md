@@ -55,18 +55,33 @@ grpc it is being done with http2 connections, but in order not to implement
 whole stack and keep stuff simple (over single serial connection) call are
 being identified with IDs.
 
-##### Concept of contexts and non blocking parsing
+##### Concept of contexts, blocking and non blocking parsing
 Each method can hold pointer to structure (`context`) which holds pointers to
 to request and response structures and pointer next context structure. It is
-needed for implementing non blocking parsing. When server calls callback it
-sends its context. Callback can response immediately, shedule response for later time or do both (and inform server by return code), but will allow for next
-responses only if method definition allows for server streaming.
+needed for implementing non blocking parsing.
 
-##### Blocking parsing
-Non blocking parsing is a little bit tricky so in order to leave for user easy
-to implement grpc there is `ng_GrpcParseBlocking` function which doesn't allow
-for scheduling responses for later time and uses only one (first) context per
-method, see `network_example`
+In blocking mode (`ng_GrpcParseBlocking`) only one (default) context is being
+used in order to keep it simple (to use). Callback cannot schedule response
+for later time. In such case error message will be sent.
+
+In nonblocking parsing when server calls method there it could be possible to
+have several calls of the same method ongoing (with own contexts). For now only
+one method at time is implemented. When call on specific method is ongoing, when
+another one arrives, previous will be removed. In order to handle several
+methods of one type, there is need of managing not finished methods. It can be
+achieved by introducing timeout functionality or keeping linked list of
+contexts in form of queue. Newly registered would be placed in front of queue,
+and removed to the end. In case overflow the latest call be overridden, but
+it won't block. It could be default behavior in case of not having timeout.
+
+When call arrives, callback can respond immediately, schedule response for
+later time or do both (and inform server by return code), but will allow for
+next responses only if method definition allows for server streaming.
+
+It could also possible to dynamically allocate contexts, but since user is given
+pointer to context which might be removed before he finishes call (timeout) it
+will be tricky to remove it an NULL all pointers pointing to it...
+To be discussed. 
 
 ## Roadmap
 * tests
@@ -75,11 +90,11 @@ method, see `network_example`
 
 ### about nanogrpc.proto
 Inside of this file you can notice that messages are duplicated with `_CS`
-postfix (for client side code). Those messages differ in options. On server side data from request
-needs to be stored in under pointer because during time of receiving we don't
-know what method is that (we could decode it immediately if we knew method id or
-path in advance, grpc allows to change of order of tags), but we can encode
-response in callback. On client side situation is opposite.
+postfix (for client side code). Those messages differ in options. On server side
+data from request needs to be stored in under pointer because during time of
+receiving we don't know what method is that (we could decode it immediately if
+we knew method id or path in advance, grpc allows to change of order of tags),
+but we can encode response in callback. On client side situation is opposite.
 There are two sollutions - having duplicated messages or specifying options
 during compilation time (which sounds problematic)
 
