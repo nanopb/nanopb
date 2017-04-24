@@ -71,7 +71,7 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
 }
 
 
-ng_GrpcStatus_t FileServer_service_methodCallback(ng_methodContext_t* ctx){
+ng_CallbackStatus_t FileServer_service_methodCallback(ng_methodContext_t* ctx){
     Path * request = (Path*)ctx->request;
     FileList * response = (FileList*)ctx->response;
     DIR *directory = NULL;
@@ -98,7 +98,7 @@ ng_GrpcStatus_t FileServer_service_methodCallback(ng_methodContext_t* ctx){
     if (directory != NULL)
         closedir(directory);
 
-  return GrpcStatus_OK;
+  return CallbackStatus_Ok;
 }
 
 
