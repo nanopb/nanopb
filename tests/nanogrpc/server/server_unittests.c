@@ -7,6 +7,9 @@
 /* This declaration stays here (instead of main) because
    "ISO C90 forbids mixed declarations and code"  error */
 ng_grpc_handle_t hGrpc;
+#define CALLS_HOLDER_SIZE    3
+ng_call_t callsHolder[CALLS_HOLDER_SIZE];
+
 
 extern DummyRequest FirstTestService_FirstTestMethod_DefaultRequest;
 extern DummyResponse FirstTestService_FirstTestMethod_DefaultResponse;
@@ -77,8 +80,17 @@ int main()
     /* Test getting context from method */
     TEST(ng_getValidContext(&hGrpc, &FirstTestService_FirstTestMethod_method) == &FirstTestService_FirstTestMethod_DefaultContext);
 
+    /* Test regstering call */
+    ret = ng_registerCall(&hGrpc, &FirstTestService_FirstTestMethod_DefaultContext, 3);
+    TEST(ret == false); /* no call holder yet */
 
-
+    hGrpc.callsHolder = callsHolder;
+    hGrpc.callsHolderSize = CALLS_HOLDER_SIZE;
+    ret = ng_registerCall(&hGrpc, &FirstTestService_FirstTestMethod_DefaultContext, 69);
+    TEST(ret == true);
+    TEST(callsHolder[0].call_id == 69 && callsHolder[0].context == &FirstTestService_FirstTestMethod_DefaultContext);
+    TEST(callsHolder[1].call_id == 0 && callsHolder[1].context == NULL);
+    TEST(callsHolder[2].call_id == 0 && callsHolder[2].context == NULL);
 
 
 

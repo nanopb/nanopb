@@ -376,6 +376,9 @@ bool ng_GrpcRegisterService(ng_grpc_handle_t *handle, ng_service_t * service){
  */
 static bool ng_registerCall(ng_grpc_handle_t *handle, ng_methodContext_t *ctx, ng_callId_t id){
   uint32_t i;
+  if (handle->callsHolder == NULL){
+    return false;
+  }
   for (i=0; i< handle->callsHolderSize; i++){
     if (handle->callsHolder[i].call_id == 0){
       handle->callsHolder[i].call_id = id;
