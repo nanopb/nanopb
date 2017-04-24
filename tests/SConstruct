@@ -147,7 +147,6 @@ env['VARIANT_DIR'] = 'build'
 env['BUILD'] = '#' + env['VARIANT_DIR']
 env['COMMON'] = '#' + env['VARIANT_DIR'] + '/common'
 
-env['NANOGRPC_COMMON'] = '#' + env['VARIANT_DIR'] + '/nanogrpc'
 
 # Include common/SConscript first to make sure its exports are available
 # to other SConscripts.
@@ -156,4 +155,5 @@ SConscript("nanogrpc/SConscript", exports = 'env', variant_dir = env['VARIANT_DI
 
 for subdir in Glob('*/SConscript') + Glob('regression/*/SConscript') + Glob('nanogrpc/*/SConscript'):
     if str(subdir).startswith("common"): continue
+    if str(subdir).startswith('nanogrpc/SConscript'): continue
     SConscript(subdir, exports = 'env', variant_dir = env['VARIANT_DIR'] + '/' + os.path.dirname(str(subdir)))

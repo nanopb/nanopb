@@ -1,0 +1,14 @@
+# Test enum to string functionality
+
+Import('nanogrpc_env')
+
+nanogrpc_env.Append(CPPDEFINES = 'NG_USE_DEFAULT_CONTEXT')
+
+nanogrpc_env.NanopbProto('unittests')
+nanogrpc_env.NanogrpcProto('unittests')
+
+nanogrpc_env.Object('unittests.pb.c')
+nanogrpc_env.Object('unittests.ng.c')
+
+test = nanogrpc_env.Program(["server_unittests.c", "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o", "$NANOGRPC_COMMON/nanogrpc.pb.o", 'unittests.pb.o', 'unittests.ng.o'])
+nanogrpc_env.RunTest(test)

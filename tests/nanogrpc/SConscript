@@ -4,11 +4,19 @@ from SCons.Environment import apply_tools
 
 Import('env')
 
+nanogrpc_env = env.Clone(tools=['nanogrpc'])
+
+nanogrpc_env['NANOGRPC_COMMON'] = '#' + env['VARIANT_DIR'] + '/nanogrpc'
+nanogrpc_env.Append(CPPPATH = ["#../nanogrpc", '$NANOGRPC_COMMON'])
+
 # apply_tools(env, tools = ['nanogrpc'])
 
 # Protocol definitions for the encode/decode_unittests
 # TODO change this ugly way of compiling protofiles from place that is
 # outside working tree. I didn't manage to do ti even i classic makefile
 # withoud cd to directory with that file.
-copy = env.Command('dummy.file', [], 'cd ../nanogrpc && protoc --plugin=../generator/protoc-gen-nanopb --nanopb_out=../tests/build/nanogrpc nanogrpc.proto')
-env.AlwaysBuild(copy)
+copy = nanogrpc_env.Command(['nanogrpc.pb.h', 'nanogrpc.pb.c'], [], 'cd ../nanogrpc && protoc --plugin=../generator/protoc-gen-nanopb --nanopb_out=../tests/build/nanogrpc nanogrpc.proto')
+nanogrpc_env.AlwaysBuild(copy)
+env.Object('nanogrpc.pb.c')
+
+Export('nanogrpc_env')

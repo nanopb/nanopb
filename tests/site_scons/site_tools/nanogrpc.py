@@ -25,7 +25,7 @@ Additionally, the path to protoc and the options to give to protoc can be
 defined manually:
 
 env.SetDefault(PROTOC = "path/to/protoc")
-env.SetDefault(PROTOCFLAGS = "--plugin=protoc-gen-nanogrpc=path/to/protoc-gen-nanogrpc")
+env.SetDefault(NANOGRPC_PROTOCFLAGS = "--plugin=protoc-gen-nanogrpc=path/to/protoc-gen-nanogrpc")
 '''
 
 import SCons.Action
@@ -33,9 +33,9 @@ import SCons.Builder
 import SCons.Util
 import os.path
 
-class NanopbWarning(SCons.Warnings.Warning):
+class NanogrpcWarning(SCons.Warnings.Warning):
     pass
-SCons.Warnings.enableWarningClass(NanopbWarning)
+SCons.Warnings.enableWarningClass(NanogrpcWarning)
 
 def _detect_nanopb(env):
     '''Find the path to nanopb root directory.'''
@@ -48,7 +48,7 @@ def _detect_nanopb(env):
         # Assume we are running under tests/site_scons/site_tools
         return p
 
-    raise SCons.Errors.StopError(NanopbWarning,
+    raise SCons.Errors.StopError(NanogrpcWarning,
         "Could not find the nanopb root directory")
 
 def _detect_protoc(env):
@@ -57,7 +57,7 @@ def _detect_protoc(env):
         # Use protoc defined by user
         return env['PROTOC']
 
-    n = _detect_nanopb(env)NanopbWarning
+    n = _detect_nanopb(env)
     p1 = os.path.join(n, 'generator-bin', 'protoc' + env['PROGSUFFIX'])
     if os.path.exists(p1):
         # Use protoc bundled with binary package
@@ -68,13 +68,13 @@ def _detect_protoc(env):
         # Use protoc from path
         return env['ESCAPE'](p)
 
-    raise SCons.Errors.StopError(NanopbWarning,
+    raise SCons.Errors.StopError(NanogrpcWarning,
         "Could not find the protoc compiler")
 
 def _detect_protocflags(env):
     '''Find the options to use for protoc.'''
-    if env.has_key('PROTOCFLAGS'):
-        return env['PROTOCFLAGS']
+    if env.has_key('NANOGRPC_PROTOCFLAGS'):
+        return env['NANOGRPC_PROTOCFLAGS']
 
     p = _detect_protoc(env)
     n = _detect_nanopb(env)
@@ -85,14 +85,17 @@ def _detect_protocflags(env):
 
     e = env['ESCAPE']
     if env['PLATFORM'] == 'win32':
-        return e('--plugin=protoc-gen-nanopb=' + os.path.join(n, 'generator', 'protoc-gen-nanogrpc.bat'))
+        raise NotImplementedError
+        # return e('--plugin=protoc-gen-nanopb=' + os.path.join(n, 'generator', 'protoc-gen-nanogrpc.bat'))
     else:
-        return e('--plugin=protoc-gen-nanopb=' + os.path.join(n, 'generator', 'protoc-gen-nanogrpc'))
+        # raise NotImplementedError
+        return e('--plugin=' + os.path.join(n, 'generator', 'protoc-gen-grpc'))
+        # return e('--plugin=protoc-gen-nanopb=' + os.path.join(n, 'generator', 'protoc-gen-nanogrpc'))
 
 def _nanogrpc_proto_actions(source, target, env, for_signature):
     esc = env['ESCAPE']
     dirs = ' '.join(['-I' + esc(env.GetBuildPath(d)) for d in env['PROTOCPATH']])
-    return '$PROTOC $PROTOCFLAGS %s --nanopb_out=. %s' % (dirs, esc(str(source[0])))
+    return '$PROTOC $NANOGRPC_PROTOCFLAGS %s --grpc_out=. %s' % (dirs, esc(str(source[0])))
 
 def _nanogrpc_proto_emitter(target, source, env):
     basename = os.path.splitext(str(source[0]))[0]
@@ -114,11 +117,11 @@ def generate(env):
 
     env['NANOPB'] = _detect_nanopb(env)
     env['PROTOC'] = _detect_protoc(env)
-    env['PROTOCFLAGS'] = _detect_protocflags(env)
+    env['NANOGRPC_PROTOCFLAGS'] = _detect_protocflags(env)
 
     env.SetDefault(PROTOCPATH = ['.', os.path.join(env['NANOPB'], 'generator', 'proto')])
 
-    env.SetDefault(NANOGRPC_PROTO_CMD = '$PROTOC $PROTOCFLAGS --grpc_out=. $SOURCES')
+    env.SetDefault(NANOGRPC_PROTO_CMD = '$PROTOC $NANOGRPC_PROTOCFLAGS --grpc_out=. $SOURCES')
     env['BUILDERS']['NanogrpcProto'] = _nanogrpc_proto_builder
 
 def exists(env):

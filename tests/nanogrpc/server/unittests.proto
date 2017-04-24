@@ -1,0 +1,60 @@
+// This defines protocol for a simple server that lists files.
+//
+// See also the nanopb-specific options in fileproto.options.
+
+syntax = "proto2";
+
+service FirstTestService {
+  rpc FirstTestMethod (DummyRequest) returns (DummyResponse);
+  rpc SecondTestMethod (AnotherDummyRequest) returns (AnotherDummyResponse);
+}
+
+message Path {
+    optional string path = 1 [default = "/"];
+}
+
+message FileInfo {
+    required uint64 inode = 1;
+    required string name = 2;
+}
+
+message FileList {
+    optional bool path_error = 1 [default = false];
+    repeated FileInfo file = 2;
+}
+
+service SecondTestService {
+  rpc FirstTestMethod (DummyRequest) returns (DummyResponse);
+  rpc SecondTestMethod (AnotherDummyRequest) returns (AnotherDummyResponse);
+  rpc ThirdTestMethod (SomeRequest) returns (SomeResponse);
+}
+
+message DummyRequest {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
+
+message DummyResponse {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
+
+message AnotherDummyRequest {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
+
+message AnotherDummyResponse {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
+
+message SomeRequest {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
+
+message SomeResponse {
+  required uint64 foo = 1;
+  optional string bar = 2;
+}
