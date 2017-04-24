@@ -464,11 +464,11 @@ bool ng_GrpcParseNonBlocking(ng_grpc_handle_t* handle){
   ng_methodContext_t* ctx = NULL;
   uint32_t error = 0;
   bool sendNow = true;
+  bool ret = true;
   if (handle->input == NULL || handle->output == NULL ||
       handle->canIWriteToOutput == NULL || handle->outputReady == NULL){
     return false;
   }
- bool ret = true;
   GrpcRequest_fillWithZeros(&handle->request);
   GrpcResponse_fillWithZeros(&handle->response);
 
@@ -632,10 +632,10 @@ bool ng_AsyncResponse(ng_grpc_handle_t *handle, ng_methodContext_t* ctx, bool en
   if (handle != NULL && ctx != NULL){
     if (ng_isCallOngoing(handle, ctx->call_id)){
       if (handle->canIWriteToOutput(handle)){
-
-        GrpcResponse_fillWithZeros(&handle->response);
         bool validResponse;
         size_t responseSize;
+
+        GrpcResponse_fillWithZeros(&handle->response);
         validResponse = pb_get_encoded_size(&responseSize,
                                             ctx->method->response_fields,
                                             ctx->response);
