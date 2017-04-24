@@ -37,11 +37,19 @@ enum GrpcStatus {
   DATA_LOSS = 15;
 }
 
+enum GrpcRequestType {
+  REGULER = 0;
+  END_ALL_CALLS = 1;
+  PING = 2;
+  GET_ALL_SERVICES = 3;
+}
+
 enum GrpcResponseType {
   REGULAR = 0;
   STREAM = 1;
   END_OF_STREAM = 2;
   END_OF_CALL = 3;
+  PONG = 4;
 }
 
 message GrpcResponse {
