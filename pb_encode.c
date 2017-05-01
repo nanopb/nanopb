@@ -769,7 +769,18 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
     const char *p = (const char*)src;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
         max_size = (size_t)-1;
+    }
+    else
+    {
+        /* pb_dec_string() assumes string fields end with a null
+         * terminator when the type isn't PB_ATYPE_POINTER, so we
+         * shouldn't allow more than max-1 bytes to be written to
+         * allow space for the null terminator.
+         */
+        max_size -= 1;
+    }
 
     if (src == NULL)
     {
