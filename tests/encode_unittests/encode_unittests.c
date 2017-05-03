@@ -187,8 +187,9 @@ int main()
         TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x05xyzzy"))
         value[0] = '\0';
         TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x00"))
-        memset(value, 'x', 30);
-        TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x09xxxxxxxxx"))
+        memset(value, 'x', 10);
+        value[10] = '\0';
+        TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x0Axxxxxxxxxx"))
     }
     
     {
@@ -328,7 +329,7 @@ int main()
         COMMENT("Test that StringMessage_size is correct")
 
         TEST(pb_encode(&s, StringMessage_fields, &msg));
-        TEST(s.bytes_written == (StringMessage_size - 1));
+        TEST(s.bytes_written == StringMessage_size);
     }
     
     {
