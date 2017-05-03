@@ -11,6 +11,24 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
+Nanopb-0.4.0 (2017-xx-xx)
+=========================
+Strings must now always be null-terminated
+
+**Rationale:** Previously *pb_encode()* would accept non-terminated strings and
+assume that they are the full length of the defined array. However, *pb_decode()*
+would reject such messages because null terminator wouldn't fit in the array.
+
+**Changes:** *pb_encode()* will now return an error if null terminator is missing.
+Maximum encoded message size calculation is changed accordingly so that at most
+*max_size-1* strings are assumed. New field option *max_length* can be used to
+define the maximum string length, instead of the array size.
+
+**Required actions:** If your strings were previously filling the whole allocated
+array, increase the size of the field by 1.
+
+**Error indications:** *pb_encode()* returns error *unterminated string*.
+
 Nanopb-0.3.8 (2017-03-05)
 =========================
 Fully drain substreams before closing
