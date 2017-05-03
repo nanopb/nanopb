@@ -779,8 +779,12 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
          * shouldn't allow more than max-1 bytes to be written to
          * allow space for the null terminator.
          */
+        if (max_size == 0)
+            PB_RETURN_ERROR(stream, "zero-length string");
+
         max_size -= 1;
     }
+
 
     if (src == NULL)
     {
@@ -793,6 +797,11 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
         {
             size++;
             p++;
+        }
+
+        if (*p != '\0')
+        {
+            PB_RETURN_ERROR(stream, "unterminated string");
         }
     }
 
