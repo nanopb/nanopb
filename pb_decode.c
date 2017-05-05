@@ -1148,7 +1148,7 @@ bool pb_decode_fixed32(pb_istream_t *stream, void *dest)
     if (!pb_read(stream, u.bytes, 4))
         return false;
 
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN && CHAR_BIT == 8
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint32_t*)dest = u.fixed32;
 #else
@@ -1170,7 +1170,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     if (!pb_read(stream, u.bytes, 8))
         return false;
 
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN && CHAR_BIT == 8
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint64_t*)dest = u.fixed64;
 #else

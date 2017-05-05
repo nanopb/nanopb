@@ -13,8 +13,25 @@ are included, in order to make it easier to find this document.
 
 Nanopb-0.4.0 (2017-xx-xx)
 =========================
-Strings must now always be null-terminated
 
+*CHAR_BIT* define is now needed
+-------------------------------
+**Rationale:** To check whether the platform has 8-bit or larger chars, the
+C standard *CHAR_BIT* macro is needed.
+
+**Changes:** *pb.h* now includes *limits.h* for this macro.
+
+**Required actions:** If your platform doesn't have *limits.h* available, you
+can define the macro in *pb_syshdr.h*. There is an example in *extra* directory.
+
+**Error indications:** "Cannot find include file <limits.h>." or "Undefined
+identifier: CHAR_BIT."
+
+Nanopb-0.4.0 (2017-xx-xx)
+=========================
+
+Strings must now always be null-terminated
+------------------------------------------
 **Rationale:** Previously *pb_encode()* would accept non-terminated strings and
 assume that they are the full length of the defined array. However, *pb_decode()*
 would reject such messages because null terminator wouldn't fit in the array.
@@ -31,8 +48,9 @@ array, increase the size of the field by 1.
 
 Nanopb-0.3.8 (2017-03-05)
 =========================
-Fully drain substreams before closing
 
+Fully drain substreams before closing
+-------------------------------------
 **Rationale:** If the substream functions were called directly and the caller
 did not completely empty the substring before closing it, the parent stream
 would be put into an incorrect state.
