@@ -170,6 +170,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     set(NANOPB_OPTIONS)
     if(EXISTS ${NANOPB_OPTIONS_FILE})
         set(NANOPB_OPTIONS -f ${NANOPB_OPTIONS_FILE})
+    else()
+        set(NANOPB_OPTIONS_FILE)
     endif()
 
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c")
@@ -190,7 +192,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
       COMMAND ${PYTHON_EXECUTABLE}
       ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb ${NANOPB_OPTIONS}
-      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
+      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb" ${NANOPB_OPTIONS_FILE}
       COMMENT "Running nanopb generator on ${FIL_WE}.pb"
       VERBATIM )
   endforeach()
