@@ -38,7 +38,7 @@
 #  Example:
 #
 #   set(NANOPB_SRC_ROOT_FOLDER "/path/to/nanopb")
-#   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${NANOPB_SRC_ROOT_FOLDER}/cmake)
+#   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${NANOPB_SRC_ROOT_FOLDER}/extra)
 #   find_package( Nanopb REQUIRED )
 #   include_directories(${NANOPB_INCLUDE_DIRS})
 #
