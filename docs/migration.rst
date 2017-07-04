@@ -60,6 +60,19 @@ would be put into an incorrect state.
 **Required actions:** Add error checking onto any call to
 *pb_close_string_substream*.
 
+Change oneof format in .pb.c files
+----------------------------------
+
+**Rationale:** Previously two oneofs in a single message would be erroneously
+handled as part of the same union.
+
+**Changes:** Oneofs fields now use special *PB_DATAOFFSET_UNION* offset type
+in generated .pb.c files to distinguish whether they are the first or following
+field inside an union.
+
+**Required actions:** Regenerate *.pb.c/.pb.h* files with new nanopb version if
+oneofs are used.
+
 Nanopb-0.3.5 (2016-02-13)
 =========================
 

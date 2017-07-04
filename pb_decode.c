@@ -478,6 +478,9 @@ static void initialize_pointer_field(void *pItem, pb_field_iter_t *iter)
     }
     else if (PB_LTYPE(iter->pos->type) == PB_LTYPE_SUBMESSAGE)
     {
+        /* We memset to zero so that any callbacks are set to NULL.
+         * Then set any default values. */
+        memset(pItem, 0, iter->pos->data_size);
         pb_message_set_to_defaults((const pb_field_t *) iter->pos->ptr, pItem);
     }
 }
@@ -616,7 +619,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
     void **arg = &(pCallback->arg);
 #endif
     
-    if (pCallback->funcs.decode == NULL)
+    if (pCallback == NULL || pCallback->funcs.decode == NULL)
         return pb_skip_field(stream, wire_type);
     
     if (wire_type == PB_WT_STRING)
