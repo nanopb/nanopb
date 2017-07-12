@@ -12,11 +12,14 @@
     "email": "jpa@nanopb.mail.kapsi.fi",
     "url": "http://koti.kapsi.fi/jpa/nanopb/"
   }],
-  "include": [
-    "*.c",
-    "*.cpp",
-    "*.h"
-  ],
+  "export": {
+    "include": [
+      "*.c",
+      "*.cpp",
+      "*.h",
+      "examples"
+    ]
+  },
   "examples": "examples/*/*.c",
   "frameworks": "*",
   "platforms": "*"
