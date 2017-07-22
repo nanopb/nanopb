@@ -92,34 +92,34 @@
 
 
 function(NANOPB_GENERATE_CPP SRCS HDRS)
-  if(NOT ARGN)
+  cmake_parse_arguments(NANOPB_GENERATE_CPP "" "RELPATH" "" ${ARGN})
+  if(NOT NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS)
     return()
   endif()
 
   if(NANOPB_GENERATE_CPP_APPEND_PATH)
     # Create an include path for each file specified
-    foreach(FIL ${ARGN})
+    foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
       get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
       get_filename_component(ABS_PATH ${ABS_FIL} PATH)
-
-      list(FIND _nanobp_include_path ${ABS_PATH} _contains_already)
-      if(${_contains_already} EQUAL -1)
-          list(APPEND _nanobp_include_path -I ${ABS_PATH})
-      endif()
+      list(APPEND _nanobp_include_path "-I${ABS_PATH}")
     endforeach()
   else()
-    set(_nanobp_include_path -I ${CMAKE_CURRENT_SOURCE_DIR})
+    set(_nanobp_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
+
+  if(NANOPB_GENERATE_CPP_RELPATH)
+    list(APPEND _nanobp_include_path "-I${NANOPB_GENERATE_CPP_RELPATH}")
   endif()
 
   if(DEFINED NANOPB_IMPORT_DIRS)
     foreach(DIR ${NANOPB_IMPORT_DIRS})
       get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
-      list(FIND _nanobp_include_path ${ABS_PATH} _contains_already)
-      if(${_contains_already} EQUAL -1)
-          list(APPEND _nanobp_include_path -I ${ABS_PATH})
-      endif()
+      list(APPEND _nanobp_include_path -I ${ABS_PATH})
     endforeach()
   endif()
+
+  list(REMOVE_DUPLICATES _nanobp_include_path)
 
   set(${SRCS})
   set(${HDRS})
@@ -162,10 +162,27 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         VERBATIM)
   endforeach()
 
-  foreach(FIL ${ARGN})
+  if(NANOPB_GENERATE_CPP_RELPATH)
+      get_filename_component(ABS_ROOT ${NANOPB_GENERATE_CPP_RELPATH} ABSOLUTE)
+  endif()
+  foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     get_filename_component(FIL_WE ${FIL} NAME_WE)
     get_filename_component(FIL_DIR ${FIL} PATH)
+    set(FIL_PATH_REL)
+    if(ABS_ROOT)
+      # Check that the file is under the given "RELPATH"
+      string(FIND ${ABS_FIL} ${ABS_ROOT} LOC)
+      if (${LOC} EQUAL 0)
+        string(REPLACE "${ABS_ROOT}/" "" FIL_REL ${ABS_FIL})
+        get_filename_component(FIL_PATH_REL ${FIL_REL} PATH)
+        file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL})
+      endif()
+    endif()
+    if(NOT FIL_PATH_REL)
+      set(FIL_PATH_REL ".")
+    endif()
+
     set(NANOPB_OPTIONS_FILE ${FIL_DIR}/${FIL_WE}.options)
     set(NANOPB_OPTIONS)
     if(EXISTS ${NANOPB_OPTIONS_FILE})
@@ -174,26 +191,28 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         set(NANOPB_OPTIONS_FILE)
     endif()
 
-    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c")
-    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h")
+    set(GEN_C_FILE )
+
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
 
     add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb"
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb"
       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
       ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
         -I${CMAKE_CURRENT_BINARY_DIR} ${_nanobp_include_path}
-        -o${FIL_WE}.pb ${ABS_FIL}
+        -o${FIL_PATH_REL}/${FIL_WE}.pb ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
       COMMENT "Running C++ protocol buffer compiler on ${FIL}"
       VERBATIM )
 
     add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.c"
-             "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb.h"
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
+             "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
       COMMAND ${PYTHON_EXECUTABLE}
-      ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_WE}.pb ${NANOPB_OPTIONS}
-      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_WE}.pb" ${NANOPB_OPTIONS_FILE}
-      COMMENT "Running nanopb generator on ${FIL_WE}.pb"
+      ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_PATH_REL}/${FIL_WE}.pb ${NANOPB_OPTIONS}
+      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb" ${NANOPB_OPTIONS_FILE}
+      COMMENT "Running nanopb generator on ${FIL_PATH_REL}/${FIL_WE}.pb"
       VERBATIM )
   endforeach()
 
