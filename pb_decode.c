@@ -191,15 +191,30 @@ bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
         
         do
         {
-            if (bitpos >= 32)
-                PB_RETURN_ERROR(stream, "varint overflow");
-            
             if (!pb_readbyte(stream, &byte))
                 return false;
             
-            result |= (uint32_t)(byte & 0x7F) << bitpos;
+            if (bitpos >= 32)
+            {
+                /* Note: Technically, the varint could have trailing 0x80 bytes, even
+                 * though I haven't seen any implementation do that yet. */
+                if ((byte & 0x7F) != 0)
+                {
+                    PB_RETURN_ERROR(stream, "varint overflow");
+                }
+            }
+            else
+            {
+                result |= (uint32_t)(byte & 0x7F) << bitpos;
+            }
             bitpos = (uint_fast8_t)(bitpos + 7);
         } while (byte & 0x80);
+        
+        if (bitpos >= 32 && (byte & 0x70) != 0)
+        {
+            /* The last byte was at bitpos=28, so only bottom 4 bits fit. */
+            PB_RETURN_ERROR(stream, "varint overflow");
+        }
    }
    
    *dest = result;

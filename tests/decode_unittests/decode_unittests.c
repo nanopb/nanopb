@@ -100,6 +100,9 @@ int main()
         TEST((s = S("\x01"), pb_decode_varint32(&s, &u) && u == 1));
         TEST((s = S("\xAC\x02"), pb_decode_varint32(&s, &u) && u == 300));
         TEST((s = S("\xFF\xFF\xFF\xFF\x0F"), pb_decode_varint32(&s, &u) && u == UINT32_MAX));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x8F\x00"), pb_decode_varint32(&s, &u) && u == UINT32_MAX));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x10"), !pb_decode_varint32(&s, &u)));
+        TEST((s = S("\xFF\xFF\xFF\xFF\x40"), !pb_decode_varint32(&s, &u)));
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\x01"), !pb_decode_varint32(&s, &u)));
     }
     
