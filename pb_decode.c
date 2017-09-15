@@ -35,6 +35,7 @@ static bool checkreturn find_extension_field(pb_field_iter_t *iter);
 static void pb_field_set_to_default(pb_field_iter_t *iter);
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
+static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof);
 static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *field, void *dest);
@@ -170,13 +171,23 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t bufsize)
  * Helper functions *
  ********************/
 
-bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof)
 {
     pb_byte_t byte;
     uint32_t result;
     
     if (!pb_readbyte(stream, &byte))
+    {
+        if (stream->bytes_left == 0)
+        {
+            if (eof)
+            {
+                *eof = true;
+            }
+        }
+
         return false;
+    }
     
     if ((byte & 0x80) == 0)
     {
@@ -219,6 +230,11 @@ bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
    
    *dest = result;
    return true;
+}
+
+bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+{
+    return pb_decode_varint32_eof(stream, dest, NULL);
 }
 
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
@@ -270,11 +286,8 @@ bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, 
     *wire_type = (pb_wire_type_t) 0;
     *tag = 0;
     
-    if (!pb_decode_varint32(stream, &temp))
+    if (!pb_decode_varint32_eof(stream, &temp, eof))
     {
-        if (stream->bytes_left == 0)
-            *eof = true;
-
         return false;
     }
     

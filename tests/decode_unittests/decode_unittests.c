@@ -354,6 +354,14 @@ int main()
     
     {
         pb_istream_t s;
+        IntegerArray dest;
+        
+        COMMENT("Testing pb_decode with invalid tag numbers")
+        TEST((s = S("\x9f\xea"), !pb_decode(&s, IntegerArray_fields, &dest)));
+    }
+    
+    {
+        pb_istream_t s;
         IntegerContainer dest = {{0}};
         
         COMMENT("Testing pb_decode_delimited")
