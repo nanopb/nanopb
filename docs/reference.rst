@@ -93,7 +93,8 @@ no_unions                      Generate 'oneof' fields as optional fields
 msgid                          Specifies a unique id for this message type.
                                Can be used by user code as an identifier.
 anonymous_oneof                Generate 'oneof' fields as anonymous unions.
-fixed_length                   Generate 'bytes' fields with constant length.
+fixed_length                   Generate 'bytes' fields with constant length
+                               (max_size must be defined also).
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted

@@ -330,7 +330,7 @@ class Field:
                 field_options.type = nanopb_pb2.FT_CALLBACK
 
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
-            raise Exception("Field %s is defined as static, but max_size or "
+            raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
 
         if field_options.type == nanopb_pb2.FT_STATIC:
@@ -367,6 +367,11 @@ class Field:
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
                 self.pbtype = 'FIXED_LENGTH_BYTES'
+
+                if self.max_size is None:
+                    raise Exception("Field '%s' is defined as fixed length, "
+                                    "but max_size is not given." % self.name)
+
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
                 self.ctype = 'pb_byte_t'
                 self.array_decl += '[%d]' % self.max_size
