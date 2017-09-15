@@ -57,4 +57,4 @@ install:
 
 script:
     - pushd generator/proto && make && popd
-    - pushd tests && python2 $(which scons) CC=$CC CXX=$CXX && popd
+    - pushd tests && scons CC=$CC CXX=$CXX && popd
