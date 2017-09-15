@@ -42,11 +42,17 @@ before_install:
 #    directories:
 #        - $HOME/protobuf
 
+# Rather then compile protobuf 3 from source, use the binaries now available
+# to speed up build time and reduce surprises until Ubuntu adds protobuf3
+# packages to the repository.
 install:
-    - curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-1/protobuf-python-3.0.0-alpha-4.tar.gz | tar xzf -
-      && pushd protobuf-3.0.0-alpha-4
-      && ./configure --prefix=$HOME/protobuf && make && make install
-      && pushd python && python setup.py build && python setup.py install && popd
+    - mkdir -p $HOME/protobuf && pushd $HOME/protobuf
+      && curl -LO 'https://github.com/google/protobuf/releases/download/v3.4.0/protoc-3.4.0-linux-x86_64.zip'
+      && unzip protoc-3.4.0-linux-x86_64.zip
+      && popd
+    - curl -L 'https://github.com/google/protobuf/releases/download/v3.4.0/protobuf-python-3.4.0.tar.gz' | tar xzf -
+      && pushd protobuf-3.4.0/python
+      && python setup.py build && python setup.py install
       && popd
 
 script:
