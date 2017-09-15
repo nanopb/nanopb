@@ -1151,7 +1151,7 @@ class ProtoFile:
 
         for incfile in includes:
             noext = os.path.splitext(incfile)[0]
-            yield options.genformat % (noext + options.extension + '.h')
+            yield options.genformat % (noext + options.extension + options.header_extension)
             yield '\n'
 
         yield '/* @@protoc_insertion_point(includes) */\n'
@@ -1464,6 +1464,10 @@ optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", defa
     help="Exclude file from generated #include list.")
 optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default=".pb",
     help="Set extension to use instead of '.pb' for generated files. [default: %default]")
+optparser.add_option("-H", "--header-extension", dest="header_extension", metavar="EXTENSION", default=".h",
+    help="Set extension to use for generated header files. [default: %default]")
+optparser.add_option("-S", "--source-extension", dest="source_extension", metavar="EXTENSION", default=".c",
+    help="Set extension to use for generated source files. [default: %default]")
 optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
     help="Set name of a separate generator options file.")
 optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
@@ -1553,8 +1557,8 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     # Decide the file names
     noext = os.path.splitext(filename)[0]
-    headername = noext + options.extension + '.h'
-    sourcename = noext + options.extension + '.c'
+    headername = noext + options.extension + options.header_extension
+    sourcename = noext + options.extension + options.source_extension
     headerbasename = os.path.basename(headername)
 
     # List of .proto files that should not be included in the C header file
