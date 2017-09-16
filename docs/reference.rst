@@ -53,6 +53,8 @@ PB_SYSTEM_HEADER               Replace the standard header files with a single
                                functions and typedefs listed on the
                                `overview page`_. Value must include quotes,
                                for example *#define PB_SYSTEM_HEADER "foo.h"*.
+PB_WITHOUT_64BIT               Disable 64-bit support, for old compilers or
+                               for a slight speedup on 8-bit platforms.
 ============================  ================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow

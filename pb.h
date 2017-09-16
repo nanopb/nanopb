@@ -251,8 +251,10 @@ PB_PACKED_STRUCT_END
  * If you get errors here, it probably means that your stdint.h is not
  * correct for your platform.
  */
+#ifndef PB_WITHOUT_64BIT
 PB_STATIC_ASSERT(sizeof(int64_t) == 2 * sizeof(int32_t), INT64_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(uint64_t) == 2 * sizeof(uint32_t), UINT64_T_WRONG_SIZE)
+#endif
 
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.

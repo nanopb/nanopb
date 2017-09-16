@@ -53,6 +53,14 @@ static bool checkreturn pb_release_union_field(pb_istream_t *stream, pb_field_it
 static void pb_release_single_field(const pb_field_iter_t *iter);
 #endif
 
+#ifdef PB_WITHOUT_64BIT
+#define pb_int64_t int32_t
+#define pb_uint64_t uint32_t
+#else
+#define pb_int64_t int64_t
+#define pb_uint64_t uint64_t
+#endif
+
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
@@ -207,9 +215,10 @@ static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *d
             
             if (bitpos >= 32)
             {
-                /* Note: Technically, the varint could have trailing 0x80 bytes, even
-                 * though I haven't seen any implementation do that yet. */
-                if ((byte & 0x7F) != 0)
+                /* Note: The varint could have trailing 0x80 bytes, or 0xFF for negative. */
+                uint8_t sign_extension = (bitpos < 63) ? 0xFF : 0x01;
+                
+                if ((byte & 0x7F) != 0x00 && ((result >> 31) == 0 || byte != sign_extension))
                 {
                     PB_RETURN_ERROR(stream, "varint overflow");
                 }
@@ -221,7 +230,7 @@ static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *d
             bitpos = (uint_fast8_t)(bitpos + 7);
         } while (byte & 0x80);
         
-        if (bitpos >= 32 && (byte & 0x70) != 0)
+        if (bitpos == 35 && (byte & 0x70) != 0)
         {
             /* The last byte was at bitpos=28, so only bottom 4 bits fit. */
             PB_RETURN_ERROR(stream, "varint overflow");
@@ -237,6 +246,7 @@ bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
     return pb_decode_varint32_eof(stream, dest, NULL);
 }
 
+#ifndef PB_WITHOUT_64BIT
 bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
 {
     pb_byte_t byte;
@@ -258,6 +268,7 @@ bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
     *dest = result;
     return true;
 }
+#endif
 
 bool checkreturn pb_skip_varint(pb_istream_t *stream)
 {
@@ -1155,16 +1166,16 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
 
 /* Field decoders */
 
-bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest)
+bool pb_decode_svarint(pb_istream_t *stream, pb_int64_t *dest)
 {
-    uint64_t value;
+    pb_uint64_t value;
     if (!pb_decode_varint(stream, &value))
         return false;
     
     if (value & 1)
-        *dest = (int64_t)(~(value >> 1));
+        *dest = (pb_int64_t)(~(value >> 1));
     else
-        *dest = (int64_t)(value >> 1);
+        *dest = (pb_int64_t)(value >> 1);
     
     return true;
 }
@@ -1183,6 +1194,7 @@ bool pb_decode_fixed32(pb_istream_t *stream, void *dest)
     return true;
 }
 
+#ifndef PB_WITHOUT_64BIT
 bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 {
     pb_byte_t bytes[8];
@@ -1201,12 +1213,13 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     
     return true;
 }
+#endif
 
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    uint64_t value;
-    int64_t svalue;
-    int64_t clamped;
+    pb_uint64_t value;
+    pb_int64_t svalue;
+    pb_int64_t clamped;
     if (!pb_decode_varint(stream, &value))
         return false;
     
@@ -1216,14 +1229,14 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *fi
      * not break decoding of such messages, we cast <=32 bit fields to
      * int32_t first to get the sign correct.
      */
-    if (field->data_size == sizeof(int64_t))
-        svalue = (int64_t)value;
+    if (field->data_size == sizeof(pb_int64_t))
+        svalue = (pb_int64_t)value;
     else
         svalue = (int32_t)value;
 
     /* Cast to the proper field size, while checking for overflows */
-    if (field->data_size == sizeof(int64_t))
-        clamped = *(int64_t*)dest = svalue;
+    if (field->data_size == sizeof(pb_int64_t))
+        clamped = *(pb_int64_t*)dest = svalue;
     else if (field->data_size == sizeof(int32_t))
         clamped = *(int32_t*)dest = (int32_t)svalue;
     else if (field->data_size == sizeof(int_least16_t))
@@ -1241,13 +1254,13 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *fi
 
 static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    uint64_t value, clamped;
+    pb_uint64_t value, clamped;
     if (!pb_decode_varint(stream, &value))
         return false;
     
     /* Cast to the proper field size, while checking for overflows */
-    if (field->data_size == sizeof(uint64_t))
-        clamped = *(uint64_t*)dest = value;
+    if (field->data_size == sizeof(pb_uint64_t))
+        clamped = *(pb_uint64_t*)dest = value;
     else if (field->data_size == sizeof(uint32_t))
         clamped = *(uint32_t*)dest = (uint32_t)value;
     else if (field->data_size == sizeof(uint_least16_t))
@@ -1265,13 +1278,13 @@ static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *f
 
 static bool checkreturn pb_dec_svarint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
-    int64_t value, clamped;
+    pb_int64_t value, clamped;
     if (!pb_decode_svarint(stream, &value))
         return false;
     
     /* Cast to the proper field size, while checking for overflows */
-    if (field->data_size == sizeof(int64_t))
-        clamped = *(int64_t*)dest = value;
+    if (field->data_size == sizeof(pb_int64_t))
+        clamped = *(pb_int64_t*)dest = value;
     else if (field->data_size == sizeof(int32_t))
         clamped = *(int32_t*)dest = (int32_t)value;
     else if (field->data_size == sizeof(int_least16_t))
@@ -1296,7 +1309,12 @@ static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, const pb_field_t *f
 static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     PB_UNUSED(field);
+#ifndef PB_WITHOUT_64BIT
     return pb_decode_fixed64(stream, dest);
+#else
+    PB_UNUSED(dest);
+    PB_RETURN_ERROR(stream, "no 64bit support");
+#endif
 }
 
 static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest)
