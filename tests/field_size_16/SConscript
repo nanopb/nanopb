@@ -27,3 +27,6 @@ dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode_fields16.o"
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_alltypes.output"])
+
+env.RunTest("optionals.output", enc, ARGS = ['1'])
+env.RunTest("optionals.decout", [dec, "optionals.output"], ARGS = ['1'])
