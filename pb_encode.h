@@ -71,6 +71,12 @@ bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_
  */
 bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
 
+/* Same as pb_encode, but appends a null byte to the message for termination.
+ * NOTE: This behaviour is not supported in most other protobuf implementations, so pb_encode_delimited()
+ * is a better option for compatibility.
+ */
+bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
 bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct);

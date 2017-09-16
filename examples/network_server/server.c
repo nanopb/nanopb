@@ -50,6 +50,10 @@ bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * cons
             return false;
     }
     
+    /* Because the main program uses pb_encode_delimited(), this callback will be
+     * called twice. Rewind the directory for the next call. */
+    rewinddir(dir);
+
     return true;
 }
 
@@ -66,7 +70,7 @@ void handle_connection(int connfd)
         ListFilesRequest request = {};
         pb_istream_t input = pb_istream_from_socket(connfd);
         
-        if (!pb_decode(&input, ListFilesRequest_fields, &request))
+        if (!pb_decode_delimited(&input, ListFilesRequest_fields, &request))
         {
             printf("Decode failed: %s\n", PB_GET_ERROR(&input));
             return;
@@ -98,7 +102,7 @@ void handle_connection(int connfd)
             response.file.arg = directory;
         }
         
-        if (!pb_encode(&output, ListFilesResponse_fields, &response))
+        if (!pb_encode_delimited(&output, ListFilesResponse_fields, &response))
         {
             printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
         }

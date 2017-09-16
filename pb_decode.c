@@ -1032,6 +1032,12 @@ bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *
     return status;
 }
 
+bool pb_decode_nullterminated(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
+{
+    /* This behaviour will be separated in nanopb-0.4.0, see issue #278. */
+    return pb_decode(stream, fields, dest_struct);
+}
+
 #ifdef PB_ENABLE_MALLOC
 /* Given an oneof field, if there has already been a field inside this oneof,
  * release it before overwriting with a different one. */

@@ -85,6 +85,13 @@ bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *des
  */
 bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
 
+/* Same as pb_decode, except allows the message to be terminated with a null byte.
+ * NOTE: Until nanopb-0.4.0, pb_decode() also allows null-termination. This behaviour
+ * is not supported in most other protobuf implementations, so pb_decode_delimited()
+ * is a better option for compatibility.
+ */
+bool pb_decode_nullterminated(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+
 #ifdef PB_ENABLE_MALLOC
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If

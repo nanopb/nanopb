@@ -49,7 +49,6 @@ bool listdir(int fd, char *path)
     {
         ListFilesRequest request = {};
         pb_ostream_t output = pb_ostream_from_socket(fd);
-        uint8_t zero = 0;
         
         /* In our protocol, path is optional. If it is not given,
          * the server will list the root directory. */
@@ -71,14 +70,11 @@ bool listdir(int fd, char *path)
         
         /* Encode the request. It is written to the socket immediately
          * through our custom stream. */
-        if (!pb_encode(&output, ListFilesRequest_fields, &request))
+        if (!pb_encode_delimited(&output, ListFilesRequest_fields, &request))
         {
             fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
             return false;
         }
-        
-        /* We signal the end of request with a 0 tag. */
-        pb_write(&output, &zero, 1);
     }
     
     /* Read back the response from server */
@@ -90,7 +86,7 @@ bool listdir(int fd, char *path)
          * filenames as they arrive. */
         response.file.funcs.decode = &printfile_callback;
         
-        if (!pb_decode(&input, ListFilesResponse_fields, &response))
+        if (!pb_decode_delimited(&input, ListFilesResponse_fields, &response))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&input));
             return false;
