@@ -35,4 +35,5 @@ Harald Fernengel <harryf@gmx.com>
 Alice Wang <aw@squareup.com>
 Kevin Fitch <kfitch42@gmail.com>
 Kamal Marhubi <kamal@marhubi.com>
+Elco Jacobs <elco@brewpi.com>
 
