@@ -13,7 +13,7 @@
 MyMessage_NumbersEntry *find_entry(MyMessage *msg, const char *key)
 {
     int i;
-    for (i = 0; i < pb_arraysize(MyMessage, numbers); i++)
+    for (i = 0; i < msg->numbers_count; i++)
     {
         if (strcmp(msg->numbers[i].key, key) == 0)
         {
