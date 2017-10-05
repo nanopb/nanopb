@@ -535,6 +535,33 @@ bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *sr
 /********************
  * Helper functions *
  ********************/
+
+#ifdef PB_WITHOUT_64BIT
+bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t value)
+{
+  pb_byte_t buffer[10];
+  size_t i = 0;
+  size_t compensation = 32;/* we need to compensate 32 bits all set to 1 */
+
+  while (value)
+  {
+    buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
+    value >>= 7;
+    if (compensation)
+    {
+      /* re-set all the compensation bits we can or need */
+      size_t bits = compensation > 7 ? 7 : compensation;
+      value ^= ((0xFF >> (8 - bits)) << 25); /* set the number of bits needed on the lowest of the most significant 7 bits */
+      compensation -= bits;
+    }
+    i++;
+  }
+  buffer[i - 1] &= 0x7F; /* Unset top bit on last byte */
+
+  return pb_write(stream, buffer, i);
+}
+#endif
+
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
 {
     pb_byte_t buffer[10];
@@ -710,7 +737,12 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
     else
         PB_RETURN_ERROR(stream, "invalid data_size");
     
-    return pb_encode_varint(stream, (pb_uint64_t)value);
+#ifdef PB_WITHOUT_64BIT
+    if (value < 0)
+      return pb_encode_negative_varint(stream, (pb_uint64_t)value);
+    else
+#endif
+      return pb_encode_varint(stream, (pb_uint64_t)value);
 }
 
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
