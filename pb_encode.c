@@ -553,7 +553,7 @@ bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t val
     {
       /* re-set all the compensation bits we can or need */
       size_t bits = compensation > 7 ? 7 : compensation;
-      value ^= (pb_uint64_t)((0xFF >> (8 - bits)) << 25); /* set the number of bits needed on the lowest of the most significant 7 bits */
+      value ^= (pb_uint64_t)((0xFFu >> (8 - bits)) << 25); /* set the number of bits needed on the lowest of the most significant 7 bits */
       compensation -= bits;
     }
     i++;
