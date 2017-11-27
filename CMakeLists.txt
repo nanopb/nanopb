@@ -36,7 +36,7 @@ if(nanopb_BUILD_GENERATOR)
     find_package(PythonInterp 2.7 REQUIRED)
     execute_process(
         COMMAND ${PYTHON_EXECUTABLE} -c
-            "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix='${CMAKE_INSTALL_PREFIX}'))"
+            "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix=''))"
         OUTPUT_VARIABLE PYTHON_INSTDIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
