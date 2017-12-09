@@ -453,7 +453,7 @@ class Field:
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
                 inner_init = '{0}'
             elif self.pbtype in ('ENUM', 'UENUM'):
-                inner_init = '(%s)0' % self.ctype
+                inner_init = '_%s_MIN' % self.ctype
             else:
                 inner_init = '0'
         else:
