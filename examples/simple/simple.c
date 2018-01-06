@@ -63,7 +63,7 @@ int main()
         }
         
         /* Print the data contained in the message. */
-        printf("Your lucky number was %d!\n", message.lucky_number);
+        printf("Your lucky number was %d!\n", (int)message.lucky_number);
     }
     
     return 0;
