@@ -10,6 +10,10 @@ option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" 
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
 option(nanopb_MSVC_STATIC_RUNTIME "Link static runtime libraries" ON)
 
+if(NOT DEFINED nanopb_PROTOC_PATH)
+    set(nanopb_PROTOC_PATH "protoc")
+endif()
+
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
     set(CMAKE_DEBUG_POSTFIX "d")
 endif()
@@ -46,7 +50,7 @@ if(nanopb_BUILD_GENERATOR)
         string(REGEX REPLACE "([^;]+)" "\\1_pb2.py" generator_proto_py_file "${generator_proto}")
         add_custom_command(
             OUTPUT ${generator_proto_py_file}
-            COMMAND protoc --python_out=${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/generator/proto ${generator_proto_file}
+            COMMAND ${nanopb_PROTOC_PATH} --python_out=${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/generator/proto ${generator_proto_file}
             DEPENDS ${generator_proto_file}
         )
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
