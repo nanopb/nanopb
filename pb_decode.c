@@ -351,6 +351,11 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
             *size = 4;
             return pb_read(stream, buf, 4);
         
+        case PB_WT_STRING:
+            // Calling read_raw_value with a PB_WT_STRING is an error.
+            // Explicitly handle this case and fallthrough to default to avoid
+            // compiler warnings.
+
         default: PB_RETURN_ERROR(stream, "invalid wire_type");
     }
 }
