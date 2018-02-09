@@ -866,6 +866,8 @@ class Message:
                         oneof.anonymous = True
                     self.oneofs[i] = oneof
                     self.fields.append(oneof)
+        else:
+            sys.stderr.write('Note: This Python protobuf library has no OneOf support\n')
 
         for f in desc.field:
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
@@ -1597,6 +1599,9 @@ def main_cli():
         sys.stderr.write("\noutput_dir does not exist: %s\n" % options.output_dir)
         sys.exit(1)
 
+    if options.verbose:
+        sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
+                         % (google.protobuf.__file__, google.protobuf.__version__))
 
     Globals.verbose_options = options.verbose
     for filename in filenames:
@@ -1642,6 +1647,10 @@ def main_plugin():
     options, dummy = optparser.parse_args(args)
 
     Globals.verbose_options = options.verbose
+
+    if options.verbose:
+        sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
+                         % (google.protobuf.__file__, google.protobuf.__version__))
 
     response = plugin_pb2.CodeGeneratorResponse()
 
