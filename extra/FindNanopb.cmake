@@ -12,6 +12,8 @@
 #   NANOPB_IMPORT_DIRS       - List of additional directories to be searched for
 #                              imported .proto files.
 #
+#   NANOPB_OPTIONS           - List of options passed to nanopb.
+#
 #   NANOPB_GENERATE_CPP_APPEND_PATH - By default -I will be passed to protoc
 #                                     for each directory where a proto file is referenced.
 #                                     Set to FALSE if you want to disable this behaviour.
@@ -120,24 +122,24 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
       get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
       get_filename_component(ABS_PATH ${ABS_FIL} PATH)
-      list(APPEND _nanobp_include_path "-I${ABS_PATH}")
+      list(APPEND _nanopb_include_path "-I${ABS_PATH}")
     endforeach()
   else()
-    set(_nanobp_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
+    set(_nanopb_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
   endif()
 
   if(NANOPB_GENERATE_CPP_RELPATH)
-    list(APPEND _nanobp_include_path "-I${NANOPB_GENERATE_CPP_RELPATH}")
+    list(APPEND _nanopb_include_path "-I${NANOPB_GENERATE_CPP_RELPATH}")
   endif()
 
   if(DEFINED NANOPB_IMPORT_DIRS)
     foreach(DIR ${NANOPB_IMPORT_DIRS})
       get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
-      list(APPEND _nanobp_include_path -I ${ABS_PATH})
+      list(APPEND _nanopb_include_path "-I${ABS_PATH}")
     endforeach()
   endif()
 
-  list(REMOVE_DUPLICATES _nanobp_include_path)
+  list(REMOVE_DUPLICATES _nanopb_include_path)
 
   set(${SRCS})
   set(${HDRS})
@@ -145,6 +147,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb/generator)
 
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
+  set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
 
   set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
   set(GENERATOR_CORE_SRC
@@ -201,37 +204,24 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       set(FIL_PATH_REL ".")
     endif()
 
-    set(NANOPB_OPTIONS_FILE ${FIL_DIR}/${FIL_WE}.options)
-    set(NANOPB_OPTIONS)
-    if(EXISTS ${NANOPB_OPTIONS_FILE})
-        set(NANOPB_OPTIONS -f ${NANOPB_OPTIONS_FILE})
-    else()
-        set(NANOPB_OPTIONS_FILE)
-    endif()
-
-    set(GEN_C_FILE )
-
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
     list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
 
-    add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb"
-      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
-        -I${CMAKE_CURRENT_BINARY_DIR} ${_nanobp_include_path}
-        -o${FIL_PATH_REL}/${FIL_WE}.pb ${ABS_FIL}
-      DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
-      COMMENT "Running C++ protocol buffer compiler on ${FIL}"
-      VERBATIM )
+    #  By default, search proto file directory for an options file
+    set(NANOPB_PLUGIN_OPTIONS "${NANOPB_OPTIONS} -I${FIL_DIR}")
 
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
-      COMMAND ${PYTHON_EXECUTABLE}
-      ARGS ${NANOPB_GENERATOR_EXECUTABLE} ${FIL_PATH_REL}/${FIL_WE}.pb ${NANOPB_OPTIONS}
-      DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb" ${NANOPB_OPTIONS_FILE}
-      COMMENT "Running nanopb generator on ${FIL_PATH_REL}/${FIL_WE}.pb"
+      COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+      ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
+           -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
+        --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
+        "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${FIL_PATH_REL}" ${ABS_FIL}
+      DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
+      COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
       VERBATIM )
+
   endforeach()
 
   set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
