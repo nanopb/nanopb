@@ -335,6 +335,9 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
+        if field_options.fixed_count and self.max_count is None:
+            raise Exception("Field '%s' is defined as fixed count, "
+                            "but max_count is not given." % self.name)
 
         if field_options.type == nanopb_pb2.FT_STATIC:
             self.allocation = 'STATIC'
@@ -557,21 +560,24 @@ class Field:
                 result = '    PB_ANONYMOUS_ONEOF_FIELD(%s, ' % self.union_name
             else:
                 result = '    PB_ONEOF_FIELD(%s, ' % self.union_name
+        elif self.fixed_count:
+            result = '    PB_REPEATED_FIXED_COUNT('
         else:
             result = '    PB_FIELD('
 
         result += '%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
-        result += '%s, ' % self.rules
-        result += '%-8s, ' % self.allocation
-        
+        if not self.fixed_count:
+            result += '%s, ' % self.rules
+            result += '%-8s, ' % self.allocation
+
         if union_index is not None and union_index > 0:
             result += 'UNION, '
         elif prev_field_name is None:
             result += 'FIRST, '
         else:
             result += 'OTHER, '
-        
+
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)

@@ -401,8 +401,6 @@ struct pb_extension_s {
 #define PB_DATAOFFSET_CHOOSE(st, m1, m2) (int)(offsetof(st, m1) == offsetof(st, m2) \
                                   ? PB_DATAOFFSET_FIRST(st, m1, m2) \
                                   : PB_DATAOFFSET_OTHER(st, m1, m2))
-/* Determine if a repeated field has a fixed count */
-#define PB_REPEATED_FIELD_SIZEOFFSET(st, m, fd) (-(int)fd)
 
 /* Required fields are the simplest. They just have delta (padding) from
  * previous field end, and the size of the field. Pointer is used for
@@ -427,7 +425,7 @@ struct pb_extension_s {
 #define PB_REPEATED_STATIC(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
     fd, \
-    PB_REPEATED_FIELD_SIZEOFFSET(st, m, fd), \
+    pb_delta(st, m ## _count, m), \
     pb_membersize(st, m[0]), \
     pb_arraysize(st, m), ptr}
 
@@ -528,6 +526,14 @@ struct pb_extension_s {
         PB_ ## rules ## _ ## allocation(tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
+
+/* Field description for repeated static fixed count fields.*/
+#define PB_REPEATED_FIXED_COUNT(tag, type, placement, message, field, prevfield, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | PB_LTYPE_MAP_ ## type, \
+    PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+    0, \
+    pb_membersize(message, field[0]), \
+    pb_arraysize(message, field), ptr}
 
 /* Field description for oneof fields. This requires taking into account the
  * union name also, that's why a separate set of macros is needed.

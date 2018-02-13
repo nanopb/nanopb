@@ -424,10 +424,10 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 bool status = true;
                 pb_size_t *size = (pb_size_t*)iter->pSize;
 
-                /* If the repeated value has a fixed count, it doesn't have a
+                /* If the repeated value is fixed count, it doesn't have a
                  * count field that can be used to track the array size.
                  */
-                if (iter->pSize == iter->pData) {
+                if (iter->pos->size_offset == 0) {
                     pb_size_t s = 0;
                     size = &s;
                 }
@@ -457,23 +457,27 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             else
             {
                 /* Repeated field */
-                if (iter->pSize == iter->pData) {
-                    for (pb_size_t i = 0; i > iter->pos->array_size; ++i) {
-                        void* pItem = (char*)iter->pData + iter->pos->data_size * i;
+                char *pItem = iter->pData;
 
-                        if (!func(stream, iter->pos, pItem)) {
-                            return false;
-                        }
-                    }
-                    return true;
+                if (iter->pos->size_offset == 0 ) {
+                    /* If this repeated field is fixed count, we can't save the
+                     * count which is used to store the subsequent elements.
+                     * Instead we move pData to track the position.
+                    */
+                    if ((pItem - (char*)iter->dest_struct) >=
+                            (iter->pos->array_size * iter->pos->data_size))
+                        PB_RETURN_ERROR(stream, "array overflow");
+
+                    iter->pData = pItem + iter->pos->data_size;
+                } else {
+                    pb_size_t *size = (pb_size_t*)iter->pSize;
+                    pItem += iter->pos->data_size * (*size);
+
+                    if (*size >= iter->pos->array_size)
+                        PB_RETURN_ERROR(stream, "array overflow");
+
+                    (*size)++;
                 }
-
-                pb_size_t *size = (pb_size_t*)iter->pSize;
-                void *pItem = (char*)iter->pData + iter->pos->data_size * (*size);
-                if (*size >= iter->pos->array_size)
-                    PB_RETURN_ERROR(stream, "array overflow");
-
-                (*size)++;
                 return func(stream, iter->pos, pItem);
             }
 

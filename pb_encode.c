@@ -196,7 +196,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
                  PB_LTYPE(field->type) == PB_LTYPE_BYTES))
             {
                 if (!func(stream, field, *(const void* const*)p))
-                    return false;      
+                    return false;
             }
             else
             {
