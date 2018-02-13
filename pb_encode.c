@@ -361,10 +361,17 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
             }
             break;
         
-        case PB_HTYPE_REPEATED:
-            if (!encode_array(stream, field, pData, *(const pb_size_t*)pSize, func))
+        case PB_HTYPE_REPEATED: {
+            pb_size_t count;
+            if (field->size_offset != 0) {
+                count = *(pb_size_t*)pSize;
+            } else {
+                count = field->array_size;
+            }
+            if (!encode_array(stream, field, pData, count, func))
                 return false;
             break;
+        }
         
         case PB_HTYPE_ONEOF:
             if (*(const pb_size_t*)pSize == field->tag)

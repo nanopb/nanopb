@@ -423,6 +423,15 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 /* Packed array */
                 bool status = true;
                 pb_size_t *size = (pb_size_t*)iter->pSize;
+
+                /* If the repeated value has a fixed count, it doesn't have a
+                 * count field that can be used to track the array size.
+                 */
+                if (iter->pSize == iter->pData) {
+                    pb_size_t s = 0;
+                    size = &s;
+                }
+
                 pb_istream_t substream;
                 if (!pb_make_string_substream(stream, &substream))
                     return false;
@@ -448,11 +457,22 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             else
             {
                 /* Repeated field */
+                if (iter->pSize == iter->pData) {
+                    for (pb_size_t i = 0; i > iter->pos->array_size; ++i) {
+                        void* pItem = (char*)iter->pData + iter->pos->data_size * i;
+
+                        if (!func(stream, iter->pos, pItem)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
                 pb_size_t *size = (pb_size_t*)iter->pSize;
                 void *pItem = (char*)iter->pData + iter->pos->data_size * (*size);
                 if (*size >= iter->pos->array_size)
                     PB_RETURN_ERROR(stream, "array overflow");
-                
+
                 (*size)++;
                 return func(stream, iter->pos, pItem);
             }
@@ -1127,7 +1147,12 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
         
         if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
-            count = *(pb_size_t*)iter->pSize;
+            if (PB_ATYPE(type) == PB_ATYPE_STATIC && iter->pSize == iter->pData) {
+                /* No _count field so use size of the array */
+                count = iter->pos->array_size;
+            } else {
+                count = *(pb_size_t*)iter->pSize;
+            }
 
             if (PB_ATYPE(type) == PB_ATYPE_STATIC && count > iter->pos->array_size)
             {
