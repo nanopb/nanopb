@@ -96,7 +96,9 @@ msgid                          Specifies a unique id for this message type.
                                Can be used by user code as an identifier.
 anonymous_oneof                Generate 'oneof' fields as anonymous unions.
 fixed_length                   Generate 'bytes' fields with constant length
-                               (max_size must be defined also).
+                               (max_size must also be defined).
+fixed_count                    Generate arrays with constant length
+                               (max_count must also be defined).
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted
