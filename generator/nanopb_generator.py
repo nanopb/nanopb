@@ -275,7 +275,7 @@ class Field:
         self.array_decl = ""
         self.enc_size = None
         self.ctype = None
-        self.fixed_count = None
+        self.fixed_count = False
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -697,6 +697,7 @@ class ExtensionRange(Field):
         self.default = None
         self.max_size = 0
         self.max_count = 0
+        self.fixed_count = False
 
     def __str__(self):
         return '    pb_extension_t *extensions;'
