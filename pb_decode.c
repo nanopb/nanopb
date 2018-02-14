@@ -424,18 +424,10 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 bool status = true;
                 pb_size_t *size = (pb_size_t*)iter->pSize;
 
-                /* If the repeated value is fixed count, it doesn't have a
-                 * count field that can be used to track the array size.
-                 */
-                if (iter->pos->size_offset == 0) {
-                    pb_size_t s = 0;
-                    size = &s;
-                }
-
                 pb_istream_t substream;
                 if (!pb_make_string_substream(stream, &substream))
                     return false;
-                
+
                 while (substream.bytes_left > 0 && *size < iter->pos->array_size)
                 {
                     void *pItem = (char*)iter->pData + iter->pos->data_size * (*size);
@@ -457,27 +449,12 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             else
             {
                 /* Repeated field */
-                char *pItem = iter->pData;
+                pb_size_t *size = (pb_size_t*)iter->pSize;
+                char *pItem = (char*)iter->pData + iter->pos->data_size * (*size);
 
-                if (iter->pos->size_offset == 0 ) {
-                    /* If this repeated field is fixed count, we can't save the
-                     * count which is used to store the subsequent elements.
-                     * Instead we move pData to track the position.
-                    */
-                    if ((pItem - (char*)iter->dest_struct) >=
-                            (iter->pos->array_size * iter->pos->data_size))
-                        PB_RETURN_ERROR(stream, "array overflow");
+                if ((*size)++ >= iter->pos->array_size)
+                    PB_RETURN_ERROR(stream, "array overflow");
 
-                    iter->pData = pItem + iter->pos->data_size;
-                } else {
-                    pb_size_t *size = (pb_size_t*)iter->pSize;
-                    pItem += iter->pos->data_size * (*size);
-
-                    if (*size >= iter->pos->array_size)
-                        PB_RETURN_ERROR(stream, "array overflow");
-
-                    (*size)++;
-                }
                 return func(stream, iter->pos, pItem);
             }
 
@@ -927,17 +904,24 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
     const uint32_t allbits = ~(uint32_t)0;
     uint32_t extension_range_start = 0;
     pb_field_iter_t iter;
-    
+
+    /* 'fixed_count_field' and 'fixed_count_size' track position of a repeated fixed
+     * count field. This can only handle _one_ repeated fixed count field that
+     * is unpacked and unordered among other (non repeated fixed count) fields.
+     */
+    const pb_field_t *fixed_count_field = NULL;
+    pb_size_t fixed_count_size = 0;
+
     /* Return value ignored, as empty message types will be correctly handled by
      * pb_field_iter_find() anyway. */
     (void)pb_field_iter_begin(&iter, fields, dest_struct);
-    
+
     while (stream->bytes_left)
     {
         uint32_t tag;
         pb_wire_type_t wire_type;
         bool eof;
-        
+
         if (!pb_decode_tag(stream, &wire_type, &tag, &eof))
         {
             if (eof)
@@ -945,7 +929,7 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
             else
                 return false;
         }
-        
+
         if (!pb_field_iter_find(&iter, tag))
         {
             /* No match found, check if it matches an extension. */
@@ -955,39 +939,70 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[
                     extension_range_start = (uint32_t)-1;
                 else
                     extension_range_start = iter.pos->tag;
-                
+
                 if (tag >= extension_range_start)
                 {
                     size_t pos = stream->bytes_left;
-                
+
                     if (!decode_extension(stream, tag, wire_type, &iter))
                         return false;
-                    
+
                     if (pos != stream->bytes_left)
                     {
                         /* The field was handled */
-                        continue;                    
+                        continue;
                     }
                 }
             }
-        
+
             /* No match found, skip data */
             if (!pb_skip_field(stream, wire_type))
                 return false;
             continue;
         }
-        
+
+        /* If a repeated fixed count field was found, get size from
+         * 'fixed_count_field' as there is no counter contained in the struct.
+         */
+        if (PB_HTYPE(iter.pos->type) == PB_HTYPE_REPEATED
+            && iter.pSize == iter.pData)
+        {
+            if (fixed_count_field != iter.pos) {
+                /* If the new fixed count field does not match the previous one,
+                 * check that the previous one is NULL or that it finished
+                 * receiving all the expected data.
+                 */
+                if (fixed_count_field != NULL &&
+                    fixed_count_size != fixed_count_field->array_size)
+                {
+                    PB_RETURN_ERROR(stream, "wrong size for fixed count field");
+                }
+
+                fixed_count_field = iter.pos;
+                fixed_count_size = 0;
+            }
+
+            iter.pSize = &fixed_count_size;
+        }
+
         if (PB_HTYPE(iter.pos->type) == PB_HTYPE_REQUIRED
             && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
         {
             uint32_t tmp = ((uint32_t)1 << (iter.required_field_index & 31));
             fields_seen[iter.required_field_index >> 5] |= tmp;
         }
-            
+
         if (!decode_field(stream, wire_type, &iter))
             return false;
     }
-    
+
+    /* Check that all elements of the last decoded fixed count field were present. */
+    if (fixed_count_field != NULL &&
+        fixed_count_size != fixed_count_field->array_size)
+    {
+        PB_RETURN_ERROR(stream, "wrong size for fixed count field");
+    }
+
     /* Check that all required fields were present. */
     {
         /* First figure out the number of required fields by

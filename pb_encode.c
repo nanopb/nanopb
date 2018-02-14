@@ -364,7 +364,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
         case PB_HTYPE_REPEATED: {
             pb_size_t count;
             if (field->size_offset != 0) {
-                count = *(pb_size_t*)pSize;
+                count = *(const pb_size_t*)pSize;
             } else {
                 count = field->array_size;
             }
