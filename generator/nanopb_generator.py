@@ -827,16 +827,23 @@ class OneOf(Field):
     def encoded_size(self, dependencies):
         '''Returns the size of the largest oneof field.'''
         largest = EncodedSize(0)
+        symbols = set()
         for f in self.fields:
             size = EncodedSize(f.encoded_size(dependencies))
             if size.value is None:
                 return None
             elif size.symbols:
-                return None # Cannot resolve maximum of symbols
+                symbols.add(EncodedSize(f.submsgname + 'size').symbols[0])
             elif size.value > largest.value:
                 largest = size
 
-        return largest
+        if not symbols:
+            return largest
+
+        symbols = list(symbols)
+        symbols.append(str(largest))
+        max_size = lambda x, y: '({0} > {1} ? {0} : {1})'.format(x, y)
+        return reduce(max_size, symbols)
 
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
