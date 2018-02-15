@@ -80,6 +80,9 @@ message NanoPBOptions {
 
   // Generate bytes arrays with fixed length
   optional bool fixed_length = 15 [default = false];
+
+  // Generate repeated field with fixed count
+  optional bool fixed_count = 16 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

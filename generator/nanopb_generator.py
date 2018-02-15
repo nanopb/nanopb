@@ -275,6 +275,7 @@ class Field:
         self.array_decl = ""
         self.enc_size = None
         self.ctype = None
+        self.fixed_count = False
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -286,7 +287,7 @@ class Field:
         # Parse field options
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
-        
+
         if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
             # max_length overrides max_size for strings
             self.max_size = field_options.max_length + 1
@@ -305,6 +306,8 @@ class Field:
                 can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
+                self.fixed_count = field_options.fixed_count
+
         elif field_options.proto3:
             self.rules = 'SINGULAR'
         elif desc.label == FieldD.LABEL_REQUIRED:
@@ -332,6 +335,9 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
+        if field_options.fixed_count and self.max_count is None:
+            raise Exception("Field '%s' is defined as fixed count, "
+                            "but max_count is not given." % self.name)
 
         if field_options.type == nanopb_pb2.FT_STATIC:
             self.allocation = 'STATIC'
@@ -413,7 +419,9 @@ class Field:
         else:
             if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
                 result += '    bool has_' + self.name + ';\n'
-            elif self.rules == 'REPEATED' and self.allocation == 'STATIC':
+            elif (self.rules == 'REPEATED' and
+                  self.allocation == 'STATIC' and
+                  not self.fixed_count):
                 result += '    pb_size_t ' + self.name + '_count;\n'
             result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
@@ -487,7 +495,10 @@ class Field:
         outer_init = None
         if self.allocation == 'STATIC':
             if self.rules == 'REPEATED':
-                outer_init = '0, {'
+                outer_init = ''
+                if not self.fixed_count:
+                    outer_init += '0, '
+                outer_init += '{'
                 outer_init += ', '.join([inner_init] * self.max_count)
                 outer_init += '}'
             elif self.rules == 'OPTIONAL':
@@ -549,21 +560,24 @@ class Field:
                 result = '    PB_ANONYMOUS_ONEOF_FIELD(%s, ' % self.union_name
             else:
                 result = '    PB_ONEOF_FIELD(%s, ' % self.union_name
+        elif self.fixed_count:
+            result = '    PB_REPEATED_FIXED_COUNT('
         else:
             result = '    PB_FIELD('
 
         result += '%3d, ' % self.tag
         result += '%-8s, ' % self.pbtype
-        result += '%s, ' % self.rules
-        result += '%-8s, ' % self.allocation
-        
+        if not self.fixed_count:
+            result += '%s, ' % self.rules
+            result += '%-8s, ' % self.allocation
+
         if union_index is not None and union_index > 0:
             result += 'UNION, '
         elif prev_field_name is None:
             result += 'FIRST, '
         else:
             result += 'OTHER, '
-        
+
         result += '%s, ' % self.struct_name
         result += '%s, ' % self.name
         result += '%s, ' % (prev_field_name or self.name)
@@ -683,6 +697,7 @@ class ExtensionRange(Field):
         self.default = None
         self.max_size = 0
         self.max_count = 0
+        self.fixed_count = False
 
     def __str__(self):
         return '    pb_extension_t *extensions;'

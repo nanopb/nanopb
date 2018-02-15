@@ -527,6 +527,14 @@ struct pb_extension_s {
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
+/* Field description for repeated static fixed count fields.*/
+#define PB_REPEATED_FIXED_COUNT(tag, type, placement, message, field, prevfield, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | PB_LTYPE_MAP_ ## type, \
+    PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+    0, \
+    pb_membersize(message, field[0]), \
+    pb_arraysize(message, field), ptr}
+
 /* Field description for oneof fields. This requires taking into account the
  * union name also, that's why a separate set of macros is needed.
  */

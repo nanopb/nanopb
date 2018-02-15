@@ -27,16 +27,16 @@ def add_nanopb_builders(env):
         if env.has_key('ARGS'):
             args.extend(env['ARGS'])
         
-        print 'Command line: ' + str(args)
+        print('Command line: ' + str(args))
         pipe = subprocess.Popen(args,
                                 stdin = infile,
                                 stdout = open(str(target[0]), 'w'),
                                 stderr = sys.stderr)
         result = pipe.wait()
         if result == 0:
-            print '\033[32m[ OK ]\033[0m   Ran ' + args[0]
+            print('\033[32m[ OK ]\033[0m   Ran ' + args[0])
         else:
-            print '\033[31m[FAIL]\033[0m   Program ' + args[0] + ' returned ' + str(result)
+            print('\033[31m[FAIL]\033[0m   Program ' + args[0] + ' returned ' + str(result))
         return result
         
     run_test_builder = Builder(action = run_test,
@@ -70,10 +70,10 @@ def add_nanopb_builders(env):
         data1 = open(str(source[0]), 'rb').read()
         data2 = open(str(source[1]), 'rb').read()
         if data1 == data2:
-            print '\033[32m[ OK ]\033[0m   Files equal: ' + str(source[0]) + ' and ' + str(source[1])
+            print('\033[32m[ OK ]\033[0m   Files equal: ' + str(source[0]) + ' and ' + str(source[1]))
             return 0
         else:
-            print '\033[31m[FAIL]\033[0m   Files differ: ' + str(source[0]) + ' and ' + str(source[1])
+            print('\033[31m[FAIL]\033[0m   Files differ: ' + str(source[0]) + ' and ' + str(source[1]))
             return 1
 
     compare_builder = Builder(action = compare_files,
@@ -94,13 +94,13 @@ def add_nanopb_builders(env):
                 status = re.search(pattern.strip(), data, re.MULTILINE)
                 
                 if not status and not invert:
-                    print '\033[31m[FAIL]\033[0m   Pattern not found in ' + str(source[0]) + ': ' + pattern
+                    print('\033[31m[FAIL]\033[0m   Pattern not found in ' + str(source[0]) + ': ' + pattern)
                     return 1
                 elif status and invert:
-                    print '\033[31m[FAIL]\033[0m   Pattern should not exist, but does in ' + str(source[0]) + ': ' + pattern
+                    print('\033[31m[FAIL]\033[0m   Pattern should not exist, but does in ' + str(source[0]) + ': ' + pattern)
                     return 1
         else:
-            print '\033[32m[ OK ]\033[0m   All patterns found in ' + str(source[0])
+            print('\033[32m[ OK ]\033[0m   All patterns found in ' + str(source[0]))
             return 0
 
     match_builder = Builder(action = match_files, suffix = '.matched')
