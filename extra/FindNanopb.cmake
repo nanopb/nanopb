@@ -14,6 +14,11 @@
 #
 #   NANOPB_OPTIONS           - List of options passed to nanopb.
 #
+#   NANOPB_DEPENDS           - List of files to be used as dependencies
+#                              for the generated source and header files. These
+#                              files are not directly passed as options to
+#                              nanopb but rather their directories.
+#
 #   NANOPB_GENERATE_CPP_APPEND_PATH - By default -I will be passed to protoc
 #                                     for each directory where a proto file is referenced.
 #                                     Set to FALSE if you want to disable this behaviour.
@@ -141,9 +146,6 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
   list(REMOVE_DUPLICATES _nanopb_include_path)
 
-  set(${SRCS})
-  set(${HDRS})
-
   set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb/generator)
 
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
@@ -207,8 +209,42 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
     list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
 
-    #  By default, search proto file directory for an options file
-    set(NANOPB_PLUGIN_OPTIONS "${NANOPB_OPTIONS} -I${FIL_DIR}")
+    set(NANOPB_PLUGIN_OPTIONS)
+    set(NANOPB_OPTIONS_DIRS)
+
+    # If there an options file in the same working directory, set it as a dependency
+    set(NANOPB_OPTIONS_FILE ${FIL_DIR}/${FIL_WE}.options)
+    if(EXISTS ${NANOPB_OPTIONS_FILE})
+        # Get directory as lookups for dependency options fail if an options
+        # file is used. The options is still set as a dependency of the
+        # generated source and header.
+        get_filename_component(options_dir ${NANOPB_OPTIONS_FILE} DIRECTORY)
+        list(APPEND NANOPB_OPTIONS_DIRS ${options_dir})
+    else()
+        set(NANOPB_OPTIONS_FILE)
+    endif()
+
+    # If the dependencies are options files, we need to pass the directories
+    # as arguments to nanopb
+    foreach(depends_file ${NANOPB_DEPENDS})
+        get_filename_component(ext ${depends_file} EXT)
+        if(ext STREQUAL ".options")
+            get_filename_component(depends_dir ${depends_file} DIRECTORY)
+            list(APPEND NANOPB_OPTIONS_DIRS ${depends_dir})
+        endif()
+    endforeach()
+
+    if(NANOPB_OPTIONS_DIRS)
+        list(REMOVE_DUPLICATES NANOPB_OPTIONS_DIRS)
+    endif()
+
+    foreach(options_path ${NANOPB_OPTIONS_DIRS})
+        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} -I${options_path}")
+    endforeach()
+
+    if(NANOPB_OPTIONS)
+        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
+    endif()
 
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
@@ -216,9 +252,10 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
       ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
            -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
-        --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
-        "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${FIL_PATH_REL}" ${ABS_FIL}
+           --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
+           "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${FIL_PATH_REL}" ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
+           ${NANOPB_OPTIONS_FILE} ${NANOPB_DEPENDS}
       COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
       VERBATIM )
 
