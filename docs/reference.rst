@@ -157,8 +157,20 @@ options from it. The file format is as follows:
   it makes sense to define wildcard options first in the file and more specific
   ones later.
   
-If preferred, the name of the options file can be set using the command line
-switch *-f* to nanopb_generator.py.
+To debug problems in applying the options, you can use the *-v* option for the
+plugin. Plugin options are specified in front of the output path:
+
+    protoc ... --nanopb_out=-v:. message.proto
+
+Protoc doesn't currently pass include path into plugins. Therefore if your
+*.proto* is in a subdirectory, nanopb may have trouble finding the associated
+*.options* file. A workaround is to specify include path separately to the
+nanopb plugin, like:
+
+    protoc -Isubdir --nanopb_out=-Isubdir:. message.proto
+  
+If preferred, the name of the options file can be set using plugin argument
+*-f*.
 
 Defining the options on command line
 ------------------------------------
@@ -184,7 +196,7 @@ nanopb.proto can be found. This file, in turn, requires the file
 */usr/include*. Therefore, to compile a .proto file which uses options, use a
 protoc command similar to::
 
-    protoc -I/usr/include -Inanopb/generator -I. -omessage.pb message.proto
+    protoc -I/usr/include -Inanopb/generator -I. --nanopb_out=. message.proto
 
 The options can be defined in file, message and field scopes::
 
@@ -194,13 +206,6 @@ The options can be defined in file, message and field scopes::
         option (nanopb_msgopt).max_size = 30; // Message scope
         required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
     }
-
-
-
-
-
-
-
 
 
 pb.h
