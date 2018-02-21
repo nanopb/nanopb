@@ -63,13 +63,13 @@ endif()
 
 if(nanopb_BUILD_RUNTIME)
     add_library(protobuf-nanopb STATIC
-        pb.h
-        pb_common.h
-        pb_common.c
-        pb_encode.h
-        pb_encode.c
-        pb_decode.h
-        pb_decode.c)
+        src/pb.h
+        src/pb_common.h
+        src/pb_common.c
+        src/pb_encode.h
+        src/pb_encode.c
+        src/pb_decode.h
+        src/pb_decode.c)
 
     target_include_directories(protobuf-nanopb INTERFACE
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>

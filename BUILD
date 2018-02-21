@@ -8,14 +8,14 @@ cc_library(
   name = "nanopb",
   visibility = ["//visibility:public"],
   hdrs = [
-    "pb.h",
-    "pb_common.h",
-    "pb_decode.h",
-    "pb_encode.h",
+    "src/pb.h",
+    "src/pb_common.h",
+    "src/pb_decode.h",
+    "src/pb_encode.h",
   ],
   srcs = [
-    "pb_common.c",
-    "pb_decode.c",
-    "pb_encode.c",
+    "src/pb_common.c",
+    "src/pb_decode.c",
+    "src/pb_encode.c",
   ],
 )
