@@ -8,7 +8,7 @@ if 'PROTOC_VERSION' in env:
     match = re.search('([0-9]+).([0-9]+).([0-9]+)', env['PROTOC_VERSION'])
 
 if match:
-    version = map(int, match.groups())
+    version = list(map(int, match.groups()))
 
 # proto3 syntax is supported by protoc >= 3.0.0
 if env.GetOption('clean') or (match and version[0] >= 3):

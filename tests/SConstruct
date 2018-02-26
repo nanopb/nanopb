@@ -57,7 +57,7 @@ if not env.GetOption('clean'):
     if not stdbool or not stdint or not stddef or not string:
         conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
         conf.env.Append(CPPPATH = "#../extra")
-	conf.env.Append(SYSHDR = '\\"pb_syshdr.h\\"')
+        conf.env.Append(SYSHDR = '\\"pb_syshdr.h\\"')
         
         if stdbool: conf.env.Append(CPPDEFINES = {'HAVE_STDBOOL_H': 1})
         if stdint: conf.env.Append(CPPDEFINES = {'HAVE_STDINT_H': 1})

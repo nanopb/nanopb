@@ -135,7 +135,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(strcmp(alltypes.opt_string, "4054") == 0);
         TEST(alltypes.has_opt_bytes     == false);
         TEST(alltypes.opt_bytes.size == 4);
-        TEST(memcmp(alltypes.opt_bytes.bytes, "4055", 4) == 0);
+        TEST(memcmp(alltypes.opt_bytes.bytes, "\x34\x5C\x00\xff", 4) == 0);
         TEST(alltypes.has_opt_submsg    == false);
         TEST(strcmp(alltypes.opt_submsg.substuff1, "1") == 0);
         TEST(alltypes.opt_submsg.substuff2 == 2);

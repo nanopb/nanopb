@@ -335,6 +335,7 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
+        
         if field_options.fixed_count and self.max_count is None:
             raise Exception("Field '%s' is defined as fixed count, "
                             "but max_count is not given." % self.name)
@@ -441,6 +442,33 @@ class Field:
         else:
             return []
 
+    def to_hex_array(self, value):
+        retval = []
+        i = 0
+        first = False
+        while i < len(value):
+            # Check for escaping
+            if(value[i] == "\\"):
+                # If the value is an escaped backslash...
+                if(value[i + 1] == "\\"):
+                    i = i + 1 # ...Go over one backslash
+                else:
+                    # Else, if there's space for octal
+                    if(i + 3 < len(value)):
+                        # Try octal conversion
+                        try:
+                            octval = int(value[i + 1: i + 4], 8)
+                            retval.append(str(hex(octval)))
+                            i = i + 4
+                            first = True
+                            continue
+                        except ValueError:
+                            pass
+            # In every other case just get the hex value
+            retval.append(str(hex(ord(value[i]))))
+            i = i + 1
+        return retval
+
     def get_initializer(self, null_init, inner_init_only = False):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
@@ -469,7 +497,7 @@ class Field:
                 inner_init = self.default.replace('"', '\\"')
                 inner_init = '"' + inner_init + '"'
             elif self.pbtype == 'BYTES':
-                data = ['0x%02x' % ord(c) for c in self.default]
+                data = self.to_hex_array(self.default)
                 if len(data) == 0:
                     inner_init = '{0, {0}}'
                 else:

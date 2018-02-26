@@ -100,7 +100,7 @@ message AllTypes {
     optional double     opt_double  = 53 [default = 4053];
     
     optional string     opt_string  = 54 [default = "4054"];
-    optional bytes      opt_bytes   = 55 [default = "4055"];
+    optional bytes      opt_bytes   = 55 [default = "\x34\x5C\x00\xff"];
     optional SubMessage opt_submsg  = 56;
     optional MyEnum     opt_enum    = 57 [default = Second];
     optional EmptyMessage opt_emptymsg = 58;
