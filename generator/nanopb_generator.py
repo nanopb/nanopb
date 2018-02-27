@@ -442,32 +442,32 @@ class Field:
         else:
             return []
 
-    def to_hex_array(self, value):
-        retval = []
+    def to_hex_array(self, default_values):
+        '''Converts a default value bytestring to a list of hex values in string format
+           handles possible octal escapes inserted by protoc'''
+        hex_array = []
         i = 0
-        first = False
-        while i < len(value):
+        while i < len(default_values):
             # Check for escaping
-            if(value[i] == "\\"):
+            if(default_values[i] == "\\"):
                 # If the value is an escaped backslash...
-                if(value[i + 1] == "\\"):
+                if(default_values[i + 1] == "\\"):
                     i = i + 1 # ...Go over one backslash
                 else:
                     # Else, if there's space for octal
-                    if(i + 3 < len(value)):
+                    if(i + 3 < len(default_values)):
                         # Try octal conversion
                         try:
-                            octval = int(value[i + 1: i + 4], 8)
-                            retval.append(str(hex(octval)))
+                            octval = int(default_values[i + 1: i + 4], 8)
+                            hex_array.append(str(hex(octval)))
                             i = i + 4
-                            first = True
                             continue
                         except ValueError:
-                            pass
+                            assert 0, "Invalid default value"
             # In every other case just get the hex value
-            retval.append(str(hex(ord(value[i]))))
+            hex_array.append(str(hex(ord(default_values[i]))))
             i = i + 1
-        return retval
+        return hex_array
 
     def get_initializer(self, null_init, inner_init_only = False):
         '''Return literal expression for this field's default value.
