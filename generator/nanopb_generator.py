@@ -335,6 +335,7 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
+        
         if field_options.fixed_count and self.max_count is None:
             raise Exception("Field '%s' is defined as fixed count, "
                             "but max_count is not given." % self.name)
@@ -441,6 +442,33 @@ class Field:
         else:
             return []
 
+    def to_hex_array(self, default_values):
+        '''Converts a default value bytestring to a list of hex values in string format
+           handles possible octal escapes inserted by protoc'''
+        hex_array = []
+        i = 0
+        while i < len(default_values):
+            # Check for escaping
+            if(default_values[i] == "\\"):
+                # If the value is an escaped backslash...
+                if(default_values[i + 1] == "\\"):
+                    i = i + 1 # ...Go over one backslash
+                else:
+                    # Else, if there's space for octal
+                    if(i + 3 < len(default_values)):
+                        # Try octal conversion
+                        try:
+                            octval = int(default_values[i + 1: i + 4], 8)
+                            hex_array.append(str(hex(octval)))
+                            i = i + 4
+                            continue
+                        except ValueError:
+                            assert 0, "Invalid default value"
+            # In every other case just get the hex value
+            hex_array.append(str(hex(ord(default_values[i]))))
+            i = i + 1
+        return hex_array
+
     def get_initializer(self, null_init, inner_init_only = False):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
@@ -469,7 +497,7 @@ class Field:
                 inner_init = self.default.replace('"', '\\"')
                 inner_init = '"' + inner_init + '"'
             elif self.pbtype == 'BYTES':
-                data = ['0x%02x' % ord(c) for c in self.default]
+                data = self.to_hex_array(self.default)
                 if len(data) == 0:
                     inner_init = '{0, {0}}'
                 else:
