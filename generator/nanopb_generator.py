@@ -7,6 +7,7 @@ nanopb_version = "nanopb-0.4.0-dev"
 
 import sys
 import re
+import codecs
 from functools import reduce
 
 try:
@@ -442,33 +443,6 @@ class Field:
         else:
             return []
 
-    def to_hex_array(self, default_values):
-        '''Converts a default value bytestring to a list of hex values in string format
-           handles possible octal escapes inserted by protoc'''
-        hex_array = []
-        i = 0
-        while i < len(default_values):
-            # Check for escaping
-            if(default_values[i] == "\\"):
-                # If the value is an escaped backslash...
-                if(default_values[i + 1] == "\\"):
-                    i = i + 1 # ...Go over one backslash
-                else:
-                    # Else, if there's space for octal
-                    if(i + 3 < len(default_values)):
-                        # Try octal conversion
-                        try:
-                            octval = int(default_values[i + 1: i + 4], 8)
-                            hex_array.append(str(hex(octval)))
-                            i = i + 4
-                            continue
-                        except ValueError:
-                            assert 0, "Invalid default value"
-            # In every other case just get the hex value
-            hex_array.append(str(hex(ord(default_values[i]))))
-            i = i + 1
-        return hex_array
-
     def get_initializer(self, null_init, inner_init_only = False):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
@@ -494,16 +468,18 @@ class Field:
                 inner_init = '0'
         else:
             if self.pbtype == 'STRING':
-                inner_init = self.default.replace('"', '\\"')
-                inner_init = '"' + inner_init + '"'
+                data = codecs.escape_encode(self.default.encode('utf-8'))[0]
+                inner_init = '"' + data.decode('ascii') + '"'
             elif self.pbtype == 'BYTES':
-                data = self.to_hex_array(self.default)
+                data = codecs.escape_decode(self.default)[0]
+                data = ["0x%02x" % c for c in bytearray(data)]
                 if len(data) == 0:
                     inner_init = '{0, {0}}'
                 else:
                     inner_init = '{%d, {%s}}' % (len(data), ','.join(data))
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
-                data = ['0x%02x' % ord(c) for c in self.default]
+                data = codecs.escape_decode(self.default)[0]
+                data = ["0x%02x" % c for c in bytearray(data)]
                 if len(data) == 0:
                     inner_init = '{0}'
                 else:
