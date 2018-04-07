@@ -362,6 +362,25 @@ An example of this is available in *tests/test_encode_extensions.c* and
 
 .. _`extension fields`: https://developers.google.com/protocol-buffers/docs/proto#extensions
 
+Default values
+==============
+Protobuf has two syntax variants, proto2 and proto3. Of these proto2 has user
+definable default values that can be given in .proto file::
+
+ message MyMessage {
+     optional bytes foo = 1 [default = "ABC\x01\x02\x03"];
+     optional string bar = 2 [default = "åäö"];
+ }
+
+Nanopb will generate both static and runtime initialization for the default
+values. In `myproto.pb.h` there will be a `#define MyMessage_init_default` that
+can be used to initialize whole message into default values::
+
+ MyMessage msg = MyMessage_init_default;
+
+In addition to this, `pb_decode()` will initialize message fields to defaults
+at runtime. If this is not desired, `pb_decode_noinit()` can be used instead.
+
 Message framing
 ===============
 Protocol Buffers does not specify a method of framing the messages for transmission.

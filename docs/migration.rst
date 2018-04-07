@@ -11,6 +11,22 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
+Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
+==================================
+
+Fix handling of string and bytes default values
+-----------------------------------------------
+
+**Rationale:** Previously nanopb didn't properly decode special character
+escapes like \200 emitted by protoc. This caused these escapes to end up
+verbatim in the default values in .pb.c file.
+
+**Changes:** Escapes are now decoded, and e.g. "\200" or "\x80" results in
+{0x80} for bytes field and "\x80" for string field.
+
+**Required actions:** If code has previously relied on '\' in default value
+being passed through verbatim, it must now be changed to '\\'.
+
 Nanopb-0.3.8 (2017-03-05)
 =========================
 
