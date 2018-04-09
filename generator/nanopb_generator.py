@@ -1331,6 +1331,8 @@ class ProtoFile:
             checks_msgnames.append(msg.name)
             for field in msg.fields:
                 max_field.extend(field.largest_field_value())
+        for field in self.extensions:
+            max_field.extend(field.largest_field_value())
 
         worst = max_field.worst
         worst_field = max_field.worst_field
