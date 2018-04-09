@@ -36,4 +36,10 @@ Alice Wang <aw@squareup.com>
 Kevin Fitch <kfitch42@gmail.com>
 Kamal Marhubi <kamal@marhubi.com>
 Elco Jacobs <elco@brewpi.com>
+Sébastien Morin <sebastien.morin@primerogames.com>
+Dave Flogeras <dflogeras2@gmail.com>
+Edward Z. Yang <ezyang@mit.edu>
+Robbie Shade <rjshade@google.com>
+Andrew Ballinger <andrewballinger@stratisopt.com>
+Hamina, Juha-Pekka <Juha-Pekka.Hamina@nordicsemi.no>
 

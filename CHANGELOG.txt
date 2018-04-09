@@ -1,3 +1,17 @@
+nanopb-0.3.9.1 (2017-04-xx)
+ Fix handling of special characters in string/bytes default values (issue #322)
+ Fix encoding of negative numbers with PB_WITHOUT_64BIT (#285)
+ Fix _zero initializer for enums that don't begin at 0. (#295)
+ Multiple CMake fixes (#296, #299, #304, #312, #320)
+ Fix compiler warnings (#305)
+ Fix scons rules for Python 3
+ Add check for large extension field number (issue #306)
+ Updated included descriptor.proto version (#314)
+ Resolve oneof sizes symbolically when needed (#311)
+ Add fixed_count option (#260)
+ Add some verbose prints in generator (issue #238)
+ Add test/example of using 'map' type. (#289)
+
 nanopb-0.3.9 (2017-09-23)
  Fix bugs in proto3 encoding of submessages (#256)
  Fix message size calculation for arrays of size 1 (#253)
