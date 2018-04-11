@@ -24,8 +24,8 @@ verbatim in the default values in .pb.c file.
 **Changes:** Escapes are now decoded, and e.g. "\200" or "\x80" results in
 {0x80} for bytes field and "\x80" for string field.
 
-**Required actions:** If code has previously relied on '\' in default value
-being passed through verbatim, it must now be changed to '\\'.
+**Required actions:** If code has previously relied on '\\' in default value
+being passed through verbatim, it must now be changed to '\\\\'.
 
 Nanopb-0.3.8 (2017-03-05)
 =========================
