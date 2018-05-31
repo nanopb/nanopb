@@ -1512,6 +1512,10 @@ optparser.add_option("-Q", "--generated-include-format", dest="genformat",
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>\n',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
+optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=True,
+    help="Strip directory path from #included .pb.h file name [default: %default]")
+optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
+    help="Opposite of --strip-path")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=False,
     help="Don't add timestamp to .pb.h and .pb.c preambles")
 optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
@@ -1589,7 +1593,11 @@ def process_file(filename, fdesc, options, other_files = {}):
     noext = os.path.splitext(filename)[0]
     headername = noext + options.extension + options.header_extension
     sourcename = noext + options.extension + options.source_extension
-    headerbasename = os.path.basename(headername)
+
+    if options.strip_path:
+        headerbasename = os.path.basename(headername)
+    else:
+        headerbasename = headername
 
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
