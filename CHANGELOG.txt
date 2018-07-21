@@ -1,4 +1,4 @@
-nanopb-0.3.9.1 (2017-04-xx)
+nanopb-0.3.9.1 (2018-04-14)
  Fix handling of special characters in string/bytes default values (issue #322)
  Fix encoding of negative numbers with PB_WITHOUT_64BIT (#285)
  Fix _zero initializer for enums that don't begin at 0. (#295)
