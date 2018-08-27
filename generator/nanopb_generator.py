@@ -188,12 +188,12 @@ class Enum:
         '''desc is EnumDescriptorProto'''
 
         self.options = enum_options
-        self.names = names + desc.name
+        self.names = names
 
         if enum_options.long_names:
-            self.values = [(self.names + x.name, x.number) for x in desc.value]
-        else:
             self.values = [(names + x.name, x.number) for x in desc.value]
+        else:
+            self.values = [(desc.name + x.name, x.number) for x in desc.value]
 
         self.value_longnames = [self.names + x.name for x in desc.value]
         self.packed = enum_options.packed_enum
@@ -724,8 +724,8 @@ class ExtensionRange(Field):
         return EncodedSize(0)
 
 class ExtensionField(Field):
-    def __init__(self, struct_name, desc, field_options):
-        self.fullname = struct_name + desc.name
+    def __init__(self, fullname, desc, field_options):
+        self.fullname = fullname
         self.extendee_name = names_from_type_name(desc.extendee)
         Field.__init__(self, self.fullname + 'struct', desc, field_options)
 
@@ -1026,7 +1026,7 @@ class Message:
 #                    Processing of entire .proto files
 # ---------------------------------------------------------------------------
 
-def iterate_messages(desc, names = Names()):
+def iterate_messages(desc, flatten = False, names = Names()):
     '''Recursively find all messages. For each, yield name, DescriptorProto.'''
     if hasattr(desc, 'message_type'):
         submsgs = desc.message_type
@@ -1035,19 +1035,22 @@ def iterate_messages(desc, names = Names()):
 
     for submsg in submsgs:
         sub_names = names + submsg.name
-        yield sub_names, submsg
+        if flatten:
+            yield Names(submsg.name), submsg
+        else:
+            yield sub_names, submsg
 
-        for x in iterate_messages(submsg, sub_names):
+        for x in iterate_messages(submsg, flatten, sub_names):
             yield x
 
-def iterate_extensions(desc, names = Names()):
+def iterate_extensions(desc, flatten = False, names = Names()):
     '''Recursively find all extensions.
     For each, yield name, FieldDescriptorProto.
     '''
     for extension in desc.extension:
         yield names, extension
 
-    for subname, subdesc in iterate_messages(desc, names):
+    for subname, subdesc in iterate_messages(desc, flatten, names):
         for extension in subdesc.extension:
             yield subname, extension
 
@@ -1109,30 +1112,64 @@ class ProtoFile:
         self.messages = []
         self.extensions = []
 
+        mangle_names = self.file_options.mangle_names
+        flatten = mangle_names == nanopb_pb2.M_FLATTEN
+        strip_prefix = None
+        if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+            strip_prefix = "." + self.fdesc.package
+
+        def create_name(names):
+            if mangle_names == nanopb_pb2.M_NONE:
+                return base_name + names
+            elif mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+                return Names(names)
+            else:
+                single_name = names
+                if isinstance(names, Names):
+                    single_name = names.parts[-1]
+                return Names(single_name)
+
+        def mangle_field_typename(typename):
+            if mangle_names == nanopb_pb2.M_FLATTEN:
+                return "." + typename.split(".")[-1]
+            elif strip_prefix is not None and typename.startswith(strip_prefix):
+                return typename[len(strip_prefix):]
+            else:
+                return typename
+
         if self.fdesc.package:
             base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
 
         for enum in self.fdesc.enum_type:
-            enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
-            self.enums.append(Enum(base_name, enum, enum_options))
+            name = create_name(enum.name)
+            enum_options = get_nanopb_suboptions(enum, self.file_options, name)
+            self.enums.append(Enum(name, enum, enum_options))
 
-        for names, message in iterate_messages(self.fdesc, base_name):
-            message_options = get_nanopb_suboptions(message, self.file_options, names)
+        for names, message in iterate_messages(self.fdesc, flatten):
+            name = create_name(names)
+            message_options = get_nanopb_suboptions(message, self.file_options, name)
 
             if message_options.skip_message:
                 continue
 
-            self.messages.append(Message(names, message, message_options))
-            for enum in message.enum_type:
-                enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-                self.enums.append(Enum(names, enum, enum_options))
+            for field in message.field:
+                if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
+                    field.type_name = mangle_field_typename(field.type_name)
 
-        for names, extension in iterate_extensions(self.fdesc, base_name):
-            field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
+
+            self.messages.append(Message(name, message, message_options))
+            for enum in message.enum_type:
+                name = create_name(names + enum.name)
+                enum_options = get_nanopb_suboptions(enum, message_options, name)
+                self.enums.append(Enum(name, enum, enum_options))
+
+        for names, extension in iterate_extensions(self.fdesc, flatten):
+            name = create_name(names + extension.name)
+            field_options = get_nanopb_suboptions(extension, self.file_options, name)
             if field_options.type != nanopb_pb2.FT_IGNORE:
-                self.extensions.append(ExtensionField(names, extension, field_options))
+                self.extensions.append(ExtensionField(name, extension, field_options))
 
     def add_dependency(self, other):
         for enum in other.enums:
