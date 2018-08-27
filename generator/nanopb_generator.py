@@ -95,11 +95,14 @@ try:
 except NameError:
     strtypes = (str, )
 
+
 class Names:
     '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
         if isinstance(parts, Names):
             parts = parts.parts
+        elif isinstance(parts, strtypes):
+            parts = (parts,)
         self.parts = tuple(parts)
 
     def __str__(self):
@@ -108,6 +111,8 @@ class Names:
     def __add__(self, other):
         if isinstance(other, strtypes):
             return Names(self.parts + (other,))
+        elif isinstance(other, Name):
+            return Names(self.parts + other.parts)
         elif isinstance(other, tuple):
             return Names(self.parts + other)
         else:
