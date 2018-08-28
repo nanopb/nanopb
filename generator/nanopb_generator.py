@@ -111,7 +111,7 @@ class Names:
     def __add__(self, other):
         if isinstance(other, strtypes):
             return Names(self.parts + (other,))
-        elif isinstance(other, Name):
+        elif isinstance(other, Names):
             return Names(self.parts + other.parts)
         elif isinstance(other, tuple):
             return Names(self.parts + other)
@@ -190,10 +190,13 @@ class Enum:
         self.options = enum_options
         self.names = names
 
+        # by definition, `names` include this enum's name
+        base_name = Names(names.parts[:-1])
+
         if enum_options.long_names:
             self.values = [(names + x.name, x.number) for x in desc.value]
         else:
-            self.values = [(desc.name + x.name, x.number) for x in desc.value]
+            self.values = [(base_name + x.name, x.number) for x in desc.value]
 
         self.value_longnames = [self.names + x.name for x in desc.value]
         self.packed = enum_options.packed_enum
