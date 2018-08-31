@@ -27,6 +27,12 @@ enum IntSize {
     IS_64 = 64;
 }
 
+enum TypenameMangling {
+    M_NONE = 0; // Default, no typename mangling
+    M_STRIP_PACKAGE = 1; // Strip current package name
+    M_FLATTEN = 2; // Only use last path component
+}
+
 // This is the inner options message, which basically defines options for
 // a field. When it is used in message or file scope, it applies to all
 // fields.
@@ -83,6 +89,9 @@ message NanoPBOptions {
 
   // Generate repeated field with fixed count
   optional bool fixed_count = 16 [default = false];
+
+  // Mangle long names
+  optional TypenameMangling mangle_names = 17 [default = M_NONE];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
