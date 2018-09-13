@@ -648,6 +648,13 @@ class Field:
                 if encsize is not None:
                     # Include submessage length prefix
                     encsize += varint_max_size(encsize.upperlimit())
+                else:
+                    my_msg = dependencies.get(str(self.struct_name))
+                    if my_msg and submsg.protofile == my_msg.protofile:
+                        # The dependency is from the same file and size cannot be
+                        # determined for it, thus we know it will not be possible
+                        # in runtime either.
+                        return None
 
             if encsize is None:
                 # Submessage or its size cannot be found.
@@ -1186,9 +1193,11 @@ class ProtoFile:
     def add_dependency(self, other):
         for enum in other.enums:
             self.dependencies[str(enum.names)] = enum
+            enum.protofile = other
 
         for msg in other.messages:
             self.dependencies[str(msg.name)] = msg
+            msg.protofile = other
 
         # Fix field default values where enum short names are used.
         for enum in other.enums:
