@@ -16,6 +16,14 @@ scons CC=clang CXX=clang++
 import os
 env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 
+# Limit memory usage. This is to catch problems like issue #338
+try:
+    import resource
+    soft, hard = resource.getrlimit(resourse.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (100*1024*1024, hard))
+except:
+    pass
+
 # Allow overriding the compiler with scons CC=???
 if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
 if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
