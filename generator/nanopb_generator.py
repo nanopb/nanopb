@@ -853,24 +853,33 @@ class OneOf(Field):
 
     def encoded_size(self, dependencies):
         '''Returns the size of the largest oneof field.'''
-        largest = EncodedSize(0)
-        symbols = set()
+        largest = 0
+        symbols = []
         for f in self.fields:
             size = EncodedSize(f.encoded_size(dependencies))
-            if size.value is None:
+            if size is None or size.value is None:
                 return None
             elif size.symbols:
-                symbols.add(EncodedSize(f.submsgname + 'size').symbols[0])
-            elif size.value > largest.value:
-                largest = size
+                symbols.append((f.tag, size.symbols[0]))
+            elif size.value > largest:
+                largest = size.value
 
         if not symbols:
+            # Simple case, all sizes were known at generator time
             return largest
 
-        symbols = list(symbols)
-        symbols.append(str(largest))
-        max_size = lambda x, y: '({0} > {1} ? {0} : {1})'.format(x, y)
-        return reduce(max_size, symbols)
+        if largest > 0:
+            # Some sizes were known, some were not
+            symbols.insert(0, (0, largest))
+
+        if len(symbols) == 1:
+            # Only one symbol was needed
+            return EncodedSize(5, [symbols[0][1]])
+        else:
+            # Use sizeof(union{}) construct to find the maximum size of
+            # submessages.
+            union_def = ' '.join('char f%d[%s];' % s for s in symbols)
+            return EncodedSize(5, ['sizeof(union{%s})' % union_def])
 
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
