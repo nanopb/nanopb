@@ -7,6 +7,8 @@
 
 #include "pb.h"
 
+#if PB_ENABLE_SIZE_OPTIMIZED
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,6 +39,8 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
+
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 
 #endif
 

@@ -253,6 +253,22 @@ class Enum:
 
         return result
 
+    def is_valid_definition(self, static):
+        result = ''
+        if static:
+          result += 'static '
+        result += 'bool %s_IsValid(uint32_t varint) {\n' % self.names
+        result += '  switch (varint) {\n'
+        for _, number in self.values:
+          result += '    case %d:\n' % number
+        result += '      return true;\n'
+        result += '    default:\n'
+        result += '      return false;\n'
+        result += '  }\n'
+        result += '}\n'
+        return result
+
+
 class FieldMaxSize:
     def __init__(self, worst = 0, checks = [], field_name = 'undefined'):
         if isinstance(worst, list):
@@ -407,6 +423,354 @@ class Field:
     def __lt__(self, other):
         return self.tag < other.tag
 
+    def get_enums_used(self):
+        enums_used = set()
+        if self.pbtype in ('ENUM', 'UENUM'):
+            enums_used.add(str(self.ctype))
+        return enums_used
+
+    def wire_type(self):
+        pbtype_to_wiretype = {
+          'BOOL': 'VARINT',
+          'ENUM': 'VARINT',
+          'UENUM': 'VARINT',
+          'INT32': 'VARINT',
+          'INT64': 'VARINT',
+          'UINT32': 'VARINT',
+          'UINT64': 'VARINT',
+          'SINT32': 'VARINT',
+          'SINT64': 'VARINT',
+          'FIXED32': '32BIT',
+          'SFIXED32': '32BIT',
+          'FIXED64': '64BIT',
+          'SFIXED64': '64BIT',
+          'FLOAT': '64BIT',
+          'DOUBLE': '64BIT',
+          'BYTES': 'STRING',
+          'STRING': 'STRING',
+          'MESSAGE': 'STRING',
+        }
+        return 'PB_WT_%s' % (pbtype_to_wiretype[self.pbtype])
+
+    def tag_encoder(self):
+        if self.rules == 'REPEATED':
+          wire_type = 'PB_WT_STRING'
+        else:
+          wire_type = self.wire_type()
+        return 'pb_encode_tag(stream, %s, %s)' % (wire_type, self.tag)
+
+    def size_encoder(self, indent=''):
+        pbtype_to_int_encoder = {
+          'BOOL': 'varint',
+          'ENUM': 'varint',
+          'UENUM': 'varint',
+          'INT32': 'varint',
+          'INT64': 'varint',
+          'UINT32': 'uvarint',
+          'UINT64': 'uvarint',
+          'SINT32': 'svarint',
+          'SINT64': 'svarint',
+          'FIXED32': 'fixed32',
+          'SFIXED32': 'fixed32',
+          'FIXED64': 'fixed64',
+          'SFIXED64': 'fixed64',
+          'FLOAT': 'fixed32',
+          'DOUBLE': 'fixed64',
+        }
+
+        result = ''
+        field_name = self.name
+        tag_size = varint_max_size(self.tag)
+        if self.allocation == 'CALLBACK':
+          result += '  size += msg->%s.funcs.get_encoded_size(%s, &msg->%s.arg);\n' % (self.name, self.tag, self.name)
+          return result
+
+        elif self.rules == 'REPEATED':
+          result += '  size_before_repeat = size;\n'
+          result += '\n'
+          result += '  for (i = 0; i < msg->%s_count; i++) {\n' % self.name
+          indent = '  '
+          field_name = '%s[i]' % self.name
+        elif self.rules == 'OPTIONAL':
+          indent = '  '
+          result += '  if (msg->has_%s) {\n' % self.name
+          result += '    size += %s;\n' % tag_size
+        elif self.rules == 'ONEOF' and self.allocation == 'ONEOF':
+          result += '  switch (msg->which_%s) {\n' % self.name
+          result += '    case 0:\n'
+          result += '      break;\n'
+          for oneof in self.fields:
+            result += '    case %d:\n' % oneof.tag
+            result += '    %s' % oneof.size_encoder(indent='    ')
+            result += '      break;\n'
+          result += '  }\n'
+          return result
+        else:
+          result += '  size += %s;\n' % tag_size
+
+        if self.rules == 'ONEOF':
+          field_name = '%s.%s' % (self.union_name, self.name)
+
+        if self.pbtype == 'MESSAGE':
+          result += indent + '  field_size = get_encoded_size_%s(&msg->%s);\n' % (self.submsgname, field_name)
+          result += indent + '  size += pb_get_encoded_varint_size(field_size) + field_size;\n'
+        elif self.pbtype == 'STRING':
+          result += indent + '  field_size = pb_strnlen(msg->%s, %s);\n' % (field_name, self.max_size)
+          result += indent + '  size += pb_get_encoded_varint_size(field_size) + field_size;\n'
+        elif self.pbtype == 'BYTES':
+          result += indent + '  field_size = msg->%s.size;\n' % field_name
+          result += indent + '  size += pb_get_encoded_varint_size(field_size) + field_size;\n'
+        else:
+          int_encoder = pbtype_to_int_encoder[self.pbtype]
+          if int_encoder == 'fixed32':
+            result += indent + '  size += 4;\n'
+          elif int_encoder == 'fixed64':
+            result += indent + '  size += 8;\n'
+          else:
+            result += indent + '  size += pb_get_encoded_%s_size(msg->%s);\n' % (int_encoder, field_name)
+
+        if self.rules in ['OPTIONAL', 'REPEATED']:
+          result += '  }\n'
+        if self.rules == 'REPEATED':
+          result += '  if (size != size_before_repeat) {\n'
+          result += '    size += %s;\n' % tag_size
+          result += '    size += pb_get_encoded_varint_size(size - size_before_repeat);\n'
+          result += '  }\n'
+        return result
+
+    def value_encoder(self, stream='stream'):
+        pbtype_to_int_encoder = {
+          'BOOL': 'varint',
+          'ENUM': 'varint',
+          'UENUM': 'varint',
+          'INT32': 'varint',
+          'INT64': 'varint',
+          'UINT32': 'uvarint',
+          'UINT64': 'uvarint',
+          'SINT32': 'svarint',
+          'SINT64': 'svarint',
+          'FIXED32': 'fixed32',
+          'SFIXED32': 'fixed32',
+          'FIXED64': 'fixed64',
+          'SFIXED64': 'fixed64',
+          'FLOAT': 'fixed32',
+          'DOUBLE': 'fixed64',
+        }
+
+        if self.allocation == 'CALLBACK':
+          return 'msg->%s.funcs.encode(%s, %s, %s, msg->%s.arg)' % (stream, self.wire_type(), self.tag, self.name, self.name)
+
+        if self.rules == 'REPEATED':
+          field_name = '%s[i]' % self.name
+        elif self.rules == 'ONEOF':
+          field_name = '%s.%s' % (self.union_name, self.name)
+        else:
+          field_name = self.name
+
+        if self.pbtype == 'MESSAGE':
+          return 'encode_%s(%s, &msg->%s)' % (self.ctype, stream, field_name)
+        if self.pbtype == 'STRING':
+          return 'pb_encode_string(%s, (const uint8_t *)msg->%s, pb_strnlen(msg->%s, %s))' % (stream, field_name, field_name, self.max_size)
+        if self.pbtype == 'BYTES':
+          return 'pb_encode_string(%s, msg->%s.bytes, msg->%s.size)' % (stream, field_name, field_name)
+
+        encoder = pbtype_to_int_encoder[self.pbtype]
+        if encoder.startswith('fixed'):
+          return 'pb_encode_%s(%s, &msg->%s)' % (encoder, stream, field_name)
+        return 'pb_encode_%s(%s, msg->%s)' % (encoder, stream, field_name)
+
+    def value_decoder(self):
+        pbtype_to_wiretype = {
+          'BOOL': 'VARINT',
+          'ENUM': 'VARINT',
+          'UENUM': 'VARINT',
+          'INT32': 'VARINT',
+          'INT64': 'VARINT',
+          'UINT32': 'VARINT',
+          'UINT64': 'VARINT',
+          'SINT32': 'VARINT',
+          'SINT64': 'VARINT',
+          'FIXED32': '32BIT',
+          'SFIXED32': '32BIT',
+          'FIXED64': '64BIT',
+          'SFIXED64': '64BIT',
+          'FLOAT': '64BIT',
+          'DOUBLE': '64BIT',
+          'BYTES': 'STRING',
+          'STRING': 'STRING',
+          'MESSAGE': 'STRING',
+        }
+        pbtype_to_int_decoder = {
+          'BOOL': 'varint',
+          'ENUM': 'varint',
+          'UENUM': 'varint',
+          'INT32': 'varint',
+          'INT64': 'varint',
+          'UINT32': 'varint',
+          'UINT64': 'varint',
+          'SINT32': 'svarint',
+          'SINT64': 'svarint',
+          'FIXED32': 'fixed32',
+          'SFIXED32': 'fixed32',
+          'FIXED64': 'fixed64',
+          'SFIXED64': 'fixed64',
+          'FLOAT': 'fixed32',
+          'DOUBLE': 'fixed64',
+        }
+        if self.allocation == 'POINTER':
+          raise Exception("Unsupported allocation type for %s" % self.name)
+
+        result = ''
+        indent_level = 3
+        indent = lambda: '  ' * indent_level
+
+        if self.rules == 'ONEOF' and self.allocation == 'ONEOF':
+          for f in self.fields:
+            result += f.value_decoder()
+          return result
+
+        if self.rules == 'REPEATED':
+          wire_type = 'STRING'
+        else:
+          wire_type = pbtype_to_wiretype[self.pbtype]
+        int_decoder = pbtype_to_int_decoder.get(self.pbtype)
+
+        if self.rules == 'ONEOF':
+          field_name = '%s.%s' % (self.union_name, self.name)
+        else:
+          field_name = self.name
+
+        result += indent() + 'case %s: {/* %s */\n' % (self.tag, field_name)
+        indent_level += 1
+        has_substream = self.pbtype in ['BYTES', 'STRING', 'MESSAGE']
+        has_size = self.pbtype in ['BYTES', 'STRING']
+        is_repeated = self.rules == 'REPEATED'
+
+        if self.allocation == 'CALLBACK':
+          has_substream = True
+          has_size = False
+          is_repeated = False
+          int_decoder = None
+
+        if has_size:
+          result += indent() + 'size_t size;\n'
+        if has_substream:
+          result += indent() + 'pb_istream_t substream;\n'
+        if is_repeated:
+          result += indent() + 'pb_istream_t repeat_substream;\n'
+          result += indent() + 'size_t i;\n'
+        if int_decoder == 'svarint':
+          result += indent() + 'pb_int64_t varint;\n'
+        elif int_decoder == 'varint':
+          result += indent() + 'pb_uint64_t varint;\n'
+        result += '\n'
+
+        result += indent() + 'if (wire_type != PB_WT_%s) {\n' % wire_type
+        result += indent() + '  goto skip_field;\n'
+        result += indent() + '}\n'
+        result += '\n'
+
+        stream = 'stream'
+
+        if is_repeated:
+          result += indent() + 'if (!pb_make_string_substream(stream, &repeat_substream)) {\n'
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'for (i = 0; repeat_substream.bytes_left; i++) {\n'
+          result += indent() + '  if (i >= %d) {\n' % self.max_count
+          result += indent() + '    return false;\n'
+          result += indent() + '  }\n'
+          field_name = '%s[i]' % field_name
+          indent_level += 1
+          stream = '&repeat_substream'
+
+        if self.allocation == 'CALLBACK':
+          result += indent() + 'if (!pb_make_string_substream(%s, &substream)) {\n' % stream
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'if (!msg->%s.funcs.decode(&substream, %s, &msg->%s.arg)) {\n' % (field_name, self.tag, field_name)
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'pb_close_string_substream(%s, &substream);\n' % stream
+          result += '\n'
+        elif self.pbtype == 'STRING':
+          result += indent() + 'if (!pb_make_string_substream(%s, &substream)) {\n' % stream
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'size = substream.bytes_left;\n'
+          result += indent() + 'if (size > %s) {\n' % (self.max_size - 1)
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'if (!pb_read(&substream, (uint8_t *)msg->%s, size)) {\n' % field_name
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += indent() + 'msg->%s[size] = 0;\n' % field_name
+          result += '\n'
+          result += indent() + 'pb_close_string_substream(%s, &substream);\n' % stream
+        elif self.pbtype == 'BYTES':
+          result += indent() + 'if (!pb_make_string_substream(%s, &substream)) {\n' % stream
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'size = substream.bytes_left;\n'
+          result += '\n'
+          result += indent() + 'if (size > %s) {\n' % self.max_size
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += indent() + 'if (!pb_read(&substream, msg->%s.bytes, size)) {\n' % field_name
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += indent() + 'msg->%s.size = size;\n' % field_name
+          result += '\n'
+          result += indent() + 'pb_close_string_substream(%s, &substream);\n' % stream
+        elif self.pbtype == 'MESSAGE':
+          result += indent() + 'if (!pb_make_string_substream(%s, &substream)) {\n' % stream
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'if (!decode_%s(&substream, &(msg->%s))) {\n' % (self.submsgname, field_name)
+          result += indent() + '  pb_close_string_substream(%s, &substream);\n' % stream
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          result += '\n'
+          result += indent() + 'pb_close_string_substream(%s, &substream);\n' % stream
+        elif int_decoder.endswith('varint'):
+          result += indent() + 'if (!pb_decode_%s(%s, &varint)) {\n' % (int_decoder, stream)
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+          if self.pbtype in ('ENUM', 'UENUM'):
+            result += indent() + 'if(!%s_IsValid(varint)) {\n' % self.ctype
+            result += indent() + '  continue;\n'
+            result += indent() + '}\n'
+          result += indent() + 'msg->%s = (%s)varint;\n' % (field_name, self.ctype)
+        else:
+          result += indent() + 'if (!pb_decode_%s(%s, &msg->%s)) {\n' % (int_decoder, stream, field_name)
+          result += indent() + '  return false;\n'
+          result += indent() + '}\n'
+
+        if self.rules == 'ONEOF':
+          result += indent() + 'msg->which_%s = %d;\n' % (self.union_name, self.tag)
+        elif is_repeated:
+          indent_level -= 1
+          result += indent() + '}\n'
+          result += indent() + 'msg->%s_count = i;\n' % self.name
+          result += '\n'
+          result += indent() + 'pb_close_string_substream(stream, &repeat_substream);\n'
+        elif self.rules == 'REQUIRED':
+          result += indent() + 'num_required_parsed++;\n'
+        elif self.rules == 'OPTIONAL' and self.allocation != 'CALLBACK':
+          result += indent() + 'msg->has_%s = true;\n' % self.name
+
+        result += indent() + 'break;\n'
+        indent_level -= 1
+        result += indent() + '}\n'
+        return result
+
     def __str__(self):
         result = ''
         if self.allocation == 'POINTER':
@@ -428,6 +792,7 @@ class Field:
             result += '    pb_callback_t %s;' % self.name
         else:
             if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+              if not Globals.optimize_speed:
                 result += '    bool has_' + self.name + ';\n'
             elif (self.rules == 'REPEATED' and
                   self.allocation == 'STATIC' and
@@ -513,7 +878,7 @@ class Field:
                 outer_init += '{'
                 outer_init += ', '.join([inner_init] * self.max_count)
                 outer_init += '}'
-            elif self.rules == 'OPTIONAL':
+            elif self.rules == 'OPTIONAL' and not Globals.optimize_speed:
                 outer_init = 'false, ' + inner_init
             else:
                 outer_init = inner_init
@@ -550,6 +915,9 @@ class Field:
             if self.allocation != 'STATIC':
                 return None # Not implemented
             array_decl = '[%d]' % self.max_size
+
+        if Globals.optimize_speed:
+          return '#define %s_default %s;' % (self.struct_name + self.name, default)
 
         if declaration_only:
             return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
@@ -809,6 +1177,12 @@ class OneOf(Field):
         # Sort by the lowest tag number inside union
         self.tag = min([f.tag for f in self.fields])
 
+    def get_enums_used(self):
+        enums_used = set()
+        for field in self.fields:
+            enums_used.update(field.get_enums_used())
+        return enums_used
+
     def __str__(self):
         result = ''
         if self.fields:
@@ -943,12 +1317,28 @@ class Message:
         self.ordered_fields = self.fields[:]
         self.ordered_fields.sort()
 
+    def get_enums_used(self):
+        enums_used = set()
+        for field in self.fields:
+            enums_used.update(field.get_enums_used())
+        return enums_used
+
     def get_dependencies(self):
         '''Get list of type names that this structure refers to.'''
         deps = []
         for f in self.fields:
             deps += f.get_dependencies()
         return deps
+
+    def _gen_bitfield(self):
+      fields = [f for f in self.ordered_fields if f.rules == 'OPTIONAL']
+
+      if not Globals.optimize_speed or not fields:
+        return ""
+
+      bitfields = ['    unsigned has_{} : 1;'.format(f.name) for f in fields]
+
+      return "\n" + "\n".join(bitfields)
 
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
@@ -960,6 +1350,7 @@ class Message:
 
         result += '\n'.join([str(f) for f in self.ordered_fields])
         result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
+        result += self._gen_bitfield()
         result += '\n}'
 
         if self.packed:
@@ -983,6 +1374,10 @@ class Message:
         parts = []
         for field in self.ordered_fields:
             parts.append(field.get_initializer(null_init))
+        if Globals.optimize_speed:
+            optionals = [f for f in self.ordered_fields
+                         if f.rules == 'OPTIONAL']
+            parts.extend(['false'] * len(optionals))
         return '{' + ', '.join(parts) + '}'
 
     def default_decl(self, declaration_only = False):
@@ -1010,6 +1405,222 @@ class Message:
             else:
                 count += 1
         return count
+
+    def encoder_wrapper(self):
+        result = ''
+        result += 'pb_static_always_inline_header bool encode_%s(pb_ostream_t *stream, const %s *msg) {\n' % (self.name, self.name)
+        result += '  return pb_encode(stream, %s_fields, msg);\n' % self.name
+        result += '}\n'
+        result += '\n'
+        result += 'pb_static_always_inline_header size_t get_encoded_size_%s(const %s *msg) {\n' % (self.name, self.name)
+        result += '  size_t size;\n'
+        result += '  if (!pb_get_encoded_size(&size, %s_fields, msg)) {\n' % self.name
+        result += '    assert(false);\n'
+        result += '    size = 0;\n'
+        result += '  }\n'
+        result += '  return size;\n'
+        result += '}\n'
+        return result
+
+    def decoder_wrapper(self):
+      result = ''
+      result += 'pb_static_always_inline_header bool decode_%s(pb_istream_t *stream, %s *msg) {\n' % (self.name, self.name)
+      result += '  return pb_decode(stream, %s_fields, msg);\n' % self.name
+      result += '}\n'
+      return result
+
+    def encoder_declaration(self):
+      if not self.ordered_fields:
+        result = ''
+        result += 'pb_static_always_inline_header bool encode_%s(pb_ostream_t *stream, const %s *msg) { (void)stream; (void)msg; return true; }\n' % (self.name, self.name)
+        result += '\n'
+        result += 'pb_static_always_inline_header size_t get_encoded_size_%s(const %s *msg) { (void)msg; return 0; }' % (self.name, self.name)
+      else:
+        result = 'bool encode_%s(pb_ostream_t *stream, const %s *msg);\n' % (self.name, self.name)
+        result += 'size_t get_encoded_size_%s(const %s *msg);' % (self.name, self.name)
+      return result
+
+    def encoder_definition(self):
+      if not self.ordered_fields:
+        return ''
+
+      have_repeated = False
+      have_length_delimited = False
+
+      for f in self.ordered_fields:
+        if f.allocation == 'CALLBACK':
+          continue
+
+        if f.rules == 'REPEATED':
+          have_repeated = True
+        elif f.rules == 'ONEOF':
+          continue
+
+        if f.pbtype == 'MESSAGE' or f.pbtype == 'STRING' or f.pbtype == 'BYTES':
+          have_length_delimited = True
+
+
+      result = ''
+      result += 'size_t get_encoded_size_%s(const %s *msg) {\n' % (self.name, self.name)
+      result += '  size_t size = 0;\n'
+      if have_repeated:
+        result += '  size_t i;\n'
+        result += '  size_t size_before_repeat;\n'
+      if have_length_delimited:
+        result += '  size_t field_size;\n'
+
+      result += '\n'
+
+      for f in self.ordered_fields:
+        if f.allocation == 'POINTER':
+          raise Exception('Pointer allocation not yet supported in optimized version for field %s.%s' % (self.name, f.name))
+
+        result += f.size_encoder()
+
+      result += '\n'
+      result += '  return size;\n'
+      result += '}\n'
+      result += '\n'
+      result += 'bool encode_%s(pb_ostream_t *stream, const %s *msg) {\n' % (self.name, self.name)
+      if have_repeated:
+        result += '  size_t i;\n'
+        result += '  pb_ostream_t sizing_stream;\n'
+
+      for f in self.ordered_fields:
+        if f.allocation == 'POINTER':
+          raise Exception('Pointer allocation not yet supported in optimized version')
+
+        indent = ''
+
+        result += '\n'
+
+        if f.allocation == 'CALLBACK':
+          result += '  if (!msg->%s.funcs.encode(stream, %s, %s, &msg->%s.arg)) {\n' % (f.name, f.tag, f.wire_type(), f.name)
+          result += '    return false;\n'
+          result += '  }\n'
+          continue
+
+        if f.rules == 'OPTIONAL':
+          result += '  if (msg->has_%s) {\n' % f.name
+          indent = '  '
+
+        if f.rules in ['OPTIONAL', 'REQUIRED']:
+          result += indent + '  if (!%s) {\n' % (f.tag_encoder())
+          result += indent + '    return false;\n'
+          result += indent + '  }\n'
+
+        if f.rules == 'REPEATED':
+          result += '  if (msg->%s_count) {\n' % f.name
+          result += '    if (!%s) {\n' % (f.tag_encoder())
+          result += '      return false;\n'
+          result += '    }\n'
+          result += '\n'
+          result += '    memset(&sizing_stream, 0, sizeof(sizing_stream));\n'
+          result += '\n'
+          result += '    for (i = 0; i < msg->%s_count; i++) {\n' % f.name
+          result += '      if (!%s) {\n' % (f.value_encoder(stream='&sizing_stream'))
+          result += '        return false;\n'
+          result += '      }\n'
+          result += '    }\n'
+          result += '\n'
+          result += '    if (!pb_encode_varint(stream, sizing_stream.bytes_written)) {\n'
+          result += '      return false;\n'
+          result += '    }\n'
+          result += '\n'
+          result += '    for (i = 0; i < msg->%s_count; i++) {\n' % f.name
+          indent = '    '
+        elif f.rules == 'ONEOF':
+          result += '  switch (msg->which_%s) {\n' % f.name
+          result += '    case 0:\n'
+          result += '      break;\n'
+          for one in f.fields:
+            result += '    case %d:\n' % one.tag
+            result += '      if (!%s) {\n' % (one.tag_encoder())
+            result += '        return false;\n'
+            result += '      }\n'
+            result += '      if (!%s) {\n' % (one.value_encoder())
+            result += '        return false;\n'
+            result += '      }\n'
+            result += '      break;\n'
+          result += '  }\n'
+          result += '\n'
+
+        if f.rules != 'ONEOF':
+          if f.pbtype == 'MESSAGE':
+            field_name = ('%s' if f.rules != 'REPEATED' else '%s[i]') % f.name
+            result += indent + '  if (!pb_encode_varint(stream, get_encoded_size_%s(&msg->%s))) {\n' % (f.submsgname, field_name)
+            result += indent + '    return false;\n'
+            result += indent + '  }\n'
+
+          result += indent + '  if (!%s) {\n' % (f.value_encoder())
+          result += indent + '    return false;\n'
+          result += indent + '  }\n'
+
+        if f.rules == 'REPEATED':
+          result += '    }\n'
+          result += '  }\n'
+        elif f.rules == 'OPTIONAL':
+          result += '  }\n'
+
+      result += '\n'
+      result += '  return true;\n'
+      result += '}'
+      return result
+
+    def decoder_declaration(self):
+      result = ''
+      result += 'bool decode_%s(pb_istream_t *stream, %s *msg);' % (self.name, self.name)
+      return result
+
+    def decoder_definition(self):
+      result = ''
+      result += 'bool decode_%s(pb_istream_t *stream, %s *msg) {\n' % (self.name, self.name)
+      result += '  uint32_t tag;\n'
+      result += '  pb_wire_type_t wire_type;\n'
+      result += '  bool eof = false;\n'
+      result += '  size_t num_required_parsed = 0;\n'
+      # For C89 can't use compound initializer
+      result += '  %s msg_default = %s_init_default;\n' % (self.name, self.name)
+      result += '\n'
+      result += '  *msg = msg_default;\n'
+      result += '\n'
+
+      if not self.ordered_fields:
+        result += '  (void)msg;'
+        result += '\n'
+
+      result += '  while (stream->bytes_left) {\n'
+      result += '    if (!pb_decode_tag(stream, &wire_type, &tag, &eof)) {\n'
+      result += '      if (eof) {\n'
+      result += '        break;\n'
+      result += '      }\n'
+      result += '      return false;\n'
+      result += '    }\n'
+      result += '\n'
+      result += '    switch(tag) {\n'
+
+      for f in self.ordered_fields:
+        if f.allocation == 'POINTER':
+          raise Exception('Pointer allocation not yet supported in optimized version')
+
+        result += f.value_decoder()
+      result += '      default:\n'
+      if self.fields:
+        result += '      skip_field:\n'
+      result += '        if (!pb_skip_field(stream, wire_type)) {\n'
+      result += '          return false;\n'
+      result += '        }\n'
+      result += '        break;\n'
+      result += '    }\n'
+      result += '  }\n'
+      result += '\n'
+      result += '  if (num_required_parsed != %s) {\n' % self.count_required_fields()
+      result += '    return false;\n'
+      result += '  }\n'
+      result += '\n'
+      result += '  return true;\n'
+      result += '}'
+      return result
 
     def fields_declaration(self):
         result = 'extern const pb_field_t %s_fields[%d];' % (self.name, self.count_all_fields() + 1)
@@ -1234,7 +1845,10 @@ class ProtoFile:
         yield '#ifndef PB_%s_INCLUDED\n' % symbol
         yield '#define PB_%s_INCLUDED\n' % symbol
         try:
+            yield options.libformat % ('assert.h')
             yield options.libformat % ('pb.h')
+            yield options.libformat % ('pb_encode.h')
+            yield options.libformat % ('pb_decode.h')
         except TypeError:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
@@ -1250,6 +1864,10 @@ class ProtoFile:
         yield '#if PB_PROTO_HEADER_VERSION != 30\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
+        yield '\n'
+
+        yield '#define %s_SPEED_OPTIMIZED %d\n' % (symbol, 1 if Globals.optimize_speed else 0)
+        yield '#define %s_SPACE_OPTIMIZED %d\n' % (symbol, 0 if Globals.optimize_speed else 1)
         yield '\n'
 
         yield '#ifdef __cplusplus\n'
@@ -1296,10 +1914,18 @@ class ProtoFile:
                 yield extension.tags()
             yield '\n'
 
-            yield '/* Struct field encoding specification for nanopb */\n'
-            for msg in self.messages:
-                yield msg.fields_declaration() + '\n'
-            yield '\n'
+            if not Globals.optimize_speed:
+                yield '/* Struct field encoding specification for nanopb */\n'
+                for msg in self.messages:
+                    yield msg.fields_declaration() + '\n'
+                    yield msg.decoder_wrapper() + '\n'
+                    yield msg.encoder_wrapper() + '\n'
+                yield '\n'
+            else:
+                for msg in self.messages:
+                    yield msg.encoder_declaration() + '\n'
+                    yield msg.decoder_declaration() + '\n'
+                yield '\n'
 
             yield '/* Maximum encoded size of messages (where known) */\n'
             for msg in self.messages:
@@ -1355,11 +1981,30 @@ class ProtoFile:
         else:
             yield '/* Generated by %s at %s. */\n\n' % (nanopb_version, time.asctime())
         yield options.genformat % (headername)
+        yield options.libformat % ('pb_decode.h')
+        yield options.libformat % ('pb_encode.h')
         yield '\n'
         yield '/* @@protoc_insertion_point(includes) */\n'
 
         yield '#if PB_PROTO_HEADER_VERSION != 30\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
+        yield '#endif\n'
+        yield '\n'
+        if Globals.optimize_speed:
+          yield '#if PB_ENABLE_SIZE_OPTIMIZED\n'
+          yield '#error Compiled with --fast but built for size\n'
+          yield '#endif\n'
+        else:
+          yield '#if !PB_ENABLE_SIZE_OPTIMIZED\n'
+          yield '#error Compiled without --fast but built for speed\n'
+          yield '#endif\n'
+        yield '\n'
+        yield '#ifdef PB_WITHOUT_64BIT\n'
+        yield '#define pb_int64_t int32_t\n'
+        yield '#define pb_uint64_t uint32_t\n'
+        yield '#else\n'
+        yield '#define pb_int64_t int64_t\n'
+        yield '#define pb_uint64_t uint64_t\n'
         yield '#endif\n'
         yield '\n'
 
@@ -1368,8 +2013,18 @@ class ProtoFile:
 
         yield '\n\n'
 
+        if Globals.optimize_speed:
+            enum_names_used = {e for msg in self.messages for e in msg.get_enums_used()}
+            enums_used = sorted([e for e in self.enums if str(e.names) in enum_names_used], key=lambda e: str(e.names))
+            for enum in enums_used:
+                yield enum.is_valid_definition(static=True) + '\n\n'
+
         for msg in self.messages:
-            yield msg.fields_definition() + '\n\n'
+            if not Globals.optimize_speed:
+                yield msg.fields_definition() + '\n\n'
+            else:
+                yield msg.encoder_definition() + '\n\n'
+                yield msg.decoder_definition() + '\n\n'
 
         for ext in self.extensions:
             yield ext.extension_def() + '\n'
@@ -1502,6 +2157,7 @@ class Globals:
     verbose_options = False
     separate_options = []
     matched_namemasks = set()
+    optimize_speed = False
 
 def get_nanopb_suboptions(subdesc, options, name):
     '''Get copy of options, and merge information from subdesc.'''
@@ -1572,6 +2228,8 @@ optparser.add_option("-D", "--output-dir", dest="output_dir",
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"\n',
     help="Set format string to use for including other .pb.h files. [default: %default]")
+optparser.add_option("-F", "--fast", action="store_true", default=False,
+    help="Prefer speed over code-size.  Generate decoder/encoder per-type.  Info for generic pb_encode/pb_decode is omitted.")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>\n',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
@@ -1702,6 +2360,7 @@ def main_cli():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
+    Globals.optimize_speed = options.fast
     Globals.verbose_options = options.verbose
     for filename in filenames:
         results = process_file(filename, None, options)
@@ -1746,6 +2405,7 @@ def main_plugin():
     options, dummy = optparser.parse_args(args)
 
     Globals.verbose_options = options.verbose
+    Globals.optimize_speed = options.fast
 
     if options.verbose:
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'

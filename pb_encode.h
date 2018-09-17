@@ -46,6 +46,7 @@ struct pb_ostream_s
 #endif
 };
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /***************************
  * Main encoding functions *
  ***************************/
@@ -80,6 +81,7 @@ bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_field_t fields[], c
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
 bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct);
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /**************************************
  * Functions for manipulating streams *
@@ -119,9 +121,11 @@ bool pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
  * Helper functions for writing field callbacks *
  ************************************************/
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /* Encode field header based on type and field number defined in the field
  * structure. Call this from the callback before writing out field contents. */
 bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /* Encode field header by manually specifing wire type. You need to use this
  * if you want to write out packed arrays from a callback field. */
@@ -130,9 +134,21 @@ bool pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field
 /* Encode an integer in the varint format.
  * This works for bool, enum, int32, int64, uint32 and uint64 field types. */
 #ifndef PB_WITHOUT_64BIT
-bool pb_encode_varint(pb_ostream_t *stream, uint64_t value);
+bool pb_encode_uvarint(pb_ostream_t *stream, uint64_t value);
 #else
-bool pb_encode_varint(pb_ostream_t *stream, uint32_t value);
+bool pb_encode_uvarint(pb_ostream_t *stream, uint32_t value);
+#endif
+
+#ifndef PB_WITHOUT_64BIT
+pb_static_always_inline_header
+bool pb_encode_varint(pb_ostream_t *stream, int64_t value) {
+  return pb_encode_uvarint(stream, (uint64_t)value);
+}
+#else
+pb_static_always_inline_header
+bool pb_encode_varint(pb_ostream_t *stream, int32_t value) {
+  return pb_encode_uvarint(stream, (uint32_t)value);
+}
 #endif
 
 /* Encode an integer in the zig-zagged svarint format.
@@ -156,12 +172,46 @@ bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
 bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
 #endif
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /* Encode a submessage field.
  * You need to pass the pb_field_t array and pointer to struct, just like
  * with pb_encode(). This internally encodes the submessage twice, first to
  * calculate message size and then to actually write it out.
  */
 bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
+
+#if !PB_ENABLE_SIZE_OPTIMIZED
+/*****************************
+ * Speed-optimized functions *
+ *****************************/
+
+/* Determine the zig-zag size of the integer type */
+#ifndef PB_WITHOUT_64BIT
+size_t pb_get_encoded_varint_size(int64_t v);
+#else
+size_t pb_get_encoded_varint_size(int32_t v);
+#endif
+
+#ifndef PB_WITHOUT_64BIT
+size_t pb_get_encoded_uvarint_size(uint64_t v);
+#else
+size_t pb_get_encoded_uvarint_size(uint32_t v);
+#endif
+
+#ifndef PB_WITHOUT_64BIT
+size_t pb_get_encoded_svarint_size(int64_t v);
+#else
+size_t pb_get_encoded_svarint_size(int32_t v);
+#endif
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
+
+/* strnlen not always available on platforms */
+#if PB_WITHOUT_STRNLEN
+size_t pb_strnlen(const char *s, size_t max_len);
+#else
+#define pb_strnlen strnlen
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

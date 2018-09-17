@@ -5,6 +5,7 @@
 
 #include "pb_common.h"
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_field_t *fields, void *dest_struct)
 {
     iter->start = fields;
@@ -94,4 +95,4 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     return false;
 }
 
-
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */

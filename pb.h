@@ -37,6 +37,12 @@
  * This was the default until nanopb-0.2.1. */
 /* #define PB_OLD_CALLBACK_STYLE */
 
+/* Define this if building with --fast to reduce size of nanopb library by
+   omitting the generic encode/decode routines */
+/* #define PB_ENABLE_SIZE_OPTIMIZED 0 */
+
+/* Define this if building with --fast and there's no built-in strnlen */
+/* #define PB_WITHOUT_STRNLEN 1 */
 
 /******************************************************************
  * You usually don't need to change anything below this line.     *
@@ -106,6 +112,10 @@
 #ifndef PB_UNUSED
 #define PB_UNUSED(x) (void)(x)
 #endif
+
+#ifndef PB_ENABLE_SIZE_OPTIMIZED
+#define PB_ENABLE_SIZE_OPTIMIZED 1
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
@@ -269,6 +279,14 @@ struct pb_bytes_array_s {
 };
 typedef struct pb_bytes_array_s pb_bytes_array_t;
 
+/* Wire types. Library user needs these only in encoder callbacks. */
+typedef enum {
+    PB_WT_VARINT = 0,
+    PB_WT_64BIT  = 1,
+    PB_WT_STRING = 2,
+    PB_WT_32BIT  = 5
+} pb_wire_type_t;
+
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
  * calls pb_decode.
@@ -297,25 +315,27 @@ struct pb_callback_s {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
     } funcs;
-#else
+#elif PB_ENABLE_SIZE_OPTIMIZED
     /* New function signature, which allows modifying arg contents in callback. */
     union {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
     } funcs;
-#endif    
-    
+#else
+    /* New function signature supporting --fast generated code */
+    union {
+        bool (*decode)(pb_istream_t *stream, uint32_t tag, void **arg);
+        /* Return the number of bytes required to encode this argument including
+           tag. */
+        size_t (*get_encoded_size)(uint32_t tag, void * const *arg);
+        bool (*encode)(pb_ostream_t *stream, pb_wire_type_t type, uint32_t tag, void * const *arg);
+    } funcs;
+
+#endif
+
     /* Free arg for use by callback */
     void *arg;
 };
-
-/* Wire types. Library user needs these only in encoder callbacks. */
-typedef enum {
-    PB_WT_VARINT = 0,
-    PB_WT_64BIT  = 1,
-    PB_WT_STRING = 2,
-    PB_WT_32BIT  = 5
-} pb_wire_type_t;
 
 /* Structure for defining the handling of unknown/extension fields.
  * Usually the pb_extension_type_t structure is automatically generated,
@@ -589,5 +609,11 @@ struct pb_extension_s {
 #endif
 
 #define PB_RETURN_ERROR(stream, msg) return PB_SET_ERROR(stream, msg), false
+
+#if __GNUC__
+#define pb_static_always_inline_header static  __attribute__((__always_inline__, __unused__)) __inline
+#else /* __GNUC__ */
+#define pb_static_always_inline_header static inline
+#endif /* __GNUC__ */
 
 #endif

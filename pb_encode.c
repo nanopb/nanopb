@@ -17,6 +17,17 @@
     #define checkreturn __attribute__((warn_unused_result))
 #endif
 
+#ifdef PB_WITHOUT_64BIT
+#define pb_int64_t int32_t
+#define pb_uint64_t uint32_t
+static bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t value);
+#else
+#define pb_int64_t int64_t
+#define pb_uint64_t uint64_t
+#endif
+
+#if PB_ENABLE_SIZE_OPTIMIZED
+
 /**************************************
  * Declarations internal to this file *
  **************************************/
@@ -38,16 +49,6 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
 static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 
-#ifdef PB_WITHOUT_64BIT
-#define pb_int64_t int32_t
-#define pb_uint64_t uint32_t
-
-static bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t value);
-#else
-#define pb_int64_t int64_t
-#define pb_uint64_t uint64_t
-#endif
-
 /* --- Function pointers to field encoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
@@ -64,6 +65,8 @@ static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
     NULL, /* extensions */
     &pb_enc_fixed_length_bytes
 };
+
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /*******************************
  * pb_ostream_t implementation *
@@ -121,6 +124,7 @@ bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t cou
 /*************************
  * Encode a single field *
  *************************/
+#if PB_ENABLE_SIZE_OPTIMIZED
 
 /* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
@@ -164,7 +168,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
             size = sizestream.bytes_written;
         }
         
-        if (!pb_encode_varint(stream, (pb_uint64_t)size))
+        if (!pb_encode_uvarint(stream, (pb_uint64_t)size))
             return false;
         
         if (stream->callback == NULL)
@@ -540,6 +544,7 @@ bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *sr
     *size = stream.bytes_written;
     return true;
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /********************
  * Helper functions *
@@ -571,17 +576,17 @@ bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t val
 }
 #endif
 
-bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
+bool checkreturn pb_encode_uvarint(pb_ostream_t *stream, pb_uint64_t value)
 {
     pb_byte_t buffer[10];
     size_t i = 0;
-    
+
     if (value <= 0x7F)
     {
         pb_byte_t v = (pb_byte_t)value;
         return pb_write(stream, &v, 1);
     }
-    
+
     while (value)
     {
         buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
@@ -589,7 +594,7 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
         i++;
     }
     buffer[i-1] &= 0x7F; /* Unset top bit on last byte */
-    
+
     return pb_write(stream, buffer, i);
 }
 
@@ -600,8 +605,8 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, pb_int64_t value)
         zigzagged = ~((pb_uint64_t)value << 1);
     else
         zigzagged = (pb_uint64_t)value << 1;
-    
-    return pb_encode_varint(stream, zigzagged);
+
+    return pb_encode_uvarint(stream, zigzagged);
 }
 
 bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
@@ -635,9 +640,10 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, uint32_t field_number)
 {
     pb_uint64_t tag = ((pb_uint64_t)field_number << 3) | wiretype;
-    return pb_encode_varint(stream, tag);
+    return pb_encode_uvarint(stream, tag);
 }
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field)
 {
     pb_wire_type_t wiretype;
@@ -670,15 +676,17 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
     
     return pb_encode_tag(stream, wiretype, field->tag);
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
 
 bool checkreturn pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer, size_t size)
 {
-    if (!pb_encode_varint(stream, (pb_uint64_t)size))
+    if (!pb_encode_uvarint(stream, (pb_uint64_t)size))
         return false;
     
     return pb_write(stream, buffer, size);
 }
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
 {
     /* First calculate the message size using a non-writing substream. */
@@ -696,7 +704,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
     
     size = substream.bytes_written;
     
-    if (!pb_encode_varint(stream, (pb_uint64_t)size))
+    if (!pb_encode_uvarint(stream, (pb_uint64_t)size))
         return false;
     
     if (stream->callback == NULL)
@@ -751,7 +759,7 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
       return pb_encode_negative_varint(stream, (pb_uint64_t)value);
     else
 #endif
-      return pb_encode_varint(stream, (pb_uint64_t)value);
+      return pb_encode_uvarint(stream, (pb_uint64_t)value);
 }
 
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
@@ -769,7 +777,7 @@ static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *f
     else
         PB_RETURN_ERROR(stream, "invalid data_size");
     
-    return pb_encode_varint(stream, value);
+    return pb_encode_uvarint(stream, value);
 }
 
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
@@ -866,4 +874,44 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb
 {
     return pb_encode_string(stream, (const pb_byte_t*)src, field->data_size);
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
+
+#if !PB_ENABLE_SIZE_OPTIMIZED
+/*****************************
+ * Speed-optimized functions *
+ *****************************/
+size_t pb_get_encoded_varint_size(pb_int64_t v) {
+    return v < 0 ? 10 : pb_get_encoded_uvarint_size((pb_uint64_t) v);
+}
+
+size_t pb_get_encoded_uvarint_size(pb_uint64_t v) {
+    size_t size;
+    if (v < 0x7f) {
+        return 1;
+    }
+
+    size = 0;
+    while (v) {
+        v >>= 7;
+        size += 1;
+    }
+    return size;
+}
+
+size_t pb_get_encoded_svarint_size(pb_int64_t v) {
+    if (v < 0) {
+        return pb_get_encoded_varint_size(~((pb_uint64_t)v << 1));
+    }
+    return pb_get_encoded_varint_size((pb_uint64_t)v << 1);
+}
+
+#if PB_WITHOUT_STRNLEN
+size_t pb_strnlen(const char *s, size_t max_len) {
+  size_t i;
+  for (i = 0; i < max_len && s[i]; i++) {}
+  return i;
+}
+#endif
+
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 

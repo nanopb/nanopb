@@ -17,13 +17,13 @@
 #include "pb_decode.h"
 #include "pb_common.h"
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /**************************************
  * Declarations internal to this file *
  **************************************/
 
 typedef bool (*pb_decoder_t)(pb_istream_t *stream, const pb_field_t *field, void *dest) checkreturn;
 
-static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter);
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter);
@@ -44,14 +44,17 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
 static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb_field_t *field, void *dest);
-static bool checkreturn pb_skip_varint(pb_istream_t *stream);
-static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
 #ifdef PB_ENABLE_MALLOC
 static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size);
 static bool checkreturn pb_release_union_field(pb_istream_t *stream, pb_field_iter_t *iter);
 static void pb_release_single_field(const pb_field_iter_t *iter);
 #endif
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
+
+static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
+static bool checkreturn pb_skip_varint(pb_istream_t *stream);
+static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
 #ifdef PB_WITHOUT_64BIT
 #define pb_int64_t int32_t
@@ -61,6 +64,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter);
 #define pb_uint64_t uint64_t
 #endif
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /* --- Function pointers to field decoders ---
  * Order in the array must match pb_action_t LTYPE numbering.
  */
@@ -77,6 +81,7 @@ static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
     NULL, /* extensions */
     &pb_dec_fixed_length_bytes
 };
+#endif /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /*******************************
  * pb_istream_t implementation *
@@ -325,6 +330,7 @@ bool checkreturn pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type)
     }
 }
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 /* Read a raw value to buffer, for the purpose of passing it to callback as
  * a substream. Size is maximum size on call, and actual size on return.
  */
@@ -360,6 +366,7 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
         default: PB_RETURN_ERROR(stream, "invalid wire_type");
     }
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
 
 /* Decode string length from stream and return a substream with limited length.
  * Remember to close the substream using pb_close_string_substream().
@@ -397,6 +404,7 @@ bool checkreturn pb_close_string_substream(pb_istream_t *stream, pb_istream_t *s
 /*************************
  * Decode a single field *
  *************************/
+#if PB_ENABLE_SIZE_OPTIMIZED
 
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter)
 {
@@ -1233,6 +1241,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
         pb_release_single_field(&iter);
     } while (pb_field_iter_next(&iter));
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
 #endif
 
 /* Field decoders */
@@ -1286,6 +1295,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 }
 #endif
 
+#if PB_ENABLE_SIZE_OPTIMIZED
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
     pb_uint64_t value;
@@ -1506,3 +1516,4 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb
 
     return pb_read(stream, (pb_byte_t*)dest, field->data_size);
 }
+#endif  /* PB_ENABLE_SIZE_OPTIMIZED */
