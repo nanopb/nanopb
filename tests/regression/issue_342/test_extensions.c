@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
-        pb_callback_t callback_def = {0};
+        pb_callback_t callback_def = {{0}};
         pb_extension_t ext = {0};
         BaseMessage msg = {0};
 
