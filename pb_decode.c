@@ -658,15 +658,20 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter)
 {
     pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
-    
 #ifdef PB_OLD_CALLBACK_STYLE
-    void *arg = pCallback->arg;
+    void *arg;
 #else
-    void **arg = &(pCallback->arg);
+    void **arg;
 #endif
     
     if (pCallback == NULL || pCallback->funcs.decode == NULL)
         return pb_skip_field(stream, wire_type);
+
+#ifdef PB_OLD_CALLBACK_STYLE
+    arg = pCallback->arg;
+#else
+    arg = &(pCallback->arg);
+#endif
     
     if (wire_type == PB_WT_STRING)
     {
