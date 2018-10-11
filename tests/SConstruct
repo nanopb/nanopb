@@ -136,6 +136,12 @@ elif 'cl' in env['CC']:
     
     # More strict checks on the nanopb core
     env.Append(CORECFLAGS = '/W4')
+
+    # Disable warning about sizeof(union{}) construct that is used in
+    # message size macros, in e.g. multiple_files testcase. The C construct
+    # itself is valid, but quite rare, which causes Visual C++ to give a warning
+    # about it.
+    env.Append(CFLAGS = '/wd4116')
 elif 'tcc' in env['CC']:
     # Tiny C Compiler
     env.Append(CFLAGS = '-Wall -Werror -g')
@@ -147,13 +153,7 @@ if 'clang' in env['CXX']:
 elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
     env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
 elif 'cl' in env['CXX']:
-    env.Append(CXXFLAGS = '/Zi /W2 /WX')
-
-    # Disable warning about sizeof(union{}) construct that is used in
-    # message size macros, in e.g. multiple_files testcase. The C construct
-    # itself is valid, but quite rare, which causes Visual C++ to give a warning
-    # about it.
-    env.Append(CXXFLAGS = '/wd4116')
+    env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116')
 
 # Now include the SConscript files from all subdirectories
 import os.path
