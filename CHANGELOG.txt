@@ -1,3 +1,12 @@
+nanopb-0.3.9.2 (2018-10-xx)
+ Erroneous free() when using callbacks combined with PB_ENABLE_MALLOC (#346)
+ Fix possible null-pointer dereference in decode_callback_field (#342)
+ Fix FindNanopb.cmake on Windows (#335)
+ Fix large generator memory usage with oneof fields (#338)
+ Add --no-strip-path command line option (#326)
+ Option for flattening nested protobuf names (#333)
+ Fix dates in changelog (#329)
+
 nanopb-0.3.9.1 (2018-04-14)
  Fix handling of special characters in string/bytes default values (issue #322)
  Fix encoding of negative numbers with PB_WITHOUT_64BIT (#285)

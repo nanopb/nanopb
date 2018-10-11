@@ -42,4 +42,7 @@ Edward Z. Yang <ezyang@mit.edu>
 Robbie Shade <rjshade@google.com>
 Andrew Ballinger <andrewballinger@stratisopt.com>
 Hamina, Juha-Pekka <Juha-Pekka.Hamina@nordicsemi.no>
-
+Jason Bishop <jason.bishop@bigassfans.com>
+matejcik <ja@matejcik.cz>
+Tobias Müller <Tobias_Mueller@twam.info>
+Jari Vetoniemi <mailroxas@gmail.com>
