@@ -149,6 +149,12 @@ elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
 elif 'cl' in env['CXX']:
     env.Append(CXXFLAGS = '/Zi /W2 /WX')
 
+    # Disable warning about sizeof(union{}) construct that is used in
+    # message size macros, in e.g. multiple_files testcase. The C construct
+    # itself is valid, but quite rare, which causes Visual C++ to give a warning
+    # about it.
+    env.Append(CXXFLAGS = '/wd4116')
+
 # Now include the SConscript files from all subdirectories
 import os.path
 env['VARIANT_DIR'] = 'build'
