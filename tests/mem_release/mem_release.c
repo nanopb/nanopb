@@ -177,9 +177,30 @@ static bool test_OneofMessage()
     return true;
 }
 
+/* Garbage input */
+static bool test_Garbage()
+{
+    const uint8_t buffer[] = "I'm only happy when it rains";
+    const size_t msgsize = sizeof(buffer);
+
+    {
+        OneofMessage msg = OneofMessage_init_zero;
+        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        TEST(!pb_decode(&stream, OneofMessage_fields, &msg));
+    }
+
+    {
+        TestMessage msg = TestMessage_init_zero;
+        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        TEST(!pb_decode(&stream, TestMessage_fields, &msg));
+    }
+
+    return true;
+}
+
 int main()
 {
-    if (test_TestMessage() && test_OneofMessage())
+    if (test_TestMessage() && test_OneofMessage() && test_Garbage())
         return 0;
     else
         return 1;
