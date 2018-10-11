@@ -1158,7 +1158,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
             ext = ext->next;
         }
     }
-    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
     {
         /* Release fields in submessage or submsg array */
         void *pItem = iter->pData;

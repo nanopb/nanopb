@@ -33,3 +33,9 @@ message OneofMessage
     }
     required int32 last = 4;
 }
+
+message RepeatedMessage
+{
+    required int32 first = 1;
+    repeated SubMessage subs = 2;
+}

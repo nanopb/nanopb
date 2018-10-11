@@ -177,6 +177,11 @@ static bool test_OneofMessage()
     return true;
 }
 
+static bool dummy_decode_cb(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+    return false;
+}
+
 /* Garbage input */
 static bool test_Garbage()
 {
@@ -193,6 +198,14 @@ static bool test_Garbage()
         TestMessage msg = TestMessage_init_zero;
         pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
         TEST(!pb_decode(&stream, TestMessage_fields, &msg));
+    }
+
+    {
+        RepeatedMessage msg = RepeatedMessage_init_zero;
+        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        msg.subs.arg = NULL;
+        msg.subs.funcs.decode = dummy_decode_cb;
+        TEST(!pb_decode(&stream, RepeatedMessage_fields, &msg));
     }
 
     return true;
