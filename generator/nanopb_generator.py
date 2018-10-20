@@ -44,6 +44,9 @@ except TypeError:
          *** which protoc                                                         ***
          *** protoc --version                                                     ***
          *** python -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
+         *** If you are not able to find the python protobuf version using the    ***
+         *** above command, use this command.                                     ***
+         *** pip freeze | grep -i protobuf                                        ***
          ****************************************************************************
     ''' + '\n')
     raise
