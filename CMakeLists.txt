@@ -35,7 +35,7 @@ if(MSVC AND nanopb_MSVC_STATIC_RUNTIME)
 endif()
 
 if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
-    set(CMAKE_INSTALL_CMAKEDIR "lib/cmake/nanopb")
+    set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
 if(nanopb_BUILD_GENERATOR)
