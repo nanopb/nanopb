@@ -3,8 +3,12 @@ cmake_minimum_required(VERSION 2.8.12)
 project(nanopb C)
 
 set(nanopb_VERSION_STRING nanopb-0.4.0-dev)
+set(nanopb_SOVERSION 0)
 
 string(REPLACE "nanopb-" "" nanopb_VERSION ${nanopb_VERSION_STRING})
+
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(BUILD_STATIC_LIBS "Build static libraries" ON)
 
 option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" ON)
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
@@ -62,24 +66,45 @@ if(nanopb_BUILD_GENERATOR)
 endif()
 
 if(nanopb_BUILD_RUNTIME)
-    add_library(protobuf-nanopb STATIC
-        pb.h
-        pb_common.h
-        pb_common.c
-        pb_encode.h
-        pb_encode.c
-        pb_decode.h
-        pb_decode.c)
+    if(BUILD_SHARED_LIBS)
+	add_library(protobuf-nanopb SHARED
+            pb.h
+            pb_common.h
+            pb_common.c
+            pb_encode.h
+            pb_encode.c
+            pb_decode.h
+            pb_decode.c)
+        set_target_properties(protobuf-nanopb PROPERTIES
+            SOVERSION ${nanopb_SOVERSION})
+        install(TARGETS protobuf-nanopb EXPORT nanopb-targets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        target_include_directories(protobuf-nanopb INTERFACE
+          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        )
+    endif()
 
-    target_include_directories(protobuf-nanopb INTERFACE
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
+    if(BUILD_STATIC_LIBS)
+        add_library(protobuf-nanopb-static STATIC
+            pb.h
+            pb_common.h
+            pb_common.c
+            pb_encode.h
+            pb_encode.c
+            pb_decode.h
+            pb_decode.c)
+        set_target_properties(protobuf-nanopb-static PROPERTIES
+            OUTPUT_NAME protobuf-nanopb)
+        install(TARGETS protobuf-nanopb-static EXPORT nanopb-targets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        target_include_directories(protobuf-nanopb-static INTERFACE
+          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        )
+    endif()
 
     configure_file(extra/nanopb-config-version.cmake.in
         nanopb-config-version.cmake @ONLY)
-
-    install(TARGETS protobuf-nanopb EXPORT nanopb-targets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
     install(EXPORT nanopb-targets
         DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
