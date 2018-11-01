@@ -317,6 +317,11 @@ The user is expected to set the filed manually using the correct field tag::
 Notice that neither ``which_payload`` field nor the unused fileds in ``payload``
 will consume any space in the resulting encoded message.
 
+When a C union is used to represent a ``oneof`` section, the union cannot have
+callback fields or nested callback fields. Otherwise, the decoding process may
+fail. If callbacks must be used inside a ``oneof`` section, the generator
+option *no_unions* should be set to *true* for that section.
+
 .. _`oneof`: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec#oneof_and_oneof_field
 
 Extension fields
