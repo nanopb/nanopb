@@ -46,3 +46,7 @@ Jason Bishop <jason.bishop@bigassfans.com>
 matejcik <ja@matejcik.cz>
 Tobias Müller <Tobias_Mueller@twam.info>
 Jari Vetoniemi <mailroxas@gmail.com>
+Gabriel Staples <ercaguy@gmail.com>
+Amarnath <amarnath.h.96@gmail.com>
+Michal Rostecki <mrostecki@suse.de>
+Pei Wang <wangpei10@baidu.com>
