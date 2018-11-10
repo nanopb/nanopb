@@ -157,8 +157,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
   set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
   set(GENERATOR_CORE_SRC
-      ${GENERATOR_CORE_DIR}/nanopb.proto
-      ${GENERATOR_CORE_DIR}/plugin.proto)
+      ${GENERATOR_CORE_DIR}/nanopb.proto)
 
   # Treat the source diretory as immutable.
   #
