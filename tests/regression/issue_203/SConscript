@@ -2,6 +2,7 @@
 
 Import('env')
 
+env.Append(NANOPBFLAGS = "--strip-path")
 env.Command(['file1.pb.c', 'file1.pb.h', 'file2.pb.c', 'file2.pb.h'], ['file1.proto', 'file2.proto'],
             env['NANOPB_PROTO_CMD'])
 

@@ -31,6 +31,7 @@ env.SetDefault(PROTOCFLAGS = "--plugin=protoc-gen-nanopb=path/to/protoc-gen-nano
 import SCons.Action
 import SCons.Builder
 import SCons.Util
+from SCons.Script import Dir, File
 import os.path
 
 class NanopbWarning(SCons.Warnings.Warning):
@@ -91,16 +92,32 @@ def _detect_protocflags(env):
 
 def _nanopb_proto_actions(source, target, env, for_signature):
     esc = env['ESCAPE']
-    dirs = ' '.join(['-I' + esc(env.GetBuildPath(d)) for d in env['PROTOCPATH']])
-    return '$PROTOC $PROTOCFLAGS %s --nanopb_out=. %s' % (dirs, esc(str(source[0])))
+
+    # Make protoc build inside the SConscript directory
+    prefix = os.path.dirname(str(source[-1]))
+    srcfile = esc(os.path.relpath(str(source[0]), prefix))
+    include_dirs = '-I.'
+    for d in env['PROTOCPATH']:
+        d = env.GetBuildPath(d)
+        if not os.path.isabs(d): d = os.path.relpath(d, prefix)
+        include_dirs += ' -I' + esc(d)
+
+    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s --nanopb_out=. %s' % (include_dirs, srcfile),
+                                      chdir = prefix)
 
 def _nanopb_proto_emitter(target, source, env):
     basename = os.path.splitext(str(source[0]))[0]
     target.append(basename + '.pb.h')
+
+    # This is a bit of a hack. protoc include paths work the sanest
+    # when the working directory is the same as the source root directory.
+    # To get that directory in _nanopb_proto_actions, we add SConscript to
+    # the list of source files.
+    source.append(File("SConscript"))
     
     if os.path.exists(basename + '.options'):
         source.append(basename + '.options')
-    
+
     return target, source
 
 _nanopb_proto_builder = SCons.Builder.Builder(
@@ -115,10 +132,11 @@ def generate(env):
     env['NANOPB'] = _detect_nanopb(env)
     env['PROTOC'] = _detect_protoc(env)
     env['PROTOCFLAGS'] = _detect_protocflags(env)
+    env.SetDefault(NANOPBFLAGS = '')
     
-    env.SetDefault(PROTOCPATH = ['.', os.path.join(env['NANOPB'], 'generator', 'proto')])
+    env.SetDefault(PROTOCPATH = [".", os.path.join(env['NANOPB'], 'generator', 'proto')])
     
-    env.SetDefault(NANOPB_PROTO_CMD = '$PROTOC $PROTOCFLAGS --nanopb_out=. $SOURCES')
+    env.SetDefault(NANOPB_PROTO_CMD = '$PROTOC $PROTOCFLAGS --nanopb_out=$NANOPBFLAGS:. $SOURCES')
     env['BUILDERS']['NanopbProto'] = _nanopb_proto_builder
     
 def exists(env):

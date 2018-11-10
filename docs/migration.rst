@@ -11,6 +11,36 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
+Nanopb-0.4.0 (future)
+=====================
+
+Changes to generator default options
+------------------------------------
+
+**Rationale:** Previously nanopb_generator added a timestamp header to generated
+files and used only basename of files in `#include` directives. This is different
+than what the `protoc` C++ backend does.
+
+**Changes:** Now default options are `--no-timestamp` and `--no-strip-path`.
+
+**Required actions:** If old behaviour is desired, add `--timestamp` and
+`--strip-path` options to `nanopb_generator.py` or on `protoc` command line
+as `--nanopb_out=--timestamp,--strip-path:outdir`.
+
+**Error indications:** Compiler error: cannot find include file `mymessage.pb.h`
+when compiling `mymessage.pb.c`.
+
+Removal of bundled plugin.proto
+-------------------------------
+
+**Rationale:** Google's Python protobuf library, which is used in nanopb
+generator, has included `plugin_pb2` with it since version 3.1.0. It is
+not necessary to bundle it with nanopb anymore.
+
+**Required actions:** Update `python-protobuf` to version 3.1.0 or newer.
+
+**Error indications:** `ImportError: No module named compiler.plugin_pb2`
+
 Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
 ==================================
 

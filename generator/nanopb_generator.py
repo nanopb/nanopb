@@ -1578,10 +1578,10 @@ optparser.add_option("-Q", "--generated-include-format", dest="genformat",
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>\n',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
-optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=True,
-    help="Strip directory path from #included .pb.h file name [default: %default]")
+optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=False,
+    help="Strip directory path from #included .pb.h file name")
 optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
-    help="Opposite of --strip-path")
+    help="Opposite of --strip-path (default since 0.4.0)")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=True,
     help="Don't add timestamp to .pb.h and .pb.c preambles (default since 0.4.0)")
 optparser.add_option("-t", "--timestamp", dest="notimestamp", action="store_false", default=True,
