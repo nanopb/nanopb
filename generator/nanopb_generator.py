@@ -347,7 +347,7 @@ class Field:
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
-        
+
         if field_options.fixed_count and self.max_count is None:
             raise Exception("Field '%s' is defined as fixed count, "
                             "but max_count is not given." % self.name)
@@ -1746,6 +1746,24 @@ def main_plugin():
 
     import shlex
     args = shlex.split(params)
+
+    if len(args) == 1 and ',' in args[0]:
+        # For compatibility with other protoc plugins, support options
+        # separated by comma.
+        lex = shlex.shlex(params)
+        lex.whitespace_split = True
+        lex.whitespace = ','
+        args = list(lex)
+
+    optparser.usage = "Usage: protoc --nanopb_out=[options][,more_options]:outdir file.proto"
+    optparser.epilog = "Output will be written to file.pb.h and file.pb.c."
+
+    if '-h' in args or '--help' in args:
+        # By default optparser prints help to stdout, which doesn't work for
+        # protoc plugins.
+        optparser.print_help(sys.stderr)
+        sys.exit(1)
+
     options, dummy = optparser.parse_args(args)
 
     Globals.verbose_options = options.verbose
