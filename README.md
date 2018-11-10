@@ -69,3 +69,23 @@ Note: Mac OS X by default aliases 'clang' as 'gcc', while not actually
 supporting the same command line options as gcc does. To run tests on
 Mac OS X, use: "scons CC=clang CXX=clang". Same way can be used to run
 tests with different compilers on any platform.
+
+
+
+Build systems and integration
+-----------------------------
+Nanopb C code itself is designed to be portable and easy to build
+on any platform. Often the bigger hurdle is running the generator which
+takes in the `.proto` files and outputs `.pb.c` definitions.
+
+There exist build rules for several systems:
+
+* **Makefiles**: `extra/nanopb.mk`, see `examples/simple`
+* **CMake**: `extra/FindNanopb.cmake`, see `examples/cmake`
+* **SCons**: `tests/site_scons` (generator only)
+* **Bazel**: `BUILD` in source root
+* **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
+
+And also integration to platform interfaces:
+
+* **Arduino**: http://platformio.org/lib/show/1385/nanopb-arduino
