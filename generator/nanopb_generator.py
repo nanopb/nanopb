@@ -21,6 +21,7 @@ except:
 try:
     import google.protobuf.text_format as text_format
     import google.protobuf.descriptor_pb2 as descriptor
+    import google.protobuf.compiler.plugin_pb2 as plugin_pb2
 except:
     sys.stderr.write('''
          *************************************************************
@@ -32,7 +33,6 @@ except:
 
 try:
     import proto.nanopb_pb2 as nanopb_pb2
-    import proto.plugin_pb2 as plugin_pb2
 except TypeError:
     sys.stderr.write('''
          ****************************************************************************
