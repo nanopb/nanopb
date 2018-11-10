@@ -6,7 +6,7 @@ Import('env')
 incpath = env.Clone()
 incpath.Append(PROTOCPATH="#regression/issue_172/submessage")
 incpath.Append(CPPPATH="$BUILD/regression/issue_172/submessage")
-incpath.Append(NANOPBOPTS="--strip-path")
+incpath.Append(CPPPATH="$BUILD/regression/issue_172/")
 incpath.NanopbProto('test')
 incpath.NanopbProto(['submessage/submessage', 'submessage/submessage.options'])
 
