@@ -28,6 +28,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static void *pb_const_cast(const void *p);
+static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, uint32_t high);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
@@ -41,8 +42,6 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb
 #ifdef PB_WITHOUT_64BIT
 #define pb_int64_t int32_t
 #define pb_uint64_t uint32_t
-
-static bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t value);
 #else
 #define pb_int64_t int64_t
 #define pb_uint64_t uint64_t
@@ -545,94 +544,57 @@ bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *sr
  * Helper functions *
  ********************/
 
-#ifdef PB_WITHOUT_64BIT
-bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t value)
+/* This function avoids 64-bit shifts as they are quite slow on many platforms. */
+static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, uint32_t high)
 {
-  pb_byte_t buffer[10];
-  size_t i = 0;
-  size_t compensation = 32;/* we need to compensate 32 bits all set to 1 */
+    size_t i = 0;
+    pb_byte_t buffer[10];
+    pb_byte_t byte = (pb_byte_t)(low & 0x7F);
+    low >>= 7;
 
-  while (value)
-  {
-    buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
-    value >>= 7;
-    if (compensation)
+    while (i < 4 && (low != 0 || high != 0))
     {
-      /* re-set all the compensation bits we can or need */
-      size_t bits = compensation > 7 ? 7 : compensation;
-      value ^= (pb_uint64_t)((0xFFu >> (8 - bits)) << 25); /* set the number of bits needed on the lowest of the most significant 7 bits */
-      compensation -= bits;
+        byte |= 0x80;
+        buffer[i++] = byte;
+        byte = (pb_byte_t)(low & 0x7F);
+        low >>= 7;
     }
-    i++;
-  }
-  buffer[i - 1] &= 0x7F; /* Unset top bit on last byte */
 
-  return pb_write(stream, buffer, i);
+    if (high)
+    {
+        byte = (pb_byte_t)(byte | ((high & 0x07) << 4));
+        high >>= 3;
+
+        while (high)
+        {
+            byte |= 0x80;
+            buffer[i++] = byte;
+            byte = (pb_byte_t)(high & 0x7F);
+            high >>= 7;
+        }
+    }
+
+    buffer[i++] = byte;
+
+    return pb_write(stream, buffer, i);
 }
-#endif
 
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
 {
-    pb_byte_t buffer[10];
-    
-#ifndef PB_WITHOUT_64BIT
-    if ((value >> 32) == 0)
-#endif
+    if (value <= 0x7F)
     {
-        uint32_t value32 = (uint32_t)value;
-
-        if ((value32 >> 7) == 0)
-        {
-            buffer[0] = (pb_byte_t)value32;
-            return pb_write(stream, buffer, 1);
-        }
-        else if ((value32 >> 14) == 0)
-        {
-          buffer[0] = (pb_byte_t)(value32 | 0x80);
-          buffer[1] = (pb_byte_t)(value32 >> 7);
-          return pb_write(stream, buffer, 2);
-        }
-        else if ((value32 >> 21) == 0)
-        {
-          buffer[0] = (pb_byte_t)(value32 | 0x80);
-          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
-          buffer[2] = (pb_byte_t)(value32 >> 14);
-          return pb_write(stream, buffer, 3);
-        }
-        else if ((value32 >> 28) == 0)
-        {
-          buffer[0] = (pb_byte_t)(value32 | 0x80);
-          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
-          buffer[2] = (pb_byte_t)((value32 >> 14) | 0x80);
-          buffer[3] = (pb_byte_t)(value32 >> 21);
-          return pb_write(stream, buffer, 4);
-        }
-        else
-        {
-          buffer[0] = (pb_byte_t)(value32 | 0x80);
-          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
-          buffer[2] = (pb_byte_t)((value32 >> 14) | 0x80);
-          buffer[3] = (pb_byte_t)((value32 >> 21) | 0x80);
-          buffer[4] = (pb_byte_t)(value32 >> 28);
-          return pb_write(stream, buffer, 5);
-        }
+        /* Fast path: single byte */
+        pb_byte_t byte = (pb_byte_t)value;
+        return pb_write(stream, &byte, 1);
     }
-#ifndef PB_WITHOUT_64BIT
     else
     {
-        size_t i = 0;
-
-        while (value)
-        {
-            buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
-            value >>= 7;
-            i++;
-        }
-        buffer[i-1] &= 0x7F; /* Unset top bit on last byte */
-
-        return pb_write(stream, buffer, i);
-    }
+#ifdef PB_WITHOUT_64BIT
+        return pb_encode_varint_32(stream, value, 0);
+#else
+        return pb_encode_varint_32(stream, (uint32_t)value, (uint32_t)(value >> 32));
 #endif
+    }
 }
 
 bool checkreturn pb_encode_svarint(pb_ostream_t *stream, pb_int64_t value)
@@ -790,10 +752,10 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *fi
     
 #ifdef PB_WITHOUT_64BIT
     if (value < 0)
-      return pb_encode_negative_varint(stream, (pb_uint64_t)value);
+        return pb_encode_varint_32(stream, (uint32_t)value, (uint32_t)-1);
     else
 #endif
-      return pb_encode_varint(stream, (pb_uint64_t)value);
+        return pb_encode_varint(stream, (pb_uint64_t)value);
 }
 
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
