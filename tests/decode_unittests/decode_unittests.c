@@ -215,6 +215,7 @@ int main()
         TEST((s = S("\x00\x00\x00\x00"), pb_dec_fixed32(&s, &f, &d) && d == 0.0f))
         TEST((s = S("\x00\x00\xc6\x42"), pb_dec_fixed32(&s, &f, &d) && d == 99.0f))
         TEST((s = S("\x4e\x61\x3c\xcb"), pb_dec_fixed32(&s, &f, &d) && d == -12345678.0f))
+        d = -12345678.0f;
         TEST((s = S("\x00"), !pb_dec_fixed32(&s, &f, &d) && d == -12345678.0f))
     }
     

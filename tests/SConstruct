@@ -62,7 +62,8 @@ if not env.GetOption('clean'):
     stddef = conf.CheckCHeader('stddef.h')
     string = conf.CheckCHeader('string.h')
     stdlib = conf.CheckCHeader('stdlib.h')
-    if not stdbool or not stdint or not stddef or not string:
+    limits = conf.CheckCHeader('limits.h')
+    if not stdbool or not stdint or not stddef or not string or not limits:
         conf.env.Append(CPPDEFINES = {'PB_SYSTEM_HEADER': '\\"pb_syshdr.h\\"'})
         conf.env.Append(CPPPATH = "#../extra")
         conf.env.Append(SYSHDR = '\\"pb_syshdr.h\\"')
@@ -72,6 +73,7 @@ if not env.GetOption('clean'):
         if stddef: conf.env.Append(CPPDEFINES = {'HAVE_STDDEF_H': 1})
         if string: conf.env.Append(CPPDEFINES = {'HAVE_STRING_H': 1})
         if stdlib: conf.env.Append(CPPDEFINES = {'HAVE_STDLIB_H': 1})
+        if limits: conf.env.Append(CPPDEFINES = {'HAVE_LIMITS_H': 1})
     
     # Check if we can use pkg-config to find protobuf include path
     status, output = conf.TryAction('pkg-config protobuf --variable=includedir > $TARGET')

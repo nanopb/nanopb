@@ -13,7 +13,7 @@ message OneOfMessage
     oneof values
     {
         int32 first = 5;
-        string second = 6 [(nanopb).max_size = 8];
+        string second = 6 [(nanopb).max_length = 8];
         SubMessage third = 7;
     }
     required int32 suffix = 99;
@@ -31,7 +31,7 @@ message topMessage {
 message MyMessage1 {
 	required uint32 n1 = 1;
 	required uint32 n2 = 2;
-	required string s = 3 [(nanopb).max_size = 32];
+	required string s = 3 [(nanopb).max_length = 32];
 }
 
 message MyMessage2 {
@@ -41,12 +41,12 @@ message MyMessage2 {
 
 message MyMessage3 {
 	required bool bbb = 1;
-	required string ss = 2 [(nanopb).max_size = 1];
+	required string ss = 2 [(nanopb).max_length = 1];
 }
 
 message MyMessage4 {
 	required bool bbbb = 1;
-	required string sss = 2 [(nanopb).max_size = 2];
+	required string sss = 2 [(nanopb).max_length = 2];
 	required uint32 num = 3;
 	required uint32 num2 = 4;
 }

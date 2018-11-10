@@ -11,7 +11,7 @@ message FloatArray {
 }
 
 message StringMessage {
-    required string data = 1 [(nanopb).max_size = 10];
+    required string data = 1 [(nanopb).max_length = 10];
 }
 
 message BytesMessage {

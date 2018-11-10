@@ -382,7 +382,9 @@ class Field:
             if self.allocation == 'STATIC':
                 self.ctype = 'char'
                 self.array_decl += '[%d]' % self.max_size
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
+                # -1 because of null terminator. Both pb_encode and pb_decode
+                # check the presence of it.
+                self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
                 self.pbtype = 'FIXED_LENGTH_BYTES'

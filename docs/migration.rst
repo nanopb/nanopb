@@ -54,6 +54,35 @@ matched by `fnmatchcase()` instead of `fnmatch()`.
 **Required actions:** If field names in `.options` are not capitalized the
 same as in `.proto`, they must be updated.
 
+*CHAR_BIT* define is now needed
+-------------------------------
+**Rationale:** To check whether the platform has 8-bit or larger chars, the
+C standard *CHAR_BIT* macro is needed.
+
+**Changes:** *pb.h* now includes *limits.h* for this macro.
+
+**Required actions:** If your platform doesn't have *limits.h* available, you
+can define the macro in *pb_syshdr.h*. There is an example in *extra* directory.
+
+**Error indications:** "Cannot find include file <limits.h>." or "Undefined
+identifier: CHAR_BIT."
+
+Strings must now always be null-terminated
+------------------------------------------
+**Rationale:** Previously *pb_encode()* would accept non-terminated strings and
+assume that they are the full length of the defined array. However, *pb_decode()*
+would reject such messages because null terminator wouldn't fit in the array.
+
+**Changes:** *pb_encode()* will now return an error if null terminator is missing.
+Maximum encoded message size calculation is changed accordingly so that at most
+*max_size-1* strings are assumed. New field option *max_length* can be used to
+define the maximum string length, instead of the array size.
+
+**Required actions:** If your strings were previously filling the whole allocated
+array, increase the size of the field by 1.
+
+**Error indications:** *pb_encode()* returns error *unterminated string*.
+
 Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
 ==================================
 

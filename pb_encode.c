@@ -574,23 +574,61 @@ bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint64_t val
 bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
 {
     pb_byte_t buffer[10];
-    size_t i = 0;
     
-    if (value <= 0x7F)
+    if ((value >> 32) == 0)
     {
-        pb_byte_t v = (pb_byte_t)value;
-        return pb_write(stream, &v, 1);
+        uint32_t value32 = (uint32_t)value;
+
+        if ((value32 >> 7) == 0)
+        {
+            buffer[0] = (pb_byte_t)value32;
+            return pb_write(stream, buffer, 1);
+        }
+        else if ((value32 >> 14) == 0)
+        {
+          buffer[0] = (pb_byte_t)(value32 | 0x80);
+          buffer[1] = (pb_byte_t)(value32 >> 7);
+          return pb_write(stream, buffer, 2);
+        }
+        else if ((value32 >> 21) == 0)
+        {
+          buffer[0] = (pb_byte_t)(value32 | 0x80);
+          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
+          buffer[2] = (pb_byte_t)(value32 >> 14);
+          return pb_write(stream, buffer, 3);
+        }
+        else if ((value32 >> 28) == 0)
+        {
+          buffer[0] = (pb_byte_t)(value32 | 0x80);
+          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
+          buffer[2] = (pb_byte_t)((value32 >> 14) | 0x80);
+          buffer[3] = (pb_byte_t)(value32 >> 21);
+          return pb_write(stream, buffer, 4);
+        }
+        else
+        {
+          buffer[0] = (pb_byte_t)(value32 | 0x80);
+          buffer[1] = (pb_byte_t)((value32 >> 7) | 0x80);
+          buffer[2] = (pb_byte_t)((value32 >> 14) | 0x80);
+          buffer[3] = (pb_byte_t)((value32 >> 21) | 0x80);
+          buffer[4] = (pb_byte_t)(value32 >> 28);
+          return pb_write(stream, buffer, 5);
+        }
     }
-    
-    while (value)
+    else
     {
-        buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
-        value >>= 7;
-        i++;
-    }
-    buffer[i-1] &= 0x7F; /* Unset top bit on last byte */
-    
-    return pb_write(stream, buffer, i);
+        size_t i = 0;
+
+        while (value)
+        {
+            buffer[i] = (pb_byte_t)((value & 0x7F) | 0x80);
+            value >>= 7;
+            i++;
+        }
+        buffer[i-1] &= 0x7F; /* Unset top bit on last byte */
+        
+        return pb_write(stream, buffer, i);
+    }    
 }
 
 bool checkreturn pb_encode_svarint(pb_ostream_t *stream, pb_int64_t value)
@@ -835,7 +873,22 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
     const char *p = (const char*)src;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
         max_size = (size_t)-1;
+    }
+    else
+    {
+        /* pb_dec_string() assumes string fields end with a null
+         * terminator when the type isn't PB_ATYPE_POINTER, so we
+         * shouldn't allow more than max-1 bytes to be written to
+         * allow space for the null terminator.
+         */
+        if (max_size == 0)
+            PB_RETURN_ERROR(stream, "zero-length string");
+
+        max_size -= 1;
+    }
+
 
     if (src == NULL)
     {
@@ -848,6 +901,11 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_t *fi
         {
             size++;
             p++;
+        }
+
+        if (*p != '\0')
+        {
+            PB_RETURN_ERROR(stream, "unterminated string");
         }
     }
 

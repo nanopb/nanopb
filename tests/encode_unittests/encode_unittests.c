@@ -86,6 +86,51 @@ int main()
     }
     
     {
+        uint8_t buffer[50];
+        pb_ostream_t s;
+        
+        COMMENT("Test pb_encode_varint 32-bit fast path")
+        TEST(WRITES(pb_encode_varint(&s, 0x00000000), "\x00"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00000001), "\x01"));
+        TEST(WRITES(pb_encode_varint(&s, 0x0000007F), "\x7F"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00000080), "\x80\x01"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00000191), "\x91\x03"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00003FFF), "\xFF\x7F"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00004000), "\x80\x80\x01"));
+        TEST(WRITES(pb_encode_varint(&s, 0x0000D111), "\x91\xA2\x03"));
+        TEST(WRITES(pb_encode_varint(&s, 0x001FFFFF), "\xFF\xFF\x7F"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00200000), "\x80\x80\x80\x01"));
+        TEST(WRITES(pb_encode_varint(&s, 0x00711111), "\x91\xA2\xC4\x03"));
+        TEST(WRITES(pb_encode_varint(&s, 0x0FFFFFFF), "\xFF\xFF\xFF\x7F"));
+        TEST(WRITES(pb_encode_varint(&s, 0x10000000), "\x80\x80\x80\x80\x01"));
+        TEST(WRITES(pb_encode_varint(&s, 0x31111111), "\x91\xA2\xC4\x88\x03"));
+        TEST(WRITES(pb_encode_varint(&s, UINT32_MAX), "\xFF\xFF\xFF\xFF\x0F"));
+    }
+    
+    {
+        uint8_t buffer[50];
+        pb_ostream_t s;
+        
+        COMMENT("Test pb_encode_svarint 32-bit fast path")
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00000000), "\x00"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0xFFFFFFFF), "\x01"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x0000003F), "\x7E"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0xFFFFFFC0), "\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00000040), "\x80\x01"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00001FFF), "\xFE\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0xFFFFE000), "\xFF\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00002000), "\x80\x80\x01"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x000FFFFF), "\xFE\xFF\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0xFFF00000), "\xFF\xFF\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00100000), "\x80\x80\x80\x01"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x07FFFFFF), "\xFE\xFF\xFF\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0xF8000000), "\xFF\xFF\xFF\x7F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x08000000), "\x80\x80\x80\x80\x01"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x7FFFFFFF), "\xFE\xFF\xFF\xFF\x0F"));
+        TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x80000000), "\xFF\xFF\xFF\xFF\x0F"));
+    }
+    
+    {
         uint8_t buffer[30];
         pb_ostream_t s;
         
@@ -187,7 +232,8 @@ int main()
         TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x05xyzzy"))
         value[0] = '\0';
         TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x00"))
-        memset(value, 'x', 30);
+        memset(value, 'x', 10);
+        value[10] = '\0';
         TEST(WRITES(pb_enc_string(&s, &StringMessage_fields[0], &value), "\x0Axxxxxxxxxx"))
     }
     
