@@ -658,15 +658,20 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *iter)
 {
     pb_callback_t *pCallback = (pb_callback_t*)iter->pData;
-    
 #ifdef PB_OLD_CALLBACK_STYLE
-    void *arg = pCallback->arg;
+    void *arg;
 #else
-    void **arg = &(pCallback->arg);
+    void **arg;
 #endif
     
     if (pCallback == NULL || pCallback->funcs.decode == NULL)
         return pb_skip_field(stream, wire_type);
+
+#ifdef PB_OLD_CALLBACK_STYLE
+    arg = pCallback->arg;
+#else
+    arg = &(pCallback->arg);
+#endif
     
     if (wire_type == PB_WT_STRING)
     {
@@ -1153,7 +1158,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
             ext = ext->next;
         }
     }
-    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
     {
         /* Release fields in submessage or submsg array */
         void *pItem = iter->pData;

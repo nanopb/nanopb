@@ -232,7 +232,7 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
         /* Oneof fields */
         return *(const pb_size_t*)pSize == 0;
     }
-    else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->size_offset)
+    else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->size_offset != 0)
     {
         /* Proto2 optional fields inside proto3 submessage */
         return *(const bool*)pSize == false;

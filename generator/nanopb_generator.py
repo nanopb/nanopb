@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.3.9.1"
+nanopb_version = "nanopb-0.3.9.2"
 
 import sys
 import re
@@ -44,6 +44,9 @@ except TypeError:
          *** which protoc                                                         ***
          *** protoc --version                                                     ***
          *** python -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
+         *** If you are not able to find the python protobuf version using the    ***
+         *** above command, use this command.                                     ***
+         *** pip freeze | grep -i protobuf                                        ***
          ****************************************************************************
     ''' + '\n')
     raise
@@ -95,11 +98,14 @@ try:
 except NameError:
     strtypes = (str, )
 
+
 class Names:
     '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
         if isinstance(parts, Names):
             parts = parts.parts
+        elif isinstance(parts, strtypes):
+            parts = (parts,)
         self.parts = tuple(parts)
 
     def __str__(self):
@@ -108,6 +114,8 @@ class Names:
     def __add__(self, other):
         if isinstance(other, strtypes):
             return Names(self.parts + (other,))
+        elif isinstance(other, Names):
+            return Names(self.parts + other.parts)
         elif isinstance(other, tuple):
             return Names(self.parts + other)
         else:
@@ -183,12 +191,15 @@ class Enum:
         '''desc is EnumDescriptorProto'''
 
         self.options = enum_options
-        self.names = names + desc.name
+        self.names = names
+
+        # by definition, `names` include this enum's name
+        base_name = Names(names.parts[:-1])
 
         if enum_options.long_names:
-            self.values = [(self.names + x.name, x.number) for x in desc.value]
-        else:
             self.values = [(names + x.name, x.number) for x in desc.value]
+        else:
+            self.values = [(base_name + x.name, x.number) for x in desc.value]
 
         self.value_longnames = [self.names + x.name for x in desc.value]
         self.packed = enum_options.packed_enum
@@ -640,6 +651,13 @@ class Field:
                 if encsize is not None:
                     # Include submessage length prefix
                     encsize += varint_max_size(encsize.upperlimit())
+                else:
+                    my_msg = dependencies.get(str(self.struct_name))
+                    if my_msg and submsg.protofile == my_msg.protofile:
+                        # The dependency is from the same file and size cannot be
+                        # determined for it, thus we know it will not be possible
+                        # in runtime either.
+                        return None
 
             if encsize is None:
                 # Submessage or its size cannot be found.
@@ -719,8 +737,8 @@ class ExtensionRange(Field):
         return EncodedSize(0)
 
 class ExtensionField(Field):
-    def __init__(self, struct_name, desc, field_options):
-        self.fullname = struct_name + desc.name
+    def __init__(self, fullname, desc, field_options):
+        self.fullname = fullname
         self.extendee_name = names_from_type_name(desc.extendee)
         Field.__init__(self, self.fullname + 'struct', desc, field_options)
 
@@ -845,24 +863,33 @@ class OneOf(Field):
 
     def encoded_size(self, dependencies):
         '''Returns the size of the largest oneof field.'''
-        largest = EncodedSize(0)
-        symbols = set()
+        largest = 0
+        symbols = []
         for f in self.fields:
             size = EncodedSize(f.encoded_size(dependencies))
-            if size.value is None:
+            if size is None or size.value is None:
                 return None
             elif size.symbols:
-                symbols.add(EncodedSize(f.submsgname + 'size').symbols[0])
-            elif size.value > largest.value:
-                largest = size
+                symbols.append((f.tag, size.symbols[0]))
+            elif size.value > largest:
+                largest = size.value
 
         if not symbols:
+            # Simple case, all sizes were known at generator time
             return largest
 
-        symbols = list(symbols)
-        symbols.append(str(largest))
-        max_size = lambda x, y: '({0} > {1} ? {0} : {1})'.format(x, y)
-        return reduce(max_size, symbols)
+        if largest > 0:
+            # Some sizes were known, some were not
+            symbols.insert(0, (0, largest))
+
+        if len(symbols) == 1:
+            # Only one symbol was needed
+            return EncodedSize(5, [symbols[0][1]])
+        else:
+            # Use sizeof(union{}) construct to find the maximum size of
+            # submessages.
+            union_def = ' '.join('char f%d[%s];' % s for s in symbols)
+            return EncodedSize(5, ['sizeof(union{%s})' % union_def])
 
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
@@ -1021,7 +1048,7 @@ class Message:
 #                    Processing of entire .proto files
 # ---------------------------------------------------------------------------
 
-def iterate_messages(desc, names = Names()):
+def iterate_messages(desc, flatten = False, names = Names()):
     '''Recursively find all messages. For each, yield name, DescriptorProto.'''
     if hasattr(desc, 'message_type'):
         submsgs = desc.message_type
@@ -1030,19 +1057,22 @@ def iterate_messages(desc, names = Names()):
 
     for submsg in submsgs:
         sub_names = names + submsg.name
-        yield sub_names, submsg
+        if flatten:
+            yield Names(submsg.name), submsg
+        else:
+            yield sub_names, submsg
 
-        for x in iterate_messages(submsg, sub_names):
+        for x in iterate_messages(submsg, flatten, sub_names):
             yield x
 
-def iterate_extensions(desc, names = Names()):
+def iterate_extensions(desc, flatten = False, names = Names()):
     '''Recursively find all extensions.
     For each, yield name, FieldDescriptorProto.
     '''
     for extension in desc.extension:
         yield names, extension
 
-    for subname, subdesc in iterate_messages(desc, names):
+    for subname, subdesc in iterate_messages(desc, flatten, names):
         for extension in subdesc.extension:
             yield subname, extension
 
@@ -1104,37 +1134,73 @@ class ProtoFile:
         self.messages = []
         self.extensions = []
 
+        mangle_names = self.file_options.mangle_names
+        flatten = mangle_names == nanopb_pb2.M_FLATTEN
+        strip_prefix = None
+        if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+            strip_prefix = "." + self.fdesc.package
+
+        def create_name(names):
+            if mangle_names == nanopb_pb2.M_NONE:
+                return base_name + names
+            elif mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+                return Names(names)
+            else:
+                single_name = names
+                if isinstance(names, Names):
+                    single_name = names.parts[-1]
+                return Names(single_name)
+
+        def mangle_field_typename(typename):
+            if mangle_names == nanopb_pb2.M_FLATTEN:
+                return "." + typename.split(".")[-1]
+            elif strip_prefix is not None and typename.startswith(strip_prefix):
+                return typename[len(strip_prefix):]
+            else:
+                return typename
+
         if self.fdesc.package:
             base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
 
         for enum in self.fdesc.enum_type:
-            enum_options = get_nanopb_suboptions(enum, self.file_options, base_name + enum.name)
-            self.enums.append(Enum(base_name, enum, enum_options))
+            name = create_name(enum.name)
+            enum_options = get_nanopb_suboptions(enum, self.file_options, name)
+            self.enums.append(Enum(name, enum, enum_options))
 
-        for names, message in iterate_messages(self.fdesc, base_name):
-            message_options = get_nanopb_suboptions(message, self.file_options, names)
+        for names, message in iterate_messages(self.fdesc, flatten):
+            name = create_name(names)
+            message_options = get_nanopb_suboptions(message, self.file_options, name)
 
             if message_options.skip_message:
                 continue
 
-            self.messages.append(Message(names, message, message_options))
-            for enum in message.enum_type:
-                enum_options = get_nanopb_suboptions(enum, message_options, names + enum.name)
-                self.enums.append(Enum(names, enum, enum_options))
+            for field in message.field:
+                if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
+                    field.type_name = mangle_field_typename(field.type_name)
 
-        for names, extension in iterate_extensions(self.fdesc, base_name):
-            field_options = get_nanopb_suboptions(extension, self.file_options, names + extension.name)
+
+            self.messages.append(Message(name, message, message_options))
+            for enum in message.enum_type:
+                name = create_name(names + enum.name)
+                enum_options = get_nanopb_suboptions(enum, message_options, name)
+                self.enums.append(Enum(name, enum, enum_options))
+
+        for names, extension in iterate_extensions(self.fdesc, flatten):
+            name = create_name(names + extension.name)
+            field_options = get_nanopb_suboptions(extension, self.file_options, name)
             if field_options.type != nanopb_pb2.FT_IGNORE:
-                self.extensions.append(ExtensionField(names, extension, field_options))
+                self.extensions.append(ExtensionField(name, extension, field_options))
 
     def add_dependency(self, other):
         for enum in other.enums:
             self.dependencies[str(enum.names)] = enum
+            enum.protofile = other
 
         for msg in other.messages:
             self.dependencies[str(msg.name)] = msg
+            msg.protofile = other
 
         # Fix field default values where enum short names are used.
         for enum in other.enums:
@@ -1512,6 +1578,10 @@ optparser.add_option("-Q", "--generated-include-format", dest="genformat",
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>\n',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
+optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=True,
+    help="Strip directory path from #included .pb.h file name [default: %default]")
+optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
+    help="Opposite of --strip-path")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=False,
     help="Don't add timestamp to .pb.h and .pb.c preambles")
 optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
@@ -1589,7 +1659,11 @@ def process_file(filename, fdesc, options, other_files = {}):
     noext = os.path.splitext(filename)[0]
     headername = noext + options.extension + options.header_extension
     sourcename = noext + options.extension + options.source_extension
-    headerbasename = os.path.basename(headername)
+
+    if options.strip_path:
+        headerbasename = os.path.basename(headername)
+    else:
+        headerbasename = headername
 
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
