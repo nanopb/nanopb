@@ -575,7 +575,9 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
 {
     pb_byte_t buffer[10];
     
+#ifndef PB_WITHOUT_64BIT
     if ((value >> 32) == 0)
+#endif
     {
         uint32_t value32 = (uint32_t)value;
 
@@ -615,6 +617,7 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
           return pb_write(stream, buffer, 5);
         }
     }
+#ifndef PB_WITHOUT_64BIT
     else
     {
         size_t i = 0;
@@ -626,9 +629,10 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
             i++;
         }
         buffer[i-1] &= 0x7F; /* Unset top bit on last byte */
-        
+
         return pb_write(stream, buffer, i);
-    }    
+    }
+#endif
 }
 
 bool checkreturn pb_encode_svarint(pb_ostream_t *stream, pb_int64_t value)
