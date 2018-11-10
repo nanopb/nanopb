@@ -41,6 +41,19 @@ not necessary to bundle it with nanopb anymore.
 
 **Error indications:** `ImportError: No module named compiler.plugin_pb2`
 
+.options file is now always case-sensitive
+------------------------------------------
+
+**Rationale:** Previously field names in `.options` file were case-sensitive
+on Linux and case-insensitive on Windows. This was by accident. Because
+`.proto` files are case-sensitive, `.options` files should be too.
+
+**Changes:** Now field names in `.options` are always case-sensitive, and
+matched by `fnmatchcase()` instead of `fnmatch()`.
+
+**Required actions:** If field names in `.options` are not capitalized the
+same as in `.proto`, they must be updated.
+
 Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
 ==================================
 

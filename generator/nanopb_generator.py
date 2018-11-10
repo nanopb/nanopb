@@ -1463,7 +1463,7 @@ class ProtoFile:
 #                    Options parsing for the .proto files
 # ---------------------------------------------------------------------------
 
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 
 def read_options_file(infile):
     '''Parse a separate options file to list:
@@ -1517,7 +1517,7 @@ def get_nanopb_suboptions(subdesc, options, name):
     # Handle options defined in a separate file
     dotname = '.'.join(name.parts)
     for namemask, options in Globals.separate_options:
-        if fnmatch(dotname, namemask):
+        if fnmatchcase(dotname, namemask):
             Globals.matched_namemasks.add(namemask)
             new_options.MergeFrom(options)
 
