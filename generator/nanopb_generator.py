@@ -1582,8 +1582,10 @@ optparser.add_option("--strip-path", dest="strip_path", action="store_true", def
     help="Strip directory path from #included .pb.h file name [default: %default]")
 optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
     help="Opposite of --strip-path")
-optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=False,
-    help="Don't add timestamp to .pb.h and .pb.c preambles")
+optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=True,
+    help="Don't add timestamp to .pb.h and .pb.c preambles (default since 0.4.0)")
+optparser.add_option("-t", "--timestamp", dest="notimestamp", action="store_false", default=True,
+    help="Add timestamp to .pb.h and .pb.c preambles")
 optparser.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
     help="Don't print anything except errors.")
 optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
