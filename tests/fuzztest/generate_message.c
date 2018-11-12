@@ -42,22 +42,22 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
     pb_field_iter_begin(&iter, alltypes_static_AllTypes_fields, msg);
     while (pb_field_iter_next(&iter))
     {
-        if (PB_LTYPE(iter.pos->type) == PB_LTYPE_BYTES)
+        if (PB_LTYPE(iter.type) == PB_LTYPE_BYTES)
         {
-            ((pb_bytes_array_t*)iter.pData)->size %= iter.pos->data_size - PB_BYTES_ARRAY_T_ALLOCSIZE(0);
+            ((pb_bytes_array_t*)iter.pData)->size %= iter.data_size - PB_BYTES_ARRAY_T_ALLOCSIZE(0);
         }
         
-        if (PB_HTYPE(iter.pos->type) == PB_HTYPE_REPEATED)
+        if (PB_HTYPE(iter.type) == PB_HTYPE_REPEATED)
         {
-            *((pb_size_t*)iter.pSize) %= iter.pos->array_size;
+            *((pb_size_t*)iter.pSize) %= iter.array_size;
         }
         
-        if (PB_HTYPE(iter.pos->type) == PB_HTYPE_ONEOF)
+        if (PB_HTYPE(iter.type) == PB_HTYPE_ONEOF)
         {
             /* Set the oneof to this message type with 50% chance. */
             if (rand_word() & 1)
             {
-                *((pb_size_t*)iter.pSize) = iter.pos->tag;
+                *((pb_size_t*)iter.pSize) = iter.tag;
             }
         }
     }
