@@ -39,7 +39,7 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
 endif()
 
 if(nanopb_BUILD_GENERATOR)
-    set(generator_protos nanopb plugin)
+    set(generator_protos nanopb)
 
     find_package(PythonInterp 2.7 REQUIRED)
     execute_process(
@@ -67,7 +67,7 @@ endif()
 
 if(nanopb_BUILD_RUNTIME)
     if(BUILD_SHARED_LIBS)
-	add_library(protobuf-nanopb SHARED
+        add_library(protobuf-nanopb SHARED
             pb.h
             pb_common.h
             pb_common.c
