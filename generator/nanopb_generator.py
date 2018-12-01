@@ -1332,11 +1332,6 @@ class ProtoFile:
             yield '\n'
 
         if self.messages:
-            yield '/* Default values for struct fields */\n'
-            for msg in self.messages:
-                yield msg.default_decl(self.dependencies, True)
-            yield '\n'
-
             yield '/* Initializer values for message structs */\n'
             for msg in self.messages:
                 identifier = '%s_init_default' % msg.name
@@ -1359,11 +1354,13 @@ class ProtoFile:
                 yield msg.fields_declaration() + '\n'
             for msg in self.messages:
                 yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
+                yield msg.default_decl(self.dependencies, True)
             yield '\n'
 
-            yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */'
+            yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */\n'
             for msg in self.messages:
               yield '#define %s_fields &%s_msg\n' % (msg.name, msg.name)
+            yield '\n'
 
             yield '/* Maximum encoded size of messages (where known) */\n'
             for msg in self.messages:
@@ -1375,32 +1372,31 @@ class ProtoFile:
                     yield '/* %s depends on runtime parameters */\n' % identifier
             yield '\n'
 
-            yield '/* Message IDs (where set with "msgid" option) */\n'
+            if [msg for msg in self.messages if hasattr(msg,'msgid')]:
+              yield '/* Message IDs (where set with "msgid" option) */\n'
+              yield '#ifdef PB_MSGID\n'
+              for msg in self.messages:
+                  if hasattr(msg,'msgid'):
+                      yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
+              yield '\n'
 
-            yield '#ifdef PB_MSGID\n'
-            for msg in self.messages:
-                if hasattr(msg,'msgid'):
-                    yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
-            yield '\n'
+              symbol = make_identifier(headername.split('.')[0])
+              yield '#define %s_MESSAGES \\\n' % symbol
 
-            symbol = make_identifier(headername.split('.')[0])
-            yield '#define %s_MESSAGES \\\n' % symbol
+              for msg in self.messages:
+                  m = "-1"
+                  msize = msg.encoded_size(self.dependencies)
+                  if msize is not None:
+                      m = msize
+                  if hasattr(msg,'msgid'):
+                      yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
+              yield '\n'
 
-            for msg in self.messages:
-                m = "-1"
-                msize = msg.encoded_size(self.dependencies)
-                if msize is not None:
-                    m = msize
-                if hasattr(msg,'msgid'):
-                    yield '\tPB_MSG(%d,%s,%s) \\\n' % (msg.msgid, m, msg.name)
-            yield '\n'
-
-            for msg in self.messages:
-                if hasattr(msg,'msgid'):
-                    yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
-            yield '\n'
-
-            yield '#endif\n\n'
+              for msg in self.messages:
+                  if hasattr(msg,'msgid'):
+                      yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
+              yield '\n'
+              yield '#endif\n\n'
 
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
