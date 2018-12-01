@@ -942,7 +942,7 @@ class Message:
         else:
             defval = self.default_value(dependencies) + b'\0'
             result = "pb_byte_t %s_default[] = {" % self.name
-            result += ', '.join("0x%02x" % ord(v) for v in defval)
+            result += ', '.join("0x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
             result += "};\n"
             return result
 
@@ -1014,7 +1014,7 @@ class Message:
 
         max_tag = max(field.tag for field in self.all_fields())
         max_offset = self.data_size(dependencies)
-        max_arraysize = max(field.max_count for field in self.all_fields())
+        max_arraysize = max((field.max_count or 0) for field in self.all_fields())
         max_datasize = max(field.data_size(dependencies) for field in self.all_fields())
 
         if max_arraysize > 0xFFFF:
@@ -1094,7 +1094,7 @@ class Message:
                 if defvals:
                     setattr(msg, field.name, defvals[0])
             else:
-                setattr(msg, field.name, long(field.default_value))
+                setattr(msg, field.name, int(field.default_value))
 
         return msg.SerializeToString()
 
