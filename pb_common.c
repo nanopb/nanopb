@@ -85,7 +85,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         iter->pSize = NULL;
     }
 
-    if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+    if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER && iter->pField != NULL)
     {
         iter->pData = *(void**)iter->pField;
     }

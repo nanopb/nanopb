@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include <pb_decode.h>
+#include <pb_common.h>
 #include "unionproto.pb.h"
 
 /* This function reads manually the first tag from the stream and finds the
@@ -14,7 +15,7 @@
  * Returns a pointer to the MsgType_fields array, as an identifier for the
  * message type. Returns null if the tag is of unknown type or an error occurs.
  */
-const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
+const pb_msgdesc_t* decode_unionmessage_type(pb_istream_t *stream)
 {
     pb_wire_type_t wire_type;
     uint32_t tag;
@@ -24,14 +25,12 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
     {
         if (wire_type == PB_WT_STRING)
         {
-            const pb_field_t *field;
-            for (field = UnionMessage_fields; field->tag != 0; field++)
+            pb_field_iter_t iter;
+            if (pb_field_iter_begin(&iter, UnionMessage_fields, NULL) &&
+                pb_field_iter_find(&iter, tag))
             {
-                if (field->tag == tag && (field->type & PB_LTYPE_SUBMESSAGE))
-                {
-                    /* Found our field. */
-                    return field->ptr;
-                }
+                /* Found our field. */
+                return iter.submsg_desc;
             }
         }
         
@@ -42,14 +41,14 @@ const pb_field_t* decode_unionmessage_type(pb_istream_t *stream)
     return NULL;
 }
 
-bool decode_unionmessage_contents(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct)
+bool decode_unionmessage_contents(pb_istream_t *stream, const pb_msgdesc_t *messagetype, void *dest_struct)
 {
     pb_istream_t substream;
     bool status;
     if (!pb_make_string_substream(stream, &substream))
         return false;
     
-    status = pb_decode(&substream, fields, dest_struct);
+    status = pb_decode(&substream, messagetype, dest_struct);
     pb_close_string_substream(stream, &substream);
     return status;
 }
@@ -61,7 +60,7 @@ int main()
     size_t count = fread(buffer, 1, sizeof(buffer), stdin);
     pb_istream_t stream = pb_istream_from_buffer(buffer, count);
     
-    const pb_field_t *type = decode_unionmessage_type(&stream);
+    const pb_msgdesc_t *type = decode_unionmessage_type(&stream);
     bool status = false;
     
     if (type == MsgType1_fields)

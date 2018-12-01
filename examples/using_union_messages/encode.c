@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include <pb_encode.h>
+#include <pb_common.h>
 #include "unionproto.pb.h"
 
 /* This function is the core of the union encoding process. It handles
@@ -14,20 +15,24 @@
  * field tag before the message. The pointer to MsgType_fields array is
  * used as an unique identifier for the message type.
  */
-bool encode_unionmessage(pb_ostream_t *stream, const pb_field_t messagetype[], const void *message)
+bool encode_unionmessage(pb_ostream_t *stream, const pb_msgdesc_t *messagetype, void *message)
 {
-    const pb_field_t *field;
-    for (field = UnionMessage_fields; field->tag != 0; field++)
+    pb_field_iter_t iter;
+
+    if (!pb_field_iter_begin(&iter, UnionMessage_fields, message))
+        return false;
+
+    do
     {
-        if (field->ptr == messagetype)
+        if (iter.submsg_desc == messagetype)
         {
             /* This is our field, encode the message using it. */
-            if (!pb_encode_tag_for_field(stream, field))
+            if (!pb_encode_tag_for_field(stream, &iter))
                 return false;
             
             return pb_encode_submessage(stream, messagetype, message);
         }
-    }
+    } while (pb_field_iter_next(&iter));
     
     /* Didn't find the field for messagetype */
     return false;
