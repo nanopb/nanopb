@@ -1,1 +1,1 @@
-PB_FIELD_32BIT
+PB_BIND\(foo_ext_extmsg, foo_ext_extmsg, 4\)

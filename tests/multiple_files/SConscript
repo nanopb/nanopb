@@ -10,7 +10,8 @@ incpath.NanopbProto(["multifile1", "multifile1.options"])
 incpath.NanopbProto("multifile2")
 incpath.NanopbProto("subdir/multifile2")
 test = incpath.Program(["test_multiple_files.c", "multifile1.pb.c",
-                        "multifile2.pb.c", "subdir/multifile2.pb.c"])
+                        "multifile2.pb.c", "subdir/multifile2.pb.c",
+                        "$COMMON/pb_common.o"])
 
 env.RunTest(test)
 

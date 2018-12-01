@@ -142,9 +142,11 @@ int main()
     {
         uint8_t buffer[30];
         pb_ostream_t s;
-        pb_field_t field = {10, PB_LTYPE_SVARINT};
-        
+        pb_field_iter_t field;
+        field.tag = 10;
+
         COMMENT("Test pb_encode_tag_for_field")
+        field.type = PB_LTYPE_SVARINT;
         TEST(WRITES(pb_encode_tag_for_field(&s, &field), "\x50"));
         
         field.type = PB_LTYPE_FIXED64;

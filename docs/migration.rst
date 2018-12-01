@@ -14,6 +14,27 @@ are included, in order to make it easier to find this document.
 Nanopb-0.4.0 (future)
 =====================
 
+New field descriptor format
+---------------------------
+
+**Rationale:** Previously information about struct fields was stored as an array
+of `pb_field_t` structures. This was a straightforward method, but required
+allocating space for e.g. submessage type and array size for all fields, even
+though most fields are not submessages nor arrays.
+
+**Changes:** Now field information is encoded more efficiently in `uint32_t`
+array in a variable-length format. Old `pb_field_t` structure has been removed
+and it is now a typedef for `pb_field_iter_t`. This retains compatibility with
+most old callback definitions. The field definitions in `.pb.h` files are now
+of type `pb_msgdesc_t`.
+
+**Required actions:** If your own code accesses the low-level field information
+in `pb_field_t`, it must be modified to do so only through the functions declared
+in `pb_common.h`.
+
+**Error indications:** `incompatible pointer type` errors relating to `pb_field_t`
+
+
 Changes to generator default options
 ------------------------------------
 

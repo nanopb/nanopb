@@ -64,22 +64,22 @@ struct pb_ostream_s
  *    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
  *    pb_encode(&stream, MyMessage_fields, &msg);
  */
-bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 /* Same as pb_encode, but prepends the length of the message as a varint.
  * Corresponds to writeDelimitedTo() in Google's protobuf API.
  */
-bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+bool pb_encode_delimited(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 /* Same as pb_encode, but appends a null byte to the message for termination.
  * NOTE: This behaviour is not supported in most other protobuf implementations, so pb_encode_delimited()
  * is a better option for compatibility.
  */
-bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
-bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct);
+bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
 
 /**************************************
  * Functions for manipulating streams *
@@ -121,7 +121,7 @@ bool pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
 
 /* Encode field header based on type and field number defined in the field
  * structure. Call this from the callback before writing out field contents. */
-bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
+bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 
 /* Encode field header by manually specifing wire type. You need to use this
  * if you want to write out packed arrays from a callback field. */
@@ -161,7 +161,7 @@ bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
  * with pb_encode(). This internally encodes the submessage twice, first to
  * calculate message size and then to actually write it out.
  */
-bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+bool pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 #ifdef __cplusplus
 } /* extern "C" */

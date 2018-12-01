@@ -8,17 +8,15 @@
 #include <stdlib.h>
 #include <pb_decode.h>
 #include "alltypes.pb.h"
+#include "unittests.h"
 #include "test_helpers.h"
-
-#define TEST(x) if (!(x)) { \
-    printf("Test " #x " failed.\n"); \
-    return false; \
-    }
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
+    int status = 0;
+
     /* Uses _init_default to just make sure that it works. */
     AllTypes alltypes = AllTypes_init_default;
     
@@ -277,7 +275,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     
     TEST(alltypes.end == 1099);
     
-    return true;
+    return status == 0;
 }
 
 int main(int argc, char **argv)

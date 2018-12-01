@@ -45,6 +45,12 @@ struct pb_istream_s
 #endif
 };
 
+#ifndef PB_NO_ERRMSG
+#define PB_ISTREAM_EMPTY {0,0,0,0}
+#else
+#define PB_ISTREAM_EMPTY {0,0,0}
+#endif
+
 /***************************
  * Main decoding functions *
  ***************************/
@@ -65,7 +71,7 @@ struct pb_istream_s
  *    stream = pb_istream_from_buffer(buffer, count);
  *    pb_decode(&stream, MyMessage_fields, &msg);
  */
-bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+bool pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Same as pb_decode, except does not initialize the destination structure
  * to default values. This is slightly faster if you need no default values
@@ -77,32 +83,32 @@ bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struc
  * Note: If this function returns with an error, it will not release any
  * dynamically allocated fields. You will need to call pb_release() yourself.
  */
-bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+bool pb_decode_noinit(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Same as pb_decode, except expects the stream to start with the message size
  * encoded as varint. Corresponds to parseDelimitedFrom() in Google's
  * protobuf API.
  */
-bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+bool pb_decode_delimited(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Same as pb_decode_delimited, except that it does not initialize the destination structure.
  * See pb_decode_noinit
  */
-bool pb_decode_delimited_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+bool pb_decode_delimited_noinit(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Same as pb_decode, except allows the message to be terminated with a null byte.
  * NOTE: Until nanopb-0.4.0, pb_decode() also allows null-termination. This behaviour
  * is not supported in most other protobuf implementations, so pb_decode_delimited()
  * is a better option for compatibility.
  */
-bool pb_decode_nullterminated(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+bool pb_decode_nullterminated(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 #ifdef PB_ENABLE_MALLOC
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If
  * pb_decode() returns with an error, the message is already released.
  */
-void pb_release(const pb_field_t fields[], void *dest_struct);
+void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
 #endif
 
 

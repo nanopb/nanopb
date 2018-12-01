@@ -8,6 +8,7 @@ nanopb_version = "nanopb-0.4.0-dev"
 import sys
 import re
 import codecs
+import copy
 from functools import reduce
 
 try:
@@ -22,6 +23,8 @@ try:
     import google.protobuf.text_format as text_format
     import google.protobuf.descriptor_pb2 as descriptor
     import google.protobuf.compiler.plugin_pb2 as plugin_pb2
+    import google.protobuf.reflection as reflection
+    import google.protobuf.descriptor
 except:
     sys.stderr.write('''
          *************************************************************
@@ -318,7 +321,8 @@ class Field:
                 can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
-                self.fixed_count = field_options.fixed_count
+                if field_options.fixed_count:
+                  self.rules = 'FIXARRAY'
 
         elif field_options.proto3:
             self.rules = 'SINGULAR'
@@ -424,7 +428,7 @@ class Field:
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
                 # Pointer to fixed size array
                 result += '    %s (*%s)%s;' % (self.ctype, self.name, self.array_decl)
-            elif self.rules == 'REPEATED' and self.pbtype in ['STRING', 'BYTES']:
+            elif self.rules in ['REPEATED', 'FIXARRAY'] and self.pbtype in ['STRING', 'BYTES']:
                 # String/bytes arrays need to be defined as pointers to pointers
                 result += '    %s **%s;' % (self.ctype, self.name)
             else:
@@ -432,11 +436,9 @@ class Field:
         elif self.allocation == 'CALLBACK':
             result += '    pb_callback_t %s;' % self.name
         else:
-            if self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+            if self.rules == 'OPTIONAL':
                 result += '    bool has_' + self.name + ';\n'
-            elif (self.rules == 'REPEATED' and
-                  self.allocation == 'STATIC' and
-                  not self.fixed_count):
+            elif self.rules == 'REPEATED':
                 result += '    pb_size_t ' + self.name + '_count;\n'
             result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
         return result
@@ -512,12 +514,9 @@ class Field:
         outer_init = None
         if self.allocation == 'STATIC':
             if self.rules == 'REPEATED':
-                outer_init = ''
-                if not self.fixed_count:
-                    outer_init += '0, '
-                outer_init += '{'
-                outer_init += ', '.join([inner_init] * self.max_count)
-                outer_init += '}'
+                outer_init = '0, {' + ', '.join([inner_init] * self.max_count) + '}'
+            elif self.rules == 'FIXARRAY':
+                outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
             elif self.rules == 'OPTIONAL':
                 outer_init = 'false, ' + inner_init
             else:
@@ -535,107 +534,61 @@ class Field:
 
         return outer_init
 
-    def default_decl(self, declaration_only = False):
-        '''Return definition for this field's default value.'''
-        if self.default is None:
-            return None
-
-        ctype = self.ctype
-        default = self.get_initializer(False, True)
-        array_decl = ''
-
-        if self.pbtype == 'STRING':
-            if self.allocation != 'STATIC':
-                return None # Not implemented
-            array_decl = '[%d]' % self.max_size
-        elif self.pbtype == 'BYTES':
-            if self.allocation != 'STATIC':
-                return None # Not implemented
-        elif self.pbtype == 'FIXED_LENGTH_BYTES':
-            if self.allocation != 'STATIC':
-                return None # Not implemented
-            array_decl = '[%d]' % self.max_size
-
-        if declaration_only:
-            return 'extern const %s %s_default%s;' % (ctype, self.struct_name + self.name, array_decl)
-        else:
-            return 'const %s %s_default%s = %s;' % (ctype, self.struct_name + self.name, array_decl, default)
-
     def tags(self):
         '''Return the #define for the tag number of this field.'''
         identifier = '%s_%s_tag' % (self.struct_name, self.name)
         return '#define %-40s %d\n' % (identifier, self.tag)
 
-    def pb_field_t(self, prev_field_name, union_index = None):
-        '''Return the pb_field_t initializer to use in the constant array.
-        prev_field_name is the name of the previous field or None. For OneOf
-        unions, union_index is the index of this field inside the OneOf.
+    def fieldlist(self):
+        '''Return the FIELDLIST macro entry for this field.
+        Format is: X(a, ATYPE, HTYPE, LTYPE, field_name, tag)
         '''
+        name = self.name
 
-        if self.rules == 'ONEOF':
-            if self.anonymous:
-                result = '    PB_ANONYMOUS_ONEOF_FIELD(%s, ' % self.union_name
-            else:
-                result = '    PB_ONEOF_FIELD(%s, ' % self.union_name
-        elif self.fixed_count:
-            result = '    PB_REPEATED_FIXED_COUNT('
+        if self.rules == "ONEOF":
+          # For oneofs, make a tuple of the union name, union member name,
+          # and the name inside the parent struct.
+          if not self.anonymous:
+            name = '(%s,%s,%s)' % (self.union_name, self.name, self.union_name + '.' + self.name)
+          else:
+            name = '(%s,%s,%s)' % (self.union_name, self.name, self.name)
+
+        return 'X(a, %s, %s, %s, %s, %d)' % (self.allocation, self.rules, self.pbtype, name, self.tag)
+
+    def data_size(self, dependencies):
+        '''Return estimated size of this field in the C struct.
+        This is used to try to automatically pick right descriptor size.
+        If the estimate is wrong, it will result in compile time error and
+        user having to specify descriptor_width option.
+        '''
+        if '32' in self.pbtype or self.pbtype in ('BOOL', 'FLOAT', 'ENUM', 'UENUM'):
+            size = 4
+        elif '64' in self.pbtype or self.pbtype in ('DOUBLE', 'EXTENSION'):
+            size = 8
+        elif self.allocation == 'POINTER':
+            size = 8
+        elif self.allocation == 'CALLBACK':
+            size = 16
+        elif self.pbtype == 'MESSAGE' and str(self.submsgname) in dependencies:
+            size = dependencies[str(self.submsgname)].data_size(dependencies)
+        elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
+            size = self.max_size
+        elif self.pbtype == 'BYTES':
+            size = self.max_size + 4
         else:
-            result = '    PB_FIELD('
+            raise Exception("Unhandled field type: %s" % self.pbtype)
 
-        result += '%3d, ' % self.tag
-        result += '%-8s, ' % self.pbtype
-        if not self.fixed_count:
-            result += '%s, ' % self.rules
-            result += '%-8s, ' % self.allocation
+        if self.rules in ['REPEATED', 'FIXARRAY'] and self.allocation == 'STATIC':
+            size *= self.max_count
 
-        if union_index is not None and union_index > 0:
-            result += 'UNION, '
-        elif prev_field_name is None:
-            result += 'FIRST, '
-        else:
-            result += 'OTHER, '
+        if self.rules not in ('REQUIRED', 'SINGULAR'):
+            size += 4
 
-        result += '%s, ' % self.struct_name
-        result += '%s, ' % self.name
-        result += '%s, ' % (prev_field_name or self.name)
+        if size % 4 != 0:
+            # Estimate how much alignment requirements will increase the size.
+            size += 4 - (size % 4)
 
-        if self.pbtype == 'MESSAGE':
-            result += '&%s_fields)' % self.submsgname
-        elif self.default is None:
-            result += '0)'
-        elif self.pbtype in ['BYTES', 'STRING', 'FIXED_LENGTH_BYTES'] and self.allocation != 'STATIC':
-            result += '0)' # Arbitrary size default values not implemented
-        elif self.rules == 'OPTEXT':
-            result += '0)' # Default value for extensions is not implemented
-        else:
-            result += '&%s_default)' % (self.struct_name + self.name)
-
-        return result
-
-    def get_last_field_name(self):
-        return self.name
-
-    def largest_field_value(self):
-        '''Determine if this field needs 16bit or 32bit pb_field_t structure to compile properly.
-        Returns numeric value or a C-expression for assert.'''
-        check = []
-        if self.pbtype == 'MESSAGE' and self.allocation == 'STATIC':
-            if self.rules == 'REPEATED':
-                check.append('pb_membersize(%s, %s[0])' % (self.struct_name, self.name))
-            elif self.rules == 'ONEOF':
-                if self.anonymous:
-                    check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
-                else:
-                    check.append('pb_membersize(%s, %s.%s)' % (self.struct_name, self.union_name, self.name))
-            else:
-                check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
-        elif self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            if self.max_size > 251:
-                check.append('pb_membersize(%s, %s)' % (self.struct_name, self.name))
-
-        return FieldMaxSize([self.tag, self.max_size, self.max_count],
-                            check,
-                            ('%s.%s' % (self.struct_name, self.name)))
+        return size
 
     def encoded_size(self, dependencies):
         '''Return the maximum size that this field can take when encoded,
@@ -689,7 +642,7 @@ class Field:
 
         encsize += varint_max_size(self.tag << 3) # Tag + wire type
 
-        if self.rules == 'REPEATED':
+        if self.rules in ['REPEATED', 'FIXARRAY']:
             # Decoders must be always able to handle unpacked arrays.
             # Therefore we have to reserve space for it, even though
             # we emit packed arrays ourselves. For length of 1, packed
@@ -742,13 +695,15 @@ class ExtensionField(Field):
     def __init__(self, fullname, desc, field_options):
         self.fullname = fullname
         self.extendee_name = names_from_type_name(desc.extendee)
-        Field.__init__(self, self.fullname + 'struct', desc, field_options)
+        Field.__init__(self, self.fullname + "extmsg", desc, field_options)
 
         if self.rules != 'OPTIONAL':
             self.skip = True
         else:
             self.skip = False
-            self.rules = 'OPTEXT'
+            self.rules = 'REQUIRED' # We don't really want the has_field for extensions
+            self.msg = Message(self.fullname + "extmsg", None, field_options)
+            self.msg.fields.append(self)
 
     def tags(self):
         '''Return the #define for the tag number of this field.'''
@@ -765,21 +720,21 @@ class ExtensionField(Field):
         return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
             (self.fullname, str(self).strip()))
 
-    def extension_def(self):
+    def extension_def(self, dependencies):
         '''Definition of the extension type in the .pb.c file'''
 
         if self.skip:
             return ''
 
-        result  = 'typedef struct {\n'
-        result += str(self)
-        result += '\n} %s;\n\n' % self.struct_name
-        result += ('static const pb_field_t %s_field = \n  %s;\n\n' %
-                    (self.fullname, self.pb_field_t(None)))
+        result = "/* Definition for extension field %s */\n" % self.fullname
+        result += str(self.msg)
+        result += self.msg.fields_declaration()
+        result += 'pb_byte_t %s_default[] = {0x00};\n' % self.msg.name
+        result += self.msg.fields_definition(dependencies)
         result += 'const pb_extension_type_t %s = {\n' % self.fullname
         result += '    NULL,\n'
         result += '    NULL,\n'
-        result += '    &%s_field\n' % self.fullname
+        result += '    &%s_msg\n' % self.msg.name
         result += '};\n'
         return result
 
@@ -839,29 +794,14 @@ class OneOf(Field):
     def get_initializer(self, null_init):
         return '0, {' + self.fields[0].get_initializer(null_init) + '}'
 
-    def default_decl(self, declaration_only = False):
-        return None
-
     def tags(self):
         return ''.join([f.tags() for f in self.fields])
 
-    def pb_field_t(self, prev_field_name):
-        parts = []
-        for union_index, field in enumerate(self.fields):
-            parts.append(field.pb_field_t(prev_field_name, union_index))
-        return ',\n'.join(parts)
+    def fieldlist(self):
+        return ' \\\n'.join(field.fieldlist() for field in self.fields)
 
-    def get_last_field_name(self):
-        if self.anonymous:
-            return self.fields[-1].name
-        else:
-            return self.name + '.' + self.fields[-1].name
-
-    def largest_field_value(self):
-        largest = FieldMaxSize()
-        for f in self.fields:
-            largest.extend(f.largest_field_value())
-        return largest
+    def data_size(self, dependencies):
+        return max(f.data_size(dependencies) for f in self.fields)
 
     def encoded_size(self, dependencies):
         '''Returns the size of the largest oneof field.'''
@@ -903,10 +843,20 @@ class Message:
         self.name = names
         self.fields = []
         self.oneofs = {}
-        no_unions = []
+        self.desc = desc
 
         if message_options.msgid:
             self.msgid = message_options.msgid
+
+        if desc is not None:
+            self.load_fields(desc, message_options)
+
+        self.packed = message_options.packed_struct
+
+    def load_fields(self, desc, message_options):
+        '''Load field list from DescriptorProto'''
+
+        no_unions = []
 
         if hasattr(desc, 'oneof_decl'):
             for i, f in enumerate(desc.oneof_decl):
@@ -944,10 +894,6 @@ class Message:
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
 
-        self.packed = message_options.packed_struct
-        self.ordered_fields = self.fields[:]
-        self.ordered_fields.sort()
-
     def get_dependencies(self):
         '''Get list of type names that this structure refers to.'''
         deps = []
@@ -958,12 +904,12 @@ class Message:
     def __str__(self):
         result = 'typedef struct _%s {\n' % self.name
 
-        if not self.ordered_fields:
+        if not self.fields:
             # Empty structs are not allowed in C standard.
             # Therefore add a dummy field if an empty message occurs.
             result += '    char dummy_field;'
 
-        result += '\n'.join([str(f) for f in self.ordered_fields])
+        result += '\n'.join([str(f) for f in sorted(self.fields)])
         result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
         result += '\n}'
 
@@ -976,27 +922,29 @@ class Message:
             result = 'PB_PACKED_STRUCT_START\n' + result
             result += '\nPB_PACKED_STRUCT_END'
 
-        return result
+        return result + '\n'
 
     def types(self):
         return ''.join([f.types() for f in self.fields])
 
     def get_initializer(self, null_init):
-        if not self.ordered_fields:
+        if not self.fields:
             return '{0}'
 
         parts = []
-        for field in self.ordered_fields:
+        for field in sorted(self.fields):
             parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
 
-    def default_decl(self, declaration_only = False):
-        result = ""
-        for field in self.fields:
-            default = field.default_decl(declaration_only)
-            if default is not None:
-                result += default + '\n'
-        return result
+    def default_decl(self, dependencies, declaration_only = False):
+        if declaration_only:
+            return "extern pb_byte_t %s_default[];\n" % self.name
+        else:
+            defval = self.default_value(dependencies) + b'\0'
+            result = "pb_byte_t %s_default[] = {" % self.name
+            result += ', '.join("0x%02x" % ord(v) for v in defval)
+            result += "};\n"
+            return result
 
     def count_required_fields(self):
         '''Returns number of required fields inside this message'''
@@ -1007,7 +955,25 @@ class Message:
                     count += 1
         return count
 
+    def all_fields(self):
+        '''Iterate over all fields in this message, including nested OneOfs.'''
+        for f in self.fields:
+            if isinstance(f, OneOf):
+                for f2 in f.fields:
+                    yield f2
+            else:
+                yield f
+
+
+    def field_for_tag(self, tag):
+        '''Given a tag number, return the Field instance.'''
+        for field in self.all_fields():
+            if field.tag == tag:
+                return field
+        return None
+
     def count_all_fields(self):
+        '''Count the total number of fields in this message.'''
         count = 0
         for f in self.fields:
             if isinstance(f, OneOf):
@@ -1017,20 +983,57 @@ class Message:
         return count
 
     def fields_declaration(self):
-        result = 'extern const pb_field_t %s_fields[%d];' % (self.name, self.count_all_fields() + 1)
+        '''Return X-macro declaration of all fields in this message.'''
+        result = '#define %s_FIELDLIST(X, a) \\\n' % (self.name)
+        result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
+        result += '\n'
+
+        for field in sorted(self.fields):
+          if field.pbtype == 'MESSAGE':
+            result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
+          elif field.rules == 'ONEOF':
+            for member in field.fields:
+              if member.pbtype == 'MESSAGE':
+                result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, member.union_name, member.name, member.ctype)
+
         return result
 
-    def fields_definition(self):
-        result = 'const pb_field_t %s_fields[%d] = {\n' % (self.name, self.count_all_fields() + 1)
+    def fields_definition(self, dependencies):
+        '''Return the field descriptor definition that goes in .pb.c file.'''
+        width = self.required_descriptor_width(dependencies)
+        if width == 1:
+          width = 'AUTO'
 
-        prev = None
-        for field in self.ordered_fields:
-            result += field.pb_field_t(prev)
-            result += ',\n'
-            prev = field.get_last_field_name()
-
-        result += '    PB_LAST_FIELD\n};'
+        result = 'PB_BIND(%s, %s, %s)\n' % (self.name, self.name, width)
         return result
+
+    def required_descriptor_width(self, dependencies):
+        '''Estimate how many words are necessary for each field descriptor.'''
+        if not self.fields:
+          return 1
+
+        max_tag = max(field.tag for field in self.all_fields())
+        max_offset = self.data_size(dependencies)
+        max_arraysize = max(field.max_count for field in self.all_fields())
+        max_datasize = max(field.data_size(dependencies) for field in self.all_fields())
+
+        if max_arraysize > 0xFFFF:
+            return 8
+        elif (max_tag > 0x3FF or max_offset > 0xFFFF or
+              max_arraysize > 0x0FFF or max_datasize >= 0x0FFF):
+            return 4
+        elif max_tag > 0x3F or max_offset > 0xFF:
+            return 2
+        else:
+            # NOTE: Macro logic in pb.h ensures that width 1 will
+            # be raised to 2 automatically for string/submsg fields
+            # and repeated fields. Thus only tag and offset need to
+            # be checked.
+            return 1
+
+    def data_size(self, dependencies):
+        '''Return approximate sizeof(struct) in the compiled code.'''
+        return sum(f.data_size(dependencies) for f in self.fields)
 
     def encoded_size(self, dependencies):
         '''Return the maximum size that this message can take when encoded.
@@ -1044,6 +1047,56 @@ class Message:
             size += fsize
 
         return size
+
+    def default_value(self, dependencies):
+        '''Generate serialized protobuf message that contains the
+        default values for optional fields.'''
+
+        if self.desc.options.map_entry:
+            return b''
+
+        optional_only = copy.deepcopy(self.desc)
+        enums = []
+
+        # Remove fields without default values
+        # The iteration is done in reverse order to avoid remove() messing up iteration.
+        for field in reversed(list(optional_only.field)):
+            parsed_field = self.field_for_tag(field.number)
+            if parsed_field is None or parsed_field.allocation != 'STATIC':
+                optional_only.field.remove(field)
+            elif (field.label == FieldD.LABEL_REPEATED or
+                  field.type == FieldD.TYPE_MESSAGE or
+                  not field.HasField('default_value')):
+                optional_only.field.remove(field)
+            elif field.type == FieldD.TYPE_ENUM:
+                # The partial descriptor doesn't include the enum type
+                # so we fake it with int64.
+                enums.append(field.name)
+                field.type = FieldD.TYPE_INT64
+
+        desc = google.protobuf.descriptor.MakeDescriptor(optional_only)
+        msg = reflection.MakeClass(desc)()
+
+        for field in optional_only.field:
+            if field.type == FieldD.TYPE_STRING:
+                setattr(msg, field.name, field.default_value)
+            elif field.type == FieldD.TYPE_BYTES:
+                setattr(msg, field.name, codecs.escape_decode(field.default_value)[0])
+            elif field.type in [FieldD.TYPE_FLOAT, FieldD.TYPE_DOUBLE]:
+                setattr(msg, field.name, float(field.default_value))
+            elif field.type == FieldD.TYPE_BOOL:
+                setattr(msg, field.name, field.default_value == 'true')
+            elif field.name in enums:
+                # Lookup the enum default value
+                enumname = names_from_type_name(field.type_name)
+                enumtype = dependencies[str(enumname)]
+                defvals = [v for n,v in enumtype.values if n.parts[-1] == field.default_value]
+                if defvals:
+                    setattr(msg, field.name, defvals[0])
+            else:
+                setattr(msg, field.name, long(field.default_value))
+
+        return msg.SerializeToString()
 
 
 # ---------------------------------------------------------------------------
@@ -1252,7 +1305,7 @@ class ProtoFile:
 
         yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 30\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 40\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
@@ -1281,7 +1334,7 @@ class ProtoFile:
         if self.messages:
             yield '/* Default values for struct fields */\n'
             for msg in self.messages:
-                yield msg.default_decl(True)
+                yield msg.default_decl(self.dependencies, True)
             yield '\n'
 
             yield '/* Initializer values for message structs */\n'
@@ -1304,7 +1357,13 @@ class ProtoFile:
             yield '/* Struct field encoding specification for nanopb */\n'
             for msg in self.messages:
                 yield msg.fields_declaration() + '\n'
+            for msg in self.messages:
+                yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
             yield '\n'
+
+            yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */'
+            for msg in self.messages:
+              yield '#define %s_fields &%s_msg\n' % (msg.name, msg.name)
 
             yield '/* Maximum encoded size of messages (where known) */\n'
             for msg in self.messages:
@@ -1363,21 +1422,21 @@ class ProtoFile:
         yield '\n'
         yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 30\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 40\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
 
         for msg in self.messages:
-            yield msg.default_decl(False)
+            yield msg.default_decl(self.dependencies, False)
 
         yield '\n\n'
 
         for msg in self.messages:
-            yield msg.fields_definition() + '\n\n'
+            yield msg.fields_definition(self.dependencies) + '\n\n'
 
         for ext in self.extensions:
-            yield ext.extension_def() + '\n'
+            yield ext.extension_def(self.dependencies) + '\n'
 
         for enum in self.enums:
             yield enum.enum_to_string_definition() + '\n'
@@ -1393,56 +1452,6 @@ class ProtoFile:
                 yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
                 yield '#endif\n'
 
-        max_field = FieldMaxSize()
-        checks_msgnames = []
-        for msg in self.messages:
-            checks_msgnames.append(msg.name)
-            for field in msg.fields:
-                max_field.extend(field.largest_field_value())
-        for field in self.extensions:
-            max_field.extend(field.largest_field_value())
-
-        worst = max_field.worst
-        worst_field = max_field.worst_field
-        checks = max_field.checks
-
-        if worst > 255 or checks:
-            yield '\n/* Check that field information fits in pb_field_t */\n'
-
-            if worst > 65535 or checks:
-                yield '#if !defined(PB_FIELD_32BIT)\n'
-                if worst > 65535:
-                    yield '#error Field descriptor for %s is too large. Define PB_FIELD_32BIT to fix this.\n' % worst_field
-                else:
-                    assertion = ' && '.join(str(c) + ' < 65536' for c in checks)
-                    msgs = '_'.join(str(n) for n in checks_msgnames)
-                    yield '/* If you get an error here, it means that you need to define PB_FIELD_32BIT\n'
-                    yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
-                    yield ' * The reason you need to do this is that some of your messages contain tag\n'
-                    yield ' * numbers or field sizes that are larger than what can fit in 8 or 16 bit\n'
-                    yield ' * field descriptors.\n'
-                    yield ' */\n'
-                    yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_32BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-                yield '#endif\n\n'
-
-            if worst < 65536:
-                yield '#if !defined(PB_FIELD_16BIT) && !defined(PB_FIELD_32BIT)\n'
-                if worst > 255:
-                    yield '#error Field descriptor for %s is too large. Define PB_FIELD_16BIT to fix this.\n' % worst_field
-                else:
-                    assertion = ' && '.join(str(c) + ' < 256' for c in checks)
-                    msgs = '_'.join(str(n) for n in checks_msgnames)
-                    yield '/* If you get an error here, it means that you need to define PB_FIELD_16BIT\n'
-                    yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
-                    yield ' * The reason you need to do this is that some of your messages contain tag\n'
-                    yield ' * numbers or field sizes that are larger than what can fit in the default\n'
-                    yield ' * 8 bit descriptors.\n'
-                    yield ' */\n'
-                    yield 'PB_STATIC_ASSERT((%s), YOU_MUST_DEFINE_PB_FIELD_16BIT_FOR_MESSAGES_%s)\n'%(assertion,msgs)
-                yield '#endif\n\n'
-
         # Add check for sizeof(double)
         has_double = False
         for msg in self.messages:
@@ -1453,7 +1462,8 @@ class ProtoFile:
         if has_double:
             yield '\n'
             yield '/* On some platforms (such as AVR), double is really float.\n'
-            yield ' * These are not directly supported by nanopb, but see example_avr_double.\n'
+            yield ' * Using double on these platforms is not directly supported\n'
+            yield ' * by nanopb, but see example_avr_double.\n'
             yield ' * To get rid of this error, remove any double fields from your .proto.\n'
             yield ' */\n'
             yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'

@@ -102,12 +102,6 @@ bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t cou
  * Encode a single field *
  *************************/
 
-/* Temporary wrapper until refactoring is complete */
-static bool pb_encode_tag_for_field_iter(pb_ostream_t *stream, const pb_field_iter_t *field)
-{
-    return pb_encode_tag_for_field(stream, &field->descriptor[field->index]);
-}
-
 /* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *field)
 {
@@ -194,7 +188,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
                 if (!field->pData)
                 {
                     /* Null pointer in array is treated as empty string / bytes */
-                    status = pb_encode_tag_for_field_iter(stream, field) &&
+                    status = pb_encode_tag_for_field(stream, field) &&
                              pb_encode_varint(stream, 0);
                 }
                 else
@@ -319,7 +313,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_
         return true;
     }
 
-    if (!pb_encode_tag_for_field_iter(stream, field))
+    if (!pb_encode_tag_for_field(stream, field))
         return false;
 
     switch (PB_LTYPE(field->type))
@@ -364,7 +358,7 @@ static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_fie
     
     if (callback->funcs.encode != NULL)
     {
-        if (!callback->funcs.encode(stream, &field->descriptor[field->index], arg))
+        if (!callback->funcs.encode(stream, field, arg))
             PB_RETURN_ERROR(stream, "callback error");
     }
     return true;
@@ -423,23 +417,14 @@ static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *fiel
     }
 }
 
-/* Default handler for extension fields. Expects to have a pb_field_t
- * pointer in the extension->type->arg field. */
+/* Default handler for extension fields. Expects to have a pb_msgdesc_t
+ * pointer in the extension->type->arg field, pointing to a message with
+ * only one field in it.  */
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension)
 {
-    const pb_field_t *field = (const pb_field_t*)extension->type->arg;
-    const void *data_ptr = extension->dest;
     pb_field_iter_t iter;
 
-    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-    {
-        /* For pointer extensions, the pointer is stored directly
-         * in the extension structure. This avoids having an extra
-         * indirection. */
-        data_ptr = &extension->dest;
-    }
-
-    if (!pb_field_iter_begin(&iter, field, pb_const_cast(data_ptr)))
+    if (!pb_field_iter_begin_extension(&iter, (pb_extension_t*)pb_const_cast(extension)))
         PB_RETURN_ERROR(stream, "invalid extension");
 
     return encode_field(stream, &iter);
@@ -485,7 +470,7 @@ static void *pb_const_cast(const void *p)
     return t.p1;
 }
 
-bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
+bool checkreturn pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
 {
     pb_field_iter_t iter;
     if (!pb_field_iter_begin(&iter, fields, pb_const_cast(src_struct)))
@@ -509,12 +494,12 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_field_t fields[], cons
     return true;
 }
 
-bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
+bool pb_encode_delimited(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
 {
     return pb_encode_submessage(stream, fields, src_struct);
 }
 
-bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
+bool pb_encode_nullterminated ( pb_ostream_t* stream, const pb_msgdesc_t* fields, const void* src_struct )
 {
     const pb_byte_t zero = 0;
 
@@ -524,7 +509,7 @@ bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_field_t fields[], c
     return pb_write(stream, &zero, 1);
 }
 
-bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct)
+bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct)
 {
     pb_ostream_t stream = PB_OSTREAM_SIZING;
     
@@ -637,7 +622,7 @@ bool checkreturn pb_encode_tag(pb_ostream_t *stream, pb_wire_type_t wiretype, ui
     return pb_encode_varint(stream, tag);
 }
 
-bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field)
+bool pb_encode_tag_for_field ( pb_ostream_t* stream, const pb_field_iter_t* field )
 {
     pb_wire_type_t wiretype;
     switch (PB_LTYPE(field->type))
@@ -678,7 +663,7 @@ bool checkreturn pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer,
     return pb_write(stream, buffer, size);
 }
 
-bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct)
+bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
 {
     /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = PB_OSTREAM_SIZING;
