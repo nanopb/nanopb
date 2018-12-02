@@ -21,9 +21,6 @@
  * A compiler warning will tell if you need this. */
 /* #define PB_MAX_REQUIRED_FIELDS 256 */
 
-/* Add support for tag numbers > 255 and fields larger than 255 bytes. */
-/* #define PB_FIELD_16BIT 1 */
-
 /* Add support for tag numbers > 65536 and fields larger than 65536 bytes. */
 /* #define PB_FIELD_32BIT 1 */
 
@@ -118,13 +115,20 @@
  * in the place where the PB_STATIC_ASSERT macro was called.
  */
 #ifndef PB_NO_STATIC_ASSERT
-#ifndef PB_STATIC_ASSERT
-#define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
-#define PB_STATIC_ASSERT_MSG(MSG, LINE, COUNTER) PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
-#define PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) pb_static_assertion_##MSG##LINE##COUNTER
-#endif
+#  ifndef PB_STATIC_ASSERT
+#    if __STDC_VERSION__ >= 201112L
+       /* C11 standard _Static_assert mechanism */
+#      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
+#    else
+       /* Classic negative-size-array static assert mechanism */
+#      define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
+#      define PB_STATIC_ASSERT_MSG(MSG, LINE, COUNTER) PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
+#      define PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) pb_static_assertion_##MSG##_##LINE##_##COUNTER
+#    endif
+#  endif
 #else
-#define PB_STATIC_ASSERT(COND,MSG)
+   /* Static asserts disabled by PB_NO_STATIC_ASSERT */
+#  define PB_STATIC_ASSERT(COND,MSG)
 #endif
 
 /* Number of required fields to keep track of. */
@@ -420,7 +424,8 @@ struct pb_extension_s {
        structname ## _field_info, \
        structname ## _submsg_info, \
        msgname ## _default \
-    };
+    }; \
+    msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
 #define PB_GEN_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) +1
 
@@ -444,6 +449,31 @@ struct pb_extension_s {
 
 #define PB_GEN_FIELD_INFO(width, structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_ ## width(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+                   PB_DATA_OFFSET_ ## atype(htype, structname, fieldname), \
+                   PB_DATA_SIZE_ ## atype(htype, structname, fieldname), \
+                   PB_SIZE_OFFSET_ ## atype(htype, structname, fieldname), \
+                   PB_ARRAY_SIZE_ ## atype(htype, structname, fieldname))
+
+#define PB_GEN_FIELD_INFO_ASSERT_1(structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT(1, structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT_2(structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT(2, structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT_4(structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT(4, structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT_8(structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT(8, structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT_AUTO(structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT_AUTO2(PB_FIELDINFO_WIDTH_AUTO(atype, htype, ltype), structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT_AUTO2(width, structname, atype, htype, ltype, fieldname, tag) \
+    PB_GEN_FIELD_INFO_ASSERT(width, structname, atype, htype, ltype, fieldname, tag)
+
+#define PB_GEN_FIELD_INFO_ASSERT(width, structname, atype, htype, ltype, fieldname, tag) \
+    PB_FIELDINFO_ASSERT_ ## width(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
                    PB_DATA_OFFSET_ ## atype(htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(htype, structname, fieldname), \
@@ -579,13 +609,44 @@ struct pb_extension_s {
 
 #define PB_FIELDINFO_4(tag, type, data_offset, data_size, size_offset, array_size) \
     (2 | (((tag) << 2) & 0xFF) | ((type) << 8) | (((uint32_t)(array_size) & 0xFFFF) << 16)), \
-    ((size_offset) | (((uint32_t)(tag) << 2) & 0xFFFFFF00)), \
+    ((uint32_t)(int8_t)(size_offset) | (((uint32_t)(tag) << 2) & 0xFFFFFF00)), \
     (data_offset), (data_size),
 
 #define PB_FIELDINFO_8(tag, type, data_offset, data_size, size_offset, array_size) \
     (3 | (((tag) << 2) & 0xFF) | ((type) << 8)), \
-    ((size_offset) | (((uint32_t)(tag) << 2) & 0xFFFFFF00)), \
+    ((uint32_t)(int8_t)(size_offset) | (((uint32_t)(tag) << 2) & 0xFFFFFF00)), \
     (data_offset), (data_size), (array_size)
+
+/* These assertions verify that the field information fits in the allocated space.
+ * If it doesn't, the descriptor width must be increased.
+ * TODO: Add #define and options methods to increase it.
+ */
+#define PB_FITS(value,bits) ((uint32_t)(value) < ((uint32_t)1<<bits))
+#define PB_FIELDINFO_ASSERT_1(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,6) && PB_FITS(data_offset,8) && PB_FITS(size_offset,4) && PB_FITS(data_size,4) && PB_FITS(array_size,1), FIELDINFO_DOES_NOT_FIT_width1_field ## tag)
+
+#define PB_FIELDINFO_ASSERT_2(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,10) && PB_FITS(data_offset,16) && PB_FITS(size_offset,4) && PB_FITS(data_size,12) && PB_FITS(array_size,12), FIELDINFO_DOES_NOT_FIT_width2_field ## tag)
+
+#ifndef PB_FIELD_32BIT
+/* Maximum field sizes are still 16-bit if pb_size_t is 16-bit */
+#define PB_FIELDINFO_ASSERT_4(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,16) && PB_FITS(data_offset,16) && PB_FITS((int8_t)size_offset,8) && PB_FITS(data_size,16) && PB_FITS(array_size,16), FIELDINFO_DOES_NOT_FIT_width4_field ## tag)
+
+#define PB_FIELDINFO_ASSERT_8(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,16) && PB_FITS(data_offset,16) && PB_FITS((int8_t)size_offset,8) && PB_FITS(data_size,16) && PB_FITS(array_size,16), FIELDINFO_DOES_NOT_FIT_width8_field ## tag)
+#else
+/* Up to 32-bit fields supported.
+ * Note that the checks are against 31 bits to avoid compiler warnings about shift wider than type in the test.
+ * I expect that there is no reasonable use for >2GB messages with nanopb anyway.
+ */
+#define PB_FIELDINFO_ASSERT_4(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,30) && PB_FITS(data_offset,31) && PB_FITS((int8_t)size_offset,8) && PB_FITS(data_size,31) && PB_FITS(array_size,16), FIELDINFO_DOES_NOT_FIT_width4_field ## tag)
+
+#define PB_FIELDINFO_ASSERT_8(tag, type, data_offset, data_size, size_offset, array_size) \
+    PB_STATIC_ASSERT(PB_FITS(tag,30) && PB_FITS(data_offset,31) && PB_FITS((int8_t)size_offset,8) && PB_FITS(data_size,31) && PB_FITS(array_size,31), FIELDINFO_DOES_NOT_FIT_width8_field ## tag)
+#endif
+
 
 /* Automatic picking of FIELDINFO width:
  * Uses width 1 when possible, otherwise resorts to width 2.
