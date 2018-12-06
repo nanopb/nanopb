@@ -8,4 +8,4 @@ incpath.Append(PROTOCPATH = '#message_sizes')
 incpath.NanopbProto("messages1")
 incpath.NanopbProto("messages2")
 
-incpath.Program(['dummy.c', 'messages1.pb.c', 'messages2.pb.c'])
+incpath.Program(['dummy.c', 'messages1.pb.c', 'messages2.pb.c', '$COMMON/pb_common.o'])

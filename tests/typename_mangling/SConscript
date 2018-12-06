@@ -12,9 +12,9 @@ def set_mangling(type):
 env.Command("strip_package.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
 env.Command("strip_package.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["strip_package", "strip_package.options"])
-env.Program(["test_strip_package.c", "strip_package.pb.c"])
+env.Program(["test_strip_package.c", "strip_package.pb.c", '$COMMON/pb_common.o'])
 
 env.Command("flatten.options", "with_package.options", set_mangling("M_FLATTEN"))
 env.Command("flatten.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["flatten", "flatten.options"])
-env.Program(["test_flatten.c", "flatten.pb.c"])
+env.Program(["test_flatten.c", "flatten.pb.c", '$COMMON/pb_common.o'])

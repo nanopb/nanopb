@@ -12,6 +12,7 @@ incpath.NanopbProto(['submessage/submessage', 'submessage/submessage.options'])
 
 p = incpath.Program(["msg_size.c",
                      "test.pb.c",
-                     "submessage/submessage.pb.c"])
+                     "submessage/submessage.pb.c",
+                     '$COMMON/pb_common.o'])
 
 

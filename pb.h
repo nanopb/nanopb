@@ -224,6 +224,11 @@ typedef uint_least8_t pb_type_t;
  */
 typedef uint_least8_t pb_byte_t;
 
+/* Forward declaration of struct types */
+typedef struct pb_istream_s pb_istream_t;
+typedef struct pb_ostream_s pb_ostream_t;
+typedef struct pb_field_iter_s pb_field_iter_t;
+
 /* This structure is used in auto-generated constants
  * to specify struct fields.
  */
@@ -234,6 +239,9 @@ struct pb_msgdesc_s {
     const uint32_t *field_info;
     const pb_msgdesc_t **submsg_info;
     const pb_byte_t *default_value;
+
+    bool (*decode_callback)(pb_istream_t *stream, const pb_field_iter_t *field);
+    bool (*encode_callback)(pb_ostream_t *stream, const pb_field_iter_t *field);
 } pb_packed;
 PB_PACKED_STRUCT_END
 
@@ -258,7 +266,6 @@ struct pb_field_iter_s {
 
     const pb_msgdesc_t *submsg_desc; /* For submessage fields, pointer to field descriptor for the submessage. */
 };
-typedef struct pb_field_iter_s pb_field_iter_t;
 
 /* For compatibility with legacy code */
 typedef pb_field_iter_t pb_field_t;
@@ -305,8 +312,6 @@ typedef struct pb_bytes_array_s pb_bytes_array_t;
  *
  * The callback can be null if you want to skip a field.
  */
-typedef struct pb_istream_s pb_istream_t;
-typedef struct pb_ostream_s pb_ostream_t;
 typedef struct pb_callback_s pb_callback_t;
 struct pb_callback_s {
 #ifdef PB_OLD_CALLBACK_STYLE
@@ -326,6 +331,9 @@ struct pb_callback_s {
     /* Free arg for use by callback */
     void *arg;
 };
+
+extern bool pb_default_decode_callback(pb_istream_t *stream, const pb_field_t *field);
+extern bool pb_default_encode_callback(pb_ostream_t *stream, const pb_field_t *field);
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
@@ -423,7 +431,9 @@ struct pb_extension_s {
        0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
        structname ## _field_info, \
        structname ## _submsg_info, \
-       msgname ## _default \
+       msgname ## _default, \
+       pb_default_decode_callback, \
+       pb_default_encode_callback \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 

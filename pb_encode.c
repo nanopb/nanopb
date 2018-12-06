@@ -348,17 +348,9 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_
  * called to provide and encode the actual data. */
 static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    const pb_callback_t *callback = (const pb_callback_t*)field->pData;
-    
-#ifdef PB_OLD_CALLBACK_STYLE
-    const void *arg = callback->arg;
-#else
-    void * const *arg = &(callback->arg);
-#endif    
-    
-    if (callback->funcs.encode != NULL)
+    if (field->descriptor->encode_callback != NULL)
     {
-        if (!callback->funcs.encode(stream, field, arg))
+        if (!field->descriptor->encode_callback(stream, field))
             PB_RETURN_ERROR(stream, "callback error");
     }
     return true;
@@ -862,4 +854,3 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb
 {
     return pb_encode_string(stream, (const pb_byte_t*)field->pData, field->data_size);
 }
-
