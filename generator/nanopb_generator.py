@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# kate: replace-tabs on; indent-width 4;
 
 from __future__ import unicode_literals
 
@@ -291,6 +292,7 @@ class Field:
         self.enc_size = None
         self.ctype = None
         self.fixed_count = False
+        self.callback_datatype = field_options.callback_datatype
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -434,7 +436,7 @@ class Field:
             else:
                 result += '    %s *%s;' % (self.ctype, self.name)
         elif self.allocation == 'CALLBACK':
-            result += '    pb_callback_t %s;' % self.name
+            result += '    %s %s;' % (self.callback_datatype, self.name)
         else:
             if self.rules == 'OPTIONAL':
                 result += '    bool has_' + self.name + ';\n'
@@ -655,6 +657,12 @@ class Field:
 
         return encsize
 
+    def requires_custom_field_callback(self):
+        if self.allocation == 'CALLBACK' and self.callback_datatype != 'pb_callback_t':
+            return True
+        else:
+            return False
+
 
 class ExtensionRange(Field):
     def __init__(self, struct_name, range_start, field_options):
@@ -675,6 +683,10 @@ class ExtensionRange(Field):
         self.max_size = 0
         self.max_count = 0
         self.fixed_count = False
+        self.callback_datatype = 'pb_extension_t*'
+
+    def requires_custom_field_callback(self):
+        return False
 
     def __str__(self):
         return '    pb_extension_t *extensions;'
@@ -851,6 +863,15 @@ class Message:
         if desc is not None:
             self.load_fields(desc, message_options)
 
+        self.callback_function = message_options.callback_function
+        if not message_options.HasField('callback_function'):
+            # Automatically assign a per-message callback if any field has
+            # a special callback_datatype.
+            for field in self.fields:
+                if field.requires_custom_field_callback():
+                    self.callback_function = "%s_callback" % self.name
+                    break
+
         self.packed = message_options.packed_struct
 
     def load_fields(self, desc, message_options):
@@ -988,13 +1009,21 @@ class Message:
         result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
         result += '\n'
 
+        has_callbacks = bool([f for f in self.fields if f.allocation == 'CALLBACK'])
+        if has_callbacks:
+            if self.callback_function != 'pb_default_field_callback':
+                result += "extern bool %s(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);\n" % self.callback_function
+            result += "#define %s_CALLBACK %s\n" % (self.name, self.callback_function)
+        else:
+            result += "#define %s_CALLBACK NULL\n" % self.name
+
         for field in sorted(self.fields):
-          if field.pbtype == 'MESSAGE':
-            result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
-          elif field.rules == 'ONEOF':
-            for member in field.fields:
-              if member.pbtype == 'MESSAGE':
-                result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, member.union_name, member.name, member.ctype)
+            if field.pbtype == 'MESSAGE':
+                result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
+            elif field.rules == 'ONEOF':
+                for member in field.fields:
+                    if member.pbtype == 'MESSAGE':
+                        result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, member.union_name, member.name, member.ctype)
 
         return result
 

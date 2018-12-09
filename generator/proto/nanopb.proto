@@ -92,6 +92,16 @@ message NanoPBOptions {
 
   // Mangle long names
   optional TypenameMangling mangle_names = 17 [default = M_NONE];
+
+  // Data type for storage associated with callback fields.
+  optional string callback_datatype = 18 [default = "pb_callback_t"];
+
+  // Callback function used for encoding and decoding.
+  // Prior to nanopb-0.4.0, the callback was specified in per-field pb_callback_t
+  // structure. This is still supported, but does not work inside e.g. oneof or pointer
+  // fields. Instead, a new method allows specifying a per-message callback that
+  // will be called for all callback fields in a message type.
+  optional string callback_function = 19 [default = "pb_default_field_callback"];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

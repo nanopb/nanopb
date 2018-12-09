@@ -70,6 +70,10 @@
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Macro for defining packed structures (compiler dependent).
  * This just reduces memory requirements, but is not required.
  */
@@ -430,7 +434,7 @@ struct pb_extension_s {
        structname ## _field_info, \
        structname ## _submsg_info, \
        msgname ## _default, \
-       pb_default_field_callback, \
+       msgname ## _CALLBACK, \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
@@ -734,4 +738,9 @@ struct pb_extension_s {
 
 #define PB_RETURN_ERROR(stream, msg) return PB_SET_ERROR(stream, msg), false
 
+#ifdef __cplusplus
+} /* extern "C" */
 #endif
+
+#endif
+

@@ -27,14 +27,18 @@
  * from the server. The filenames will be printed out immediately, so that
  * no memory has to be allocated for them.
  */
-bool printfile_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool ListFilesResponse_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field)
 {
-    FileInfo fileinfo = {};
-    
-    if (!pb_decode(stream, FileInfo_fields, &fileinfo))
-        return false;
-    
-    printf("%-10lld %s\n", (long long)fileinfo.inode, fileinfo.name);
+    PB_UNUSED(ostream);
+    if (istream != NULL && field->tag == ListFilesResponse_file_tag)
+    {
+        FileInfo fileinfo = {};
+
+        if (!pb_decode(istream, FileInfo_fields, &fileinfo))
+            return false;
+
+        printf("%-10lld %s\n", (long long)fileinfo.inode, fileinfo.name);
+    }
     
     return true;
 }
@@ -81,10 +85,6 @@ bool listdir(int fd, char *path)
     {
         ListFilesResponse response = {};
         pb_istream_t input = pb_istream_from_socket(fd);
-        
-        /* Give a pointer to our callback function, which will handle the
-         * filenames as they arrive. */
-        response.file.funcs.decode = &printfile_callback;
         
         if (!pb_decode_delimited(&input, ListFilesResponse_fields, &response))
         {

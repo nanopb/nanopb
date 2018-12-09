@@ -23,36 +23,40 @@
 #include "fileproto.pb.h"
 #include "common.h"
 
-/* This callback function will be called once during the encoding.
+/* This callback function will be called during the encoding.
  * It will write out any number of FileInfo entries, without consuming unnecessary memory.
  * This is accomplished by fetching the filenames one at a time and encoding them
  * immediately.
  */
-bool listdir_callback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool ListFilesResponse_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field)
 {
-    DIR *dir = (DIR*) *arg;
-    struct dirent *file;
-    FileInfo fileinfo = {};
-    
-    while ((file = readdir(dir)) != NULL)
+    PB_UNUSED(istream);
+    if (ostream != NULL && field->tag == ListFilesResponse_file_tag)
     {
-        fileinfo.inode = file->d_ino;
-        strncpy(fileinfo.name, file->d_name, sizeof(fileinfo.name));
-        fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
-        
-        /* This encodes the header for the field, based on the constant info
-         * from pb_field_t. */
-        if (!pb_encode_tag_for_field(stream, field))
-            return false;
-        
-        /* This encodes the data for the field, based on our FileInfo structure. */
-        if (!pb_encode_submessage(stream, FileInfo_fields, &fileinfo))
-            return false;
+        DIR *dir = *(DIR**)field->pData;
+        struct dirent *file;
+        FileInfo fileinfo = {};
+
+        while ((file = readdir(dir)) != NULL)
+        {
+            fileinfo.inode = file->d_ino;
+            strncpy(fileinfo.name, file->d_name, sizeof(fileinfo.name));
+            fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
+
+            /* This encodes the header for the field, based on the constant info
+            * from pb_field_t. */
+            if (!pb_encode_tag_for_field(ostream, field))
+                return false;
+
+            /* This encodes the data for the field, based on our FileInfo structure. */
+            if (!pb_encode_submessage(ostream, FileInfo_fields, &fileinfo))
+                return false;
+        }
+
+        /* Because the main program uses pb_encode_delimited(), this callback will be
+        * called twice. Rewind the directory for the next call. */
+        rewinddir(dir);
     }
-    
-    /* Because the main program uses pb_encode_delimited(), this callback will be
-     * called twice. Rewind the directory for the next call. */
-    rewinddir(dir);
 
     return true;
 }
@@ -92,14 +96,12 @@ void handle_connection(int connfd)
             /* Directory was not found, transmit error status */
             response.has_path_error = true;
             response.path_error = true;
-            response.file.funcs.encode = NULL;
         }
         else
         {
             /* Directory was found, transmit filenames */
             response.has_path_error = false;
-            response.file.funcs.encode = &listdir_callback;
-            response.file.arg = directory;
+            response.file = directory;
         }
         
         if (!pb_encode_delimited(&output, ListFilesResponse_fields, &response))
