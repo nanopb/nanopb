@@ -348,9 +348,9 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_
  * called to provide and encode the actual data. */
 static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    if (field->descriptor->encode_callback != NULL)
+    if (field->descriptor->field_callback != NULL)
     {
-        if (!field->descriptor->encode_callback(stream, field))
+        if (!field->descriptor->field_callback(NULL, stream, field))
             PB_RETURN_ERROR(stream, "callback error");
     }
     return true;

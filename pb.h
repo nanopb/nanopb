@@ -240,8 +240,7 @@ struct pb_msgdesc_s {
     const pb_msgdesc_t **submsg_info;
     const pb_byte_t *default_value;
 
-    bool (*decode_callback)(pb_istream_t *stream, const pb_field_iter_t *field);
-    bool (*encode_callback)(pb_ostream_t *stream, const pb_field_iter_t *field);
+    bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
 } pb_packed;
 PB_PACKED_STRUCT_END
 
@@ -332,8 +331,7 @@ struct pb_callback_s {
     void *arg;
 };
 
-extern bool pb_default_decode_callback(pb_istream_t *stream, const pb_field_t *field);
-extern bool pb_default_encode_callback(pb_ostream_t *stream, const pb_field_t *field);
+extern bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
@@ -432,8 +430,7 @@ struct pb_extension_s {
        structname ## _field_info, \
        structname ## _submsg_info, \
        msgname ## _default, \
-       pb_default_decode_callback, \
-       pb_default_encode_callback \
+       pb_default_field_callback, \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 

@@ -221,43 +221,36 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     }
 }
 
-bool pb_default_decode_callback(pb_istream_t *stream, const pb_field_iter_t *field)
+bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
 {
     if (field->data_size == sizeof(pb_callback_t))
     {
         pb_callback_t *pCallback = (pb_callback_t*)field->pData;
 
-        if (pCallback != NULL && pCallback->funcs.decode != NULL)
+        if (pCallback != NULL)
         {
+            if (istream != NULL && pCallback->funcs.decode != NULL)
+            {
 #ifdef PB_OLD_CALLBACK_STYLE
-            return pCallback->funcs.decode(stream, field, pCallback->arg);
+                return pCallback->funcs.decode(istream, field, pCallback->arg);
 #else
-            return pCallback->funcs.decode(stream, field, &pCallback->arg);
+                return pCallback->funcs.decode(istream, field, &pCallback->arg);
 #endif
+            }
+
+            if (ostream != NULL && pCallback->funcs.encode != NULL)
+            {
+#ifdef PB_OLD_CALLBACK_STYLE
+                return pCallback->funcs.encode(ostream, field, pCallback->arg);
+#else
+                return pCallback->funcs.encode(ostream, field, &pCallback->arg);
+#endif
+            }
         }
     }
 
-    return true; /* Success, but didn't read the field */
+    return true; /* Success, but didn't do anything */
+
 }
-
-bool pb_default_encode_callback(pb_ostream_t *stream, const pb_field_iter_t *field)
-{
-    if (field->data_size == sizeof(pb_callback_t))
-    {
-        const pb_callback_t *pCallback = (const pb_callback_t*)field->pData;
-
-        if (pCallback != NULL && pCallback->funcs.encode != NULL)
-        {
-#ifdef PB_OLD_CALLBACK_STYLE
-            return pCallback->funcs.encode(stream, field, pCallback->arg);
-#else
-            return pCallback->funcs.encode(stream, field, &pCallback->arg);
-#endif
-        }
-    }
-
-    return true; /* Success, but didn't write anything */
-}
-
 
 

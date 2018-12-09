@@ -668,7 +668,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
-    if (!field->descriptor->decode_callback)
+    if (!field->descriptor->field_callback)
         return pb_skip_field(stream, wire_type);
 
     if (wire_type == PB_WT_STRING)
@@ -682,7 +682,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
         do
         {
             prev_bytes_left = substream.bytes_left;
-            if (!field->descriptor->decode_callback(&substream, field))
+            if (!field->descriptor->field_callback(&substream, NULL, field))
                 PB_RETURN_ERROR(stream, "callback failed");
         } while (substream.bytes_left > 0 && substream.bytes_left < prev_bytes_left);
         
@@ -705,7 +705,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
             return false;
         substream = pb_istream_from_buffer(buffer, size);
         
-        return field->descriptor->decode_callback(&substream, field);
+        return field->descriptor->field_callback(&substream, NULL, field);
     }
 }
 
