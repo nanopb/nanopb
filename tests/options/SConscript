@@ -4,7 +4,8 @@ Import("env")
 
 env.NanopbProto("options")
 env.Object('options.pb.c')
-env.Match(['options.pb.h', 'options.expected'])
+env.Match('options_h.matched', ['options.pb.h', 'options_h.expected'])
+env.Match('options_c.matched', ['options.pb.c', 'options_c.expected'])
 
 env.NanopbProto("proto3_options")
 env.Object('proto3_options.pb.c')

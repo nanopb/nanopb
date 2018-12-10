@@ -873,6 +873,7 @@ class Message:
                     break
 
         self.packed = message_options.packed_struct
+        self.descriptorsize = message_options.descriptorsize
 
     def load_fields(self, desc, message_options):
         '''Load field list from DescriptorProto'''
@@ -1038,6 +1039,9 @@ class Message:
 
     def required_descriptor_width(self, dependencies):
         '''Estimate how many words are necessary for each field descriptor.'''
+        if self.descriptorsize != nanopb_pb2.DS_AUTO:
+            return int(self.descriptorsize)
+
         if not self.fields:
           return 1
 
@@ -1049,7 +1053,7 @@ class Message:
         if max_arraysize > 0xFFFF:
             return 8
         elif (max_tag > 0x3FF or max_offset > 0xFFFF or
-              max_arraysize > 0x0FFF or max_datasize >= 0x0FFF):
+              max_arraysize > 0x0FFF or max_datasize > 0x0FFF):
             return 4
         elif max_tag > 0x3F or max_offset > 0xFF:
             return 2

@@ -33,6 +33,14 @@ enum TypenameMangling {
     M_FLATTEN = 2; // Only use last path component
 }
 
+enum DescriptorSize {
+    DS_AUTO = 0; // Select minimal size based on field type
+    DS_1 = 1;    // 1 word; up to 15 byte fields, no arrays
+    DS_2 = 2;    // 2 words; up to 4095 byte fields, 4095 entry arrays
+    DS_4 = 4;    // 4 words; up to 2^32-1 byte fields, 2^16-1 entry arrays
+    DS_8 = 8;    // 8 words; up to 2^32-1 entry arrays
+}
+
 // This is the inner options message, which basically defines options for
 // a field. When it is used in message or file scope, it applies to all
 // fields.
@@ -102,6 +110,12 @@ message NanoPBOptions {
   // fields. Instead, a new method allows specifying a per-message callback that
   // will be called for all callback fields in a message type.
   optional string callback_function = 19 [default = "pb_default_field_callback"];
+
+  // Select the size of field descriptors. This option has to be defined
+  // for the whole message, not per-field. Usually automatic selection is
+  // ok, but if it results in compilation errors you can increase the field
+  // size here.
+  optional DescriptorSize descriptorsize = 20 [default = DS_AUTO];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

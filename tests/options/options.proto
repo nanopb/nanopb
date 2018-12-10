@@ -96,3 +96,9 @@ message Proto3Field
     optional int32 proto3field = 1 [(nanopb).proto3 = true];
 }
 
+// Wide descriptors
+message WideMessage
+{
+    option (nanopb_msgopt).descriptorsize = DS_4;
+    required int32 foo = 1;
+}

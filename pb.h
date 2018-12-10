@@ -34,6 +34,11 @@
  * This was the default until nanopb-0.2.1. */
 /* #define PB_OLD_CALLBACK_STYLE */
 
+/* Set the fieldinfo width for all messages using automatic width
+ * selection. Valid values are 2, 4 and 8. Usually even if you need
+ * to change the width manually for some reason, it is preferrable
+ * to do so through the descriptorsize option in .options file. */
+/* #define PB_FIELDINFO_WIDTH 4 */
 
 /******************************************************************
  * You usually don't need to change anything below this line.     *
@@ -629,8 +634,11 @@ struct pb_extension_s {
     (data_offset), (data_size), (array_size)
 
 /* These assertions verify that the field information fits in the allocated space.
- * If it doesn't, the descriptor width must be increased.
- * TODO: Add #define and options methods to increase it.
+ * The generator tries to automatically determine the correct width that can fit all
+ * data associated with a message. These asserts will fail only if there has been a
+ * problem in the automatic logic - this may be worth reporting as a bug. As a workaround,
+ * you can increase the descriptor width by defining PB_FIELDINFO_WIDTH or by setting
+ * descriptorsize option in .options file.
  */
 #define PB_FITS(value,bits) ((uint32_t)(value) < ((uint32_t)1<<bits))
 #define PB_FIELDINFO_ASSERT_1(tag, type, data_offset, data_size, size_offset, array_size) \
@@ -663,6 +671,7 @@ struct pb_extension_s {
  * Uses width 1 when possible, otherwise resorts to width 2.
  */
 
+#ifndef PB_FIELDINFO_WIDTH
 #define PB_FIELDINFO_WIDTH_AUTO(atype, htype, ltype) PB_FIELDINFO_WIDTH_ ## atype(htype, ltype)
 #define PB_FIELDINFO_WIDTH_STATIC(htype, ltype) PB_FIELDINFO_WIDTH_ ## htype(ltype)
 #define PB_FIELDINFO_WIDTH_POINTER(htype, ltype) PB_FIELDINFO_WIDTH_ ## htype(ltype)
@@ -693,6 +702,9 @@ struct pb_extension_s {
 #define PB_FIELDINFO_WIDTH_UINT64    1
 #define PB_FIELDINFO_WIDTH_EXTENSION 1
 #define PB_FIELDINFO_WIDTH_FIXED_LENGTH_BYTES 2
+#else
+#define PB_FIELDINFO_WIDTH_AUTO(atype, htype, ltype) PB_FIELDINFO_WIDTH
+#endif
 
 /* The mapping from protobuf types to LTYPEs is done using these macros. */
 #define PB_LTYPE_MAP_BOOL               PB_LTYPE_VARINT
