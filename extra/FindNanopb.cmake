@@ -149,7 +149,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb/generator)
 
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
-  if (WIN32)
+  if (CMAKE_HOST_WIN32)
     set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb.bat)
   else()
     set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
