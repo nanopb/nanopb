@@ -958,15 +958,13 @@ class Message:
             parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
 
-    def default_decl(self, dependencies, declaration_only = False):
-        if declaration_only:
-            return "extern pb_byte_t %s_default[];\n" % self.name
+    def default_decl(self, dependencies):
+        defval = self.default_value(dependencies)
+        if defval:
+            hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
+            return '#define %s_default (const uint8_t*)"%s\\x00"\n' % (self.name, hexcoded)
         else:
-            defval = self.default_value(dependencies) + b'\0'
-            result = "pb_byte_t %s_default[] = {" % self.name
-            result += ', '.join("0x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
-            result += "};\n"
-            return result
+            return '#define %s_default NULL\n' % self.name
 
     def count_required_fields(self):
         '''Returns number of required fields inside this message'''
@@ -1372,6 +1370,8 @@ class ProtoFile:
             for msg in self.messages:
                 identifier = '%s_init_zero' % msg.name
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
+            for msg in self.messages:
+                yield msg.default_decl(self.dependencies)
             yield '\n'
 
             yield '/* Field tags (for use in manual encoding/decoding) */\n'
@@ -1387,7 +1387,6 @@ class ProtoFile:
                 yield msg.fields_declaration() + '\n'
             for msg in self.messages:
                 yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
-                yield msg.default_decl(self.dependencies, True)
             yield '\n'
 
             yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */\n'
@@ -1455,11 +1454,6 @@ class ProtoFile:
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
-
-        for msg in self.messages:
-            yield msg.default_decl(self.dependencies, False)
-
-        yield '\n\n'
 
         for msg in self.messages:
             yield msg.fields_definition(self.dependencies) + '\n\n'
