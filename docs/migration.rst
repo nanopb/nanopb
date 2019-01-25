@@ -119,6 +119,24 @@ be adapted to take the default value in some other way, such as by accessing
 
 **Error indications:** Compiler error about `fieldname_default` being undeclared.
 
+Zero tag in message now raises error by default
+-----------------------------------------------
+**Rationale:** Previously nanopb has allowed messages to be terminated by a null byte,
+which is read as zero tag value. Most other protobuf implementations don't support this,
+so it is not very useful feature. It has also been noted that this can complicate
+debugging issues with corrupted messages.
+
+**Changes:** `pb_decode()` now gives error when it encounters zero tag value. A new
+function `pb_decode_ex()` supports flag `PB_DECODE_NULLTERMINATED` that supports
+decoding null terminated messages.
+
+**Required actions:** If application uses null termination for messages, switch it to
+use `pb_decode_ex()` and `pb_encode_ex()`. If compatibility with 0.3.9.x is needed,
+there are also `pb_decode_nullterminated()` and `pb_encode_nullterminated()` macros,
+which work both in 0.4.0 and 0.3.9.
+
+**Error indications:** Error message from `pb_decode()`: 'zero_tag'.
+
 Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
 ==================================
 

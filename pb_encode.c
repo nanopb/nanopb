@@ -486,19 +486,25 @@ bool checkreturn pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, con
     return true;
 }
 
-bool pb_encode_delimited(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
+bool checkreturn pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags)
 {
+  if ((flags & PB_ENCODE_DELIMITED) != 0)
+  {
     return pb_encode_submessage(stream, fields, src_struct);
-}
-
-bool pb_encode_nullterminated ( pb_ostream_t* stream, const pb_msgdesc_t* fields, const void* src_struct )
-{
+  }
+  else if ((flags & PB_ENCODE_NULLTERMINATED) != 0)
+  {
     const pb_byte_t zero = 0;
 
     if (!pb_encode(stream, fields, src_struct))
         return false;
 
     return pb_write(stream, &zero, 1);
+  }
+  else
+  {
+    return pb_encode(stream, fields, src_struct);
+  }
 }
 
 bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct)

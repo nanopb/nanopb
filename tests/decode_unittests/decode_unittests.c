@@ -392,10 +392,18 @@ int main()
 
         COMMENT("Testing pb_decode message termination")
         TEST((s = S(""), pb_decode(&s, IntegerArray_fields, &dest)))
-        TEST((s = S("\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
         TEST((s = S("\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)))
-        TEST((s = S("\x08\x01\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
         TEST((s = S("\x08"), !pb_decode(&s, IntegerArray_fields, &dest)))
+    }
+
+    {
+        pb_istream_t s;
+        IntegerArray dest;
+
+        COMMENT("Testing pb_decode_ex null termination")
+
+        TEST((s = S("\x00"), pb_decode_ex(&s, IntegerArray_fields, &dest, PB_DECODE_NULLTERMINATED)))
+        TEST((s = S("\x08\x01\x00"), pb_decode_ex(&s, IntegerArray_fields, &dest, PB_DECODE_NULLTERMINATED)))
     }
 
     {
@@ -404,6 +412,7 @@ int main()
 
         COMMENT("Testing pb_decode with invalid tag numbers")
         TEST((s = S("\x9f\xea"), !pb_decode(&s, IntegerArray_fields, &dest)));
+        TEST((s = S("\x00"), !pb_decode(&s, IntegerArray_fields, &dest)));
     }
 
     {

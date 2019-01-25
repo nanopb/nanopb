@@ -285,12 +285,6 @@ bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, 
         return false;
     }
     
-    if (temp == 0)
-    {
-        *eof = true; /* Special feature: allow 0-terminated messages. */
-        PB_RETURN_ERROR(stream, "zero tag");
-    }
-    
     *tag = temp >> 3;
     *wire_type = (pb_wire_type_t)(temp & 7);
     return true;
@@ -914,7 +908,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
  * Decode all fields *
  *********************/
 
-static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *iter, pb_fields_seen_t *fields_seen)
+static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
     uint32_t extension_range_start = 0;
 
@@ -925,6 +919,14 @@ static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *
     pb_size_t fixed_count_field = PB_SIZE_MAX;
     pb_size_t fixed_count_size = 0;
     pb_size_t fixed_count_total_size = 0;
+
+    pb_fields_seen_t fields_seen = {{0, 0}};
+    const uint32_t allbits = ~(uint32_t)0;
+    pb_field_iter_t iter;
+
+    /* Return value ignored, as empty message types will be correctly handled by
+     * pb_field_iter_find() anyway. */
+    (void)pb_field_iter_begin(&iter, fields, dest_struct);
 
     while (stream->bytes_left)
     {
@@ -940,21 +942,33 @@ static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *
                 return false;
         }
 
-        if (!pb_field_iter_find(iter, tag) || PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+        if (tag == 0)
+        {
+          if (flags & PB_DECODE_NULLTERMINATED)
+          {
+            break;
+          }
+          else
+          {
+            PB_RETURN_ERROR(stream, "zero tag");
+          }
+        }
+
+        if (!pb_field_iter_find(&iter, tag) || PB_LTYPE(iter.type) == PB_LTYPE_EXTENSION)
         {
             /* No match found, check if it matches an extension. */
             if (tag >= extension_range_start)
             {
-                if (!find_extension_field(iter))
+                if (!find_extension_field(&iter))
                     extension_range_start = (uint32_t)-1;
                 else
-                    extension_range_start = iter->tag;
+                    extension_range_start = iter.tag;
 
                 if (tag >= extension_range_start)
                 {
                     size_t pos = stream->bytes_left;
 
-                    if (!decode_extension(stream, tag, wire_type, iter))
+                    if (!decode_extension(stream, tag, wire_type, &iter))
                         return false;
 
                     if (pos != stream->bytes_left)
@@ -974,9 +988,9 @@ static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *
         /* If a repeated fixed count field was found, get size from
          * 'fixed_count_field' as there is no counter contained in the struct.
          */
-        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED && iter->pSize == &iter->array_size)
+        if (PB_HTYPE(iter.type) == PB_HTYPE_REPEATED && iter.pSize == &iter.array_size)
         {
-            if (fixed_count_field != iter->index) {
+            if (fixed_count_field != iter.index) {
                 /* If the new fixed count field does not match the previous one,
                  * check that the previous one is NULL or that it finished
                  * receiving all the expected data.
@@ -987,22 +1001,22 @@ static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *
                     PB_RETURN_ERROR(stream, "wrong size for fixed count field");
                 }
 
-                fixed_count_field = iter->index;
+                fixed_count_field = iter.index;
                 fixed_count_size = 0;
-                fixed_count_total_size = iter->array_size;
+                fixed_count_total_size = iter.array_size;
             }
 
-            iter->pSize = &fixed_count_size;
+            iter.pSize = &fixed_count_size;
         }
 
-        if (PB_HTYPE(iter->type) == PB_HTYPE_REQUIRED
-            && iter->required_field_index < PB_MAX_REQUIRED_FIELDS)
+        if (PB_HTYPE(iter.type) == PB_HTYPE_REQUIRED
+            && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
         {
-            uint32_t tmp = ((uint32_t)1 << (iter->required_field_index & 31));
-            fields_seen->bitfield[iter->required_field_index >> 5] |= tmp;
+            uint32_t tmp = ((uint32_t)1 << (iter.required_field_index & 31));
+            fields_seen.bitfield[iter.required_field_index >> 5] |= tmp;
         }
 
-        if (!decode_field(stream, wire_type, iter))
+        if (!decode_field(stream, wire_type, &iter))
             return false;
     }
 
@@ -1012,22 +1026,6 @@ static bool checkreturn pb_decode_fields(pb_istream_t *stream, pb_field_iter_t *
     {
         PB_RETURN_ERROR(stream, "wrong size for fixed count field");
     }
-
-    return true;
-}
-
-bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
-{
-    pb_fields_seen_t fields_seen = {{0, 0}};
-    const uint32_t allbits = ~(uint32_t)0;
-    pb_field_iter_t iter;
-
-    /* Return value ignored, as empty message types will be correctly handled by
-     * pb_field_iter_find() anyway. */
-    (void)pb_field_iter_begin(&iter, fields, dest_struct);
-
-    if (!pb_decode_fields(stream, &iter, &fields_seen))
-        return false;
 
     /* Check that all required fields were present. */
     {
@@ -1042,11 +1040,11 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_msgdesc_t *fiel
             req_field_count = iter.required_field_index;
             last_type = iter.type;
         } while (pb_field_iter_next(&iter));
-        
+
         /* Fixup if last field was also required. */
         if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED && iter.tag != 0)
             req_field_count++;
-        
+
         if (req_field_count > PB_MAX_REQUIRED_FIELDS)
             req_field_count = PB_MAX_REQUIRED_FIELDS;
 
@@ -1058,7 +1056,7 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_msgdesc_t *fiel
                 if (fields_seen.bitfield[i] != allbits)
                     PB_RETURN_ERROR(stream, "missing required field");
             }
-            
+
             /* Check the remaining bits (if any) */
             if ((req_field_count & 31) != 0)
             {
@@ -1070,14 +1068,15 @@ bool checkreturn pb_decode_noinit(pb_istream_t *stream, const pb_msgdesc_t *fiel
             }
         }
     }
-    
+
     return true;
 }
 
-bool checkreturn pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
+bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
     bool status;
 
+    if ((flags & PB_DECODE_NOINIT) == 0)
     {
         pb_field_iter_t iter;
 
@@ -1088,7 +1087,21 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, voi
         }
     }
 
-    status = pb_decode_noinit(stream, fields, dest_struct);
+    if ((flags & PB_DECODE_DELIMITED) == 0)
+    {
+      status = pb_decode_inner(stream, fields, dest_struct, flags);
+    }
+    else
+    {
+      pb_istream_t substream;
+      if (!pb_make_string_substream(stream, &substream))
+        return false;
+
+      status = pb_decode_inner(&substream, fields, dest_struct, flags);
+
+      if (!pb_close_string_substream(stream, &substream))
+        return false;
+    }
     
 #ifdef PB_ENABLE_MALLOC
     if (!status)
@@ -1098,40 +1111,9 @@ bool checkreturn pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, voi
     return status;
 }
 
-bool pb_decode_delimited_noinit(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
+bool checkreturn pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
 {
-    pb_istream_t substream;
-    bool status;
-
-    if (!pb_make_string_substream(stream, &substream))
-        return false;
-
-    status = pb_decode_noinit(&substream, fields, dest_struct);
-
-    if (!pb_close_string_substream(stream, &substream))
-        return false;
-    return status;
-}
-
-bool pb_decode_delimited(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
-{
-    pb_istream_t substream;
-    bool status;
-    
-    if (!pb_make_string_substream(stream, &substream))
-        return false;
-    
-    status = pb_decode(&substream, fields, dest_struct);
-
-    if (!pb_close_string_substream(stream, &substream))
-        return false;
-    return status;
-}
-
-bool pb_decode_nullterminated(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
-{
-    /* This behaviour will be separated in nanopb-0.4.0, see issue #278. */
-    return pb_decode(stream, fields, dest_struct);
+  return pb_decode_ex(stream, fields, dest_struct, 0);
 }
 
 #ifdef PB_ENABLE_MALLOC

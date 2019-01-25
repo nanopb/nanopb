@@ -60,7 +60,7 @@ int main()
       memset(msg2_buffer, 0, sizeof(msg2_buffer));
       ostream = pb_ostream_from_buffer(msg2_buffer, Message2_size);
       TEST(pb_encode(&ostream, Message2_fields, &msg2_no_data));
-      istream = pb_istream_from_buffer(msg2_buffer, Message2_size);
+      istream = pb_istream_from_buffer(msg2_buffer, ostream.bytes_written);
       TEST(pb_decode(&istream, Message2_fields, &msg2_deserialized));
       TEST(!msg2_deserialized.has_data);
       TEST(memcmp(&msg2_deserialized, &msg2, sizeof(msg2)) != 0);

@@ -66,16 +66,25 @@ struct pb_ostream_s
  */
 bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
-/* Same as pb_encode, but prepends the length of the message as a varint.
- * Corresponds to writeDelimitedTo() in Google's protobuf API.
+/* Extended version of pb_encode, with several options to control the
+ * encoding process:
+ *
+ * PB_ENCODE_DELIMITED:      Prepend the length of message as a varint.
+ *                           Corresponds to writeDelimitedTo() in Google's
+ *                           protobuf API.
+ *
+ * PB_ENCODE_NULLTERMINATED: Append a null byte to the message for termination.
+ *                           NOTE: This behaviour is not supported in most other
+ *                           protobuf implementations, so PB_ENCODE_DELIMITED
+ *                           is a better option for compatibility.
  */
-bool pb_encode_delimited(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
+#define PB_ENCODE_DELIMITED       0x02
+#define PB_ENCODE_NULLTERMINATED  0x04
+bool pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
 
-/* Same as pb_encode, but appends a null byte to the message for termination.
- * NOTE: This behaviour is not supported in most other protobuf implementations, so pb_encode_delimited()
- * is a better option for compatibility.
- */
-bool pb_encode_nullterminated(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
+/* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define pb_encode_delimited(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_DELIMITED)
+#define pb_encode_nullterminated(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_NULLTERMINATED)
 
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
