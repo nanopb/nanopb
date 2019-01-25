@@ -104,6 +104,21 @@ array, increase the size of the field by 1.
 
 **Error indications:** *pb_encode()* returns error *unterminated string*.
 
+Removal of per-field default value constants
+--------------------------------------------
+**Rationale:** Previously nanopb declared a `fieldname_default` constant variable
+for each field with a default value, and used these internally to initialize messages.
+This however used unnecessarily large amount of storage for the values. The variables
+were mostly for internal usage, but were available in the header file.
+
+**Changes:** Default values are now stored as an encoded protobuf message.
+
+**Required actions:** If your code previously used default constants, it will have to
+be adapted to take the default value in some other way, such as by accessing
+`static const MyMessage msg_default = MyMessage_init_default;` and `msg_default.fieldname`.
+
+**Error indications:** Compiler error about `fieldname_default` being undeclared.
+
 Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
 ==================================
 

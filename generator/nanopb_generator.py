@@ -740,7 +740,7 @@ class ExtensionField(Field):
 
         result = "/* Definition for extension field %s */\n" % self.fullname
         result += str(self.msg)
-        result += self.msg.fields_declaration()
+        result += self.msg.fields_declaration(dependencies)
         result += 'pb_byte_t %s_default[] = {0x00};\n' % self.msg.name
         result += self.msg.fields_definition(dependencies)
         result += 'const pb_extension_type_t %s = {\n' % self.fullname
@@ -958,14 +958,6 @@ class Message:
             parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
 
-    def default_decl(self, dependencies):
-        defval = self.default_value(dependencies)
-        if defval:
-            hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
-            return '#define %s_default (const uint8_t*)"%s\\x00"\n' % (self.name, hexcoded)
-        else:
-            return '#define %s_default NULL\n' % self.name
-
     def count_required_fields(self):
         '''Returns number of required fields inside this message'''
         count = 0
@@ -1002,7 +994,7 @@ class Message:
                 count += 1
         return count
 
-    def fields_declaration(self):
+    def fields_declaration(self, dependencies):
         '''Return X-macro declaration of all fields in this message.'''
         result = '#define %s_FIELDLIST(X, a) \\\n' % (self.name)
         result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
@@ -1015,6 +1007,13 @@ class Message:
             result += "#define %s_CALLBACK %s\n" % (self.name, self.callback_function)
         else:
             result += "#define %s_CALLBACK NULL\n" % self.name
+
+        defval = self.default_value(dependencies)
+        if defval:
+            hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
+            result += '#define %s_DEFAULT (const uint8_t*)"%s\\x00"\n' % (self.name, hexcoded)
+        else:
+            result += '#define %s_DEFAULT NULL\n' % self.name
 
         for field in sorted(self.fields):
             if field.pbtype == 'MESSAGE':
@@ -1082,6 +1081,9 @@ class Message:
     def default_value(self, dependencies):
         '''Generate serialized protobuf message that contains the
         default values for optional fields.'''
+
+        if not self.desc:
+            return b''
 
         if self.desc.options.map_entry:
             return b''
@@ -1370,8 +1372,6 @@ class ProtoFile:
             for msg in self.messages:
                 identifier = '%s_init_zero' % msg.name
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
-            for msg in self.messages:
-                yield msg.default_decl(self.dependencies)
             yield '\n'
 
             yield '/* Field tags (for use in manual encoding/decoding) */\n'
@@ -1384,7 +1384,7 @@ class ProtoFile:
 
             yield '/* Struct field encoding specification for nanopb */\n'
             for msg in self.messages:
-                yield msg.fields_declaration() + '\n'
+                yield msg.fields_declaration(self.dependencies) + '\n'
             for msg in self.messages:
                 yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
             yield '\n'

@@ -438,7 +438,7 @@ struct pb_extension_s {
        0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
        structname ## _field_info, \
        structname ## _submsg_info, \
-       msgname ## _default, \
+       msgname ## _DEFAULT, \
        msgname ## _CALLBACK, \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
