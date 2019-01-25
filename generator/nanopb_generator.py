@@ -70,30 +70,48 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb type, encoded size, int_size_allowed)
+# Values are tuple (c type, pb type, encoded size, data_size)
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
-    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  False),
-    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  False),
-    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  False),
-    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  False),
-    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  False),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  True),
-    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  True),
-    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  False),
-    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  False),
-    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  True),
-    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  True),
-    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  True),
-    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  True)
-}
+    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  4),
+    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  8),
+    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  4),
+    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  8),
+    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  4),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  4),
+    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  8),
+    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  4),
+    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  8),
+    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  4),
+    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  8),
+    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  4),
+    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  8),
 
-# Integer size overrides (from .proto settings)
-intsizes = {
-    nanopb_pb2.IS_8:     'int8_t',
-    nanopb_pb2.IS_16:    'int16_t',
-    nanopb_pb2.IS_32:    'int32_t',
-    nanopb_pb2.IS_64:    'int64_t',
+    # Integer size override options
+    (FieldD.TYPE_INT32,   nanopb_pb2.IS_8):   ('int8_t',   'INT32', 10,  1),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_16):   ('int16_t',  'INT32', 10,  2),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_32):   ('int32_t',  'INT32', 10,  4),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_64):   ('int64_t',  'INT32', 10,  8),
+    (FieldD.TYPE_SINT32,  nanopb_pb2.IS_8):   ('int8_t',  'SINT32',  2,  1),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_16):   ('int16_t', 'SINT32',  3,  2),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_32):   ('int32_t', 'SINT32',  5,  4),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_64):   ('int64_t', 'SINT32', 10,  8),
+    (FieldD.TYPE_UINT32,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT32',  2,  1),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_16):   ('uint16_t','UINT32',  3,  2),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_32):   ('uint32_t','UINT32',  5,  4),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_64):   ('uint64_t','UINT32', 10,  8),
+    (FieldD.TYPE_INT64,   nanopb_pb2.IS_8):   ('int8_t',   'INT64', 10,  1),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_16):   ('int16_t',  'INT64', 10,  2),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_32):   ('int32_t',  'INT64', 10,  4),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_64):   ('int64_t',  'INT64', 10,  8),
+    (FieldD.TYPE_SINT64,  nanopb_pb2.IS_8):   ('int8_t',  'SINT64',  2,  1),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_16):   ('int16_t', 'SINT64',  3,  2),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_32):   ('int32_t', 'SINT64',  5,  4),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_64):   ('int64_t', 'SINT64', 10,  8),
+    (FieldD.TYPE_UINT64,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT64',  2,  1),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_16):   ('uint16_t','UINT64',  3,  2),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_32):   ('uint32_t','UINT64',  5,  4),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8),
 }
 
 # String types (for python 2 / python 3 compatibility)
@@ -290,6 +308,7 @@ class Field:
         self.max_count = None
         self.array_decl = ""
         self.enc_size = None
+        self.data_item_size = None
         self.ctype = None
         self.fixed_count = False
         self.callback_datatype = field_options.callback_datatype
@@ -369,15 +388,14 @@ class Field:
 
         # Decide the C data type to use in the struct.
         if desc.type in datatypes:
-            self.ctype, self.pbtype, self.enc_size, isa = datatypes[desc.type]
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[desc.type]
 
             # Override the field size if user wants to use smaller integers
-            if isa and field_options.int_size != nanopb_pb2.IS_DEFAULT:
-                self.ctype = intsizes[field_options.int_size]
-                if desc.type == FieldD.TYPE_UINT32 or desc.type == FieldD.TYPE_UINT64:
-                    self.ctype = 'u' + self.ctype;
+            if (desc.type, field_options.int_size) in datatypes:
+                self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(desc.type, field_options.int_size)]
         elif desc.type == FieldD.TYPE_ENUM:
             self.pbtype = 'ENUM'
+            self.data_item_size = 4
             self.ctype = names_from_type_name(desc.type_name)
             if self.default is not None:
                 self.default = self.ctype + self.default
@@ -563,11 +581,7 @@ class Field:
         If the estimate is wrong, it will result in compile time error and
         user having to specify descriptor_width option.
         '''
-        if '32' in self.pbtype or self.pbtype in ('BOOL', 'FLOAT', 'ENUM', 'UENUM'):
-            size = 4
-        elif '64' in self.pbtype or self.pbtype in ('DOUBLE', 'EXTENSION'):
-            size = 8
-        elif self.allocation == 'POINTER':
+        if self.allocation == 'POINTER' or self.pbtype == 'EXTENSION':
             size = 8
         elif self.allocation == 'CALLBACK':
             size = 16
@@ -577,6 +591,8 @@ class Field:
             size = self.max_size
         elif self.pbtype == 'BYTES':
             size = self.max_size + 4
+        elif self.data_item_size is not None:
+            size = self.data_item_size
         else:
             raise Exception("Unhandled field type: %s" % self.pbtype)
 
@@ -682,6 +698,7 @@ class ExtensionRange(Field):
         self.default = None
         self.max_size = 0
         self.max_count = 0
+        self.data_item_size = 0
         self.fixed_count = False
         self.callback_datatype = 'pb_extension_t*'
 

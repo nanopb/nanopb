@@ -115,6 +115,29 @@ int main()
                    INT32_MIN, 0, INT32_MIN,
                    INT64_MIN, 0, INT64_MIN, false);
 
+    {
+        uint8_t buffer[128];
+        IntSizes msg = IntSizes_init_zero;
+        pb_ostream_t s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+
+        COMMENT("Test message maximum size");
+        msg.req_int8   = -128;
+        msg.req_uint8  = 255;
+        msg.req_sint8  = -128;
+        msg.req_int16  = -32768;
+        msg.req_uint16 = 65535;
+        msg.req_sint16 = -32768;
+        msg.req_int32  = INT32_MIN;
+        msg.req_uint32 = UINT32_MAX;
+        msg.req_sint32 = INT32_MIN;
+        msg.req_int64  = INT64_MIN;
+        msg.req_uint64 = UINT64_MAX;
+        msg.req_sint64 = INT64_MIN;
+
+        TEST(pb_encode(&s, IntSizes_fields, &msg));
+        TEST(s.bytes_written == IntSizes_size);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 
