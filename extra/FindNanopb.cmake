@@ -292,6 +292,7 @@ endif()
 find_path(NANOPB_INCLUDE_DIRS
     pb.h
     PATHS ${NANOPB_SRC_ROOT_FOLDER}
+    NO_CMAKE_FIND_ROOT_PATH
 )
 mark_as_advanced(NANOPB_INCLUDE_DIRS)
 
@@ -302,13 +303,13 @@ list(APPEND _nanopb_srcs pb_decode.c pb_encode.c pb_common.c)
 list(APPEND _nanopb_hdrs pb_decode.h pb_encode.h pb_common.h pb.h)
 
 foreach(FIL ${_nanopb_srcs})
-  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER} ${NANOPB_INCLUDE_DIRS})
+  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER} ${NANOPB_INCLUDE_DIRS} NO_CMAKE_FIND_ROOT_PATH)
   list(APPEND NANOPB_SRCS "${${FIL}__nano_pb_file}")
   mark_as_advanced(${FIL}__nano_pb_file)
 endforeach()
 
 foreach(FIL ${_nanopb_hdrs})
-  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_INCLUDE_DIRS})
+  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_INCLUDE_DIRS} NO_CMAKE_FIND_ROOT_PATH)
   mark_as_advanced(${FIL}__nano_pb_file)
   list(APPEND NANOPB_HDRS "${${FIL}__nano_pb_file}")
 endforeach()
@@ -329,6 +330,7 @@ find_path(NANOPB_GENERATOR_SOURCE_DIR
     DOC "nanopb generator source"
     PATHS
     ${NANOPB_SRC_ROOT_FOLDER}/generator
+    NO_CMAKE_FIND_ROOT_PATH
 )
 mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 
