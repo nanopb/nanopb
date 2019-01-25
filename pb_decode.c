@@ -930,9 +930,9 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
     while (stream->bytes_left)
     {
-        uint32_t tag;
-        pb_wire_type_t wire_type;
-        bool eof;
+        uint32_t tag = 0;
+        pb_wire_type_t wire_type = 0;
+        bool eof = false;
 
         if (!pb_decode_tag(stream, &wire_type, &tag, &eof))
         {
