@@ -872,7 +872,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 {
     pb_istream_t defstream = PB_ISTREAM_EMPTY;
     uint32_t tag = 0;
-    pb_wire_type_t wire_type;
+    pb_wire_type_t wire_type = PB_WT_VARINT;
     bool eof;
 
     if (iter->descriptor->default_value)
@@ -897,7 +897,6 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 
             if (iter->pSize)
                 *(bool*)iter->pSize = false;
-
         }
     } while (pb_field_iter_next(iter));
 

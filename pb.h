@@ -421,6 +421,9 @@ struct pb_extension_s {
 /* Delta from start of one member to the start of another member. */
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 
+/* Force expansion of macro value */
+#define PB_EXPAND(x) x
+
 /* Binding of a message field set into a specific structure */
 #define PB_BIND(msgname, structname, width) \
     const uint32_t structname ## _field_info[] = \
@@ -549,7 +552,7 @@ struct pb_extension_s {
 #define PB_DATA_SIZE_PTR_REPEATED(structname, fieldname) pb_membersize(structname, fieldname[0])
 #define PB_DATA_SIZE_PTR_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0])
 
-#define PB_ONEOF_NAME(type, tuple) PB_ONEOF_NAME_ ## type tuple
+#define PB_ONEOF_NAME(type, tuple) PB_EXPAND(PB_ONEOF_NAME_ ## type tuple)
 #define PB_ONEOF_NAME_UNION(unionname,membername,fullname) unionname
 #define PB_ONEOF_NAME_MEMBER(unionname,membername,fullname) membername
 #define PB_ONEOF_NAME_FULL(unionname,membername,fullname) fullname
