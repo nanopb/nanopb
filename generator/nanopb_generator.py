@@ -1126,7 +1126,7 @@ class Message:
                 enums.append(field.name)
                 field.type = FieldD.TYPE_INT64
 
-        optional_only.ClearField('oneof_decl')
+        optional_only.ClearField(str('oneof_decl'))
         desc = google.protobuf.descriptor.MakeDescriptor(optional_only)
         msg = reflection.MakeClass(desc)()
 
