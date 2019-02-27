@@ -67,6 +67,10 @@ endif()
 
 if(nanopb_BUILD_RUNTIME)
     if(BUILD_SHARED_LIBS)
+        if(MSVC)
+            set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+        endif()
+        
         add_library(protobuf-nanopb SHARED
             pb.h
             pb_common.h
@@ -79,7 +83,9 @@ if(nanopb_BUILD_RUNTIME)
             SOVERSION ${nanopb_SOVERSION})
         install(TARGETS protobuf-nanopb EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
         target_include_directories(protobuf-nanopb INTERFACE
           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
         )
