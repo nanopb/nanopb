@@ -1042,6 +1042,16 @@ class Message:
 
         return result
 
+    def fields_declaration_cpp_lookup(self):
+        result = 'template <>\n'
+        result += 'struct MessageDescriptor<%s> {\n' % (self.name)
+        result += '    static PB_INLINE_CONSTEXPR const pb_size_t fields_array_length = %d;\n' % (self.count_all_fields())
+        result += '    static inline const pb_msgdesc_t* fields() {\n'
+        result += '        return &%s_msg;\n' % (self.name)
+        result += '    }\n'
+        result += '};'
+        return result
+
     def fields_definition(self, dependencies):
         '''Return the field descriptor definition that goes in .pb.c file.'''
         width = self.required_descriptor_width(dependencies)
@@ -1454,6 +1464,18 @@ class ProtoFile:
         yield '} /* extern "C" */\n'
         yield '#endif\n'
 
+        if options.cpp_descriptors:
+            yield '\n'
+            yield '#ifdef __cplusplus\n'
+            yield '/* Message descriptors for nanopb */\n'
+            yield 'namespace nanopb {\n'
+            for msg in self.messages:
+                yield msg.fields_declaration_cpp_lookup() + '\n'
+            yield '}  // namespace nanopb\n'
+            yield '\n'
+            yield '#endif  /* __cplusplus */\n'
+            yield '\n'
+
         # End of header
         yield '/* @@protoc_insertion_point(eof) */\n'
         yield '\n#endif\n'
@@ -1637,6 +1659,8 @@ optparser.add_option("--strip-path", dest="strip_path", action="store_true", def
     help="Strip directory path from #included .pb.h file name")
 optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
     help="Opposite of --strip-path (default since 0.4.0)")
+optparser.add_option("--cpp-descriptors", action="store_true",
+    help="Generate C++ descriptors to lookup by type (e.g. pb_field_t for a message)")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=True,
     help="Don't add timestamp to .pb.h and .pb.c preambles (default since 0.4.0)")
 optparser.add_option("-t", "--timestamp", dest="notimestamp", action="store_false", default=True,
