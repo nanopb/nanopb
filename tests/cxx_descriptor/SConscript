@@ -1,4 +1,4 @@
-# Test enum to string functionality
+# Test cxx descriptor functionality
 
 Import('env')
 
