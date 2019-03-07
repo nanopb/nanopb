@@ -1294,10 +1294,10 @@ class ProtoFile:
             if message_options.skip_message:
                 continue
 
+            message = copy.deepcopy(message)
             for field in message.field:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
                     field.type_name = mangle_field_typename(field.type_name)
-
 
             self.messages.append(Message(name, message, message_options))
             for enum in message.enum_type:
