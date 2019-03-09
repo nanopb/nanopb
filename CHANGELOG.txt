@@ -1,3 +1,9 @@
+nanopb-0.3.9.3 (2019-03-08)
+ Fix fixed size and callback repeated fields inside proto3 submessages (#376, #382, #386)
+ Fix incorrect PB_STATIC_ASSERT for bytes inside oneof (#363)
+ Fix generator error with mangle_names option (#380)
+ Generator: Allow comma separated options in plugin mode (#343)
+
 nanopb-0.3.9.2 (2018-11-10)
  Erroneous free() when using callbacks combined with PB_ENABLE_MALLOC (#346)
  Fix possible null-pointer dereference in decode_callback_field (#342)
