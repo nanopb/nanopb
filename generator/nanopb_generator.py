@@ -1255,11 +1255,17 @@ class ProtoFile:
         mangle_names = self.file_options.mangle_names
         flatten = mangle_names == nanopb_pb2.M_FLATTEN
         strip_prefix = None
+        replacement_prefix = None
         if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
             strip_prefix = "." + self.fdesc.package
+        elif mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
+            strip_prefix = "." + self.fdesc.package
+            replacement_prefix = ""
+            for part in self.fdesc.package.split("."):
+                replacement_prefix += part[0]
 
         def create_name(names):
-            if mangle_names == nanopb_pb2.M_NONE:
+            if mangle_names == nanopb_pb2.M_NONE or mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
                 return base_name + names
             elif mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
                 return Names(names)
@@ -1273,12 +1279,18 @@ class ProtoFile:
             if mangle_names == nanopb_pb2.M_FLATTEN:
                 return "." + typename.split(".")[-1]
             elif strip_prefix is not None and typename.startswith(strip_prefix):
-                return typename[len(strip_prefix):]
+                if replacement_prefix is not None:
+                    return "." + replacement_prefix + typename[len(strip_prefix):]
+                else:
+                    return typename[len(strip_prefix):]
             else:
                 return typename
 
         if self.fdesc.package:
-            base_name = Names(self.fdesc.package.split('.'))
+            if replacement_prefix is not None:
+                base_name = Names(replacement_prefix)
+            else:
+                base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
 

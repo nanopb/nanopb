@@ -31,6 +31,7 @@ enum TypenameMangling {
     M_NONE = 0; // Default, no typename mangling
     M_STRIP_PACKAGE = 1; // Strip current package name
     M_FLATTEN = 2; // Only use last path component
+    M_PACKAGE_INITIALS = 3; // Replace the package name by the initials
 }
 
 enum DescriptorSize {
