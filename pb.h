@@ -125,7 +125,7 @@ extern "C" {
  */
 #ifndef PB_NO_STATIC_ASSERT
 #  ifndef PB_STATIC_ASSERT
-#    if __STDC_VERSION__ >= 201112L
+#    if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
        /* C11 standard _Static_assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
 #    else
