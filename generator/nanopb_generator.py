@@ -245,9 +245,12 @@ class Enum:
 
         result += ' %s;' % self.names
 
-        result += '\n#define _%s_MIN %s' % (self.names, self.values[0][0])
-        result += '\n#define _%s_MAX %s' % (self.names, self.values[-1][0])
-        result += '\n#define _%s_ARRAYSIZE ((%s)(%s+1))' % (self.names, self.names, self.values[-1][0])
+        # sort the enum by value
+        sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
+
+        result += '\n#define _%s_MIN %s' % (self.names, sorted_values[0][0])
+        result += '\n#define _%s_MAX %s' % (self.names, sorted_values[-1][0])
+        result += '\n#define _%s_ARRAYSIZE ((%s)(%s+1))' % (self.names, self.names, sorted_values[-1][0])
 
         if not self.options.long_names:
             # Define the long names always so that enum value references
