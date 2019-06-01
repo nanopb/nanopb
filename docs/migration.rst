@@ -137,7 +137,24 @@ which work both in 0.4.0 and 0.3.9.
 
 **Error indications:** Error message from `pb_decode()`: 'zero_tag'.
 
-Nanopb-0.3.9.1, 0.4.0 (2018-xx-xx)
+Nanopb-0.3.9.4, 0.4.0 (2019-xx-xx)
+==================================
+
+Fix generation of min/max defines for enum types
+------------------------------------------------
+
+**Rationale:** Nanopb generator makes #defines for enum minimum and maximum
+value. Previously these defines incorrectly had the first and last enum value,
+instead of the actual minimum and maximum. (issue #405)
+
+**Changes:** Minimum define now always has the smallest value, and maximum
+define always has the largest value.
+
+**Required actions:** If these defines are used and enum values in .proto file
+are not defined in ascending order, user code behaviour may change. Check that
+user code doesn't expect the old, incorrect first/last behaviour.
+
+Nanopb-0.3.9.1, 0.4.0 (2018-04-14)
 ==================================
 
 Fix handling of string and bytes default values
