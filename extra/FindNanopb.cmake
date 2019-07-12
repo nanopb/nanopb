@@ -216,7 +216,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     set(NANOPB_OPTIONS_DIRS)
 
     # If there an options file in the same working directory, set it as a dependency
-    set(NANOPB_OPTIONS_FILE ${FIL_DIR}/${FIL_WE}.options)
+    set(NANOPB_OPTIONS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${FIL_DIR}/${FIL_WE}.options)
     if(EXISTS ${NANOPB_OPTIONS_FILE})
         # Get directory as lookups for dependency options fail if an options
         # file is used. The options is still set as a dependency of the
