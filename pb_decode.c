@@ -589,7 +589,12 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 
                 if (!pb_make_string_substream(stream, &substream))
                     return false;
-                
+
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+                if ( iter->pos->max_count_limit > 0 && allocated_size > iter->pos->max_count_limit)
+                    PB_RETURN_ERROR(stream, "mem alloc limit exceeded");
+#endif
+
                 while (substream.bytes_left)
                 {
                     if ((size_t)*size + 1 > allocated_size)
@@ -639,8 +644,13 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 
                 if (*size == PB_SIZE_MAX)
                     PB_RETURN_ERROR(stream, "too many array entries");
-                
+
                 (*size)++;
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+                if ( iter->pos->max_count_limit > 0 && *size > iter->pos->max_count_limit)
+                {
+                    PB_RETURN_ERROR(stream, "mem alloc limit exceeded");
+#endif                
                 if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size))
                     return false;
             
@@ -1238,7 +1248,7 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
         pb_release_single_field(&iter);
     } while (pb_field_iter_next(&iter));
 }
-#endif
+#endif  /* PB_ENABLE_MALLOC */
 
 /* Field decoders */
 
@@ -1414,6 +1424,11 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+        /* field.max_size_limit == 0 disables pre-mem alloc check */
+        if (field->max_size_limit > 0 && alloc_size > field->max_size_limit)
+            PB_RETURN_ERROR(stream, "mem alloc limit exceeded");
+#endif
         if (!allocate_field(stream, dest, alloc_size, 1))
             return false;
         bdest = *(pb_bytes_array_t**)dest;
@@ -1449,6 +1464,11 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *fi
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+        /* field.max_size_limit == 0 disables pre- mem alloc check */
+        if (field->max_size_limit > 0 && alloc_size > field->max_size_limit)
+            PB_RETURN_ERROR(stream, "mem alloc limit exceeded"); 
+#endif
         if (!allocate_field(stream, dest, alloc_size, 1))
             return false;
         dest = *(void**)dest;

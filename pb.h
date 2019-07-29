@@ -13,6 +13,10 @@
 /* Enable support for dynamically allocated fields */
 /* #define PB_ENABLE_MALLOC 1 */
 
+/* Enable support for advanced size checks on pointer & repeated fields
+ * (requires PB_ENABLE_MALLOC to be active) */
+/* #define PB_ENABLE_ADV_SIZE_CHECK 1 */
+
 /* Define this if your CPU / compiler combination does not support
  * unaligned memory access to packed structures. */
 /* #define PB_NO_PACKED_STRUCTS 1 */
@@ -240,8 +244,30 @@ struct pb_field_s {
     
     /* Field definitions for submessage
      * OR default value for all other non-array, non-callback types
-     * If null, then field will zeroed. */
+     * If null, then field will be zeroed. */
     const void *ptr;
+
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+# ifdef PB_ENABLE_MALLOC
+   /* Maximum number of bytes that pb_decode() is allowed to allocate for a
+    * single bytes or string field with FT_POINTER attribute in the .proto file.
+    * Decoding fails if decoded byte array or string length is greater than this
+    * value. If zero (default), then no check is performed. Ignored for non-
+    * FT_POINTER fields and for FT_POINTER fields other than bytes or string. 
+    * Not present if dynamic allocation is disabled.
+    */
+   pb_size_t max_size_limit;
+   
+   /* Maximum number of elements of a REPEATED field that pb_decode() is allowed 
+    * to decode. Decoding fails if the repeated field count retrieved from the 
+    * stream is greater than this value. 
+    */
+   pb_size_t max_count_limit;
+# else
+#  error "PB_ENABLE_ADV_SIZE_CHECK requires memory dynamic allocation support!"
+# endif
+#endif
+
 } pb_packed;
 PB_PACKED_STRUCT_END
 
@@ -388,7 +414,11 @@ struct pb_extension_s {
 /* Delta from start of one member to the start of another member. */
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 /* Marks the end of the field list */
-#define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+#   define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0,0,0}
+#else
+#   define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
+#endif
 
 /* Macros for filling in the data_offset field */
 /* data_offset for first field in a message */
@@ -406,49 +436,98 @@ struct pb_extension_s {
  * previous field end, and the size of the field. Pointer is used for
  * submessages and default values.
  */
-#define PB_REQUIRED_STATIC(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
-    fd, 0, pb_membersize(st, m), 0, ptr}
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
+    #define PB_REQUIRED_STATIC(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
+        fd, 0, pb_membersize(st, m), 0, ptr}
 
-/* Optional fields add the delta to the has_ variable. */
-#define PB_OPTIONAL_STATIC(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
-    fd, \
-    pb_delta(st, has_ ## m, m), \
-    pb_membersize(st, m), 0, ptr}
+    /* Optional fields add the delta to the has_ variable. */
+    #define PB_OPTIONAL_STATIC(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+        fd, \
+        pb_delta(st, has_ ## m, m), \
+        pb_membersize(st, m), 0, ptr}
 
-#define PB_SINGULAR_STATIC(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
-    fd, 0, pb_membersize(st, m), 0, ptr}
+    #define PB_SINGULAR_STATIC(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m), 0, ptr}
 
-/* Repeated fields have a _count field and also the maximum number of entries. */
-#define PB_REPEATED_STATIC(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
-    fd, \
-    pb_delta(st, m ## _count, m), \
-    pb_membersize(st, m[0]), \
-    pb_arraysize(st, m), ptr}
+    /* Repeated fields have a _count field and also the maximum number of entries. */
+    #define PB_REPEATED_STATIC(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
+        fd, \
+        pb_delta(st, m ## _count, m), \
+        pb_membersize(st, m[0]), \
+        pb_arraysize(st, m), ptr}
 
-/* Allocated fields carry the size of the actual data, not the pointer */
-#define PB_REQUIRED_POINTER(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_REQUIRED | ltype, \
-    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+    /* Allocated fields carry the size of the actual data, not the pointer */
+    #define PB_REQUIRED_POINTER(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_REQUIRED | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr}
 
-/* Optional fields don't need a has_ variable, as information would be redundant */
-#define PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
-    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+    /* Optional fields don't need a has_ variable, as information would be redundant */
+    #define PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr}
 
-/* Same as optional fields*/
-#define PB_SINGULAR_POINTER(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
-    fd, 0, pb_membersize(st, m[0]), 0, ptr}
+    /* Same as optional fields*/
+    #define PB_SINGULAR_POINTER(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr}
 
-/* Repeated fields have a _count field and a pointer to array of pointers */
-#define PB_REPEATED_POINTER(tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
-    fd, pb_delta(st, m ## _count, m), \
-    pb_membersize(st, m[0]), 0, ptr}
+    /* Repeated fields have a _count field and a pointer to array of pointers */
+    #define PB_REPEATED_POINTER(tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
+        fd, pb_delta(st, m ## _count, m), \
+        pb_membersize(st, m[0]), 0, ptr}
+#else
+    /* Redefine macros to support additional 'max_size_limit' and
+     * 'max_count_limit' members in pb_field_t struct 
+     */
+    #define PB_REQUIRED_STATIC(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_REQUIRED | ltype, \
+        fd, 0, pb_membersize(st, m), 0, ptr, 0}
+
+    /* Optional fields add the delta to the has_ variable. */
+    #define PB_OPTIONAL_STATIC(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+        fd, \
+        pb_delta(st, has_ ## m, m), \
+        pb_membersize(st, m), 0, ptr, 0}
+
+    #define PB_SINGULAR_STATIC(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m), 0, ptr, 0}
+
+    /* Repeated fields have a _count field and also the maximum number of entries. */
+    #define PB_REPEATED_STATIC(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_STATIC | PB_HTYPE_REPEATED | ltype, \
+        fd, \
+        pb_delta(st, m ## _count, m), \
+        pb_membersize(st, m[0]), \
+        pb_arraysize(st, m), ptr, 0}
+
+    #define PB_REQUIRED_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_REQUIRED | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+
+    /* Optional fields don't need a has_ variable, as information would be redundant */
+    #define PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+
+    /* Same as optional fields*/
+    #define PB_SINGULAR_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+
+    /* Repeated fields have a _count field and a pointer to array of pointers */
+    #define PB_REPEATED_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
+        fd, pb_delta(st, m ## _count, m), \
+        pb_membersize(st, m[0]), maxcntl, ptr, maxsizl, maxcntl}
+//        pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+#endif  /* PB_ENABLE_ADV_SIZE_CHECK */
 
 /* Callbacks are much like required fields except with special datatype. */
 #define PB_REQUIRED_CALLBACK(tag, st, m, fd, ltype, ptr) \
@@ -479,8 +558,13 @@ struct pb_extension_s {
     0, \
     pb_membersize(st, m), 0, ptr}
 
-#define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, ptr) \
-    PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr)
+#ifdef PB_ENABLE_ADV_SIZE_CHECK
+    #define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr)
+#else
+    #define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, ptr) \
+        PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr)
+#endif
 
 #define PB_OPTEXT_CALLBACK(tag, st, m, fd, ltype, ptr) \
     PB_OPTIONAL_CALLBACK(tag, st, m, fd, ltype, ptr)
@@ -520,12 +604,26 @@ struct pb_extension_s {
  * - Field name
  * - Previous field name (or field name again for first field)
  * - Pointer to default value or submsg fields.
+ * - If dynamic allocation is enabled, 2 additional arguments are required:
+ *   + Maximum number of bytes that the decoder is allowed to allocate to store bytes- or 
+ *     string-type fields that are defined as FT_POINTER in the .proto file.
+ *   + Maximum field count the decoder is allowed to allocate space for, for fields marked as 
+ *     repeated in the .proto file. 
+ *   For both arguments: 0 means no check, they are ignored for static fields or non-repeated,
+ *   non-FT_POINTER fields. Struct is 2 pb_size_t bigger when dynamic allocation is enabled.
  */
 
-#define PB_FIELD(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
-        PB_ ## rules ## _ ## allocation(tag, message, field, \
-        PB_DATAOFFSET_ ## placement(message, field, prevfield), \
-        PB_LTYPE_MAP_ ## type, ptr)
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
+    #define PB_FIELD(tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
+            PB_ ## rules ## _ ## allocation(tag, message, field, \
+            PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+            PB_LTYPE_MAP_ ## type, ptr)
+#else
+    #define PB_FIELD(tag, type, rules, allocation, placement, message, field, prevfield, maxsizl, maxcntl, ptr) \
+            PB_ ## rules ## _ ## allocation(tag, message, field, \
+            PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+            PB_LTYPE_MAP_ ## type, maxsizl, maxcntl, ptr)
+#endif
 
 /* Field description for repeated static fixed count fields.*/
 #define PB_REPEATED_FIXED_COUNT(tag, type, placement, message, field, prevfield, ptr) \
@@ -543,10 +641,17 @@ struct pb_extension_s {
     fd, pb_delta(st, which_ ## u, u.m), \
     pb_membersize(st, u.m), 0, ptr}
 
-#define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
-    fd, pb_delta(st, which_ ## u, u.m), \
-    pb_membersize(st, u.m[0]), 0, ptr}
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
+    #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+        fd, pb_delta(st, which_ ## u, u.m), \
+        pb_membersize(st, u.m[0]), 0, ptr}
+#else
+    #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+        fd, pb_delta(st, which_ ## u, u.m), \
+        pb_membersize(st, u.m[0]), 0, ptr, maxsizl, maxcntl}
+#endif
 
 #define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
         PB_ONEOF_ ## allocation(union_name, tag, message, field, \
@@ -558,10 +663,17 @@ struct pb_extension_s {
     fd, pb_delta(st, which_ ## u, m), \
     pb_membersize(st, m), 0, ptr}
 
-#define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
-    {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
-    fd, pb_delta(st, which_ ## u, m), \
-    pb_membersize(st, m[0]), 0, ptr}
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
+    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+        fd, pb_delta(st, which_ ## u, m), \
+        pb_membersize(st, m[0]), 0, ptr}
+#else
+    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+        {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
+        fd, pb_delta(st, which_ ## u, m), \
+        pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+#endif
 
 #define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
         PB_ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
@@ -579,7 +691,14 @@ struct pb_extension_s {
  * PB_GET_ERROR() always returns a pointer to a string.
  * PB_RETURN_ERROR() sets the error and returns false from current
  *                   function.
+ * G_depth is a global that should be initialized to 0 when 
+ * creating an input stream. It helps tracking the level of the 
+ * call stack when instrumentation is enabled 
+ * (set `INTRUMENT_FUNCTION += -finstrument-functions` in your 
+ * Makfile to do so)
  */
+extern int G_depth;
+
 #ifdef PB_NO_ERRMSG
 #define PB_SET_ERROR(stream, msg) PB_UNUSED(stream)
 #define PB_GET_ERROR(stream) "(errmsg disabled)"
