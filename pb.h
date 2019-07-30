@@ -257,14 +257,8 @@ struct pb_field_s {
     * Not present if dynamic allocation is disabled.
     */
    pb_size_t max_size_limit;
-   
-   /* Maximum number of elements of a REPEATED field that pb_decode() is allowed 
-    * to decode. Decoding fails if the repeated field count retrieved from the 
-    * stream is greater than this value. 
-    */
-   pb_size_t max_count_limit;
 # else
-#  error "PB_ENABLE_ADV_SIZE_CHECK requires memory dynamic allocation support!"
+#  error "PB_ENABLE_ADV_SIZE_CHECK requires dynamic memory allocation support!"
 # endif
 #endif
 
@@ -415,7 +409,7 @@ struct pb_extension_s {
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 /* Marks the end of the field list */
 #ifdef PB_ENABLE_ADV_SIZE_CHECK
-#   define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0,0,0}
+#   define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0,0}
 #else
 #   define PB_LAST_FIELD {0,(pb_type_t) 0,0,0,0,0,0}
 #endif
@@ -509,23 +503,23 @@ struct pb_extension_s {
 
     #define PB_REQUIRED_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_REQUIRED | ltype, \
-        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl}
 
     /* Optional fields don't need a has_ variable, as information would be redundant */
     #define PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
-        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl}
 
     /* Same as optional fields*/
     #define PB_SINGULAR_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_OPTIONAL | ltype, \
-        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+        fd, 0, pb_membersize(st, m[0]), 0, ptr, maxsizl}
 
     /* Repeated fields have a _count field and a pointer to array of pointers */
     #define PB_REPEATED_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_REPEATED | ltype, \
         fd, pb_delta(st, m ## _count, m), \
-        pb_membersize(st, m[0]), maxcntl, ptr, maxsizl, maxcntl}
+        pb_membersize(st, m[0]), maxcntl, ptr, maxsizl}
 //        pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
 #endif  /* PB_ENABLE_ADV_SIZE_CHECK */
 
@@ -560,7 +554,7 @@ struct pb_extension_s {
 
 #ifdef PB_ENABLE_ADV_SIZE_CHECK
     #define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
-        PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr)
+        PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, maxsizl, 0, ptr)
 #else
     #define PB_OPTEXT_POINTER(tag, st, m, fd, ltype, ptr) \
         PB_OPTIONAL_POINTER(tag, st, m, fd, ltype, ptr)
@@ -647,10 +641,11 @@ struct pb_extension_s {
         fd, pb_delta(st, which_ ## u, u.m), \
         pb_membersize(st, u.m[0]), 0, ptr}
 #else
-    #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+/*    #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \*/
+    #define PB_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
         fd, pb_delta(st, which_ ## u, u.m), \
-        pb_membersize(st, u.m[0]), 0, ptr, maxsizl, maxcntl}
+        pb_membersize(st, u.m[0]), 0, ptr, maxsizl}
 #endif
 
 #define PB_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
@@ -669,10 +664,11 @@ struct pb_extension_s {
         fd, pb_delta(st, which_ ## u, m), \
         pb_membersize(st, m[0]), 0, ptr}
 #else
-    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+/*    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \*/
+    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, ptr) \
         {tag, PB_ATYPE_POINTER | PB_HTYPE_ONEOF | ltype, \
         fd, pb_delta(st, which_ ## u, m), \
-        pb_membersize(st, m[0]), 0, ptr, maxsizl, maxcntl}
+        pb_membersize(st, m[0]), 0, ptr, maxsizl}
 #endif
 
 #define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
