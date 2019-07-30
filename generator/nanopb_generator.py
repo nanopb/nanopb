@@ -1812,6 +1812,11 @@ def main_plugin():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
+    if options.adv_size_checks:
+        sys.stderr.write("\nATTENTION: Advanced size checks option is activated.\nYou will "
+                         "need to pass the -DPB_ENABLE_MALLOC and -DPB_ENABLE_ADV_SIZE_CHECK "
+                         "options to the compiler to properly build with the generated files.\n\n")
+
     response = plugin_pb2.CodeGeneratorResponse()
 
     # Google's protoc does not currently indicate the full path of proto files.
