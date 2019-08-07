@@ -44,11 +44,26 @@ folder. In this case, you are ready to go. Simply run this command:
 However, if you are using a git checkout or a plain source distribution, you
 need to provide your own version of `protoc` and the Google's protobuf library.
 On Linux, the necessary packages are `protobuf-compiler` and `python-protobuf`.
-On Windows, you can either build Google's protobuf library from source or use
+On Windows, you can either build Google's protobuf library from source (see section below) or use
 one of the binary distributions of it. In either case, if you use a separate
-`protoc`, you need to manually give the path to nanopb generator:
+`protoc`, you need to manually give the path to the nanopb generator to the `protoc-gen-nanopb` 
+plugin, as follows:
 
-    protoc --plugin=protoc-gen-nanopb=nanopb/generator/protoc-gen-nanopb ...
+    protoc --plugin=protoc-gen-nanopb=nanopb/generator/protoc-gen-nanopb --nanopb_out=. myprotocol.proto
+
+Note that the above `protoc`-based commands are the 1-command versions of a 2-command process, as described in the ["Nanopb: Basic concepts" document under the section "Compiling .proto files for nanopb"](https://jpa.kapsi.fi/nanopb/docs/concepts.html#compiling-proto-files-for-nanopb). Here is the 2-command process:
+
+    protoc -omyprotocol.pb myprotocol.proto
+    python nanopb/generator/nanopb_generator.py myprotocol.pb
+
+
+
+Building [Google's protobuf library](https://github.com/protocolbuffers/protobuf) from source
+---------------------------------------------------------------------------------------------
+When building Google's protobuf library from source, be sure to follow both the C++ installation instructions *and* the Python installation instructions, as *both* are required:
+1. [Protobuf's C++ build & installation instructions](https://github.com/protocolbuffers/protobuf/tree/master/src)
+2. [Protobuf's Python build & installation instructions](https://github.com/protocolbuffers/protobuf/tree/master/python)  
+- See additional reading [here](https://github.com/nanopb/nanopb/issues/417#issuecomment-517619517) and [here](https://stackoverflow.com/questions/57367265/how-to-compile-nanopb-proto-file-into-h-and-c-files-using-nanopb-and-protobuf/57367543#57367543).
 
 
 
