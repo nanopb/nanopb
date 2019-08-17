@@ -27,6 +27,7 @@ addons:
             - g++-4.9
             - gcc-5
             - g++-5
+            - scons
 
 
 before_install:
