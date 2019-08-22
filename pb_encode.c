@@ -80,7 +80,7 @@ pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
 
 bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 {
-    if (stream->callback != NULL)
+    if (count > 0 && stream->callback != NULL)
     {
         if (stream->bytes_written + count > stream->max_size)
             PB_RETURN_ERROR(stream, "stream full");

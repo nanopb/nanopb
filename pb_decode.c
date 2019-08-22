@@ -82,6 +82,9 @@ static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t co
 
 bool checkreturn pb_read(pb_istream_t *stream, pb_byte_t *buf, size_t count)
 {
+    if (count == 0)
+        return true;
+
 #ifndef PB_BUFFER_ONLY
 	if (buf == NULL && stream->callback != buf_read)
 	{
