@@ -55,6 +55,10 @@ PB_SYSTEM_HEADER               Replace the standard header files with a single
                                for example *#define PB_SYSTEM_HEADER "foo.h"*.
 PB_WITHOUT_64BIT               Disable 64-bit support, for old compilers or
                                for a slight speedup on 8-bit platforms.
+PB_ENCODE_ARRAYS_UNPACKED      Don't encode scalar arrays as packed.
+                               This is only to be used when the decoder on the
+                               receiving side cannot process packed scalar
+                               arrays. Such example is older protobuf.js.
 ============================  ================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow

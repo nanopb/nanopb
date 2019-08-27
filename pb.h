@@ -40,6 +40,11 @@
  * to do so through the descriptorsize option in .options file. */
 /* #define PB_FIELDINFO_WIDTH 4 */
 
+/* Don't encode scalar arrays as packed. This is only to be used when
+ * the decoder on the receiving side cannot process packed scalar arrays.
+ * Such example is older protobuf.js. */
+/* #define PB_ENCODE_ARRAYS_UNPACKED 1 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
