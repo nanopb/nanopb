@@ -136,6 +136,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
     if (PB_ATYPE(field->type) != PB_ATYPE_POINTER && count > field->array_size)
         PB_RETURN_ERROR(stream, "array max size exceeded");
     
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
     /* We always pack arrays if the datatype allows it. */
     if (PB_LTYPE(field->type) <= PB_LTYPE_LAST_PACKABLE)
     {
@@ -180,6 +181,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
         }
     }
     else
+#endif
     {
         p = pData;
         for (i = 0; i < count; i++)

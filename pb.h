@@ -38,6 +38,11 @@
 /* #define PB_OLD_CALLBACK_STYLE */
 
 
+/* Don't encode scalar arrays as packed. This is only to be used when
+ * the decoder on the receiving side cannot process packed scalar arrays.
+ * Such example is older protobuf.js. */
+/* #define PB_ENCODE_ARRAYS_UNPACKED 1 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
