@@ -308,13 +308,13 @@ Nanopb will generate ``payload`` as a C union and add an additional field ``whic
   } MyMessage;
 
 ``which_payload`` indicates which of the ``oneof`` fields is actually set. 
-The user is expected to set the filed manually using the correct field tag::
+The user is expected to set the field manually using the correct field tag::
 
   MyMessage msg = MyMessage_init_zero;
   msg.payload.msg2.value = true;
   msg.which_payload = MyMessage_msg2_tag;
 
-Notice that neither ``which_payload`` field nor the unused fileds in ``payload``
+Notice that neither ``which_payload`` field nor the unused fields in ``payload``
 will consume any space in the resulting encoded message.
 
 When a C union is used to represent a ``oneof`` section, the union cannot have
