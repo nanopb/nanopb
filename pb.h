@@ -727,3 +727,12 @@ extern int G_depth;
 #define PB_RETURN_ERROR(stream, msg) return PB_SET_ERROR(stream, msg), false
 
 #endif
+
+#ifdef PB_ENABLE_LOG
+#ifndef PB_LOG
+#include <stdio.h>
+#define PB_LOG printf
+#endif
+#else
+#define PB_LOG(...) (void)0;
+#endif

@@ -1434,7 +1434,7 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
 #ifdef PB_ENABLE_ADV_SIZE_CHECK
         /* field.max_size_limit == 0 disables pre-mem alloc check */
         if (field->max_size_limit > 0 && alloc_size > field->max_size_limit){
-            printf("alloc_size (%d) > field->max_size_limit (%d)\n", alloc_size, field->max_size_limit);
+            PB_LOG("alloc_size (%d) > field->max_size_limit (%d)\n", alloc_size, field->max_size_limit);
             PB_RETURN_ERROR(stream, "mem alloc limit exceeded");
         }
 #endif
@@ -1476,7 +1476,16 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *fi
 # ifdef PB_ENABLE_ADV_SIZE_CHECK
         /* field.max_size_limit == 0 disables pre- mem alloc check */
         if (field->max_size_limit > 0 && alloc_size > field->max_size_limit){
-            printf("alloc_size(%d) > field->max_size_limit(%d)\n", alloc_size, field->max_size_limit);
+#  ifdef PB_ENABLE_LOG
+            PB_LOG("alloc_size(%d) > field->max_size_limit(%d)\n", alloc_size, field->max_size_limit);
+
+            if (!allocate_field(stream, dest, field->max_size_limit, 1))
+                return false;
+            dest = *(void**)dest;
+            status = pb_read(stream, (pb_byte_t*)dest, field->max_size_limit);
+            *((pb_byte_t*)dest + field->max_size_limit) = 0;
+            PB_LOG("faulty string prefix: '%s'\n", dest);
+#  endif
             PB_RETURN_ERROR(stream, "allowed string length limit exceeded");
         }
 # endif
