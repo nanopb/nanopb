@@ -532,10 +532,16 @@ struct pb_extension_s {
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
 
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
 #define PB_SINGULAR_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
-    
+#else
+#define PB_SINGULAR_CALLBACK(tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \
+    {tag, PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | ltype, \
+    fd, 0, pb_membersize(st, m), 0, ptr, maxsizl}
+#endif
+
 #define PB_REPEATED_CALLBACK(tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_CALLBACK | PB_HTYPE_REPEATED | ltype, \
     fd, 0, pb_membersize(st, m), 0, ptr}
@@ -653,10 +659,17 @@ struct pb_extension_s {
         PB_DATAOFFSET_ ## placement(message, union_name.field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
 
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
 #define PB_ANONYMOUS_ONEOF_STATIC(u, tag, st, m, fd, ltype, ptr) \
     {tag, PB_ATYPE_STATIC | PB_HTYPE_ONEOF | ltype, \
     fd, pb_delta(st, which_ ## u, m), \
     pb_membersize(st, m), 0, ptr}
+#else
+#define PB_ANONYMOUS_ONEOF_STATIC(u, tag, st, m, fd, ltype, maxsizl, ptr) \
+    {tag, PB_ATYPE_STATIC | PB_HTYPE_ONEOF | ltype, \
+    fd, pb_delta(st, which_ ## u, m), \
+    pb_membersize(st, m), 0, ptr}
+#endif
 
 #ifndef PB_ENABLE_ADV_SIZE_CHECK
     #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, ptr) \
@@ -671,10 +684,18 @@ struct pb_extension_s {
         pb_membersize(st, m[0]), 0, ptr, maxsizl}
 #endif
 
+#ifndef PB_ENABLE_ADV_SIZE_CHECK
 #define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, ptr) \
         PB_ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
         PB_DATAOFFSET_ ## placement(message, field, prevfield), \
         PB_LTYPE_MAP_ ## type, ptr)
+#else
+/*    #define PB_ANONYMOUS_ONEOF_POINTER(u, tag, st, m, fd, ltype, maxsizl, maxcntl, ptr) \*/
+#define PB_ANONYMOUS_ONEOF_FIELD(union_name, tag, type, rules, allocation, placement, message, field, prevfield, maxsizl, maxcntl, ptr) \
+        PB_ANONYMOUS_ONEOF_ ## allocation(union_name, tag, message, field, \
+        PB_DATAOFFSET_ ## placement(message, field, prevfield), \
+        PB_LTYPE_MAP_ ## type, maxsizl, ptr)
+#endif
 
 /* These macros are used for giving out error messages.
  * They are mostly a debugging aid; the main error information
