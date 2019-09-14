@@ -602,7 +602,11 @@ class Field:
         if Globals.adv_size_checks:
             if (self.allocation == 'POINTER' and (self.pbtype == 'STRING' or self.pbtype == 'BYTES')) or \
             self.rules == 'REPEATED':
-                pattern = '%d, %d, ' if self.pbtype != "BYTES" else 'PB_BYTES_ARRAY_T_ALLOCSIZE(%d), %d, '
+                pattern = '%d, %d, '
+                # if bytes and max_size is set, we need to use a specific macro to compute the real max size
+                if self.pbtype == "BYTES" and self.max_size is not None:
+                    pattern = 'PB_BYTES_ARRAY_T_ALLOCSIZE(%d), %d, '
+                # pattern = '%d, %d, ' if self.pbtype != "BYTES" else 'PB_BYTES_ARRAY_T_ALLOCSIZE(%d), %d, '
                 result += pattern % (self.max_size if self.max_size is not None else 0, 
                                      self.max_count if self.max_count is not None else 0)
             else:
