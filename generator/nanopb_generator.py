@@ -1265,9 +1265,9 @@ class ProtoFile:
         
         # Add necessary definitions if advanced size checks support is requested by user.
         # Both definitions must be placed before the inclusion of pb.h in the generated header.
-        if Globals.adv_size_checks:
-            yield '\n#define PB_ENABLE_ADV_SIZE_CHECK'
-            yield '\n#define PB_ENABLE_MALLOC\n\n'
+        # if Globals.adv_size_checks:
+        #     yield '\n#define PB_ENABLE_ADV_SIZE_CHECK'
+        #     yield '\n#define PB_ENABLE_MALLOC\n\n'
         
         try:
             yield options.libformat % ('pb.h')
