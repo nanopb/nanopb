@@ -171,6 +171,33 @@ static void rand_mess(uint8_t *buf, size_t count)
 /* Some default data to put in the message */
 static const alltypes_static_AllTypes initval = alltypes_static_AllTypes_init_default;
 
+/* Check the invariants defined in security model on decoded structure */
+static void sanity_check_static(alltypes_static_AllTypes *msg)
+{
+    bool truebool = true;
+    bool falsebool = false;
+
+    /* TODO: Add more checks, or rather, generate them automatically */
+    assert(strlen(msg->req_string) < sizeof(msg->req_string));
+    assert(strlen(msg->opt_string) < sizeof(msg->opt_string));
+    if (msg->rep_string_count > 0)
+    {
+        assert(strlen(msg->rep_string[0]) < sizeof(msg->rep_string[0]));
+    }
+    assert(memcmp(&msg->req_bool, &truebool, sizeof(bool)) == 0 ||
+           memcmp(&msg->req_bool, &falsebool, sizeof(bool)) == 0);
+    assert(memcmp(&msg->has_opt_bool, &truebool, sizeof(bool)) == 0 ||
+           memcmp(&msg->has_opt_bool, &falsebool, sizeof(bool)) == 0);
+    assert(memcmp(&msg->opt_bool, &truebool, sizeof(bool)) == 0 ||
+           memcmp(&msg->opt_bool, &falsebool, sizeof(bool)) == 0);
+    assert(msg->rep_bool_count <= pb_arraysize(alltypes_static_AllTypes, rep_bool));
+    if (msg->rep_bool_count > 0)
+    {
+        assert(memcmp(&msg->rep_bool[0], &truebool, sizeof(bool)) == 0 ||
+               memcmp(&msg->rep_bool[0], &falsebool, sizeof(bool)) == 0);
+    }
+}
+
 #define BUFSIZE 4096
 
 static bool do_static_encode(uint8_t *buffer, size_t *msglen)
@@ -230,6 +257,11 @@ static bool do_static_decode(uint8_t *buffer, size_t msglen, bool assert_success
     rand_fill((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
     stream = pb_istream_from_buffer(buffer, msglen);
     status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg);
+
+    if (status)
+    {
+        sanity_check_static(msg);
+    }
     
     if (!status && assert_success)
     {
@@ -285,6 +317,7 @@ static void do_static_roundtrip(uint8_t *buffer, size_t msglen)
         pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
         status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg1);
         assert(status);
+        sanity_check_static(msg1);
     }
     
     {
@@ -298,6 +331,7 @@ static void do_static_roundtrip(uint8_t *buffer, size_t msglen)
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
         status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg2);
         assert(status);
+        sanity_check_static(msg2);
     }
     
     {
