@@ -58,6 +58,7 @@ untrusted data has been maliciously crafted:
    - The *count* fields of arrays will not exceed the array size.
    - The *size* field of bytes will not exceed the allocated size.
    - All string fields will have null terminator.
+   - bool fields will have valid true/false values (since nanopb-0.3.9.4)
 
 5. After pb_encode() returns successfully, the resulting message is a valid
    protocol buffers message. (Except if user-defined callbacks write incorrect

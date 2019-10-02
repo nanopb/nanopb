@@ -33,6 +33,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_exten
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iter_t *iter);
 static bool checkreturn find_extension_field(pb_field_iter_t *iter);
 static bool pb_message_set_to_defaults(pb_field_iter_t *iter);
+static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_fixed(pb_istream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_iter_t *field);
@@ -385,6 +386,9 @@ static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_field_iter_t
 {
     switch (PB_LTYPE(field->type))
     {
+        case PB_LTYPE_BOOL:
+            return pb_dec_bool(stream, field);
+
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
         case PB_LTYPE_SVARINT:
@@ -1253,6 +1257,16 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
 
 /* Field decoders */
 
+bool pb_decode_bool(pb_istream_t *stream, bool *dest)
+{
+    uint32_t value;
+    if (!pb_decode_varint32(stream, &value))
+        return false;
+
+    *(bool*)dest = (value != 0);
+    return true;
+}
+
 bool pb_decode_svarint(pb_istream_t *stream, pb_int64_t *dest)
 {
     pb_uint64_t value;
@@ -1316,6 +1330,11 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     return true;
 }
 #endif
+
+static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_iter_t *field)
+{
+    return pb_decode_bool(stream, (bool*)field->pData);
+}
 
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_t *field)
 {

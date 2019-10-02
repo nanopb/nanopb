@@ -154,6 +154,22 @@ define always has the largest value.
 are not defined in ascending order, user code behaviour may change. Check that
 user code doesn't expect the old, incorrect first/last behaviour.
 
+Fix undefined behavior related to bool fields
+---------------------------------------------
+
+**Rationale:** In C99, `bool` variables are not allowed to have other values
+than `true` and `false`. Compilers use this fact in optimization, and constructs
+like `int foo = msg.has_field ? 100 : 0` will give unexpected results otherwise.
+Previously nanopb didn't enforce that decoded bool fields had valid values.
+
+**Changes:** Bool fields are now handled separately as `PB_LTYPE_BOOL`. The
+`LTYPE` descriptor numbers for other field types were renumbered.
+
+**Required actions:** Source code files must be recompiled, but regenerating
+`.pb.h`/`.pb.c` files from `.proto` is not required. If user code directly uses
+the nanopb internal field representation (search for `PB_LTYPE_VARINT` in source),
+it may need updating.
+
 Nanopb-0.3.9.1, 0.4.0 (2018-04-14)
 ==================================
 
