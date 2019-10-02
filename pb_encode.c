@@ -406,7 +406,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *fiel
                 if (pb_check_proto3_default_value(field))
                     return true;
             }
-            else if (*(const bool *)field->pSize == false)
+            else if (safe_read_bool(field->pSize) == false)
             {
                 /* Missing optional field */
                 return true;
