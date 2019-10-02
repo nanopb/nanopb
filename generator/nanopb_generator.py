@@ -588,8 +588,11 @@ class Field:
             size = 8
         elif self.allocation == 'CALLBACK':
             size = 16
-        elif self.pbtype == 'MESSAGE' and str(self.submsgname) in dependencies:
-            size = dependencies[str(self.submsgname)].data_size(dependencies)
+        elif self.pbtype == 'MESSAGE':
+            if str(self.submsgname) in dependencies:
+                size = dependencies[str(self.submsgname)].data_size(dependencies)
+            else:
+                size = 256 # Message is in other file, this is reasonable guess for most cases
         elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
             size = self.max_size
         elif self.pbtype == 'BYTES':
