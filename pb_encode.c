@@ -28,6 +28,7 @@ static bool checkreturn encode_field(pb_ostream_t *stream, const pb_field_t *fie
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_t *field, const void *pData);
 static void *pb_const_cast(const void *p);
+static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_uvarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
 static bool checkreturn pb_enc_svarint(pb_ostream_t *stream, const pb_field_t *field, const void *src);
@@ -52,6 +53,7 @@ static bool checkreturn pb_encode_negative_varint(pb_ostream_t *stream, pb_uint6
  * Order in the array must match pb_action_t LTYPE numbering.
  */
 static const pb_encoder_t PB_ENCODERS[PB_LTYPES_COUNT] = {
+    &pb_enc_bool,
     &pb_enc_varint,
     &pb_enc_uvarint,
     &pb_enc_svarint,
@@ -121,6 +123,22 @@ bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t cou
 /*************************
  * Encode a single field *
  *************************/
+
+/* Read a bool value without causing undefined behavior even if the value
+ * is invalid. See issue #434 and
+ * https://stackoverflow.com/questions/27661768/weird-results-for-conditional
+ */
+static bool safe_read_bool(const void *pSize)
+{
+    const char *p = (const char *)pSize;
+    size_t i;
+    for (i = 0; i < sizeof(bool); i++)
+    {
+        if (p[i] != 0)
+            return true;
+    }
+    return false;
+}
 
 /* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *field,
@@ -240,7 +258,7 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
     else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->size_offset != 0)
     {
         /* Proto2 optional fields inside proto3 submessage */
-        return *(const bool*)pSize == false;
+        return safe_read_bool(pSize) == false;
     }
 
     /* Rest is proto3 singular fields */
@@ -356,7 +374,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream,
             break;
         
         case PB_HTYPE_OPTIONAL:
-            if (*(const bool*)pSize)
+            if (safe_read_bool(pSize))
             {
                 if (!pb_encode_tag_for_field(stream, field))
                     return false;
@@ -648,6 +666,7 @@ bool checkreturn pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t 
     pb_wire_type_t wiretype;
     switch (PB_LTYPE(field->type))
     {
+        case PB_LTYPE_BOOL:
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
         case PB_LTYPE_SVARINT:
@@ -735,6 +754,13 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
 }
 
 /* Field encoders */
+
+static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_t *field, const void *src)
+{
+    uint32_t value = (uint32_t)safe_read_bool(src);
+    PB_UNUSED(field);
+    return pb_encode_varint(stream, value);
+}
 
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {

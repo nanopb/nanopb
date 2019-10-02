@@ -34,6 +34,7 @@ static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_
 static bool checkreturn find_extension_field(pb_field_iter_t *iter);
 static void pb_field_set_to_default(pb_field_iter_t *iter);
 static void pb_message_set_to_defaults(const pb_field_t fields[], void *dest_struct);
+static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest);
 static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof);
 static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, const pb_field_t *field, void *dest);
@@ -65,6 +66,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter);
  * Order in the array must match pb_action_t LTYPE numbering.
  */
 static const pb_decoder_t PB_DECODERS[PB_LTYPES_COUNT] = {
+    &pb_dec_bool,
     &pb_dec_varint,
     &pb_dec_uvarint,
     &pb_dec_svarint,
@@ -1245,6 +1247,11 @@ void pb_release(const pb_field_t fields[], void *dest_struct)
 
 /* Field decoders */
 
+bool pb_decode_bool(pb_istream_t *stream, bool *dest)
+{
+    return pb_dec_bool(stream, NULL, (void*)dest);
+}
+
 bool pb_decode_svarint(pb_istream_t *stream, pb_int64_t *dest)
 {
     pb_uint64_t value;
@@ -1293,6 +1300,17 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     return true;
 }
 #endif
+
+static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_t *field, void *dest)
+{
+    uint32_t value;
+    PB_UNUSED(field);
+    if (!pb_decode_varint32(stream, &value))
+        return false;
+
+    *(bool*)dest = (value != 0);
+    return true;
+}
 
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_t *field, void *dest)
 {
