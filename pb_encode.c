@@ -146,8 +146,10 @@ static bool checkreturn encode_array(pb_ostream_t *stream, const pb_field_t *fie
 {
     size_t i;
     const void *p;
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
     size_t size;
-    
+#endif
+
     if (count == 0)
         return true;
 
