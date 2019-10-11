@@ -124,7 +124,9 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
 {
     pb_size_t i;
     pb_size_t count;
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
     size_t size;
+#endif
 
     count = *(pb_size_t*)field->pSize;
 
