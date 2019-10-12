@@ -607,15 +607,16 @@ class Field:
                 if self.pbtype == "BYTES" and self.max_size is not None:
                     pattern = 'PB_BYTES_ARRAY_T_ALLOCSIZE(%d), %d, '
                 # pattern = '%d, %d, ' if self.pbtype != "BYTES" else 'PB_BYTES_ARRAY_T_ALLOCSIZE(%d), %d, '
-                result += pattern % (self.max_size if self.max_size is not None else 0, 
+                result += pattern % (self.max_size if self.max_size is not None else 0,
                                      self.max_count if self.max_count is not None else 0)
             else:
                 result += '0, 0, '
                 # Prevent user of ignored options
-                if self.max_count is not None:
-                    sys.stderr.write("Warning: max_count option ignored on non-repeated field %s.\n" % self.name)
-                if self.max_size is not None:
-                    sys.stderr.write("Warning: max_size option ignored on generic field %s.\n" % self.name)
+                if self.allocation == 'POINTER':
+                    if self.max_count is not None:
+                        sys.stderr.write("Warning: max_count option ignored on non-repeated field %s.\n" % self.name)
+                    if self.max_size is not None and self.pbtype != 'FIXED_LENGTH_BYTES':
+                        sys.stderr.write("Warning: max_size option ignored on generic field %s, self.allocation %s, self.pbtype %s, self.rules %s.\n" % (self.name, self.allocation, self.pbtype, self.rules))
 
 
         if self.pbtype == 'MESSAGE':
@@ -1741,12 +1742,12 @@ def main_cli():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
-    Globals.adv_size_checks = options.adv_size_checks
-    if options.adv_size_checks:
-        sys.stderr.write("\nATTENTION: Advanced size checks option is activated.\nYou will "
-                         "need to pass the -DPB_ENABLE_MALLOC and -DPB_ENABLE_ADV_SIZE_CHECK "
-                         "options to the compiler to properly build with the generated files.\n\n")
+        if options.adv_size_checks:
+            sys.stderr.write("\nATTENTION: Advanced size checks option is activated.\nYou will "
+                             "need to pass the -DPB_ENABLE_MALLOC and -DPB_ENABLE_ADV_SIZE_CHECK "
+                             "options to the compiler to properly build with the generated files.\n\n")
 
+    Globals.adv_size_checks = options.adv_size_checks
     Globals.verbose_options = options.verbose
     for filename in filenames:
         results = process_file(filename, None, options)
@@ -1816,10 +1817,10 @@ def main_plugin():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
-    if options.adv_size_checks:
-        sys.stderr.write("\nATTENTION: Advanced size checks option is activated.\nYou will "
-                         "need to pass the -DPB_ENABLE_MALLOC and -DPB_ENABLE_ADV_SIZE_CHECK "
-                         "options to the compiler to properly build with the generated files.\n\n")
+        if options.adv_size_checks:
+            sys.stderr.write("\nATTENTION: Advanced size checks option is activated.\nYou will "
+                             "need to pass the -DPB_ENABLE_MALLOC and -DPB_ENABLE_ADV_SIZE_CHECK "
+                             "options to the compiler to properly build with the generated files.\n\n")
 
     response = plugin_pb2.CodeGeneratorResponse()
 
