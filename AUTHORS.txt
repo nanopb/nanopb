@@ -50,3 +50,6 @@ Gabriel Staples <ercaguy@gmail.com>
 Amarnath <amarnath.h.96@gmail.com>
 Michal Rostecki <mrostecki@suse.de>
 Pei Wang <wangpei10@baidu.com>
+Noah Pendleton <2538614+noahp@users.noreply.github.com>
+Pavol Rusnak <pavol@rusnak.io>
+

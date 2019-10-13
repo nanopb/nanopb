@@ -1,3 +1,10 @@
+nanopb-0.3.9.4 (2019-10-13)
+ Fix undefined behavior with bool fields (#434)
+ Fix enum min/max defines when values are not in order (#405)
+ Fix network_server socket example with zero-length strings (#421)
+ Don't call stream read callback with count=0 (#421)
+ Add compile time flag PB_ENCODE_ARRAYS_UNPACKED (#427)
+
 nanopb-0.3.9.3 (2019-03-08)
  NOTE: nanopb-0.3.9.3.tar.gz before 2019-03-21 was accidentally from 0.4 branch (#388)
  Fix fixed size and callback repeated fields inside proto3 submessages (#376, #382, #386)
