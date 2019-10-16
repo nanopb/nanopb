@@ -759,7 +759,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fie
 
 static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
-    uint32_t value = (uint32_t)safe_read_bool(src);
+    uint32_t value = safe_read_bool(src) ? 1 : 0;
     PB_UNUSED(field);
     return pb_encode_varint(stream, value);
 }
