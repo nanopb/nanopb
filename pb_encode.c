@@ -740,7 +740,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
 
 static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    uint32_t value = (uint32_t)safe_read_bool(field->pData);
+    uint32_t value = safe_read_bool(field->pData) ? 1 : 0;
     PB_UNUSED(field);
     return pb_encode_varint(stream, value);
 }
