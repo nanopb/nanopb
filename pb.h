@@ -164,58 +164,58 @@ typedef uint_least8_t pb_type_t;
 /**** Field data types ****/
 
 /* Numeric types */
-#define PB_LTYPE_BOOL    0x00 /* bool */
-#define PB_LTYPE_VARINT  0x01 /* int32, int64, enum, bool */
-#define PB_LTYPE_UVARINT 0x02 /* uint32, uint64 */
-#define PB_LTYPE_SVARINT 0x03 /* sint32, sint64 */
-#define PB_LTYPE_FIXED32 0x04 /* fixed32, sfixed32, float */
-#define PB_LTYPE_FIXED64 0x05 /* fixed64, sfixed64, double */
+#define PB_LTYPE_BOOL    0x00U /* bool */
+#define PB_LTYPE_VARINT  0x01U /* int32, int64, enum, bool */
+#define PB_LTYPE_UVARINT 0x02U /* uint32, uint64 */
+#define PB_LTYPE_SVARINT 0x03U /* sint32, sint64 */
+#define PB_LTYPE_FIXED32 0x04U /* fixed32, sfixed32, float */
+#define PB_LTYPE_FIXED64 0x05U /* fixed64, sfixed64, double */
 
 /* Marker for last packable field type. */
-#define PB_LTYPE_LAST_PACKABLE 0x05
+#define PB_LTYPE_LAST_PACKABLE 0x05U
 
 /* Byte array with pre-allocated buffer.
  * data_size is the length of the allocated PB_BYTES_ARRAY structure. */
-#define PB_LTYPE_BYTES 0x06
+#define PB_LTYPE_BYTES 0x06U
 
 /* String with pre-allocated buffer.
  * data_size is the maximum length. */
-#define PB_LTYPE_STRING 0x07
+#define PB_LTYPE_STRING 0x07U
 
 /* Submessage
  * submsg_fields is pointer to field descriptions */
-#define PB_LTYPE_SUBMESSAGE 0x08
+#define PB_LTYPE_SUBMESSAGE 0x08U
 
 /* Extension pseudo-field
  * The field contains a pointer to pb_extension_t */
-#define PB_LTYPE_EXTENSION 0x09
+#define PB_LTYPE_EXTENSION 0x09U
 
 /* Byte array with inline, pre-allocated byffer.
  * data_size is the length of the inline, allocated buffer.
  * This differs from PB_LTYPE_BYTES by defining the element as
  * pb_byte_t[data_size] rather than pb_bytes_array_t. */
-#define PB_LTYPE_FIXED_LENGTH_BYTES 0x0A
+#define PB_LTYPE_FIXED_LENGTH_BYTES 0x0AU
 
 /* Number of declared LTYPES */
-#define PB_LTYPES_COUNT 0x0B
-#define PB_LTYPE_MASK 0x0F
+#define PB_LTYPES_COUNT 0x0BU
+#define PB_LTYPE_MASK 0x0FU
 
 /**** Field repetition rules ****/
 
-#define PB_HTYPE_REQUIRED 0x00
-#define PB_HTYPE_OPTIONAL 0x10
-#define PB_HTYPE_SINGULAR 0x10
-#define PB_HTYPE_REPEATED 0x20
-#define PB_HTYPE_FIXARRAY 0x20
-#define PB_HTYPE_ONEOF    0x30
-#define PB_HTYPE_MASK     0x30
+#define PB_HTYPE_REQUIRED 0x00U
+#define PB_HTYPE_OPTIONAL 0x10U
+#define PB_HTYPE_SINGULAR 0x10U
+#define PB_HTYPE_REPEATED 0x20U
+#define PB_HTYPE_FIXARRAY 0x20U
+#define PB_HTYPE_ONEOF    0x30U
+#define PB_HTYPE_MASK     0x30U
 
 /**** Field allocation types ****/
  
-#define PB_ATYPE_STATIC   0x00
-#define PB_ATYPE_POINTER  0x80
-#define PB_ATYPE_CALLBACK 0x40
-#define PB_ATYPE_MASK     0xC0
+#define PB_ATYPE_STATIC   0x00U
+#define PB_ATYPE_POINTER  0x80U
+#define PB_ATYPE_CALLBACK 0x40U
+#define PB_ATYPE_MASK     0xC0U
 
 #define PB_ATYPE(x) ((x) & PB_ATYPE_MASK)
 #define PB_HTYPE(x) ((x) & PB_HTYPE_MASK)
