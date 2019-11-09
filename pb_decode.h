@@ -96,9 +96,9 @@ bool pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_stru
  *
  * Multiple flags can be combined with bitwise or (| operator)
  */
-#define PB_DECODE_NOINIT          0x01
-#define PB_DECODE_DELIMITED       0x02
-#define PB_DECODE_NULLTERMINATED  0x04
+#define PB_DECODE_NOINIT          0x01U
+#define PB_DECODE_DELIMITED       0x02U
+#define PB_DECODE_NULLTERMINATED  0x04U
 bool pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
