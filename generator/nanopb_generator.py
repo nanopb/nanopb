@@ -349,7 +349,10 @@ class Field:
                   self.rules = 'FIXARRAY'
 
         elif field_options.proto3:
-            self.rules = 'SINGULAR'
+            if desc.type == FieldD.TYPE_MESSAGE:
+                self.rules = 'OPTIONAL'
+            else:
+                self.rules = 'SINGULAR'
         elif desc.label == FieldD.LABEL_REQUIRED:
             self.rules = 'REQUIRED'
         elif desc.label == FieldD.LABEL_OPTIONAL:
