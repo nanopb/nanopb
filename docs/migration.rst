@@ -137,6 +137,20 @@ which work both in 0.4.0 and 0.3.9.
 
 **Error indications:** Error message from `pb_decode()`: 'zero_tag'.
 
+Submessages now have has_field in proto3 mode
+---------------------------------------------
+**Rationale:** Previously nanopb considered proto3 submessages as 'present' only
+when their contents was non-zero. Most other protobuf libraries allow explicit
+'null' state for submessages.
+
+**Changes:** Submessages now have separate `has_field` in proto3 mode also.
+
+**Required actions:** When using submessages in proto3 mode, user code must now
+set `mymsg.has_submsg = true` for each submessage that is present. Alternatively,
+the field option `proto3_singular_msgs` can be used to restore the old behavior.
+
+**Error indications:** Submessages do not get encoded.
+
 Nanopb-0.3.9.4, 0.4.0 (2019-xx-xx)
 ==================================
 

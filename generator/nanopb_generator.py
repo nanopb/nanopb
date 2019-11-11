@@ -349,7 +349,9 @@ class Field:
                   self.rules = 'FIXARRAY'
 
         elif field_options.proto3:
-            if desc.type == FieldD.TYPE_MESSAGE:
+            if desc.type == FieldD.TYPE_MESSAGE and not field_options.proto3_singular_msgs:
+                # In most other protobuf libraries proto3 submessages have
+                # "null" status. For nanopb, that is implemented as has_ field.
                 self.rules = 'OPTIONAL'
             else:
                 self.rules = 'SINGULAR'

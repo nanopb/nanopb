@@ -79,6 +79,7 @@ int main(int argc, char **argv)
         strcpy(alltypes.sng_string, "3054");
         alltypes.sng_bytes.size = 4;
         memcpy(alltypes.sng_bytes.bytes, "3055", 4);
+        alltypes.has_sng_submsg = true;
         strcpy(alltypes.sng_submsg.substuff1, "3056");
         alltypes.sng_submsg.substuff2 = 3056;
         alltypes.sng_enum = MyEnum_Truth;
