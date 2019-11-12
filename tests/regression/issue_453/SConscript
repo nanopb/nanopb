@@ -1,0 +1,9 @@
+# Regression test for #453:
+# Warning for float conversion with default values.
+
+Import("env")
+
+env.NanopbProto("test.proto")
+testprog = env.Program(["test.c"])
+env.RunTest(testprog)
+
