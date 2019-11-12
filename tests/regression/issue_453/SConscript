@@ -4,7 +4,9 @@
 Import("env")
 
 env2 = env.Clone()
-env2.Append(CFLAGS = '-Wconversion')
+
+if 'gcc' in env['CC']:
+    env2.Append(CFLAGS = '-Wconversion')
 
 env2.NanopbProto("test.proto")
 testprog = env2.Program(["test.c"])
