@@ -1143,7 +1143,6 @@ class Message:
                 field.type = FieldD.TYPE_INT64
                 field.ClearField('default_value')
                 field.ClearField('type_name')
-                sys.stderr.write(repr(field))
 
         if len(optional_only.field) == 0:
             return b''
