@@ -120,7 +120,6 @@ if 'gcc' in env['CC']:
     
     # Debug info, warnings as errors
     env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage ')
-    env.Append(CFLAGS = '-Wfloat-conversion')
     env.Append(CORECFLAGS = '-Wextra')
     env.Append(LINKFLAGS = '-g --coverage')
     

@@ -13,13 +13,13 @@
 static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (uint64_t)*arg);
 }
 
 static bool write_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (int64_t)*arg);
 }
 
 static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -65,7 +65,7 @@ static bool write_repeated_varint(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_varint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (uint64_t)*arg);
 }
 
 static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -79,7 +79,7 @@ static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_svarint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (int64_t)*arg);
 }
 
 static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)

@@ -10,7 +10,7 @@ void* malloc_with_check(size_t size)
 {
     size_t size32 = (size + 3) / 4 + 3;
     uint32_t *buf = malloc(size32 * sizeof(uint32_t));
-    buf[0] = size32;
+    buf[0] = (uint32_t)size32;
     buf[1] = 0xDEADBEEF;
     buf[size32 - 1] = 0xBADBAD;
     return buf + 2;

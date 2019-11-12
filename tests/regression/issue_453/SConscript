@@ -3,7 +3,10 @@
 
 Import("env")
 
-env.NanopbProto("test.proto")
-testprog = env.Program(["test.c"])
-env.RunTest(testprog)
+env2 = env.Clone()
+env2.Append(CFLAGS = '-Wconversion')
+
+env2.NanopbProto("test.proto")
+testprog = env2.Program(["test.c"])
+env2.RunTest(testprog)
 
