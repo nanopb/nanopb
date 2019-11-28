@@ -1681,6 +1681,10 @@ optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE"
 optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
     action="append", default = [],
     help="Search for .options files additionally in this path")
+optparser.add_option("--error-on-unmatched", dest="error_on_unmatched", action="store_true", default=True,
+                     help ="Stop generation if there are unmatched fields in options file")
+optparser.add_option("--no-error-on-unmatched", dest="error_on_unmatched", action="store_false", default=True,
+                     help ="Continue generation if there are unmatched fields in options file")
 optparser.add_option("-D", "--output-dir", dest="output_dir",
                      metavar="OUTPUTDIR", default=None,
                      help="Output directory of .pb.h and .pb.c files")
@@ -1791,9 +1795,14 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     # Check if there were any lines in .options that did not match a member
     unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
-    if unmatched and not options.quiet:
-        sys.stderr.write("Following patterns in " + f.optfilename + " did not match any fields: "
-                         + ', '.join(unmatched) + "\n")
+    if unmatched:
+        if options.error_on_unmatched:
+            raise Exception("Following patterns in " + f.optfilename + " did not match any fields: "
+                            + ', '.join(unmatched));
+        elif not options.quiet:
+            sys.stderr.write("Following patterns in " + f.optfilename + " did not match any fields: "
+                            + ', '.join(unmatched) + "\n")
+
         if not Globals.verbose_options:
             sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
 
