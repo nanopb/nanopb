@@ -1681,9 +1681,9 @@ optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE"
 optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
     action="append", default = [],
     help="Search for .options files additionally in this path")
-optparser.add_option("--error-on-unmatched", dest="error_on_unmatched", action="store_true", default=True,
+optparser.add_option("--error-on-unmatched", dest="error_on_unmatched", action="store_true", default=False,
                      help ="Stop generation if there are unmatched fields in options file")
-optparser.add_option("--no-error-on-unmatched", dest="error_on_unmatched", action="store_false", default=True,
+optparser.add_option("--no-error-on-unmatched", dest="error_on_unmatched", action="store_false", default=False,
                      help ="Continue generation if there are unmatched fields in options file")
 optparser.add_option("-D", "--output-dir", dest="output_dir",
                      metavar="OUTPUTDIR", default=None,
