@@ -79,7 +79,7 @@ You should now have in *message.pb.h*::
  
  extern const pb_field_t Example_fields[2];
 
-Then you have to include the nanopb headers and the generated header:
+Then you have to include the nanopb headers and the generated header::
 
  #include <pb_encode.h>
  #include "message.pb.h"
