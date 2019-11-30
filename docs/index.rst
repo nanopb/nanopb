@@ -79,6 +79,11 @@ You should now have in *message.pb.h*::
  
  extern const pb_field_t Example_fields[2];
 
+Then you have to include the nanopb headers and the generated header:
+
+ #include <pb_encode.h>
+ #include "message.pb.h"
+
 Now in your main program do this to encode a message::
 
  Example mymessage = {42};
@@ -90,8 +95,8 @@ After that, buffer will contain the encoded message.
 The number of bytes in the message is stored in *stream.bytes_written*.
 You can feed the message to *protoc --decode=Example message.proto* to verify its validity.
 
-For a complete example of the simple case, see *example/simple.c*.
-For a more complex example with network interface, see the *example/network_server* subdirectory.
+For a complete example of the simple case, see *examples/simple/simple.c*.
+For a more complex example with network interface, see the *examples/network_server* subdirectory.
 
 Compiler requirements
 =====================
