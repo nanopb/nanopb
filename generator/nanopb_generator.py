@@ -1878,6 +1878,7 @@ def main_plugin():
         lex = shlex.shlex(params)
         lex.whitespace_split = True
         lex.whitespace = ','
+        lex.commenters = ''
         args = list(lex)
 
     optparser.usage = "Usage: protoc --nanopb_out=[options][,more_options]:outdir file.proto"
