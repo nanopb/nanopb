@@ -15,6 +15,8 @@ try:
     # Add some dummy imports to keep packaging tools happy.
     import google, distutils.util # bbfreeze seems to need these
     import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
+    import proto.nanopb_pb2 as nanopb_pb2 # pyinstaller seems to need this
+    import proto.plugin_pb2 as plugin_pb2
 except:
     # Don't care, we will error out later if it is actually important.
     pass
@@ -32,8 +34,7 @@ except:
     raise
 
 try:
-    import proto.nanopb_pb2 as nanopb_pb2
-    import proto.plugin_pb2 as plugin_pb2
+    from .proto import nanopb_pb2, plugin_pb2
 except TypeError:
     sys.stderr.write('''
          ****************************************************************************
@@ -51,6 +52,10 @@ except TypeError:
          ****************************************************************************
     ''' + '\n')
     raise
+except (ValueError, SystemError):
+    # Probably invoked directly instead of via installed scripts.
+    import proto.nanopb_pb2 as nanopb_pb2
+    import proto.plugin_pb2 as plugin_pb2
 except:
     sys.stderr.write('''
          ********************************************************************
