@@ -54,8 +54,8 @@ except TypeError:
          ****************************************************************************
     ''' + '\n')
     raise
-except ImportError:
-    # Invoked directly instead of via installed scripts.
+except (ValueError, SystemError):
+    # Probably invoked directly instead of via installed scripts.
     import proto.nanopb_pb2 as nanopb_pb2
 except:
     sys.stderr.write('''
