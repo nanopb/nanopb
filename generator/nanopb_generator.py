@@ -36,7 +36,7 @@ except:
     raise
 
 try:
-    import proto.nanopb_pb2 as nanopb_pb2
+    from .proto import nanopb_pb2
 except TypeError:
     sys.stderr.write('''
          ****************************************************************************
