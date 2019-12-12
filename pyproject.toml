@@ -13,7 +13,7 @@ nanopb_generator = "generator.nanopb_generator:main_cli"
 protoc-gen-nanopb = "generator.nanopb_generator:main_plugin"
 [tool.poetry.dependencies]
 python = ">=2.7"
-protobuf = "<=3.6"
+protobuf = ">=3.6"
 
 [tool.poetry.dev-dependencies]
 
