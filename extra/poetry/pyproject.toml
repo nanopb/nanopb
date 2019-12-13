@@ -2,12 +2,19 @@
 name = "nanopb"
 version = "0.4.0-dev"
 description = "Nanopb is a small code-size Protocol Buffers implementation in ansi C. It is especially suitable for use in microcontrollers, but fits any memory restricted system."
-authors = ["Petteri Aimonen"]
+authors = ["Petteri Aimonen <jpa@npb.mail.kapsi.fi>"]
 license = "Zlib"
+repository = "https://github.com/nanopb/nanopb/"
+readme = "README.md"
+homepage = "https://jpa.kapsi.fi/nanopb/"
+documentation = "https://jpa.kapsi.fi/nanopb/docs/index.html"
+keywords = ["protobuf", "protoc"]
+classifiers = ["Topic :: Software Development :: Build Tools"]
 
 [tool.poetry.scripts]
 nanopb_generator = "nanopb.generator.nanopb_generator:main_cli"
 protoc-gen-nanopb = "nanopb.generator.nanopb_generator:main_plugin"
+
 [tool.poetry.dependencies]
 python = ">=2.7"
 protobuf = ">=3.6"
