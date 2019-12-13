@@ -99,7 +99,9 @@ There exist build rules for several systems:
 * **CMake**: `extra/FindNanopb.cmake`, see `examples/cmake`
 * **SCons**: `tests/site_scons` (generator only)
 * **Bazel**: `BUILD` in source root
+* **Conan**: `conanfile.py` in source root
 * **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
+* **PyPI/pip**: https://pypi.org/project/nanopb/
 
 And also integration to platform interfaces:
 
