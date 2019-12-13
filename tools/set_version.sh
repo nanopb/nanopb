@@ -14,4 +14,4 @@ then sed -i -e 's/"version":\s*"[^"]*"/"version": "'$VERSION_ONLY'"/' library.js
 fi
 
 sed -i -e 's/version =.*/version = "'$VERSION_ONLY'"/' conanfile.py
-sed -i -e 's/version =.*/version = "'$VERSION_ONLY'"/' pyproject.toml
+sed -i -e 's/version =.*/version = "'$VERSION_ONLY'"/' extra/poetry/pyproject.toml
