@@ -5,6 +5,5 @@ mkdir nanopb
 cp -pr ../../generator nanopb/
 touch nanopb/__init__.py nanopb/generator/__init__.py
 cp -pr ../../README.md .
-make -C nanopb/generator/proto
 sed -i -e 's/\(version =.*\)-dev.*/\1-dev'$(git rev-list HEAD --count)'"/' pyproject.toml
 poetry build
