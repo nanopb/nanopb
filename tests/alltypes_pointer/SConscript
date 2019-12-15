@@ -23,10 +23,9 @@ env.RunTest(enc)
 env.Compare(["encode_alltypes_pointer.output", "$BUILD/alltypes/encode_alltypes.output"])
 
 # Decode (under valgrind if available)
-valgrind = env.WhereIs('valgrind')
 kwargs = {}
-if valgrind:
-    kwargs['COMMAND'] = valgrind
+if env.get("VALGRIND"):
+    kwargs['COMMAND'] = env['VALGRIND']
     kwargs['ARGS'] = ["-q", "--error-exitcode=99", dec[0].abspath]
 
 env.RunTest("decode_alltypes.output", [dec, "encode_alltypes_pointer.output"], **kwargs)

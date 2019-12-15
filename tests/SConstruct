@@ -16,6 +16,9 @@ scons CC=clang CXX=clang++
 import os
 env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 
+if ARGUMENTS.get('PLATFORM') == 'STM32':
+    set_stm32_platform(env)
+
 # Limit memory usage. This is to catch problems like issue #338
 try:
     import resource
@@ -45,7 +48,7 @@ if not env.GetOption('clean'):
         '''Check if given CCFLAGS are supported'''
         context.Message('Checking support for CCFLAGS="%s"... ' % flags)
         oldflags = context.env['CCFLAGS']
-        oldlinkflags = context.env['CCFLAGS']
+        oldlinkflags = context.env['LINKFLAGS']
         context.env.Append(CCFLAGS = flags)
         context.env.Append(LINKFLAGS = linkflags)
         result = context.TryCompile("int main() {return 0;}", '.c')
@@ -119,9 +122,14 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror -fprofile-arcs -ftest-coverage ')
+    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror ')
     env.Append(CORECFLAGS = '-Wextra')
-    env.Append(LINKFLAGS = '-g --coverage')
+    
+    # Profiling and coverage
+    if not env.get("EMBEDDED"):
+        env.Append(CFLAGS = '-fprofile-arcs -ftest-coverage ')
+        env.Append(LINKFLAGS = '-g --coverage')
+        
     
     # We currently need uint64_t anyway, even though ANSI C90 otherwise..
     env.Append(CFLAGS = '-Wno-long-long')
@@ -156,6 +164,11 @@ elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
     env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
 elif 'cl' in env['CXX']:
     env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116')
+
+if not env.get("EMBEDDED"):
+    valgrind = env.WhereIs('valgrind')
+    if valgrind:
+        env.SetDefault(VALGRIND = valgrind)
 
 # Now include the SConscript files from all subdirectories
 import os.path
