@@ -18,6 +18,8 @@ env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 
 if ARGUMENTS.get('PLATFORM') == 'STM32':
     set_stm32_platform(env)
+elif ARGUMENTS.get('PLATFORM') == 'AVR':
+    set_avr_platform(env)
 
 # Limit memory usage. This is to catch problems like issue #338
 try:

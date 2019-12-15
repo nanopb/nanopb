@@ -2,6 +2,7 @@ import subprocess
 import sys
 import re
 from platforms.stm32.stm32 import set_stm32_platform
+from platforms.avr.avr import set_avr_platform
 
 try:
     # Make terminal colors work on windows
