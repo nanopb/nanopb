@@ -252,7 +252,7 @@ typedef struct pb_msgdesc_s pb_msgdesc_t;
 struct pb_msgdesc_s {
     pb_size_t field_count;
     const uint32_t *field_info;
-    const pb_msgdesc_t **submsg_info;
+    const pb_msgdesc_t * const * submsg_info;
     const pb_byte_t *default_value;
 
     bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
@@ -437,7 +437,7 @@ struct pb_extension_s {
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \
     }; \
-    const pb_msgdesc_t* structname ## _submsg_info[] = \
+    const pb_msgdesc_t* const structname ## _submsg_info[] = \
     { \
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
