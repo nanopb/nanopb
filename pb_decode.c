@@ -277,7 +277,7 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
     /* Handle sizes larger than size_t in a loop */
     if (sizeof(size_t) < sizeof(uint32_t))
     {
-        while (length > SIZE_MAX)
+        while (length >= SIZE_MAX)
         {
             if (!pb_read(stream, NULL, SIZE_MAX))
                 return false;
