@@ -274,7 +274,17 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
     if (!pb_decode_varint32(stream, &length))
         return false;
     
-    return pb_read(stream, NULL, length);
+    /* Handle sizes larger than size_t in a loop */
+    if (sizeof(size_t) < sizeof(uint32_t))
+    {
+        while (length > SIZE_MAX)
+        {
+            if (!pb_read(stream, NULL, SIZE_MAX))
+                return false;
+        }
+    }
+
+    return pb_read(stream, NULL, (size_t)length);
 }
 
 bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof)
@@ -358,8 +368,8 @@ bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *su
     if (substream->bytes_left < size)
         PB_RETURN_ERROR(stream, "parent stream too short");
     
-    substream->bytes_left = size;
-    stream->bytes_left -= size;
+    substream->bytes_left = (size_t)size;
+    stream->bytes_left -= (size_t)size;
     return true;
 }
 
@@ -1460,7 +1470,7 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_iter_t
     }
 
     dest->size = (pb_size_t)size;
-    return pb_read(stream, dest->bytes, size);
+    return pb_read(stream, dest->bytes, (size_t)size);
 }
 
 static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_t *field)
@@ -1473,7 +1483,7 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_
         return false;
     
     /* Space for null terminator */
-    alloc_size = size + 1;
+    alloc_size = (size_t)(size + 1);
     
     if (alloc_size < size)
         PB_RETURN_ERROR(stream, "size too large");
@@ -1495,7 +1505,7 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_
     }
     
     dest[size] = 0;
-    return pb_read(stream, dest, size);
+    return pb_read(stream, dest, (size_t)size);
 }
 
 static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field)
