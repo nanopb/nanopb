@@ -29,7 +29,12 @@ fuzz = malloc_env.Program(["fuzztest.c",
                     "$COMMON/malloc_wrappers.o"])
 
 seed = int(time.time())
-env.RunTest(fuzz, ARGS = [str(seed)])
+
+if env.get('EMBEDDED'):
+    iterations = 100
+else:
+    iterations = 10000
+env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
 fuzzstub = malloc_env.Program(["fuzzstub.c",
                     "alltypes_pointer.pb.c",

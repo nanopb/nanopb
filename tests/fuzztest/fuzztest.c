@@ -447,11 +447,14 @@ static void run_iteration()
 int main(int argc, char **argv)
 {
     int i;
+    int iterations;
 
     random_seed = atol(argv[1]);
-    fprintf(stderr, "Random seed: %u\n", (unsigned)random_seed);
+    iterations = atol(argv[2]);
+    if (iterations == 0) iterations = 10000;
+    fprintf(stderr, "Random seed: %u, iterations: %d\n", (unsigned)random_seed, iterations);
     
-    for (i = 0; i < 10000; i++)
+    for (i = 0; i < iterations; i++)
     {
         run_iteration();
     }
