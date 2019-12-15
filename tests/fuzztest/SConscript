@@ -1,5 +1,7 @@
 # Run a fuzz test to verify robustness against corrupted/malicious data.
 
+import time
+
 Import("env", "malloc_env")
 
 def set_pkgname(src, dst, pkgname):
@@ -26,7 +28,8 @@ fuzz = malloc_env.Program(["fuzztest.c",
                     "$COMMON/pb_common_with_malloc.o",
                     "$COMMON/malloc_wrappers.o"])
 
-env.RunTest(fuzz)
+seed = int(time.time())
+env.RunTest(fuzz, ARGS = [str(seed)])
 
 fuzzstub = malloc_env.Program(["fuzzstub.c",
                     "alltypes_pointer.pb.c",

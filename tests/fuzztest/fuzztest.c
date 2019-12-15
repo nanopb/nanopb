@@ -281,20 +281,21 @@ static bool do_pointer_decode(uint8_t *buffer, size_t msglen, bool assert_succes
 {
     pb_istream_t stream;
     bool status;
+    int initial_alloc_count;
     alltypes_pointer_AllTypes *msg;
     
     msg = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
     memset(msg, 0, sizeof(alltypes_pointer_AllTypes));
     stream = pb_istream_from_buffer(buffer, msglen);
 
-    assert(get_alloc_count() == 0);
+    initial_alloc_count = get_alloc_count();
     status = pb_decode(&stream, alltypes_pointer_AllTypes_fields, msg);
     
     if (assert_success)
         assert(status);
     
     pb_release(alltypes_pointer_AllTypes_fields, msg);    
-    assert(get_alloc_count() == 0);
+    assert(get_alloc_count() == initial_alloc_count);
     
     free_with_check(msg);
 
@@ -440,21 +441,15 @@ static void run_iteration()
     }
     
     free_with_check(buffer);
+    assert(get_alloc_count() == 0);
 }
 
 int main(int argc, char **argv)
 {
     int i;
-    if (argc > 1)
-    {
-        random_seed = atol(argv[1]);
-    }
-    else
-    {
-        random_seed = time(NULL);
-    }
-    
-    fprintf(stderr, "Random seed: %llu\n", (long long unsigned)random_seed);
+
+    random_seed = atol(argv[1]);
+    fprintf(stderr, "Random seed: %u\n", (unsigned)random_seed);
     
     for (i = 0; i < 10000; i++)
     {
