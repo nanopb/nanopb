@@ -8,8 +8,10 @@ ARGS=$*
 test X$OPENOCD_BOARD == X && export OPENOCD_BOARD=board/stm32f7discovery.cfg
 
 openocd -f $OPENOCD_BOARD \
+    -c "reset_config srst_only srst_nogate connect_assert_srst" \
     -c "init" -c "arm semihosting enable" \
     -c "arm semihosting_cmdline $BASENAME $ARGS" \
+    -c "reset halt" \
     -c "load_image $BINARY 0" \
     -c "reset halt" -c "resume 0x20000000" 2>openocd.log
 
