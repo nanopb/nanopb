@@ -9,36 +9,38 @@ extern void* __StackTop;
 
 static void HardFaultHandler()
 {
+    uint32_t args[3];
+    args[0] = 2;
+    args[1] = (uint32_t)"HARDFAULT";
+    args[2] = 9;
+    
+    asm("mov r0, #5\n"
+        "mov r1, %0\n"
+        "bkpt 0x00ab"  : : "r"(args) : "r0", "r1", "memory");
     asm("mov r12, %0\n" "mov r0, #24\n" "bkpt 0x00ab" : : "r"(0xDEADBEEF) : "r0");
     while(1);
 }
 
-extern uint32_t __data_start__, __data_end__, __etext;
-
-void meminit() __attribute__((noreturn, naked));
-void meminit()
-{
-    // For some reason newlib's crt0 doesn't initialize .data, so do it here.
-    uint32_t *src = &__etext;
-    uint32_t *dst = &__data_start__;
-    while (dst < &__data_end__)
-    {
-        *dst++ = *src++;
-    }
-
-    _start();
-    asm("mov r12, %0\n" "mov r0, #24\n" "bkpt 0x00ab" : : "r"(0xDEADBEEF) : "r0");
-}
-
 void* const g_vector_table[] __attribute__((section(".isr_vector"))) = {
     (void*)&__StackTop,
-    (void*)&meminit,
+    (void*)&_start,
     (void*)&HardFaultHandler,
     (void*)&HardFaultHandler,
     (void*)&HardFaultHandler,
     (void*)&HardFaultHandler,
     (void*)&HardFaultHandler,
 };
+
+
+void ramboot() __attribute__((noreturn, naked, section(".ramboot")));
+void ramboot()
+{
+    *(const void**)0xE000ED08 = g_vector_table; // SCB->VTOR
+      __asm__(
+    "msr msp, %0\n\t"
+    "bx %1" : : "r" (g_vector_table[0]),
+                "r" (g_vector_table[1]) : "memory");
+}
 
 #ifdef __cplusplus
 }

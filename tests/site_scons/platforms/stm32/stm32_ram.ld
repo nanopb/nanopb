@@ -7,8 +7,7 @@
  */
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 128k
-  RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 8k
+  RAM (rwx) : ORIGIN = 0x20000000, LENGTH = 128k
 }
 
 /* Linker script to place sections and symbol values. Should be used together
@@ -47,6 +46,7 @@ SECTIONS
 {
 	.text :
 	{
+	    KEEP(*(.ramboot))
 		KEEP(*(.isr_vector))
 		*(.text*)
 
@@ -70,18 +70,18 @@ SECTIONS
 		*(.rodata*)
 
 		KEEP(*(.eh_frame*))
-	} > FLASH
+	} > RAM
 
 	.ARM.extab : 
 	{
 		*(.ARM.extab* .gnu.linkonce.armextab.*)
-	} > FLASH
+	} > RAM
 
 	__exidx_start = .;
 	.ARM.exidx :
 	{
 		*(.ARM.exidx* .gnu.linkonce.armexidx.*)
-	} > FLASH
+	} > RAM
 	__exidx_end = .;
 
 	/* To copy multiple ROM to RAM sections,
@@ -123,7 +123,7 @@ SECTIONS
 	   which must be 4byte aligned */
 	__etext = ALIGN (4);
 
-	.data : AT (__etext)
+	.data :
 	{
 		__data_start__ = .;
 		*(vtable)
