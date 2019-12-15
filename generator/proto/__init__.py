@@ -1,10 +1,12 @@
 '''This file automatically rebuilds the proto definitions for Python.'''
+from __future__ import absolute_import
 
 import os.path
 import sys
 
-from grpc_tools import protoc
 import pkg_resources
+
+from .. import _utils
 
 dirname = os.path.dirname(__file__)
 protosrc = os.path.join(dirname, "nanopb.proto")
@@ -14,17 +16,21 @@ if os.path.isfile(protosrc):
     src_date = os.path.getmtime(protosrc)
     if not os.path.isfile(protodst) or os.path.getmtime(protodst) < src_date:
 
-        # from grpc.tools.protoc __main__ invocation
-        _builtin_proto_include = pkg_resources.resource_filename('grpc_tools', '_proto')
-
         cmd = [
             "protoc",
             "--python_out={}".format(dirname),
-            protosrc, "-I={}".format(dirname),
-            "-I={}".format(_builtin_proto_include)
+            protosrc,
+            "-I={}".format(dirname),
         ]
+
+        if _utils.has_grpcio_protoc():
+            # grpcio-tools has an extra CLI argument
+            # from grpc.tools.protoc __main__ invocation.
+            _builtin_proto_include = pkg_resources.resource_filename('grpc_tools', '_proto')
+
+            cmd.append("-I={}".format(_builtin_proto_include))
         try:
-            protoc.main(cmd)
+            _utils.invoke_protoc(argv=cmd)
         except:
             sys.stderr.write("Failed to build nanopb_pb2.py: " + ' '.join(cmd) + "\n")
             raise
