@@ -1475,7 +1475,6 @@ class ProtoFile:
 
             if [msg for msg in self.messages if hasattr(msg,'msgid')]:
               yield '/* Message IDs (where set with "msgid" option) */\n'
-              yield '#ifdef PB_MSGID\n'
               for msg in self.messages:
                   if hasattr(msg,'msgid'):
                       yield '#define PB_MSG_%d %s\n' % (msg.msgid, msg.name)
@@ -1497,7 +1496,6 @@ class ProtoFile:
                   if hasattr(msg,'msgid'):
                       yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
               yield '\n'
-              yield '#endif\n\n'
 
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
