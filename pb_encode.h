@@ -165,6 +165,12 @@ bool pb_encode_fixed32(pb_ostream_t *stream, const void *value);
 bool pb_encode_fixed64(pb_ostream_t *stream, const void *value);
 #endif
 
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+/* Encode a float value so that it appears like a double in the encoded
+ * message. */
+bool pb_encode_float_as_double(pb_ostream_t *stream, float value);
+#endif
+
 /* Encode a submessage field.
  * You need to pass the pb_field_t array and pointer to struct, just like
  * with pb_encode(). This internally encodes the submessage twice, first to

@@ -177,6 +177,11 @@ bool pb_decode_fixed32(pb_istream_t *stream, void *dest);
 bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
 #endif
 
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+/* Decode a double value into float variable. */
+bool pb_decode_double_as_float(pb_istream_t *stream, float *dest);
+#endif
+
 /* Make a limited-length substream for reading a PB_WT_STRING field. */
 bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);

@@ -1415,6 +1415,13 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_
 
 static bool checkreturn pb_dec_fixed(pb_istream_t *stream, const pb_field_iter_t *field)
 {
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (field->data_size == sizeof(float) && PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+    {
+        return pb_decode_double_as_float(stream, (float*)field->pData);
+    }
+#endif
+
     if (field->data_size == sizeof(uint32_t))
     {
         return pb_decode_fixed32(stream, field->pData);
@@ -1551,3 +1558,72 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb
     return pb_read(stream, (pb_byte_t*)field->pData, field->data_size);
 }
 
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
+{
+    uint8_t sign;
+    int exponent;
+    uint32_t mantissa;
+    uint64_t value;
+    union { float f; uint32_t i; } out;
+
+    if (!pb_decode_fixed64(stream, &value))
+        return false;
+
+    /* Decompose input value */
+    sign = (uint8_t)((value >> 63) & 1);
+    exponent = (int)(((value >> 52) & 0x7FF) - 1023);
+    mantissa = (value >> 28) & 0xFFFFFF; /* Highest 24 bits */
+
+    /* Figure if value is in range representable by floats. */
+    if (exponent == 1024)
+    {
+        /* Special value */
+        exponent = 128;
+    }
+    else if (exponent > 127)
+    {
+        /* Too large */
+        if (sign)
+            *dest = -1.0f/0.0f; /* -INFINITY */
+        else
+            *dest = 1.0f/0.0f; /* +INFINITY */
+        return true;
+    }
+    else if (exponent < -150)
+    {
+        /* Too small */
+        if (sign)
+            *dest = -0.0f;
+        else
+            *dest = 0.0f;
+        return true;
+    }
+    else if (exponent < -126)
+    {
+        /* Denormalized */
+        mantissa |= 0x1000000;
+        mantissa >>= (-126 - exponent);
+        exponent = -127;
+    }
+
+    /* Round off mantissa */
+    mantissa = (mantissa + 1) >> 1;
+
+    /* Check if mantissa went over 2.0 */
+    if (mantissa & 0x800000)
+    {
+        exponent += 1;
+        mantissa &= 0x7FFFFF;
+        mantissa >>= 1;
+    }
+
+    /* Combine fields */
+    out.i = mantissa;
+    out.i |= (uint32_t)(exponent + 127) << 23;
+    out.i |= (uint32_t)sign << 31;
+
+    *dest = out.f;
+    return true;
+}
+#endif

@@ -795,6 +795,13 @@ static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_iter_
 
 static bool checkreturn pb_enc_fixed(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (field->data_size == sizeof(float) && PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+    {
+        return pb_encode_float_as_double(stream, *(float*)field->pData);
+    }
+#endif
+
     if (field->data_size == sizeof(uint32_t))
     {
         return pb_encode_fixed32(stream, field->pData);
@@ -892,3 +899,52 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb
 {
     return pb_encode_string(stream, (const pb_byte_t*)field->pData, field->data_size);
 }
+
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+bool pb_encode_float_as_double(pb_ostream_t *stream, float value)
+{
+    union { float f; uint32_t i; } in;
+    uint8_t sign;
+    int exponent;
+    uint64_t mantissa;
+
+    in.f = value;
+
+    /* Decompose input value */
+    sign = (uint8_t)((in.i >> 31) & 1);
+    exponent = (int)(((in.i >> 23) & 0xFF) - 127);
+    mantissa = in.i & 0x7FFFFF;
+
+    if (exponent == 128)
+    {
+        /* Special value (NaN etc.) */
+        exponent = 1024;
+    }
+    else if (exponent == -127)
+    {
+        if (!mantissa)
+        {
+            /* Zero */
+            exponent = -1023;
+        }
+        else
+        {
+            /* Denormalized */
+            mantissa <<= 1;
+            while (!(mantissa & 0x800000))
+            {
+                mantissa <<= 1;
+                exponent--;
+            }
+            mantissa &= 0x7FFFFF;
+        }
+    }
+
+    /* Combine fields */
+    mantissa <<= 29;
+    mantissa |= (uint64_t)(exponent + 1023) << 52;
+    mantissa |= (uint64_t)sign << 63;
+
+    return pb_encode_fixed64(stream, &mantissa);
+}
+#endif

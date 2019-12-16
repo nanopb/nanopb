@@ -59,6 +59,8 @@ PB_ENCODE_ARRAYS_UNPACKED      Don't encode scalar arrays as packed.
                                This is only to be used when the decoder on the
                                receiving side cannot process packed scalar
                                arrays. Such example is older protobuf.js.
+PB_CONVERT_DOUBLE_FLOAT        Convert doubles to floats for platforms that do
+                               not support 64-bit doubles. Mainly AVR.
 ============================  ================================================
 
 The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow

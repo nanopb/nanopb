@@ -45,6 +45,10 @@
  * Such example is older protobuf.js. */
 /* #define PB_ENCODE_ARRAYS_UNPACKED 1 */
 
+/* Enable conversion of doubles to floats for platforms that do not
+ * support 64-bit doubles. Most commonly AVR. */
+/* #define PB_CONVERT_DOUBLE_FLOAT 1 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
