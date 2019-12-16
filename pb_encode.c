@@ -912,7 +912,7 @@ bool pb_encode_float_as_double(pb_ostream_t *stream, float value)
 
     /* Decompose input value */
     sign = (uint8_t)((in.i >> 31) & 1);
-    exponent = (int)(((in.i >> 23) & 0xFF) - 127);
+    exponent = (int)((in.i >> 23) & 0xFF) - 127;
     mantissa = in.i & 0x7FFFFF;
 
     if (exponent == 128)

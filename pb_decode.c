@@ -1572,7 +1572,7 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
 
     /* Decompose input value */
     sign = (uint8_t)((value >> 63) & 1);
-    exponent = (int)(((value >> 52) & 0x7FF) - 1023);
+    exponent = (int)((value >> 52) & 0x7FF) - 1023;
     mantissa = (value >> 28) & 0xFFFFFF; /* Highest 24 bits */
 
     /* Figure if value is in range representable by floats. */
