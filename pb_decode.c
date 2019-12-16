@@ -1072,7 +1072,7 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
             if ((req_field_count & 31) != 0)
             {
                 if (fields_seen.bitfield[req_field_count >> 5] !=
-                    (allbits >> (32 - (req_field_count & 31))))
+                    (allbits >> (uint8_t)(32 - (req_field_count & 31))))
                 {
                     PB_RETURN_ERROR(stream, "missing required field");
                 }
