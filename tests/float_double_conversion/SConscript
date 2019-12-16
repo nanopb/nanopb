@@ -6,6 +6,9 @@ env.NanopbProto("doublemsg")
 opts = env.Clone()
 opts.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1})
 
+if opts.get('EMBEDDED') == 'AVR':
+    opts.Append(CFLAGS = "-Wno-overflow")
+
 # Build new version of core
 strict = opts.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
