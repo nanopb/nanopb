@@ -165,7 +165,7 @@ if 'clang' in env['CXX']:
 elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
     env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
 elif 'cl' in env['CXX']:
-    env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116')
+    env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116 /wd4127')
 
 if not env.get("EMBEDDED"):
     valgrind = env.WhereIs('valgrind')

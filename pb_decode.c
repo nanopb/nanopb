@@ -274,15 +274,9 @@ bool checkreturn pb_skip_string(pb_istream_t *stream)
     if (!pb_decode_varint32(stream, &length))
         return false;
     
-    /* Handle sizes larger than size_t in a loop */
-    if (sizeof(size_t) < sizeof(uint32_t))
+    if ((size_t)length != length)
     {
-        while (length != (size_t)length)
-        {
-            length -= 256;
-            if (!pb_read(stream, NULL, 256))
-                return false;
-        }
+        PB_RETURN_ERROR(stream, "size too large");
     }
 
     return pb_read(stream, NULL, (size_t)length);
