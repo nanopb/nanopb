@@ -481,7 +481,7 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             {
                 /* We memset to zero so that any callbacks are set to NULL.
                  * pb_dec_submessage() will set any default values. */
-                memset(field->pData, 0, field->data_size);
+                memset(field->pData, 0, (size_t)field->data_size);
             }
             return decode_basic_field(stream, field);
 
@@ -856,7 +856,7 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
             else
             {
                 /* Initialize to zeros */
-                memset(field->pData, 0, field->data_size);
+                memset(field->pData, 0, (size_t)field->data_size);
             }
         }
     }
@@ -1044,9 +1044,9 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
          * seeking to the end of the field array. Usually we
          * are already close to end after decoding.
          */
-        unsigned req_field_count;
+        pb_size_t req_field_count;
         pb_type_t last_type;
-        unsigned i;
+        pb_size_t i;
         do {
             req_field_count = iter.required_field_index;
             last_type = iter.type;
@@ -1548,14 +1548,14 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb
     if (size == 0)
     {
         /* As a special case, treat empty bytes string as all zeros for fixed_length_bytes. */
-        memset(field->pData, 0, field->data_size);
+        memset(field->pData, 0, (size_t)field->data_size);
         return true;
     }
 
     if (size != field->data_size)
         PB_RETURN_ERROR(stream, "incorrect fixed length bytes size");
 
-    return pb_read(stream, (pb_byte_t*)field->pData, field->data_size);
+    return pb_read(stream, (pb_byte_t*)field->pData, (size_t)field->data_size);
 }
 
 #ifdef PB_CONVERT_DOUBLE_FLOAT

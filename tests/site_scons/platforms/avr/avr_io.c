@@ -24,9 +24,9 @@ int uart_putchar(char c, FILE *stream)
 
 int uart_getchar(FILE *stream)
 {
-	loop_until_bit_is_set(UCSR0A, RXC0);
-	if (UCSR0A & _BV(FE0)) return _FDEV_EOF; /* Break = EOF */
-	return UDR0;
+    while (bit_is_clear(UCSR0A, RXC0) && bit_is_clear(UCSR0A, FE0));
+    if (UCSR0A & _BV(FE0)) return _FDEV_EOF; /* Break = EOF */
+    return UDR0;
 }
 
 FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);

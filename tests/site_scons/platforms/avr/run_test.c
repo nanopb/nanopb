@@ -53,6 +53,12 @@ static void uart_xon_hook(struct avr_irq_t * irq, uint32_t value, void * param)
     g_uart_xon = true;
     int v;
     
+    if (feof(stdin))
+    {
+        avr_raise_irq(&g_uart_irq[1], UART_INPUT_FE);
+        return;
+    }
+
     while (g_uart_xon)
     {
         if (g_args_idx < sizeof(g_args))

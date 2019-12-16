@@ -836,13 +836,13 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_iter_t
         PB_RETURN_ERROR(stream, "bytes size exceeded");
     }
     
-    return pb_encode_string(stream, bytes->bytes, bytes->size);
+    return pb_encode_string(stream, bytes->bytes, (size_t)bytes->size);
 }
 
 static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
     size_t size = 0;
-    size_t max_size = field->data_size;
+    size_t max_size = (size_t)field->data_size;
     const char *str = (const char*)field->pData;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
@@ -897,7 +897,7 @@ static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_i
 
 static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    return pb_encode_string(stream, (const pb_byte_t*)field->pData, field->data_size);
+    return pb_encode_string(stream, (const pb_byte_t*)field->pData, (size_t)field->data_size);
 }
 
 #ifdef PB_CONVERT_DOUBLE_FLOAT
