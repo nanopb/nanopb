@@ -1583,21 +1583,15 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
     }
     else if (exponent > 127)
     {
-        /* Too large */
-        if (sign)
-            *dest = -1.0f/0.0f; /* -INFINITY */
-        else
-            *dest = 1.0f/0.0f; /* +INFINITY */
-        return true;
+        /* Too large, convert to infinity */
+        exponent = 128;
+        mantissa = 0;
     }
     else if (exponent < -150)
     {
-        /* Too small */
-        if (sign)
-            *dest = -0.0f;
-        else
-            *dest = 0.0f;
-        return true;
+        /* Too small, convert to zero */
+        exponent = -127;
+        mantissa = 0;
     }
     else if (exponent < -126)
     {
