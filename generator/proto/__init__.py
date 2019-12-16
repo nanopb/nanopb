@@ -6,7 +6,7 @@ import sys
 
 import pkg_resources
 
-from .. import _utils
+from ._utils import has_grpcio_protoc, invoke_protoc
 
 dirname = os.path.dirname(__file__)
 protosrc = os.path.join(dirname, "nanopb.proto")
@@ -23,14 +23,14 @@ if os.path.isfile(protosrc):
             "-I={}".format(dirname),
         ]
 
-        if _utils.has_grpcio_protoc():
+        if has_grpcio_protoc():
             # grpcio-tools has an extra CLI argument
             # from grpc.tools.protoc __main__ invocation.
             _builtin_proto_include = pkg_resources.resource_filename('grpc_tools', '_proto')
 
             cmd.append("-I={}".format(_builtin_proto_include))
         try:
-            _utils.invoke_protoc(argv=cmd)
+            invoke_protoc(argv=cmd)
         except:
             sys.stderr.write("Failed to build nanopb_pb2.py: " + ' '.join(cmd) + "\n")
             raise
