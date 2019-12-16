@@ -214,6 +214,7 @@ int main()
         pb_field_iter_t field;
         
         COMMENT("Test pb_enc_fixed using float")
+        field.type = PB_LTYPE_FIXED32;
         field.data_size = sizeof(fvalue);
         field.pData = &fvalue;
         fvalue = 0.0f;
@@ -224,6 +225,7 @@ int main()
         TEST(WRITES(pb_enc_fixed(&s, &field), "\x4e\x61\x3c\xcb"))
     
         COMMENT("Test pb_enc_fixed using double")
+        field.type = PB_LTYPE_FIXED64;
         field.data_size = sizeof(dvalue);
         field.pData = &dvalue;
         dvalue = 0.0;

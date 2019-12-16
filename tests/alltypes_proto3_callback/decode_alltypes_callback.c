@@ -21,7 +21,7 @@ static bool read_varint(pb_istream_t *stream, const pb_field_t *field, void **ar
     if (!pb_decode_varint(stream, &value))
         return false;
     
-    TEST((int64_t)value == (long)*arg);
+    TEST((int64_t)value == (intptr_t)*arg);
     return true;
 }
 
@@ -31,7 +31,7 @@ static bool read_svarint(pb_istream_t *stream, const pb_field_t *field, void **a
     if (!pb_decode_svarint(stream, &value))
         return false;
     
-    TEST(value == (long)*arg);
+    TEST(value == (intptr_t)*arg);
     return true;
 }
 
@@ -47,6 +47,28 @@ static bool read_fixed32(pb_istream_t *stream, const pb_field_t *field, void **a
 
 static bool read_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
+    uint64_t value;
+    if (!pb_decode_fixed64(stream, &value))
+        return false;
+    
+    TEST(value == *(uint64_t*)*arg);
+    return true;
+}
+
+static bool read_double(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+    {
+        float value;
+        if (!pb_decode_double_as_float(stream, &value))
+            return false;
+        
+        TEST(memcmp(&value, *arg, sizeof(float)) == 0);
+        return true;
+    }
+#endif
+
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))
         return false;
@@ -122,6 +144,30 @@ static bool read_repeated_fixed32(pb_istream_t *stream, const pb_field_t *field,
 
 static bool read_repeated_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
+    uint64_t** expected = (uint64_t**)arg;
+    uint64_t value;
+    if (!pb_decode_fixed64(stream, &value))
+        return false;
+
+    TEST(*(*expected)++ == value);
+    return true;
+}
+
+static bool read_repeated_double(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+    {
+        float** expectedf = (float**)arg;
+        float value;
+        if (!pb_decode_double_as_float(stream, &value))
+            return false;
+        
+        TEST(memcmp(&value, (*expectedf)++, sizeof(float)) == 0);
+        return true;
+    }
+#endif
+
     uint64_t** expected = (uint64_t**)arg;
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))
@@ -257,7 +303,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     alltypes.rep_sfixed64.funcs.decode = &read_repeated_fixed64;
     alltypes.rep_sfixed64.arg = rep_sfixed64;
     
-    alltypes.rep_double.funcs.decode = &read_repeated_fixed64;
+    alltypes.rep_double.funcs.decode = &read_repeated_double;
     alltypes.rep_double.arg = rep_double;
     
     alltypes.rep_string.funcs.decode = &read_repeated_string;
@@ -318,7 +364,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         alltypes.sng_sfixed64.funcs.decode = &read_fixed64;
         alltypes.sng_sfixed64.arg = &sng_sfixed64;
         
-        alltypes.sng_double.funcs.decode = &read_fixed64;
+        alltypes.sng_double.funcs.decode = &read_double;
         alltypes.sng_double.arg = &sng_double;
         
         alltypes.sng_string.funcs.decode = &read_string;

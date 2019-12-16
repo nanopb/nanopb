@@ -124,32 +124,44 @@ int main(int argc, char *argv[])
     
     if (argc < 2)
     {
-        fprintf(stderr, "Usage: %s binary [args ...]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [-g] binary [args ...]\n", argv[0]);
         return 2;
     }
     
+    const char *filename = argv[1];
+    bool enable_gdb = false;
+    int argc_offset = 2;
+    
+    if (strcmp(filename, "-g") == 0)
+    {
+        enable_gdb = true;
+        argc_offset = 3;
+        filename = argv[2];
+    }
+    
     elf_firmware_t firmware;
-    elf_read_firmware(argv[1], &firmware);
+    elf_read_firmware(filename, &firmware);
     avr_init(g_avr);
 	avr_load_firmware(g_avr, &firmware);
 	g_avr->frequency = 8000000;
 
-    /*
-    g_avr->state = cpu_Stopped;
-    g_avr->gdb_port = 1234;
-    avr_gdb_init(g_avr);
-    */
+    if (enable_gdb)
+    {
+        g_avr->state = cpu_Stopped;
+        g_avr->gdb_port = 1234;
+        avr_gdb_init(g_avr);
+    }
 
     init_uart();
     
     avr_irq_register_notify(avr_io_getirq(g_avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 1), status_ok_hook, NULL);
 
     // Pass the rest of arguments to application inside simulator
-    g_args.argc = argc - 2;
+    g_args.argc = argc - argc_offset;
     if (g_args.argc > 3) g_args.argc = 3;
     for (int i = 0; i < g_args.argc; i++)
     {
-        strncpy(g_args.args[i], argv[i + 2], 15);
+        strncpy(g_args.args[i], argv[i + argc_offset], 15);
     }
     
     while (1)

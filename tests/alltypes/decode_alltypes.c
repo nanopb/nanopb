@@ -17,7 +17,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 {
     int status = 0;
 
-    /* Uses _init_default to just make sure that it works. */
+    /* Uses _init_default to just make sure that the macro works. */
     AllTypes alltypes = AllTypes_init_default;
     
     /* Fill with garbage to better detect initialization errors */
@@ -278,6 +278,9 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     return status == 0;
 }
 
+#ifdef __cplusplus
+extern "C"
+#endif
 int main(int argc, char **argv)
 {
     uint8_t buffer[1024];

@@ -1563,12 +1563,13 @@ class ProtoFile:
 
         if has_double:
             yield '\n'
+            yield '#ifndef PB_CONVERT_DOUBLE_FLOAT\n'
             yield '/* On some platforms (such as AVR), double is really float.\n'
-            yield ' * Using double on these platforms is not directly supported\n'
-            yield ' * by nanopb, but see example_avr_double.\n'
-            yield ' * To get rid of this error, remove any double fields from your .proto.\n'
+            yield ' * To be able to encode/decode double on these platforms, you need.\n'
+            yield ' * to define PB_CONVERT_DOUBLE_FLOAT in pb.h or compiler command line.\n'
             yield ' */\n'
             yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
+            yield '#endif\n'
 
         yield '\n'
         yield '/* @@protoc_insertion_point(eof) */\n'

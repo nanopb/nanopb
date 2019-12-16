@@ -124,8 +124,13 @@ if 'gcc' in env['CC']:
     # GNU Compiler Collection
     
     # Debug info, warnings as errors
-    env.Append(CFLAGS = '-ansi -pedantic -g -Wall -Werror ')
+    env.Append(CFLAGS = '-g -Wall -Werror ')
     env.Append(CORECFLAGS = '-Wextra')
+    
+    # Pedantic ANSI C. On AVR this doesn't work because we use large
+    # enums in some of the tests.
+    if env.get("EMBEDDED") != "AVR":
+        env.Append(CFLAGS = '-ansi -pedantic')
     
     # Profiling and coverage
     if not env.get("EMBEDDED"):

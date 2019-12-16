@@ -13,13 +13,13 @@
 static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (intptr_t)*arg);
 }
 
 static bool write_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
 static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -30,6 +30,18 @@ static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * 
 
 static bool write_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
+    return pb_encode_tag_for_field(stream, field) &&
+           pb_encode_fixed64(stream, *arg);
+}
+
+static bool write_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+        return pb_encode_tag_for_field(stream, field) &&
+               pb_encode_float_as_double(stream, *(float*)*arg);
+#endif
+
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_fixed64(stream, *arg);
 }
@@ -65,7 +77,7 @@ static bool write_repeated_varint(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_varint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (intptr_t)*arg);
 }
 
 static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -79,7 +91,7 @@ static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_svarint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
 static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -99,6 +111,31 @@ static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field
 static bool write_repeated_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint64_t dummy = 0;
+
+    /* Make it a packed field */
+    return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
+           pb_encode_varint(stream, 5 * 8) && /* Number of bytes */
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, *arg);
+}
+
+static bool write_repeated_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+    uint64_t dummy = 0;
+
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+        return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
+               pb_encode_varint(stream, 5 * 8) && /* Number of bytes */
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, *(float*)*arg);
+#endif
 
     /* Make it a packed field */
     return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
@@ -235,7 +272,7 @@ int main(int argc, char **argv)
     alltypes.rep_sfixed64.funcs.encode = &write_repeated_fixed64;
     alltypes.rep_sfixed64.arg = &rep_sfixed64;
     
-    alltypes.rep_double.funcs.encode = &write_repeated_fixed64;
+    alltypes.rep_double.funcs.encode = &write_repeated_double;
     alltypes.rep_double.arg = &rep_double;
     
     alltypes.rep_string.funcs.encode = &write_repeated_string;
@@ -296,7 +333,7 @@ int main(int argc, char **argv)
         alltypes.sng_sfixed64.funcs.encode = &write_fixed64;
         alltypes.sng_sfixed64.arg = &sng_sfixed64;
         
-        alltypes.sng_double.funcs.encode = &write_fixed64;
+        alltypes.sng_double.funcs.encode = &write_double;
         alltypes.sng_double.arg = &sng_double;
         
         alltypes.sng_string.funcs.encode = &write_string;
