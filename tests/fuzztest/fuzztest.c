@@ -13,7 +13,11 @@
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
 
+#ifdef __AVR__
+#define BUFSIZE 2048
+#else
 #define BUFSIZE 4096
+#endif
 
 static uint64_t random_seed;
 
