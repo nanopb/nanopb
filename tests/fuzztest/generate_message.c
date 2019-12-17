@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 #include "alltypes_static.pb.h"
 
 static uint64_t random_seed;
