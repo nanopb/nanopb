@@ -36,14 +36,6 @@ else:
     iterations = 10000
 env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
-fuzzstub = malloc_env.Program(["fuzzstub.c",
-                    "alltypes_pointer.pb.c",
-                    "alltypes_static.pb.c",
-                    "$COMMON/pb_encode_with_malloc.o",
-                    "$COMMON/pb_decode_with_malloc.o",
-                    "$COMMON/pb_common_with_malloc.o",
-                    "$COMMON/malloc_wrappers.o"])
-
 generate_message = malloc_env.Program(["generate_message.c",
                     "alltypes_static.pb.c",
                     "$COMMON/pb_encode.o",

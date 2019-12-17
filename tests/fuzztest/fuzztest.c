@@ -8,10 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 #include <malloc_wrappers.h>
+#include "test_helpers.h"
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
+
+#define BUFSIZE 4096
 
 static uint64_t random_seed;
 
@@ -197,8 +199,6 @@ static void sanity_check_static(alltypes_static_AllTypes *msg)
                memcmp(&msg->rep_bool[0], &falsebool, sizeof(bool)) == 0);
     }
 }
-
-#define BUFSIZE 4096
 
 static bool do_static_encode(uint8_t *buffer, size_t *msglen)
 {
@@ -444,19 +444,50 @@ static void run_iteration()
     assert(get_alloc_count() == 0);
 }
 
+static void run_stub()
+{
+    uint8_t *buffer = malloc_with_check(BUFSIZE);
+    size_t msglen;
+    bool status;
+
+    SET_BINARY_MODE(stdin);
+    msglen = fread(buffer, 1, BUFSIZE, stdin);
+
+    status = do_static_decode(buffer, msglen, false);
+
+    if (status)
+        do_static_roundtrip(buffer, msglen);
+
+    status = do_pointer_decode(buffer, msglen, false);
+
+    if (status)
+        do_pointer_roundtrip(buffer, msglen);
+
+    free_with_check(buffer);
+}
+
 int main(int argc, char **argv)
 {
     int i;
     int iterations;
 
-    random_seed = atol(argv[1]);
-    iterations = atol(argv[2]);
-    if (iterations == 0) iterations = 10000;
-    fprintf(stderr, "Random seed: %u, iterations: %d\n", (unsigned)random_seed, iterations);
-    
-    for (i = 0; i < iterations; i++)
+    if (argc >= 2)
     {
-        run_iteration();
+        // Run in stand-alone mode
+        random_seed = atol(argv[1]);
+        iterations = atol(argv[2]);
+        if (iterations == 0) iterations = 10000;
+        fprintf(stderr, "Random seed: %u, iterations: %d\n", (unsigned)random_seed, iterations);
+
+        for (i = 0; i < iterations; i++)
+        {
+            run_iteration();
+        }
+    }
+    else
+    {
+        // Run as a stub for afl-fuzz and similar
+        run_stub();
     }
     
     return 0;
