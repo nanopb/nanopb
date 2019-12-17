@@ -23,10 +23,11 @@ ifneq "$(wildcard $(NANOPB_DIR)/generator-bin)" ""
 	PROTOC_OPTS = 
 else
 	# Source only or git checkout
-	PROTOC = protoc
 	ifdef WINDOWS
-		PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb.bat
+	    PROTOC = "python $(NANOPB_DIR)/generator/protoc"
+	    PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb.bat
 	else
+	    PROTOC = $(NANOPB_DIR)/generator/protoc
 		PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb
 	endif
 endif

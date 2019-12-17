@@ -9,6 +9,8 @@ CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
 CXXFLAGS    Flags to pass to the C++ compiler
 LINKFLAGS   Flags to pass to linker
+PROTOC      Path to protoc binary
+PROTOCFLAGS Arguments to pass protoc
 
 For example, for a clang build, use:
 scons CC=clang CXX=clang++
@@ -36,6 +38,8 @@ if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
 if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
 if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
 if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])
+if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
+if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)

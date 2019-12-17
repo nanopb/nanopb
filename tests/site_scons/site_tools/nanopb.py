@@ -64,6 +64,11 @@ def _detect_protoc(env):
         # Use protoc bundled with binary package
         return env['ESCAPE'](p1)
 
+    p = os.path.join(n, 'generator', 'protoc')
+    if os.path.exists(p):
+        # Use the grcpio-tools protoc wrapper
+        return env['ESCAPE'](p)
+
     p = env.WhereIs('protoc')
     if p:
         # Use protoc from path
