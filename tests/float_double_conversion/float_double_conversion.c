@@ -8,6 +8,14 @@
 #include "doublemsg.pb.h"
 #include "unittests.h"
 
+#ifndef INFINITY
+#define INFINITY (1e10000f)
+#endif
+
+#ifndef NAN
+#define NAN (0.0f/0.0f)
+#endif
+
 /* This message mimics how DoubleMsg would appear on e.g. AVR. */
 typedef struct {
     float value;
