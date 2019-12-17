@@ -475,8 +475,7 @@ int main(int argc, char **argv)
     {
         /* Run in stand-alone mode */
         random_seed = atol(argv[1]);
-        iterations = atol(argv[2]);
-        if (iterations == 0) iterations = 10000;
+        iterations = (argc >= 3) ? atol(argv[2]) : 10000;
         fprintf(stderr, "Random seed: %u, iterations: %d\n", (unsigned)random_seed, iterations);
 
         for (i = 0; i < iterations; i++)

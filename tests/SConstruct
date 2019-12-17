@@ -8,6 +8,7 @@ CC          Name of C compiler
 CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
 CXXFLAGS    Flags to pass to the C++ compiler
+LINKFLAGS   Flags to pass to linker
 
 For example, for a clang build, use:
 scons CC=clang CXX=clang++
@@ -34,6 +35,7 @@ if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
 if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
 if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
 if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
+if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)

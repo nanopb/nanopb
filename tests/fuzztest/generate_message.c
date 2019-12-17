@@ -83,6 +83,12 @@ static void generate_message()
 
 int main(int argc, char **argv)
 {
+    if (argc < 2)
+    {
+        fprintf(stderr, "Usage: generate_message <seed>\n");
+        return 1;
+    }
+
     random_seed = atol(argv[1]);
 
     fprintf(stderr, "Random seed: %u\n", (unsigned)random_seed);
