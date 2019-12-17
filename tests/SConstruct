@@ -9,6 +9,7 @@ CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
 CXXFLAGS    Flags to pass to the C++ compiler
 LINKFLAGS   Flags to pass to linker
+LINKLIBS    Flags to pass to linker after object files
 PROTOC      Path to protoc binary
 PROTOCFLAGS Arguments to pass protoc
 NODEFARGS   Do not add the default CCFLAGS
@@ -39,6 +40,7 @@ if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
 if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
 if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
 if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])
+if 'LINKLIBS' in ARGUMENTS: env.Append(LINKLIBS = ARGUMENTS['LINKLIBS'])
 if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
 if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
 if 'NODEFARGS' in ARGUMENTS: env.Replace(NODEFARGS = ARGUMENTS['NODEFARGS'])
@@ -186,6 +188,10 @@ if not env.get("EMBEDDED"):
     valgrind = env.WhereIs('valgrind')
     if valgrind:
         env.SetDefault(VALGRIND = valgrind)
+
+# Make it possible to add commands to the end of linker line
+env.SetDefault(LINKLIBS = '')
+env.Replace(LINKCOM = env['LINKCOM'] + " $LINKLIBS")
 
 # Now include the SConscript files from all subdirectories
 import os.path
