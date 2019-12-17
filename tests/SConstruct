@@ -11,6 +11,7 @@ CXXFLAGS    Flags to pass to the C++ compiler
 LINKFLAGS   Flags to pass to linker
 PROTOC      Path to protoc binary
 PROTOCFLAGS Arguments to pass protoc
+NODEFARGS   Do not add the default CCFLAGS
 
 For example, for a clang build, use:
 scons CC=clang CXX=clang++
@@ -40,6 +41,7 @@ if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
 if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])
 if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
 if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
+if 'NODEFARGS' in ARGUMENTS: env.Replace(NODEFARGS = ARGUMENTS['NODEFARGS'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
@@ -98,85 +100,87 @@ if not env.GetOption('clean'):
     if status:
         conf.env['PROTOC_VERSION'] = output
 
-    # Check if libmudflap is available (only with GCC)
-    if 'gcc' in env['CC']:
-        if conf.CheckLib('mudflap'):
-            conf.env.Append(CCFLAGS = '-fmudflap')
-            conf.env.Append(LINKFLAGS = '-fmudflap')
-    
-    # Check if we can use extra strict warning flags (only with GCC)
-    extra = '-Wcast-qual -Wlogical-op -Wconversion'
-    extra += ' -fstrict-aliasing -Wstrict-aliasing=1'
-    extra += ' -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls'
-    extra += ' -Wstack-protector '
-    if 'gcc' in env['CC']:
-        if conf.CheckCCFLAGS(extra):
-            conf.env.Append(CORECFLAGS = extra)
-    
-    # Check if we can use undefined behaviour sanitizer (only with clang)
-    # TODO: Fuzz test triggers the bool sanitizer, figure out whether to
-    #       modify the fuzz test or to keep ignoring the check.
-    extra = '-fsanitize=undefined,integer -fno-sanitize-recover=undefined,integer '
-    if 'clang' in env['CC']:
-        if conf.CheckCCFLAGS(extra, linkflags = extra):
-            conf.env.Append(CORECFLAGS = extra)
-            conf.env.Append(LINKFLAGS = extra)
+    if not env.get('NODEFARGS'):
+        # Check if libmudflap is available (only with GCC)
+        if 'gcc' in env['CC']:
+            if conf.CheckLib('mudflap'):
+                conf.env.Append(CCFLAGS = '-fmudflap')
+                conf.env.Append(LINKFLAGS = '-fmudflap')
+
+        # Check if we can use extra strict warning flags (only with GCC)
+        extra = '-Wcast-qual -Wlogical-op -Wconversion'
+        extra += ' -fstrict-aliasing -Wstrict-aliasing=1'
+        extra += ' -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls'
+        extra += ' -Wstack-protector '
+        if 'gcc' in env['CC']:
+            if conf.CheckCCFLAGS(extra):
+                conf.env.Append(CORECFLAGS = extra)
+
+        # Check if we can use undefined behaviour sanitizer (only with clang)
+        # TODO: Fuzz test triggers the bool sanitizer, figure out whether to
+        #       modify the fuzz test or to keep ignoring the check.
+        extra = '-fsanitize=undefined,integer -fno-sanitize-recover=undefined,integer '
+        if 'clang' in env['CC']:
+            if conf.CheckCCFLAGS(extra, linkflags = extra):
+                conf.env.Append(CORECFLAGS = extra)
+                conf.env.Append(LINKFLAGS = extra)
     
     # End the config stuff
     env = conf.Finish()
 
-# Initialize the CCFLAGS according to the compiler
-if 'gcc' in env['CC']:
-    # GNU Compiler Collection
-    
-    # Debug info, warnings as errors
-    env.Append(CFLAGS = '-g -Wall -Werror ')
-    env.Append(CORECFLAGS = '-Wextra')
-    
-    # Pedantic ANSI C. On AVR this doesn't work because we use large
-    # enums in some of the tests.
-    if env.get("EMBEDDED") != "AVR":
-        env.Append(CFLAGS = '-ansi -pedantic')
-    
-    # Profiling and coverage
-    if not env.get("EMBEDDED"):
-        env.Append(CFLAGS = '-fprofile-arcs -ftest-coverage ')
-        env.Append(LINKFLAGS = '-g --coverage')
+if not env.get('NODEFARGS'):
+    # Initialize the CCFLAGS according to the compiler
+    if 'gcc' in env['CC']:
+        # GNU Compiler Collection
         
-    
-    # We currently need uint64_t anyway, even though ANSI C90 otherwise..
-    env.Append(CFLAGS = '-Wno-long-long')
-elif 'clang' in env['CC']:
-    # CLang
-    env.Append(CFLAGS = '-ansi -g -Wall -Werror')
-    env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
-elif 'cl' in env['CC']:
-    # Microsoft Visual C++
-    
-    # Debug info on, warning level 2 for tests, warnings as errors
-    env.Append(CFLAGS = '/Zi /W2 /WX')
-    env.Append(LINKFLAGS = '/DEBUG')
-    
-    # More strict checks on the nanopb core
-    env.Append(CORECFLAGS = '/W4')
+        # Debug info, warnings as errors
+        env.Append(CFLAGS = '-g -Wall -Werror ')
+        env.Append(CORECFLAGS = '-Wextra')
 
-    # Disable warning about sizeof(union{}) construct that is used in
-    # message size macros, in e.g. multiple_files testcase. The C construct
-    # itself is valid, but quite rare, which causes Visual C++ to give a warning
-    # about it.
-    env.Append(CFLAGS = '/wd4116')
-elif 'tcc' in env['CC']:
-    # Tiny C Compiler
-    env.Append(CFLAGS = '-Wall -Werror -g')
+        # Pedantic ANSI C. On AVR this doesn't work because we use large
+        # enums in some of the tests.
+        if env.get("EMBEDDED") != "AVR":
+            env.Append(CFLAGS = '-ansi -pedantic')
+
+        # Profiling and coverage
+        if not env.get("EMBEDDED"):
+            env.Append(CFLAGS = '-fprofile-arcs -ftest-coverage ')
+            env.Append(LINKFLAGS = '-g --coverage')
+
+
+        # We currently need uint64_t anyway, even though ANSI C90 otherwise..
+        env.Append(CFLAGS = '-Wno-long-long')
+    elif 'clang' in env['CC']:
+        # CLang
+        env.Append(CFLAGS = '-ansi -g -Wall -Werror')
+        env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
+    elif 'cl' in env['CC']:
+        # Microsoft Visual C++
+
+        # Debug info on, warning level 2 for tests, warnings as errors
+        env.Append(CFLAGS = '/Zi /W2 /WX')
+        env.Append(LINKFLAGS = '/DEBUG')
+
+        # More strict checks on the nanopb core
+        env.Append(CORECFLAGS = '/W4')
+
+        # Disable warning about sizeof(union{}) construct that is used in
+        # message size macros, in e.g. multiple_files testcase. The C construct
+        # itself is valid, but quite rare, which causes Visual C++ to give a warning
+        # about it.
+        env.Append(CFLAGS = '/wd4116')
+    elif 'tcc' in env['CC']:
+        # Tiny C Compiler
+        env.Append(CFLAGS = '-Wall -Werror -g')
+
+    if 'clang' in env['CXX']:
+        env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
+    elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
+        env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
+    elif 'cl' in env['CXX']:
+        env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116 /wd4127')
 
 env.SetDefault(CORECFLAGS = '')
-
-if 'clang' in env['CXX']:
-    env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
-elif 'g++' in env['CXX'] or 'gcc' in env['CXX']:
-    env.Append(CXXFLAGS = '-g -Wall -Werror -Wextra -Wno-missing-field-initializers')
-elif 'cl' in env['CXX']:
-    env.Append(CXXFLAGS = '/Zi /W2 /WX /wd4116 /wd4127')
 
 if not env.get("EMBEDDED"):
     valgrind = env.WhereIs('valgrind')
