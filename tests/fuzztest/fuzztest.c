@@ -473,7 +473,7 @@ int main(int argc, char **argv)
 
     if (argc >= 2)
     {
-        // Run in stand-alone mode
+        /* Run in stand-alone mode */
         random_seed = atol(argv[1]);
         iterations = atol(argv[2]);
         if (iterations == 0) iterations = 10000;
@@ -486,7 +486,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        // Run as a stub for afl-fuzz and similar
+        /* Run as a stub for afl-fuzz and similar */
         run_stub();
     }
     
