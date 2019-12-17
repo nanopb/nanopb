@@ -8,14 +8,6 @@
 #include "doublemsg.pb.h"
 #include "unittests.h"
 
-#ifndef INFINITY
-#define INFINITY (1e10000f)
-#endif
-
-#ifndef NAN
-#define NAN (0.0f/0.0f)
-#endif
-
 /* This message mimics how DoubleMsg would appear on e.g. AVR. */
 typedef struct {
     float value;
@@ -25,7 +17,9 @@ PB_BIND(DoubleMsg, FloatMsg, AUTO)
 static const double testvalues[] = {
            0.0,        -0.0,         0.1,         -0.1,
           M_PI,       -M_PI,  123456.789,  -123456.789,
+#if defined(NAN) && defined(INFINITY)
       INFINITY,   -INFINITY,         NAN, INFINITY - INFINITY,
+#endif
           1e38,       -1e38,        1e39,        -1e39,
          1e-38,      -1e-38,       1e-39,       -1e-39,
    3.14159e-37,-3.14159e-37, 3.14159e-43, -3.14159e-43,
