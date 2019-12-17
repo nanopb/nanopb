@@ -10,6 +10,8 @@ import sys
 import re
 import codecs
 import copy
+import tempfile
+import os
 from functools import reduce
 
 try:
@@ -38,6 +40,7 @@ except:
 
 try:
     from .proto import nanopb_pb2
+    from .proto._utils import invoke_protoc
 except TypeError:
     sys.stderr.write('''
          ****************************************************************************
@@ -58,6 +61,7 @@ except TypeError:
 except (ValueError, SystemError):
     # Probably invoked directly instead of via installed scripts.
     import proto.nanopb_pb2 as nanopb_pb2
+    from proto._utils import invoke_protoc
 except:
     sys.stderr.write('''
          ********************************************************************
@@ -1833,9 +1837,31 @@ def main_cli():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
-    Globals.verbose_options = options.verbose
+    # Load .pb files into memory and compile any .proto files.
+    fdescs = {}
+    include_path = ['-I%s' % p for p in options.options_path]
     for filename in filenames:
-        results = process_file(filename, None, options)
+        if filename.endswith(".proto"):
+            with tempfile.NamedTemporaryFile(suffix = ".pb") as tmp:
+                invoke_protoc(["protoc"] + include_path + ['-o' + tmp.name, filename])
+                data = tmp.read()
+        else:
+            data = open(filename, 'rb').read()
+
+        open("debug", "wb").write(data)
+        fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
+        fdescs[fdesc.name] = fdesc
+
+    # Process any include files first, in order to have them
+    # available as dependencies
+    other_files = {}
+    for fdesc in fdescs.values():
+        other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
+
+    # Then generate the headers / sources
+    Globals.verbose_options = options.verbose
+    for fdesc in fdescs.values():
+        results = process_file(fdesc.name, fdesc, options, other_files)
 
         base_dir = options.output_dir or ''
         to_write = [
