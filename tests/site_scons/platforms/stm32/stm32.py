@@ -6,8 +6,7 @@
 def set_stm32_platform(env):
     env.Replace(EMBEDDED = "STM32")
     env.Replace(CC  = "arm-none-eabi-gcc",
-                CXX = "arm-none-eabi-g++",
-                LD  = "arm-none-eabi-gcc")
+                CXX = "arm-none-eabi-g++")
     env.Replace(TEST_RUNNER = "site_scons/platforms/stm32/run_test.sh")
     env.Append(CFLAGS = "-mcpu=cortex-m3 -mthumb -Os")
     env.Append(CXXFLAGS = "-mcpu=cortex-m3 -mthumb -Os")

@@ -8,6 +8,7 @@ CC          Name of C compiler
 CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
 CXXFLAGS    Flags to pass to the C++ compiler
+LINK        Name of linker (usually same as CC)
 LINKFLAGS   Flags to pass to linker
 LINKLIBS    Flags to pass to linker after object files
 PROTOC      Path to protoc binary
@@ -37,6 +38,7 @@ except:
 # Allow overriding the compiler with scons CC=???
 if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
 if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
+if 'LINK' in ARGUMENTS: env.Replace(LINK = ARGUMENTS['LINK'])
 if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
 if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
 if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])

@@ -7,8 +7,7 @@ def set_avr_platform(env):
     
     env.Replace(EMBEDDED = "AVR")
     env.Replace(CC  = "avr-gcc",
-                CXX = "avr-g++",
-                LD  = "avr-gcc")
+                CXX = "avr-g++")
     env.Replace(TEST_RUNNER = "build/run_test")
     env.Append(CFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
     env.Append(CXXFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
