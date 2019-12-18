@@ -259,7 +259,8 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
         }
         else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->pSize != NULL)
         {
-            /* Proto2 optional fields inside proto3 submessage */
+            /* Proto2 optional fields inside proto3 message, or proto3
+             * submessage fields. */
             return safe_read_bool(field->pSize) == false;
         }
 
@@ -280,12 +281,13 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
              * it anyway. */
             return field->data_size == 0;
         }
-        else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+        else if (PB_LTYPE_IS_SUBMSG(type))
         {
             /* Check all fields in the submessage to find if any of them
              * are non-zero. The comparison cannot be done byte-per-byte
              * because the C struct may contain padding bytes that must
-             * be skipped.
+             * be skipped. Note that usually proto3 submessages have
+             * a separate has_field that is checked earlier in this if.
              */
             pb_field_iter_t iter;
             if (pb_field_iter_begin(&iter, field->submsg_desc, field->pData))
@@ -358,6 +360,7 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_
             return pb_enc_string(stream, field);
 
         case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
             return pb_enc_submessage(stream, field);
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
@@ -383,6 +386,43 @@ static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_fie
 /* Encode a single field of any callback, pointer or static type. */
 static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *field)
 {
+    /* Check field presence */
+    if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
+    {
+        if (*(const pb_size_t*)field->pSize != field->tag)
+        {
+            /* Different type oneof field */
+            return true;
+        }
+    }
+    else if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
+    {
+        if (field->pSize)
+        {
+            if (safe_read_bool(field->pSize) == false)
+            {
+                /* Missing optional field */
+                return true;
+            }
+        }
+        else if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
+        {
+            /* Proto3 singular field */
+            if (pb_check_proto3_default_value(field))
+                return true;
+        }
+    }
+
+    if (!field->pData)
+    {
+        if (PB_HTYPE(field->type) == PB_HTYPE_REQUIRED)
+            PB_RETURN_ERROR(stream, "missing required field");
+
+        /* Pointer field set to NULL */
+        return true;
+    }
+
+    /* Then encode field contents */
     if (PB_ATYPE(field->type) == PB_ATYPE_CALLBACK)
     {
         return encode_callback_field(stream, field);
@@ -391,45 +431,9 @@ static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *fiel
     {
         return encode_array(stream, field);
     }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_REQUIRED)
-    {
-        if (!field->pData)
-            PB_RETURN_ERROR(stream, "missing required field");
-
-        return encode_basic_field(stream, field);
-    }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
-    {
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
-        {
-            if (!field->pSize)
-            {
-                /* Proto3 singular field */
-                if (pb_check_proto3_default_value(field))
-                    return true;
-            }
-            else if (safe_read_bool(field->pSize) == false)
-            {
-                /* Missing optional field */
-                return true;
-            }
-        }
-
-        return encode_basic_field(stream, field);
-    }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-    {
-        if (*(const pb_size_t*)field->pSize != field->tag)
-        {
-            /* Different type oneof field */
-            return true;
-        }
-
-        return encode_basic_field(stream, field);
-    }
     else
     {
-        PB_RETURN_ERROR(stream, "invalid field type");
+        return encode_basic_field(stream, field);
     }
 }
 
@@ -667,6 +671,7 @@ bool pb_encode_tag_for_field ( pb_ostream_t* stream, const pb_field_iter_t* fiel
         case PB_LTYPE_BYTES:
         case PB_LTYPE_STRING:
         case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
         case PB_LTYPE_FIXED_LENGTH_BYTES:
             wiretype = PB_WT_STRING;
             break;
@@ -891,6 +896,17 @@ static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_i
 {
     if (field->submsg_desc == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+    {
+        /* Message callback is stored right before pSize. */
+        pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
+        if (callback->funcs.encode)
+        {
+            if (!callback->funcs.encode(stream, field, &callback->arg))
+                return false;
+        }
+    }
     
     return pb_encode_submessage(stream, field->submsg_desc, field->pData);
 }

@@ -34,10 +34,6 @@
    or to save some code space. */
 /* #define PB_WITHOUT_64BIT 1 */
 
-/* Switch back to the old-style callback function signature.
- * This was the default until nanopb-0.2.1. */
-/* #define PB_OLD_CALLBACK_STYLE 1 */
-
 /* Set the fieldinfo width for all messages using automatic width
  * selection. Valid values are 2, 4 and 8. Usually even if you need
  * to change the width manually for some reason, it is preferrable
@@ -205,18 +201,23 @@ typedef uint_least8_t pb_type_t;
  * submsg_fields is pointer to field descriptions */
 #define PB_LTYPE_SUBMESSAGE 0x08U
 
+/* Submessage with pre-decoding callback
+ * The pre-decoding callback is stored as pb_callback_t right before pSize.
+ * submsg_fields is pointer to field descriptions */
+#define PB_LTYPE_SUBMSG_W_CB 0x09U
+
 /* Extension pseudo-field
  * The field contains a pointer to pb_extension_t */
-#define PB_LTYPE_EXTENSION 0x09U
+#define PB_LTYPE_EXTENSION 0x0AU
 
 /* Byte array with inline, pre-allocated byffer.
  * data_size is the length of the inline, allocated buffer.
  * This differs from PB_LTYPE_BYTES by defining the element as
  * pb_byte_t[data_size] rather than pb_bytes_array_t. */
-#define PB_LTYPE_FIXED_LENGTH_BYTES 0x0AU
+#define PB_LTYPE_FIXED_LENGTH_BYTES 0x0BU
 
 /* Number of declared LTYPES */
-#define PB_LTYPES_COUNT 0x0BU
+#define PB_LTYPES_COUNT 0x0CU
 #define PB_LTYPE_MASK 0x0FU
 
 /**** Field repetition rules ****/
@@ -239,6 +240,8 @@ typedef uint_least8_t pb_type_t;
 #define PB_ATYPE(x) ((x) & PB_ATYPE_MASK)
 #define PB_HTYPE(x) ((x) & PB_HTYPE_MASK)
 #define PB_LTYPE(x) ((x) & PB_LTYPE_MASK)
+#define PB_LTYPE_IS_SUBMSG(x) (PB_LTYPE(x) == PB_LTYPE_SUBMESSAGE || \
+                               PB_LTYPE(x) == PB_LTYPE_SUBMSG_W_CB)
 
 /* Data type used for storing sizes of struct fields
  * and array counts.
@@ -347,19 +350,13 @@ typedef struct pb_bytes_array_s pb_bytes_array_t;
  */
 typedef struct pb_callback_s pb_callback_t;
 struct pb_callback_s {
-#ifdef PB_OLD_CALLBACK_STYLE
-    /* Deprecated since nanopb-0.2.1 */
-    union {
-        bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void *arg);
-        bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, const void *arg);
-    } funcs;
-#else
-    /* New function signature, which allows modifying arg contents in callback. */
+    /* Callback functions receive a pointer to the arg field.
+     * You can access the value of the field as *arg, and modify it if needed.
+     */
     union {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
     } funcs;
-#endif    
     
     /* Free arg for use by callback */
     void *arg;
@@ -535,7 +532,7 @@ struct pb_extension_s {
 
 #define PB_SIZE_OFFSET_STATIC(htype, structname, fieldname) PB_SIZE_OFFSET_ ## htype(structname, fieldname)
 #define PB_SIZE_OFFSET_POINTER(htype, structname, fieldname) PB_SIZE_OFFSET_PTR_ ## htype(structname, fieldname)
-#define PB_SIZE_OFFSET_CALLBACK(htype, structname, fieldname) 0
+#define PB_SIZE_OFFSET_CALLBACK(htype, structname, fieldname) PB_SIZE_OFFSET_CB_ ## htype(structname, fieldname)
 #define PB_SIZE_OFFSET_REQUIRED(structname, fieldname) 0
 #define PB_SIZE_OFFSET_SINGULAR(structname, fieldname) 0
 #define PB_SIZE_OFFSET_ONEOF(structname, fieldname) PB_SIZE_OFFSET_ONEOF2(structname, PB_ONEOF_NAME(FULL, fieldname), PB_ONEOF_NAME(UNION, fieldname))
@@ -550,6 +547,12 @@ struct pb_extension_s {
 #define PB_SIZE_OFFSET_PTR_OPTIONAL(structname, fieldname) 0
 #define PB_SIZE_OFFSET_PTR_REPEATED(structname, fieldname) PB_SIZE_OFFSET_REPEATED(structname, fieldname)
 #define PB_SIZE_OFFSET_PTR_FIXARRAY(structname, fieldname) 0
+#define PB_SIZE_OFFSET_CB_REQUIRED(structname, fieldname) 0
+#define PB_SIZE_OFFSET_CB_SINGULAR(structname, fieldname) 0
+#define PB_SIZE_OFFSET_CB_ONEOF(structname, fieldname) PB_SIZE_OFFSET_ONEOF(structname, fieldname)
+#define PB_SIZE_OFFSET_CB_OPTIONAL(structname, fieldname) 0
+#define PB_SIZE_OFFSET_CB_REPEATED(structname, fieldname) 0
+#define PB_SIZE_OFFSET_CB_FIXARRAY(structname, fieldname) 0
 
 #define PB_ARRAY_SIZE_STATIC(htype, structname, fieldname) PB_ARRAY_SIZE_ ## htype(structname, fieldname)
 #define PB_ARRAY_SIZE_POINTER(htype, structname, fieldname) 1
@@ -563,7 +566,7 @@ struct pb_extension_s {
 
 #define PB_DATA_SIZE_STATIC(htype, structname, fieldname) PB_DATA_SIZE_ ## htype(structname, fieldname)
 #define PB_DATA_SIZE_POINTER(htype, structname, fieldname) PB_DATA_SIZE_PTR_ ## htype(structname, fieldname)
-#define PB_DATA_SIZE_CALLBACK(htype, structname, fieldname) pb_membersize(structname, fieldname)
+#define PB_DATA_SIZE_CALLBACK(htype, structname, fieldname) PB_DATA_SIZE_CB_ ## htype(structname, fieldname)
 #define PB_DATA_SIZE_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DATA_SIZE_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DATA_SIZE_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname)
@@ -576,6 +579,12 @@ struct pb_extension_s {
 #define PB_DATA_SIZE_PTR_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname)[0])
 #define PB_DATA_SIZE_PTR_REPEATED(structname, fieldname) pb_membersize(structname, fieldname[0])
 #define PB_DATA_SIZE_PTR_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0])
+#define PB_DATA_SIZE_CB_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname)
+#define PB_DATA_SIZE_CB_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname)
+#define PB_DATA_SIZE_CB_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname)
+#define PB_DATA_SIZE_CB_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname))
+#define PB_DATA_SIZE_CB_REPEATED(structname, fieldname) pb_membersize(structname, fieldname)
+#define PB_DATA_SIZE_CB_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname)
 
 #define PB_ONEOF_NAME(type, tuple) PB_EXPAND(PB_ONEOF_NAME_ ## type tuple)
 #define PB_ONEOF_NAME_UNION(unionname,membername,fullname) unionname
@@ -604,6 +613,7 @@ struct pb_extension_s {
 #define PB_SUBMSG_INFO_INT32(t)
 #define PB_SUBMSG_INFO_INT64(t)
 #define PB_SUBMSG_INFO_MESSAGE(t)  PB_SUBMSG_DESCRIPTOR(t)
+#define PB_SUBMSG_INFO_MSG_W_CB(t) PB_SUBMSG_DESCRIPTOR(t)
 #define PB_SUBMSG_INFO_SFIXED32(t)
 #define PB_SUBMSG_INFO_SFIXED64(t)
 #define PB_SUBMSG_INFO_SINT32(t)
@@ -746,6 +756,7 @@ struct pb_extension_s {
 #define PB_LTYPE_MAP_INT32              PB_LTYPE_VARINT
 #define PB_LTYPE_MAP_INT64              PB_LTYPE_VARINT
 #define PB_LTYPE_MAP_MESSAGE            PB_LTYPE_SUBMESSAGE
+#define PB_LTYPE_MAP_MSG_W_CB           PB_LTYPE_SUBMSG_W_CB
 #define PB_LTYPE_MAP_SFIXED32           PB_LTYPE_FIXED32
 #define PB_LTYPE_MAP_SFIXED64           PB_LTYPE_FIXED64
 #define PB_LTYPE_MAP_SINT32             PB_LTYPE_SVARINT

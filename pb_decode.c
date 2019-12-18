@@ -410,6 +410,7 @@ static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_field_iter_t
             return pb_dec_string(stream, field);
 
         case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
             return pb_dec_submessage(stream, field);
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
@@ -477,9 +478,14 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
 
         case PB_HTYPE_ONEOF:
             *(pb_size_t*)field->pSize = field->tag;
-            if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE)
+            if (PB_LTYPE_IS_SUBMSG(field->type))
             {
                 /* We memset to zero so that any callbacks are set to NULL.
+                 * This is because the callbacks might otherwise have values
+                 * from some other union field.
+                 * If callbacks are needed inside oneof field, use .proto
+                 * option submsg_callback to have a separate callback function
+                 * that can set the fields before submessage is decoded.
                  * pb_dec_submessage() will set any default values. */
                 memset(field->pData, 0, (size_t)field->data_size);
             }
@@ -538,7 +544,7 @@ static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
     {
         *(void**)pItem = NULL;
     }
-    else if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE)
+    else if (PB_LTYPE_IS_SUBMSG(field->type))
     {
         /* We memset to zero so that any callbacks are set to NULL.
          * Then set any default values. */
@@ -565,8 +571,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
         case PB_HTYPE_ONEOF:
-            if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE &&
-                *(void**)field->pField != NULL)
+            if (PB_LTYPE_IS_SUBMSG(field->type) && *(void**)field->pField != NULL)
             {
                 /* Duplicate field, have to release the old allocation first. */
                 /* FIXME: Does this work correctly for oneofs? */
@@ -843,7 +848,7 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
 
         if (init_data)
         {
-            if (PB_LTYPE(field->type) == PB_LTYPE_SUBMESSAGE)
+            if (PB_LTYPE_IS_SUBMSG(field->type))
             {
                 /* Initialize submessage to defaults */
                 pb_field_iter_t submsg_iter;
@@ -1180,7 +1185,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
             ext = ext->next;
         }
     }
-    else if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
+    else if (PB_LTYPE_IS_SUBMSG(type) && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
     {
         /* Release fields in submessage or submsg array */
         pb_size_t count = 1;
@@ -1570,7 +1575,7 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_
 
 static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field)
 {
-    bool status;
+    bool status = true;
     pb_istream_t substream;
 
     if (!pb_make_string_substream(stream, &substream))
@@ -1583,9 +1588,33 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
      * submessages have already been initialized in the top-level pb_decode. */
     if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED ||
         PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-        status = pb_decode(&substream, field->submsg_desc, field->pData);
-    else
+    {
+        pb_field_iter_t submsg_iter;
+        if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
+        {
+            if (!pb_message_set_to_defaults(&submsg_iter))
+                PB_RETURN_ERROR(stream, "failed to set defaults");
+        }
+    }
+
+    /* Submessages can have a separate message-level callback that is called
+     * before decoding the message. Typically it is used to set callback fields
+     * inside oneofs. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+    {
+        /* Message callback is stored right before pSize. */
+        pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
+        if (callback->funcs.decode)
+        {
+            status = callback->funcs.decode(&substream, field, &callback->arg);
+        }
+    }
+
+    /* Now decode the submessage contents */
+    if (status)
+    {
         status = pb_decode_noinit(&substream, field->submsg_desc, field->pData);
+    }
     
     if (!pb_close_string_substream(stream, &substream))
         return false;

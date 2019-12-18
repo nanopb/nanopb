@@ -151,6 +151,20 @@ the field option `proto3_singular_msgs` can be used to restore the old behavior.
 
 **Error indications:** Submessages do not get encoded.
 
+PB_OLD_CALLBACK_STYLE option has been removed
+---------------------------------------------
+**Rationale:** Back in 2013, function signature for callbacks was changed. The
+`PB_OLD_CALLBACK_STYLE` option allowed compatibility with old code, but
+complicated code and testing because of the different options.
+
+**Changes:** `PB_OLD_CALLBACK_STYLE` option no-longer has any effect.
+
+**Required actions:** If `PB_OLD_CALLBACK_STYLE` option was in use previously,
+function signatures must be updated to use double pointers (`void**` and
+`void * const *`).
+
+**Error indications:** Assignment from incompatible pointer type.
+
 Nanopb-0.3.9.4, 0.4.0 (2019-xx-xx)
 ==================================
 

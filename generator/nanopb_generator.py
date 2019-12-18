@@ -446,6 +446,8 @@ class Field:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
             self.enc_size = None # Needs to be filled in after the message type is available
+            if field_options.submsg_callback:
+                self.pbtype = 'MSG_W_CB'
         else:
             raise NotImplementedError(desc.type)
 
@@ -456,9 +458,11 @@ class Field:
         result = ''
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
+                if self.pbtype == 'MSG_W_CB':
+                    result += '    pb_callback_t cb_' + self.name + ';\n'
                 result += '    pb_size_t ' + self.name + '_count;\n'
 
-            if self.pbtype == 'MESSAGE':
+            if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
@@ -472,6 +476,9 @@ class Field:
         elif self.allocation == 'CALLBACK':
             result += '    %s %s;' % (self.callback_datatype, self.name)
         else:
+            if self.pbtype == 'MSG_W_CB' and self.rules in ['OPTIONAL', 'REPEATED']:
+                result += '    pb_callback_t cb_' + self.name + ';\n'
+
             if self.rules == 'OPTIONAL':
                 result += '    bool has_' + self.name + ';\n'
             elif self.rules == 'REPEATED':
@@ -501,7 +508,7 @@ class Field:
         '''
 
         inner_init = None
-        if self.pbtype == 'MESSAGE':
+        if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if null_init:
                 inner_init = '%s_init_zero' % self.ctype
             else:
@@ -574,6 +581,9 @@ class Field:
             else:
                 outer_init = '{{NULL}, NULL}'
 
+        if self.pbtype == 'MSG_W_CB' and self.rules in ['REPEATED', 'OPTIONAL']:
+            outer_init = '{{NULL}, NULL}, ' + outer_init
+
         return outer_init
 
     def tags(self):
@@ -607,7 +617,7 @@ class Field:
             size = 8
         elif self.allocation == 'CALLBACK':
             size = 16
-        elif self.pbtype == 'MESSAGE':
+        elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if str(self.submsgname) in dependencies:
                 size = dependencies[str(self.submsgname)].data_size(dependencies)
             else:
@@ -641,7 +651,7 @@ class Field:
         if self.allocation != 'STATIC':
             return None
 
-        if self.pbtype == 'MESSAGE':
+        if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             encsize = None
             if str(self.submsgname) in dependencies:
                 submsg = dependencies[str(self.submsgname)]
@@ -698,12 +708,11 @@ class Field:
 
         return encsize
 
-    def requires_custom_field_callback(self):
-        if self.allocation == 'CALLBACK' and self.callback_datatype != 'pb_callback_t':
-            return True
-        else:
-            return False
+    def has_callbacks(self):
+        return self.allocation == 'CALLBACK'
 
+    def requires_custom_field_callback(self):
+        return self.allocation == 'CALLBACK' and self.callback_datatype != 'pb_callback_t'
 
 class ExtensionRange(Field):
     def __init__(self, struct_name, range_start, field_options):
@@ -808,17 +817,17 @@ class OneOf(Field):
         self.default = None
         self.rules = 'ONEOF'
         self.anonymous = False
+        self.has_msg_cb = False
 
     def add_field(self, field):
-        if field.allocation == 'CALLBACK':
-            raise Exception("Callback fields inside of oneof are not supported"
-                            + " (field %s)" % field.name)
-
         field.union_name = self.name
         field.rules = 'ONEOF'
         field.anonymous = self.anonymous
         self.fields.append(field)
         self.fields.sort(key = lambda f: f.tag)
+
+        if field.pbtype == 'MSG_W_CB':
+            self.has_msg_cb = True
 
         # Sort by the lowest tag number inside union
         self.tag = min([f.tag for f in self.fields])
@@ -826,6 +835,9 @@ class OneOf(Field):
     def __str__(self):
         result = ''
         if self.fields:
+            if self.has_msg_cb:
+                result += '    pb_callback_t cb_' + self.name + ';\n'
+
             result += '    pb_size_t which_' + self.name + ";\n"
             result += '    union {\n'
             for f in self.fields:
@@ -846,7 +858,10 @@ class OneOf(Field):
         return deps
 
     def get_initializer(self, null_init):
-        return '0, {' + self.fields[0].get_initializer(null_init) + '}'
+        if self.has_msg_cb:
+            return '{{NULL}, NULL}, 0, {' + self.fields[0].get_initializer(null_init) + '}'
+        else:
+            return '0, {' + self.fields[0].get_initializer(null_init) + '}'
 
     def tags(self):
         return ''.join([f.tags() for f in self.fields])
@@ -886,6 +901,12 @@ class OneOf(Field):
             # submessages.
             union_def = ' '.join('char f%d[%s];' % s for s in symbols)
             return EncodedSize(5, ['sizeof(union{%s})' % union_def])
+
+    def has_callbacks(self):
+        return bool([f for f in self.fields if f.has_callbacks()])
+
+    def requires_custom_field_callback(self):
+        return bool([f for f in self.fields if f.requires_custom_field_callback()])
 
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
@@ -1042,7 +1063,7 @@ class Message:
         result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
         result += '\n'
 
-        has_callbacks = bool([f for f in self.fields if f.allocation == 'CALLBACK'])
+        has_callbacks = bool([f for f in self.fields if f.has_callbacks()])
         if has_callbacks:
             if self.callback_function != 'pb_default_field_callback':
                 result += "extern bool %s(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);\n" % self.callback_function
@@ -1058,11 +1079,11 @@ class Message:
             result += '#define %s_DEFAULT NULL\n' % self.name
 
         for field in sorted(self.fields):
-            if field.pbtype == 'MESSAGE':
+            if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
             elif field.rules == 'ONEOF':
                 for member in field.fields:
-                    if member.pbtype == 'MESSAGE':
+                    if member.pbtype in ['MESSAGE', 'MSG_W_CB']:
                         result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, member.union_name, member.name, member.ctype)
 
         return result

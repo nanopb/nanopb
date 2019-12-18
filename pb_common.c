@@ -94,7 +94,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         iter->pData = iter->pField;
     }
 
-    if (PB_LTYPE(iter->type) == PB_LTYPE_SUBMESSAGE)
+    if (PB_LTYPE_IS_SUBMSG(iter->type))
     {
         iter->submsg_desc = iter->descriptor->submsg_info[iter->submessage_index];
     }
@@ -137,7 +137,7 @@ static void advance_iterator(pb_field_iter_t *iter)
             iter->required_field_index++;
         }
 
-        if (PB_LTYPE(prev_type) == PB_LTYPE_SUBMESSAGE)
+        if (PB_LTYPE_IS_SUBMSG(prev_type))
         {
             iter->submessage_index++;
         }
@@ -231,20 +231,12 @@ bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, con
         {
             if (istream != NULL && pCallback->funcs.decode != NULL)
             {
-#ifdef PB_OLD_CALLBACK_STYLE
-                return pCallback->funcs.decode(istream, field, pCallback->arg);
-#else
                 return pCallback->funcs.decode(istream, field, &pCallback->arg);
-#endif
             }
 
             if (ostream != NULL && pCallback->funcs.encode != NULL)
             {
-#ifdef PB_OLD_CALLBACK_STYLE
-                return pCallback->funcs.encode(ostream, field, pCallback->arg);
-#else
                 return pCallback->funcs.encode(ostream, field, &pCallback->arg);
-#endif
             }
         }
     }
