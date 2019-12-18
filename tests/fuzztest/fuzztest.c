@@ -13,10 +13,11 @@
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
 
+/* Longer buffer size allows hitting more branches, but lowers performance. */
 #ifdef __AVR__
-#define BUFSIZE 2048
+static size_t g_bufsize = 2048;
 #else
-#define BUFSIZE 4096
+static size_t g_bufsize = 4096;
 #endif
 
 #ifndef LLVMFUZZER
@@ -180,12 +181,12 @@ static void rand_mess(uint8_t *buf, size_t count)
 static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
 {
     int m = rand_int(0, 2);
-    size_t max_size = BUFSIZE - 32 - *msglen;
+    size_t max_size = g_bufsize - 32 - *msglen;
     if (m == 1)
     {
         /* Prepend */
-        uint8_t *tmp = malloc_with_check(BUFSIZE);
-        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), BUFSIZE - *msglen, 512);
+        uint8_t *tmp = malloc_with_check(g_bufsize);
+        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), g_bufsize - *msglen, 512);
         memmove(buffer + s, buffer, *msglen);
         memcpy(buffer, tmp, s);
         free_with_check(tmp);
@@ -194,7 +195,7 @@ static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
     else if (m == 2)
     {
         /* Append */
-        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), BUFSIZE - *msglen, 512);
+        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), g_bufsize - *msglen, 512);
         *msglen += s;
     }
 }
@@ -215,9 +216,9 @@ static bool do_static_encode(uint8_t *buffer, size_t *msglen)
     while (rand_int(0, 7))
         rand_mess((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
 
-    stream = pb_ostream_from_buffer(buffer, BUFSIZE);
+    stream = pb_ostream_from_buffer(buffer, g_bufsize);
     status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
-    assert(stream.bytes_written <= BUFSIZE);
+    assert(stream.bytes_written <= g_bufsize);
     assert(stream.bytes_written <= alltypes_static_AllTypes_size);
     
     *msglen = stream.bytes_written;
@@ -313,8 +314,8 @@ static bool do_pointer_decode(const uint8_t *buffer, size_t msglen, bool assert_
 static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
 {
     bool status;
-    uint8_t *buf2 = malloc_with_check(BUFSIZE);
-    uint8_t *buf3 = malloc_with_check(BUFSIZE);
+    uint8_t *buf2 = malloc_with_check(g_bufsize);
+    uint8_t *buf3 = malloc_with_check(g_bufsize);
     size_t msglen2, msglen3;
     alltypes_static_AllTypes *msg1 = malloc_with_check(sizeof(alltypes_static_AllTypes));
     alltypes_static_AllTypes *msg2 = malloc_with_check(sizeof(alltypes_static_AllTypes));
@@ -329,7 +330,7 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf2, BUFSIZE);
+        pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
         status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg1);
         assert(status);
         msglen2 = stream.bytes_written;
@@ -343,7 +344,7 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf3, BUFSIZE);
+        pb_ostream_t stream = pb_ostream_from_buffer(buf3, g_bufsize);
         status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg2);
         assert(status);
         msglen3 = stream.bytes_written;
@@ -362,8 +363,8 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
 static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
 {
     bool status;
-    uint8_t *buf2 = malloc_with_check(BUFSIZE);
-    uint8_t *buf3 = malloc_with_check(BUFSIZE);
+    uint8_t *buf2 = malloc_with_check(g_bufsize);
+    uint8_t *buf3 = malloc_with_check(g_bufsize);
     size_t msglen2, msglen3;
     alltypes_pointer_AllTypes *msg1 = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
     alltypes_pointer_AllTypes *msg2 = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
@@ -377,7 +378,7 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf2, BUFSIZE);
+        pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
         status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg1);
         assert(status);
         msglen2 = stream.bytes_written;
@@ -390,7 +391,7 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf3, BUFSIZE);
+        pb_ostream_t stream = pb_ostream_from_buffer(buf3, g_bufsize);
         status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg2);
         assert(status);
         msglen3 = stream.bytes_written;
@@ -411,6 +412,11 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
+    g_bufsize = 65536;
+
+    if (size > g_bufsize)
+        return 0;
+
     if (do_static_decode(data, size, false))
         do_static_roundtrip(data, size);
 
@@ -424,11 +430,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 static void run_iteration()
 {
-    uint8_t *buffer = malloc_with_check(BUFSIZE);
+    uint8_t *buffer = malloc_with_check(g_bufsize);
     size_t msglen;
     bool status;
     
-    rand_fill(buffer, BUFSIZE);
+    rand_fill(buffer, g_bufsize);
 
     if (do_static_encode(buffer, &msglen))
     {
@@ -446,11 +452,11 @@ static void run_iteration()
         
         /* Apply randomness to the encoded data */
         while (rand_bool())
-            rand_mess(buffer, BUFSIZE);
+            rand_mess(buffer, g_bufsize);
         
         /* Apply randomness to encoded data length */
         if (rand_bool())
-            msglen = rand_int(0, BUFSIZE);
+            msglen = rand_int(0, g_bufsize);
         
         status = do_static_decode(buffer, msglen, false);
         do_pointer_decode(buffer, msglen, status);
@@ -468,12 +474,12 @@ static void run_iteration()
 
 static void run_stub()
 {
-    uint8_t *buffer = malloc_with_check(BUFSIZE);
+    uint8_t *buffer = malloc_with_check(g_bufsize);
     size_t msglen;
     bool status;
 
     SET_BINARY_MODE(stdin);
-    msglen = fread(buffer, 1, BUFSIZE, stdin);
+    msglen = fread(buffer, 1, g_bufsize, stdin);
 
     status = do_static_decode(buffer, msglen, false);
 
@@ -508,6 +514,7 @@ int main(int argc, char **argv)
     else
     {
         /* Run as a stub for afl-fuzz and similar */
+        g_bufsize = 65536;
         run_stub();
     }
     
