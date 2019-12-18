@@ -165,6 +165,16 @@ function signatures must be updated to use double pointers (`void**` and
 
 **Error indications:** Assignment from incompatible pointer type.
 
+protoc insertion points are no longer included by default
+---------------------------------------------------------
+**Rationale:** Protoc allows including comments in form `@@protoc_insertion_point`
+to identify locations for other plugins to insert their own extra content.
+Previously these were included by default, but they clutter the generated files
+and are rarely used.
+
+**Changes:** Insertion points are now included only when `--protoc-insertion-points`
+option is passed to the generator.
+
 Nanopb-0.3.9.4, 0.4.0 (2019-xx-xx)
 ==================================
 
