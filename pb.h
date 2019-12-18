@@ -127,6 +127,19 @@ extern "C" {
 #define PB_UNUSED(x) (void)(x)
 #endif
 
+/* Harvard-architecture processors may need special attributes for storing
+ * field information in program memory. */
+#ifndef PB_PROGMEM
+#ifdef __AVR__
+#include <avr/pgmspace.h>
+#define PB_PROGMEM             PROGMEM
+#define PB_PROGMEM_READU32(x)  pgm_read_dword(&x)
+#else
+#define PB_PROGMEM
+#define PB_PROGMEM_READU32(x)  (x)
+#endif
+#endif
+
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
  * #define PB_NO_STATIC_ASSERT to disable it.
@@ -448,7 +461,7 @@ struct pb_extension_s {
 
 /* Binding of a message field set into a specific structure */
 #define PB_BIND(msgname, structname, width) \
-    const uint32_t structname ## _field_info[] = \
+    const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \

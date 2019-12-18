@@ -15,7 +15,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     if (iter->index >= iter->descriptor->field_count)
         return false;
 
-    word0 = iter->descriptor->field_info[iter->field_info_index];
+    word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
     format = word0 & 3;
     iter->tag = (pb_size_t)((word0 >> 2) & 0x3F);
     iter->type = (pb_type_t)((word0 >> 8) & 0xFF);
@@ -31,7 +31,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     else if (format == 1)
     {
         /* 2-word format */
-        uint32_t word1 = iter->descriptor->field_info[iter->field_info_index + 1];
+        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
 
         iter->array_size = (pb_size_t)((word0 >> 16) & 0x0FFF);
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 28) << 6));
@@ -42,9 +42,9 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     else if (format == 2)
     {
         /* 4-word format */
-        uint32_t word1 = iter->descriptor->field_info[iter->field_info_index + 1];
-        uint32_t word2 = iter->descriptor->field_info[iter->field_info_index + 2];
-        uint32_t word3 = iter->descriptor->field_info[iter->field_info_index + 3];
+        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+        uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
+        uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
 
         iter->array_size = (pb_size_t)(word0 >> 16);
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
@@ -55,10 +55,10 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     else
     {
         /* 8-word format */
-        uint32_t word1 = iter->descriptor->field_info[iter->field_info_index + 1];
-        uint32_t word2 = iter->descriptor->field_info[iter->field_info_index + 2];
-        uint32_t word3 = iter->descriptor->field_info[iter->field_info_index + 3];
-        uint32_t word4 = iter->descriptor->field_info[iter->field_info_index + 4];
+        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+        uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
+        uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
+        uint32_t word4 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 4]);
 
         iter->array_size = (pb_size_t)word4;
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
@@ -126,7 +126,7 @@ static void advance_iterator(pb_field_iter_t *iter)
          * - bits 2..7 give the lowest bits of tag number.
          * - bits 8..15 give the field type.
          */
-        uint32_t prev_descriptor = iter->descriptor->field_info[iter->field_info_index];
+        uint32_t prev_descriptor = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
         pb_type_t prev_type = (prev_descriptor >> 8) & 0xFF;
         pb_size_t descriptor_len = (pb_size_t)(1 << (prev_descriptor & 3));
 
@@ -159,7 +159,8 @@ bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extens
     const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type->arg;
     bool status;
 
-    if (PB_ATYPE(msg->field_info[0] >> 8) == PB_ATYPE_POINTER)
+    uint32_t word0 = PB_PROGMEM_READU32(msg->field_info[0]);
+    if (PB_ATYPE(word0 >> 8) == PB_ATYPE_POINTER)
     {
         /* For pointer extensions, the pointer is stored directly
          * in the extension structure. This avoids having an extra
@@ -199,7 +200,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
             advance_iterator(iter);
 
             /* Do fast check for tag number match */
-            fieldinfo = iter->descriptor->field_info[iter->field_info_index];
+            fieldinfo = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
 
             if (((fieldinfo >> 2) & 0x3F) == (tag & 0x3F))
             {
