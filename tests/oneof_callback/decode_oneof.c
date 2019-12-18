@@ -48,7 +48,7 @@ bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
     if (!pb_decode_varint(stream, &value))
         return false;
 
-    printf((char*)*arg, (long)value);
+    printf((char*)*arg, (int)value);
     return true;
 }
 
@@ -85,7 +85,7 @@ bool msg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
      * from callbacks.
      */
     OneOfMessage *topmsg = field->message;
-    printf("prefix: %d\n", topmsg->prefix);
+    printf("prefix: %d\n", (int)topmsg->prefix);
 
     if (field->tag == OneOfMessage_submsg1_tag)
     {
@@ -147,25 +147,25 @@ int main(int argc, char **argv)
     /* This is just printing for the test case logic */
     if (msg.which_values == OneOfMessage_intvalue_tag)
     {
-        printf("prefix: %d\n", msg.prefix);
-        printf("intvalue: %d\n", msg.values.intvalue);
+        printf("prefix: %d\n", (int)msg.prefix);
+        printf("intvalue: %d\n", (int)msg.values.intvalue);
     }
     else if (msg.which_values == OneOfMessage_strvalue_tag)
     {
-        printf("prefix: %d\n", msg.prefix);
+        printf("prefix: %d\n", (int)msg.prefix);
         printf("strvalue: \"%s\"\n", msg.values.strvalue);
     }
     else if (msg.which_values == OneOfMessage_submsg3_tag &&
              msg.values.submsg3.which_values == SubMsg3_intvalue_tag)
     {
-        printf("  intvalue: %d\n", msg.values.submsg3.values.intvalue);
+        printf("  intvalue: %d\n", (int)msg.values.submsg3.values.intvalue);
         printf("}\n");
     }
     else
     {
         printf("}\n");
     }
-    printf("suffix: %d\n", msg.suffix);
+    printf("suffix: %d\n", (int)msg.suffix);
 
     assert(msg.prefix == 123);
     assert(msg.suffix == 321);
