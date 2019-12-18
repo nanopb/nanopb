@@ -19,6 +19,8 @@
 #define BUFSIZE 4096
 #endif
 
+#ifndef LLVMFUZZER
+
 static uint64_t random_seed;
 
 /* Uses xorshift64 here instead of rand() for both speed and
@@ -174,8 +176,58 @@ static void rand_mess(uint8_t *buf, size_t count)
     }
 }
 
+/* Append or prepend protobuf noise */
+static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
+{
+    int m = rand_int(0, 2);
+    size_t max_size = BUFSIZE - 32 - *msglen;
+    if (m == 1)
+    {
+        /* Prepend */
+        uint8_t *tmp = malloc_with_check(BUFSIZE);
+        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), BUFSIZE - *msglen, 512);
+        memmove(buffer + s, buffer, *msglen);
+        memcpy(buffer, tmp, s);
+        free_with_check(tmp);
+        *msglen += s;
+    }
+    else if (m == 2)
+    {
+        /* Append */
+        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), BUFSIZE - *msglen, 512);
+        *msglen += s;
+    }
+}
+
 /* Some default data to put in the message */
 static const alltypes_static_AllTypes initval = alltypes_static_AllTypes_init_default;
+
+static bool do_static_encode(uint8_t *buffer, size_t *msglen)
+{
+    pb_ostream_t stream;
+    bool status;
+
+    /* Allocate a message and fill it with defaults */
+    alltypes_static_AllTypes *msg = malloc_with_check(sizeof(alltypes_static_AllTypes));
+    memcpy(msg, &initval, sizeof(initval));
+
+    /* Apply randomness to the data before encoding */
+    while (rand_int(0, 7))
+        rand_mess((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
+
+    stream = pb_ostream_from_buffer(buffer, BUFSIZE);
+    status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
+    assert(stream.bytes_written <= BUFSIZE);
+    assert(stream.bytes_written <= alltypes_static_AllTypes_size);
+    
+    *msglen = stream.bytes_written;
+    pb_release(alltypes_static_AllTypes_fields, msg);
+    free_with_check(msg);
+    
+    return status;
+}
+
+#endif
 
 /* Check the invariants defined in security model on decoded structure */
 static void sanity_check_static(alltypes_static_AllTypes *msg)
@@ -204,55 +256,7 @@ static void sanity_check_static(alltypes_static_AllTypes *msg)
     }
 }
 
-static bool do_static_encode(uint8_t *buffer, size_t *msglen)
-{
-    pb_ostream_t stream;
-    bool status;
-
-    /* Allocate a message and fill it with defaults */
-    alltypes_static_AllTypes *msg = malloc_with_check(sizeof(alltypes_static_AllTypes));
-    memcpy(msg, &initval, sizeof(initval));
-
-    /* Apply randomness to the data before encoding */
-    while (rand_int(0, 7))
-        rand_mess((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
-
-    stream = pb_ostream_from_buffer(buffer, BUFSIZE);
-    status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
-    assert(stream.bytes_written <= BUFSIZE);
-    assert(stream.bytes_written <= alltypes_static_AllTypes_size);
-    
-    *msglen = stream.bytes_written;
-    pb_release(alltypes_static_AllTypes_fields, msg);
-    free_with_check(msg);
-    
-    return status;
-}
-
-/* Append or prepend protobuf noise */
-static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
-{
-    int m = rand_int(0, 2);
-    size_t max_size = BUFSIZE - 32 - *msglen;
-    if (m == 1)
-    {
-        /* Prepend */
-        uint8_t *tmp = malloc_with_check(BUFSIZE);
-        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), BUFSIZE - *msglen, 512);
-        memmove(buffer + s, buffer, *msglen);
-        memcpy(buffer, tmp, s);
-        free_with_check(tmp);
-        *msglen += s;
-    }
-    else if (m == 2)
-    {
-        /* Append */
-        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), BUFSIZE - *msglen, 512);
-        *msglen += s;
-    }
-}
-
-static bool do_static_decode(uint8_t *buffer, size_t msglen, bool assert_success)
+static bool do_static_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
 {
     pb_istream_t stream;
     bool status;
@@ -281,11 +285,11 @@ static bool do_static_decode(uint8_t *buffer, size_t msglen, bool assert_success
     return status;
 }
 
-static bool do_pointer_decode(uint8_t *buffer, size_t msglen, bool assert_success)
+static bool do_pointer_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
 {
     pb_istream_t stream;
     bool status;
-    int initial_alloc_count;
+    size_t initial_alloc_count;
     alltypes_pointer_AllTypes *msg;
     
     msg = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
@@ -307,7 +311,7 @@ static bool do_pointer_decode(uint8_t *buffer, size_t msglen, bool assert_succes
 }
 
 /* Do a decode -> encode -> decode -> encode roundtrip */
-static void do_static_roundtrip(uint8_t *buffer, size_t msglen)
+static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
 {
     bool status;
     uint8_t *buf2 = malloc_with_check(BUFSIZE);
@@ -356,7 +360,7 @@ static void do_static_roundtrip(uint8_t *buffer, size_t msglen)
 }
 
 /* Do decode -> encode -> decode -> encode roundtrip */
-static void do_pointer_roundtrip(uint8_t *buffer, size_t msglen)
+static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
 {
     bool status;
     uint8_t *buf2 = malloc_with_check(BUFSIZE);
