@@ -404,6 +404,23 @@ static void do_pointer_roundtrip(uint8_t *buffer, size_t msglen)
     free_with_check(buf3);
 }
 
+#ifdef LLVMFUZZER
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+    bool status;
+
+    if (do_static_decode(data, size, false))
+        do_static_roundtrip(data, size);
+
+    if (do_pointer_decode(data, size, false))
+        do_pointer_roundtrip(data, size);
+
+    return 0;
+}
+
+#else
+
 static void run_iteration()
 {
     uint8_t *buffer = malloc_with_check(BUFSIZE);
@@ -495,4 +512,4 @@ int main(int argc, char **argv)
     
     return 0;
 }
-
+#endif
