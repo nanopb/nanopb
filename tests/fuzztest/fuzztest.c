@@ -262,7 +262,11 @@ static bool do_static_decode(const uint8_t *buffer, size_t msglen, bool assert_s
     bool status;
     
     alltypes_static_AllTypes *msg = malloc_with_check(sizeof(alltypes_static_AllTypes));
+#ifdef LLVMFUZZER
+    memset(msg, 0xAA, sizeof(alltypes_static_AllTypes));
+#else
     rand_fill((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
+#endif
     stream = pb_istream_from_buffer(buffer, msglen);
     status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg);
 
@@ -271,14 +275,9 @@ static bool do_static_decode(const uint8_t *buffer, size_t msglen, bool assert_s
         sanity_check_static(msg);
     }
     
-    if (!status && assert_success)
+    if (assert_success)
     {
-        /* Anything that was successfully encoded, should be decodeable.
-         * One exception: strings without null terminator are encoded up
-         * to end of buffer, but refused on decode because the terminator
-         * would not fit. */
-        if (strcmp(stream.errmsg, "string overflow") != 0)
-            assert(status);
+        assert(status);
     }
     
     free_with_check(msg);
@@ -412,8 +411,6 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    bool status;
-
     if (do_static_decode(data, size, false))
         do_static_roundtrip(data, size);
 
