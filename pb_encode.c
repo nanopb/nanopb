@@ -889,6 +889,11 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_iter_
         }
     }
 
+#ifdef PB_VALIDATE_UTF8
+    if (!pb_validate_utf8(str))
+        PB_RETURN_ERROR(stream, "invalid utf8");
+#endif
+
     return pb_encode_string(stream, (const pb_byte_t*)str, size);
 }
 

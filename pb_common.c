@@ -245,4 +245,68 @@ bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, con
 
 }
 
+#ifdef PB_VALIDATE_UTF8
+
+/* This function checks whether a string is valid UTF-8 text.
+ *
+ * Algorithm is adapted from https://www.cl.cam.ac.uk/~mgk25/ucs/utf8_check.c
+ * Original copyright: Markus Kuhn <http://www.cl.cam.ac.uk/~mgk25/> 2005-03-30
+ * Licensed under "Short code license", which allows use under MIT license or
+ * any compatible with it.
+ */
+
+bool pb_validate_utf8(const char *str)
+{
+    const pb_byte_t *s = (const pb_byte_t*)str;
+    while (*s)
+    {
+        if (*s < 0x80)
+        {
+            /* 0xxxxxxx */
+            s++;
+        }
+        else if ((s[0] & 0xe0) == 0xc0)
+        {
+            /* 110XXXXx 10xxxxxx */
+            if ((s[1] & 0xc0) != 0x80 ||
+                (s[0] & 0xfe) == 0xc0)                        /* overlong? */
+                return false;
+            else
+                s += 2;
+        }
+        else if ((s[0] & 0xf0) == 0xe0)
+        {
+            /* 1110XXXX 10Xxxxxx 10xxxxxx */
+            if ((s[1] & 0xc0) != 0x80 ||
+                (s[2] & 0xc0) != 0x80 ||
+                (s[0] == 0xe0 && (s[1] & 0xe0) == 0x80) ||    /* overlong? */
+                (s[0] == 0xed && (s[1] & 0xe0) == 0xa0) ||    /* surrogate? */
+                (s[0] == 0xef && s[1] == 0xbf &&
+                (s[2] & 0xfe) == 0xbe))                 /* U+FFFE or U+FFFF? */
+                return false;
+            else
+                s += 3;
+        }
+        else if ((s[0] & 0xf8) == 0xf0)
+        {
+            /* 11110XXX 10XXxxxx 10xxxxxx 10xxxxxx */
+            if ((s[1] & 0xc0) != 0x80 ||
+                (s[2] & 0xc0) != 0x80 ||
+                (s[3] & 0xc0) != 0x80 ||
+                (s[0] == 0xf0 && (s[1] & 0xf0) == 0x80) ||    /* overlong? */
+                (s[0] == 0xf4 && s[1] > 0x8f) || s[0] > 0xf4) /* > U+10FFFF? */
+                return false;
+            else
+                s += 4;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+#endif
 

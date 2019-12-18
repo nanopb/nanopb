@@ -1,3 +1,4 @@
+#define PB_VALIDATE_UTF8
 #include "pb_common.c"
 
 #include <stdio.h>
@@ -106,6 +107,24 @@ int main()
         TEST(iter.tag == 1  && iter.pData == &msg.req_int32 && !iter.pSize)
         TEST(iter.required_field_index == 0)
         TEST(iter.submessage_index == 0)
+    }
+
+    {
+        COMMENT("Test pb_validate_utf8()");
+
+        TEST(pb_validate_utf8("abcdefg"));
+        TEST(pb_validate_utf8("\xc3\xa4\xc3\xa4\x6b\x6b\xc3\xb6\x6e\x65\x6e\x0a"));
+        TEST(!pb_validate_utf8("\xc3\xa4\xc3\xa4\x6b\x6b\xb6\xc3\x6e\x65\x6e\x0a"));
+        TEST(pb_validate_utf8("\xed\x9f\xbf"));
+        TEST(pb_validate_utf8("\xee\x80\x80"));
+        TEST(pb_validate_utf8("\xef\xbf\xbd"));
+        TEST(pb_validate_utf8("\xf4\x8f\xbf\xbf"));
+        TEST(!pb_validate_utf8("a\x80z"));
+        TEST(!pb_validate_utf8("a\xbfz"));
+        TEST(!pb_validate_utf8("a\xfez"));
+        TEST(!pb_validate_utf8("a\xffz"));
+        TEST(!pb_validate_utf8("a\xc0\xafz"));
+        TEST(!pb_validate_utf8("a\xef\xbf\xbez"));
     }
 
     if (status != 0)
