@@ -13,7 +13,7 @@ int main()
         TestMessage msg = TestMessage_init_zero;
         
         msg.rep_uint32_count = 1;
-        msg.rep_uint32[0] = (1 << 31);
+        msg.rep_uint32[0] = ((uint32_t)1 << 31);
         
         TEST(pb_encode(&ostream, TestMessage_fields, &msg));
         TEST(ostream.bytes_written == TestMessage_size);
