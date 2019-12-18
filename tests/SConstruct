@@ -206,6 +206,6 @@ env['COMMON'] = '#' + env['VARIANT_DIR'] + '/common'
 SConscript("common/SConscript", exports = 'env', variant_dir = env['VARIANT_DIR'] + '/common')
 
 for subdir in Glob('*/SConscript') + Glob('regression/*/SConscript'):
-    if str(subdir).startswith("common"): continue
+    if str(subdir).startswith("common/"): continue
     SConscript(subdir, exports = 'env', variant_dir = env['VARIANT_DIR'] + '/' + os.path.dirname(str(subdir)))
 
