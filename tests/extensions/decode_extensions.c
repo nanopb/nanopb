@@ -19,11 +19,11 @@ int main(int argc, char **argv)
     size_t count;
     pb_istream_t stream;
     
-    AllTypes alltypes = {0};
+    AllTypes alltypes = AllTypes_init_zero;
     int32_t extensionfield1;
-    pb_extension_t ext1;
-    ExtensionMessage extensionfield2;
-    pb_extension_t ext2;
+    pb_extension_t ext1 = pb_extension_init_zero;
+    ExtensionMessage extensionfield2 = ExtensionMessage_init_zero;
+    pb_extension_t ext2 = pb_extension_init_zero;
     
     /* Read the message data */
     SET_BINARY_MODE(stdin);

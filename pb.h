@@ -434,6 +434,8 @@ struct pb_extension_s {
     bool found;
 };
 
+#define pb_extension_init_zero {NULL,NULL,NULL,false}
+
 /* Memory allocation functions to use. You can define pb_realloc and
  * pb_free to custom functions if you want. */
 #ifdef PB_ENABLE_MALLOC

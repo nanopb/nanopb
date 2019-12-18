@@ -16,9 +16,9 @@ int main(int argc, char **argv)
 
     AllTypes alltypes = {0};
     int32_t extensionfield1 = 12345;
-    pb_extension_t ext1;
+    pb_extension_t ext1 = pb_extension_init_zero;
     ExtensionMessage extensionfield2 = {"test", 54321};
-    pb_extension_t ext2;
+    pb_extension_t ext2 = pb_extension_init_zero;
 
     /* Set up the extensions */
     alltypes.extensions = &ext1;
