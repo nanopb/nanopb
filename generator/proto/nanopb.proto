@@ -128,6 +128,9 @@ message NanoPBOptions {
 
   // Set default value for has_ fields.
   optional bool default_has = 23 [default = false];
+
+  // Extra files to include in generated `.pb.h`
+  repeated string include = 24;
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

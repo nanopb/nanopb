@@ -1441,6 +1441,10 @@ class ProtoFile:
             yield options.libformat
         yield '\n'
 
+        for incfile in self.file_options.include:
+            yield options.genformat % incfile
+            yield '\n'
+
         for incfile in includes:
             noext = os.path.splitext(incfile)[0]
             yield options.genformat % (noext + options.extension + options.header_extension)
@@ -1448,6 +1452,8 @@ class ProtoFile:
 
         if Globals.protoc_insertion_points:
             yield '/* @@protoc_insertion_point(includes) */\n'
+
+        yield '\n'
 
         yield '#if PB_PROTO_HEADER_VERSION != 40\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
@@ -1741,10 +1747,10 @@ optparser.add_option("-D", "--output-dir", dest="output_dir",
                      metavar="OUTPUTDIR", default=None,
                      help="Output directory of .pb.h and .pb.c files")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
-    metavar="FORMAT", default='#include "%s"\n',
+    metavar="FORMAT", default='#include "%s"',
     help="Set format string to use for including other .pb.h files. [default: %default]")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
-    metavar="FORMAT", default='#include <%s>\n',
+    metavar="FORMAT", default='#include <%s>',
     help="Set format string to use for including the nanopb pb.h header. [default: %default]")
 optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=False,
     help="Strip directory path from #included .pb.h file name")
