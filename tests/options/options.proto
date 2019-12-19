@@ -102,3 +102,11 @@ message WideMessage
     option (nanopb_msgopt).descriptorsize = DS_4;
     required int32 foo = 1;
 }
+
+// Default value for has_ field
+message HasFieldMessage
+{
+    optional int32 present = 1 [(nanopb).default_has = true];
+    optional int32 missing = 2 [(nanopb).default_has = false];
+    optional int32 normal = 3;
+}

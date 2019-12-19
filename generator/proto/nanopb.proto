@@ -125,6 +125,9 @@ message NanoPBOptions {
   // ok, but if it results in compilation errors you can increase the field
   // size here.
   optional DescriptorSize descriptorsize = 20 [default = DS_AUTO];
+
+  // Set default value for has_ fields.
+  optional bool default_has = 23 [default = false];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

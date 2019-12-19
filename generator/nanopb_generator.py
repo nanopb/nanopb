@@ -343,6 +343,8 @@ class Field:
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
 
+        self.default_has = field_options.default_has
+
         if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
             # max_length overrides max_size for strings
             self.max_size = field_options.max_length + 1
@@ -575,7 +577,10 @@ class Field:
             elif self.rules == 'FIXARRAY':
                 outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
             elif self.rules == 'OPTIONAL':
-                outer_init = 'false, ' + inner_init
+                if null_init or not self.default_has:
+                    outer_init = 'false, ' + inner_init
+                else:
+                    outer_init = 'true, ' + inner_init
             else:
                 outer_init = inner_init
         elif self.allocation == 'POINTER':
