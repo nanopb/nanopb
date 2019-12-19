@@ -1,3 +1,42 @@
+nanopb-0.4.0 (2019-12-xx)
+ New field descriptor format.
+ Make nanopb_generator automatically compile .proto files (#462)
+ Allow installing as Python package from pip (#460)
+ Use protoc from grpcio-tools Python package if available (#463)
+ Change proto3 message types to be optional (#308, #452)
+ Add pb_decode_ex(), pb_encode_ex() functions.
+ Automatically rebuild nanopb_pb2.py
+ Use plugin.proto that comes with python-protobuf (#234)
+
+ Allow specifying a per-message callback. (#175)
+ Improve callback handling inside oneofs. (#175)
+
+ Introduce new compile time flag: PB_VALIDATE_UTF8 (#437)
+ Add TypenameMangling.M_PACKAGE_INITIALS (#394)
+ Introduce new compile time flag: PB_ENCODE_ARRAYS_UNPACKED (#427)
+ Add default_has option (#423)
+ Add option for including extra files from .pb.h
+ Add generator option to error out on unmatched options (#458)
+ Generator: Allow comma separated options in plugin mode (#343)
+ Allow comma-separated option parsing to handle `#include` (#450)
+ Remove timestamp from generated files by default, add -t to keep it.
+ Make --no-strip-path default (#326)
+ Fix .options file case sensitivity on Windows.
+ Fix generator error with mangle_names option (#380)
+ Take int_size setting into account in calculating message sizes (#373)
+ .gitignore: don't ignore generator-bin files (#419)
+ Cleanup .pb.h header format
+
+ Make tests run on AVR and STM32
+ Add PB_CONVERT_DOUBLE_FLOAT setting to convert doubles on AVR.
+ Store field descriptor constants in flash on AVR (#464)
+ Added "f" suffix to const float declarations. (#453)
+ Fix clang-tidy warnings about using signed integers in binary bitwise operations (#451)
+ Add C++ message descriptors helper (#384)
+ Implement conan recipe (#378)
+ CMake: Split nanopb_out command (#454)
+ CMake: install created shared library(dll) in windows to the binary folder (#447)
+
 nanopb-0.3.9.4 (2019-10-13)
  Fix undefined behavior with bool fields (#434)
  Fix enum min/max defines when values are not in order (#405)
