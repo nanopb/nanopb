@@ -1,4 +1,4 @@
-all: index.html concepts.html reference.html security.html migration.html \
+all: index.html concepts.html reference.html security.html migration.html whats_new.html \
 	generator_flow.png
 
 %.png: %.svg

@@ -75,7 +75,7 @@ p.rubric {
   font-style: italic;
 }
 
-em {
+em, cite {
   font-style: normal;
   font-family: monospace;
   font-weight: bold;
