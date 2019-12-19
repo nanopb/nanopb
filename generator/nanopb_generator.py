@@ -618,7 +618,7 @@ class Field:
           else:
             name = '(%s,%s,%s)' % (self.union_name, self.name, self.name)
 
-        return 'X(a, %s, %s, %s, %s, %d)' % (self.allocation, self.rules, self.pbtype, name, self.tag)
+        return 'X(a, %-9s %-9s %-9s %-16s %3d)' % (self.allocation + ',', self.rules + ',', self.pbtype + ',', name + ',', self.tag)
 
     def data_size(self, dependencies):
         '''Return estimated size of this field in the C struct.
