@@ -98,8 +98,10 @@ in the message structure. For example, you could have `MyObject*` pointer along
 with other message fields, and then process that object in custom way in your
 callback.
 
-This feature is demonstrated in `tests/oneof_callback` test case and
-`examples/network_server` example.
+This feature is demonstrated in `tests/oneof_callback`_ test case and
+`examples/network_server`_ example.
+
+.. _`examples/network_server`: https://github.com/nanopb/nanopb/tree/master/examples/network_server
 
 Message level callback for oneofs
 ---------------------------------
@@ -114,7 +116,9 @@ callback can either choose to set callback pointers inside the submessage, or
 just completely decode the submessage there and then. If any unread data remains
 after the callback returns, normal submessage decoding will continue.
 
-There is an example of this in `tests/oneof_callback` test case.
+There is an example of this in `tests/oneof_callback`_ test case.
+
+.. _`tests/oneof_callback`: https://github.com/nanopb/nanopb/tree/master/tests/oneof_callback
 
 Binding message types to custom structures
 ------------------------------------------

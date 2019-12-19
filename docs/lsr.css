@@ -11,6 +11,7 @@ body {
   color: black;
   margin: 2em;
   padding: 0em 2em;
+  max-width: 1200px;
 }
 
 p.topic-title {
