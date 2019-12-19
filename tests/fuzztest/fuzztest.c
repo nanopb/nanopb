@@ -514,7 +514,9 @@ int main(int argc, char **argv)
     else
     {
         /* Run as a stub for afl-fuzz and similar */
+#ifndef __AVR__
         g_bufsize = 65536;
+#endif
         run_stub();
     }
     
