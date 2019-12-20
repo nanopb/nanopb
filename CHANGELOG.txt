@@ -1,4 +1,4 @@
-nanopb-0.4.0 (2019-12-xx)
+nanopb-0.4.0 (2019-12-20)
  New field descriptor format.
  Make nanopb_generator automatically compile .proto files (#462)
  Allow installing as Python package from pip (#460)
