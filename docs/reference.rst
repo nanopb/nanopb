@@ -7,8 +7,6 @@ Nanopb: API reference
 .. contents ::
 
 
-
-
 Compilation options
 ===================
 The following options can be specified in one of two ways:
@@ -29,10 +27,6 @@ PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for
                                presence. Default value is 64. Increases stack
                                usage 1 byte per every 8 fields. Compiler
                                warning will tell if you need this.
-PB_FIELD_16BIT                 Add support for tag numbers > 255 and fields
-                               larger than 255 bytes or 255 array entries.
-                               Increases code size 3 bytes per each field.
-                               Compiler error will tell if you need this.
 PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields
                                larger than 65535 bytes or 65535 array entries.
                                Increases code size 9 bytes per each field.
@@ -45,9 +39,6 @@ PB_BUFFER_ONLY                 Disables the support for custom streams. Only
                                supports encoding and decoding with memory
                                buffers. Speeds up execution and decreases code
                                size slightly.
-PB_OLD_CALLBACK_STYLE          Use the old function signature (void\* instead
-                               of void\*\*) for callback fields. This was the
-                               default until nanopb-0.2.1.
 PB_SYSTEM_HEADER               Replace the standard header files with a single
                                header file. It should define all the required
                                functions and typedefs listed on the
@@ -66,9 +57,9 @@ PB_VALIDATE_UTF8               Check whether incoming strings are valid UTF-8
                                slightly and slightly increases code size.
 ============================  ================================================
 
-The PB_MAX_REQUIRED_FIELDS, PB_FIELD_16BIT and PB_FIELD_32BIT settings allow
+The PB_MAX_REQUIRED_FIELDS and PB_FIELD_32BIT settings allow
 raising some datatype limits to suit larger messages. Their need is recognized
-automatically by C-preprocessor #if-directives in the generated .pb.h files.
+automatically by C-preprocessor #if-directives in the generated `.pb.c` files.
 The default setting is to use the smallest datatypes (least resources used).
 
 .. _`overview page`: index.html#compiler-requirements
@@ -76,8 +67,11 @@ The default setting is to use the smallest datatypes (least resources used).
 
 Proto file options
 ==================
-The generator behaviour can be adjusted using these options, defined in the
-'nanopb.proto' file in the generator folder:
+The generator behaviour can be adjusted using several options, defined in the
+`nanopb.proto`_ file in the generator folder. Here is a list of the most common
+options, but see the file for a full list:
+
+.. _`nanopb.proto`: https://github.com/nanopb/nanopb/blob/master/generator/proto/nanopb.proto
 
 ============================  ================================================
 max_size                       Allocated size for *bytes* and *string* fields.
@@ -113,15 +107,13 @@ fixed_count                    Generate arrays with constant length
 These options can be defined for the .proto files before they are converted
 using the nanopb-generatory.py. There are three ways to define the options:
 
-1. Using a separate .options file.
-   This is the preferred way as of nanopb-0.2.1, because it has the best
-   compatibility with other protobuf libraries.
+1. Using a separate .options file. This allows using wildcards for applying
+   same options to multiple fields.
 2. Defining the options on the command line of nanopb_generator.py.
    This only makes sense for settings that apply to a whole file.
 3. Defining the options in the .proto file using the nanopb extensions.
-   This is the way used in nanopb-0.1, and will remain supported in the
-   future. It however sometimes causes trouble when using the .proto file
-   with other protobuf libraries.
+   This keeps the options close to the fields they apply to, but can be
+   problematic if the same .proto file is shared with many projects.
 
 The effect of the options is the same no matter how they are given. The most
 common purpose is to define maximum size for string fields in order to
@@ -167,9 +159,10 @@ options from it. The file format is as follows:
   ones later.
   
 To debug problems in applying the options, you can use the *-v* option for the
-plugin. Plugin options are specified in front of the output path:
+nanopb generator. With protoc, plugin options are specified in front of the output path:
 
-    protoc ... --nanopb_out=-v:. message.proto
+    nanopb_generator -v message.proto           # When invoked directly
+    protoc ... --nanopb_out=-v:. message.proto  # When invoked through protoc
 
 Protoc doesn't currently pass include path into plugins. Therefore if your
 *.proto* is in a subdirectory, nanopb may have trouble finding the associated
@@ -200,12 +193,10 @@ you do define the options directly in the .proto file::
     }
 
 A small complication is that you have to set the include path of protoc so that
-nanopb.proto can be found. This file, in turn, requires the file
-*google/protobuf/descriptor.proto*. This is usually installed under
-*/usr/include*. Therefore, to compile a .proto file which uses options, use a
+nanopb.proto can be found. Therefore, to compile a .proto file which uses options, use a
 protoc command similar to::
 
-    protoc -I/usr/include -Inanopb/generator -I. --nanopb_out=. message.proto
+    protoc -Inanopb/generator/proto -I. --nanopb_out=. message.proto
 
 The options can be defined in file, message and field scopes::
 
@@ -229,6 +220,15 @@ Type used for storing byte-sized data, such as raw binary input and bytes-type f
 For most platforms this is equivalent to `uint8_t`. Some platforms however do not support
 8-bit variables, and on those platforms 16 or 32 bits need to be used for each byte.
 
+pb_size_t
+---------
+Type used for storing tag numbers and sizes of message fields. By default the type is 16-bit::
+
+    typedef uint_least16_t pb_size_t;
+
+If tag numbers or fields larger than 65535 are needed, `PB_FIELD_32BIT` option
+can be used to change the type to 32-bit value.
+
 pb_type_t
 ---------
 Type used to store the type of each field, to control the encoder/decoder behaviour. ::
@@ -240,19 +240,23 @@ The low-order nibble of the enumeration values defines the function that can be 
 =========================== ===== ================================================
 LTYPE identifier            Value Storage format
 =========================== ===== ================================================
-PB_LTYPE_VARINT             0x00  Integer.
-PB_LTYPE_UVARINT            0x01  Unsigned integer.
-PB_LTYPE_SVARINT            0x02  Integer, zigzag encoded.
-PB_LTYPE_FIXED32            0x03  32-bit integer or floating point.
-PB_LTYPE_FIXED64            0x04  64-bit integer or floating point.
-PB_LTYPE_BYTES              0x05  Structure with *size_t* field and byte array.
-PB_LTYPE_STRING             0x06  Null-terminated string.
-PB_LTYPE_SUBMESSAGE         0x07  Submessage structure.
-PB_LTYPE_EXTENSION          0x08  Point to *pb_extension_t*.
-PB_LTYPE_FIXED_LENGTH_BYTES 0x09  Inline *pb_byte_t* array of fixed size.
+PB_LTYPE_BOOL               0x00  Boolean.
+PB_LTYPE_VARINT             0x01  Integer.
+PB_LTYPE_UVARINT            0x02  Unsigned integer.
+PB_LTYPE_SVARINT            0x03  Integer, zigzag encoded.
+PB_LTYPE_FIXED32            0x04  32-bit integer or floating point.
+PB_LTYPE_FIXED64            0x05  64-bit integer or floating point.
+PB_LTYPE_BYTES              0x06  Structure with *size_t* field and byte array.
+PB_LTYPE_STRING             0x07  Null-terminated string.
+PB_LTYPE_SUBMESSAGE         0x08  Submessage structure.
+PB_LTYPE_SUBMSG_W_CB        0x09  Submessage with pre-decoding callback.
+PB_LTYPE_EXTENSION          0x0A  Point to *pb_extension_t*.
+PB_LTYPE_FIXED_LENGTH_BYTES 0x0B  Inline *pb_byte_t* array of fixed size.
 =========================== ===== ================================================
 
-The bits 4-5 define whether the field is required, optional or repeated:
+The bits 4-5 define whether the field is required, optional or repeated.
+There are separate definitions for semantically different modes, even though
+some of them share values and are distinguished based on values of other fields:
 
 ==================== ===== ================================================
 HTYPE identifier     Value Field handling
@@ -260,10 +264,12 @@ HTYPE identifier     Value Field handling
 PB_HTYPE_REQUIRED    0x00  Verify that field exists in decoded message.
 PB_HTYPE_OPTIONAL    0x10  Use separate *has_<field>* boolean to specify
                            whether the field is present.
-                           (Unless it is a callback)
+PB_HTYPE_SINGULAR    0x10  Proto3 field, which is present when its value is
+                           non-zero.
 PB_HTYPE_REPEATED    0x20  A repeated field with preallocated array.
                            Separate *<field>_count* for number of items.
-                           (Unless it is a callback)
+PB_HTYPE_FIXARRAY    0x20  A repeated field that has constant length.
+PB_HTYPE_ONEOF       0x30  Oneof-field, only one of each group can be present.
 ==================== ===== ================================================
 
 The bits 6-7 define the how the storage for the field is allocated:
@@ -272,36 +278,83 @@ The bits 6-7 define the how the storage for the field is allocated:
 ATYPE identifier     Value Allocation method
 ==================== ===== ================================================
 PB_ATYPE_STATIC      0x00  Statically allocated storage in the structure.
+PB_ATYPE_POINTER     0x80  Dynamically allocated storage. Struct field contains
+                           a pointer to the storage.
 PB_ATYPE_CALLBACK    0x40  A field with dynamic storage size. Struct field
-                           actually contains a pointer to a callback
-                           function.
+                           contains a pointer to a callback function.
 ==================== ===== ================================================
 
 
-pb_field_t
-----------
-Describes a single structure field with memory position in relation to others. The descriptions are usually autogenerated. ::
+pb_msgdesc_t
+------------
+Autogenerated structure that contains information about a message and pointers
+to the field descriptors. Use functions defined in `pb_common.h` to process
+the field information::
 
-    typedef struct pb_field_s pb_field_t;
-    struct pb_field_s {
+    typedef struct pb_msgdesc_s pb_msgdesc_t;
+    struct pb_msgdesc_s {
+        pb_size_t field_count;
+        const uint32_t *field_info;
+        const pb_msgdesc_t * const * submsg_info;
+        const pb_byte_t *default_value;
+
+        bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
+    };
+
+:field_count:    Total number of fields in the message.
+:field_info:     Pointer to compact representation of the field information.
+:submsg_info:    Pointer to array of pointers to descriptors for submessages.
+:default_value:  Default values for this message as an encoded protobuf message.
+:field_callback: Function used to handle all callback fields in this message.
+                 By default `pb_default_field_callback()` loads per-field
+                 callbacks from a `pb_callback_t` structure.
+
+
+pb_field_iter_t
+---------------
+Describes a single structure field with memory position in relation to others.
+The field information is stored in a compact format and loaded into `pb_field_iter_t`
+by the functions defined in `pb_common.h`. ::
+
+    typedef struct pb_field_iter_s pb_field_iter_t;
+    struct pb_field_iter_s {
+        const pb_msgdesc_t *descriptor;
+        void *message;
+
+        pb_size_t index;
+        pb_size_t field_info_index;
+        pb_size_t required_field_index;
+        pb_size_t submessage_index;
+
         pb_size_t tag;
-        pb_type_t type;
-        pb_size_t data_offset;
-        pb_ssize_t size_offset;
         pb_size_t data_size;
         pb_size_t array_size;
-        const void *ptr;
-    } pb_packed;
+        pb_type_t type;
 
-:tag:           Tag number of the field or 0 to terminate a list of fields.
-:type:          LTYPE, HTYPE and ATYPE of the field.
-:data_offset:   Offset of field data, relative to the end of the previous field.
-:size_offset:   Offset of *bool* flag for optional fields or *size_t* count for arrays, relative to field data.
-:data_size:     Size of a single data entry, in bytes. For PB_LTYPE_BYTES, the size of the byte array inside the containing structure. For PB_HTYPE_CALLBACK, size of the C data type if known.
-:array_size:    Maximum number of entries in an array, if it is an array type.
-:ptr:           Pointer to default value for optional fields, or to submessage description for PB_LTYPE_SUBMESSAGE.
+        void *pField;
+        void *pData;
+        void *pSize;
 
-The *uint8_t* datatypes limit the maximum size of a single item to 255 bytes and arrays to 255 items. Compiler will give error if the values are too large. The types can be changed to larger ones by defining *PB_FIELD_16BIT*.
+        const pb_msgdesc_t *submsg_desc;
+    };
+
+:descriptor:              Pointer to `pb_msgdesc_t` for the message that contains this field.
+:message:                 Pointer to the start of the message structure.
+:index:                   Index of the field inside the message
+:field_info_index:        Index to the internal `field_info` array
+:required_field_index:    Index that counts only the required fields
+:submessage_index:        Index that counts only submessages
+:tag:                     Tag number defined in `.proto` file for this field.
+:data_size:               `sizeof()` of the field in the structure. For repeated fields this is for a single array entry.
+:array_size:              Maximum number of items in a statically allocated array.
+:type:                    Type (`pb_type_t`_) of the field.
+:pField:                  Pointer to the field storage in the structure.
+:pData:                   Pointer to data contents. For arrays and pointers this can be different than `pField`.
+:pSize:                   Pointer to count or has field, or NULL if this field doesn't have such.
+:submsg_desc:             For submessage fields, points to the descriptor for the submessage.
+
+By default `pb_size_t`_ is 16-bit, limiting the sizes and tags to 65535. The limit
+can be raised by defining `PB_FIELD_32BIT`.
 
 pb_bytes_array_t
 ----------------
@@ -312,7 +365,9 @@ An byte array with a field for storing the length::
         pb_byte_t bytes[1];
     } pb_bytes_array_t;
 
-In an actual array, the length of *bytes* may be different.
+In an actual array, the length of *bytes* may be different. The macros
+`PB_BYTES_ARRAY_T()` and `PB_BYTES_ARRAY_T_ALLOCSIZE()` are used to allocate
+variable length storage for bytes fields.
 
 pb_callback_t
 -------------
@@ -321,18 +376,26 @@ Part of a message structure, for fields with type PB_HTYPE_CALLBACK::
     typedef struct _pb_callback_t pb_callback_t;
     struct _pb_callback_t {
         union {
-            bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
-            bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
+            bool (*decode)(pb_istream_t *stream, const pb_field_iter_t *field, void **arg);
+            bool (*encode)(pb_ostream_t *stream, const pb_field_iter_t *field, void * const *arg);
         } funcs;
         
         void *arg;
     };
 
-A pointer to the *arg* is passed to the callback when calling. It can be used to store any information that the callback might need.
+A pointer to the *arg* is passed to the callback when calling.
+It can be used to store any information that the callback might need.
+Note that this is a double pointer. If you set `field.arg` to point to `&data` in your
+main code, in the callback you can access it like this::
 
-Previously the function received just the value of *arg* instead of a pointer to it. This old behaviour can be enabled by defining *PB_OLD_CALLBACK_STYLE*.
+    myfunction(*arg);           /* Gives pointer to data as argument */
+    myfunction(*(data_t*)*arg); /* Gives value of data as argument */
+    *arg = newdata;             /* Alters value of field.arg in structure */
 
-When calling `pb_encode`_, *funcs.encode* is used, and similarly when calling `pb_decode`_, *funcs.decode* is used. The function pointers are stored in the same memory location but are of incompatible types. You can set the function pointer to NULL to skip the field.
+When calling `pb_encode`_, *funcs.encode* is used, and similarly when calling
+`pb_decode`_, *funcs.decode* is used. The function pointers are stored in the
+same memory location but are of incompatible types.
+You can set the function pointer to NULL to skip the field.
 
 pb_wire_type_t
 --------------
@@ -359,7 +422,7 @@ another message. Usually autogenerated by *nanopb_generator.py*::
 
 In the normal case, the function pointers are *NULL* and the decoder and
 encoder use their internal implementations. The internal implementations
-assume that *arg* points to a *pb_field_t* that describes the field in question.
+assume that *arg* points to a `pb_field_iter_t`_ that describes the field in question.
 
 To implement custom processing of unknown fields, you can provide pointers
 to your own functions. Their functionality is mostly the same as for normal
@@ -415,6 +478,21 @@ and user callback functions::
 
 The *msg* parameter must be a constant string.
 
+PB_BIND
+-------
+This macro generates the `pb_msgdesc_t`_ and associated arrays, based on a list
+of fields in `X-macro`_ format. ::
+
+    #define PB_BIND(msgname, structname, width) ...
+
+:msgname:    Name of the message type. Expects `msgname_FIELDLIST` macro to exist.
+:structname: Name of the C structure to bind to.
+:width:      Number of words per field descriptor, or `AUTO` to use minimum size possible.
+
+This macro is automatically invoked inside the autogenerated `.pb.c` files.
+User code can also call it to bind message types with custom structures or class types.
+
+.. _`X-macro`: https://en.wikipedia.org/wiki/X_Macro
 
 
 pb_encode.h
@@ -449,25 +527,42 @@ pb_encode
 ---------
 Encodes the contents of a structure as a protocol buffers message and writes it to output stream. ::
 
-    bool pb_encode(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+    bool pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 :stream:        Output stream to write to.
-:fields:        A field description array, usually autogenerated.
+:fields:        Message descriptor, usually autogenerated.
 :src_struct:    Pointer to the data that will be serialized.
 :returns:       True on success, false on IO error, on detectable errors in field description, or if a field encoder returns false.
 
 Normally pb_encode simply walks through the fields description array and serializes each field in turn. However, submessages must be serialized twice: first to calculate their size and then to actually write them to output. This causes some constraints for callback fields, which must return the same data on every call.
 
-pb_encode_delimited
+pb_encode_ex
 -------------------
-Calculates the length of the message, encodes it as varint and then encodes the message. ::
+Encodes the message, with several extended options::
 
-    bool pb_encode_delimited(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+    bool pb_encode_ex(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
 
-(parameters are the same as for `pb_encode`_.)
+:stream:        Output stream to write to.
+:fields:        Message descriptor, usually autogenerated.
+:src_struct:    Pointer to the data that will be serialized.
+:flags:         Extended options, see below.
+:returns:       True on success, false on IO error, on detectable errors in field description, or if a field encoder returns false.
 
-A common way to indicate the message length in Protocol Buffers is to prefix it with a varint.
-This function does this, and it is compatible with *parseDelimitedFrom* in Google's protobuf library.
+The options that can be defined are:
+
+:PB_ENCODE_DELIMITED:      Indicate the length of the message by prefixing with a varint-encoded length. Compatible with *parseDelimitedFrom* in Google's protobuf library.
+:PB_ENCODE_NULLTERMINATED: Indicate the length of the message by appending a zero tag value after it. Supported by nanopb decoder, but not by most other protobuf libraries.
+
+pb_get_encoded_size
+-------------------
+Calculates the length of the encoded message. ::
+
+    bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
+
+:size:          Calculated size of the encoded message.
+:fields:        Message descriptor, usually autogenerated.
+:src_struct:    Pointer to the data that will be serialized.
+:returns:       True on success, false on detectable errors in field description or if a field encoder returns false.
 
 .. sidebar:: Encoding fields manually
 
@@ -476,17 +571,6 @@ This function does this, and it is compatible with *parseDelimitedFrom* in Googl
     The tag of a field must be encoded separately with `pb_encode_tag_for_field`_. After that, you can call exactly one of the content-writing functions to encode the payload of the field. For repeated fields, you can repeat this process multiple times.
 
     Writing packed arrays is a little bit more involved: you need to use `pb_encode_tag` and specify `PB_WT_STRING` as the wire type. Then you need to know exactly how much data you are going to write, and use `pb_encode_varint`_ to write out the number of bytes before writing the actual data. Substreams can be used to determine the number of bytes beforehand; see `pb_encode_submessage`_ source code for an example.
-
-pb_get_encoded_size
--------------------
-Calculates the length of the encoded message. ::
-
-    bool pb_get_encoded_size(size_t *size, const pb_field_t fields[], const void *src_struct);
-
-:size:          Calculated size of the encoded message.
-:fields:        A field description array, usually autogenerated.
-:src_struct:    Pointer to the data that will be serialized.
-:returns:       True on success, false on detectable errors in field description or if a field encoder returns false.
 
 pb_encode_tag
 -------------
@@ -501,12 +585,12 @@ Starts a field in the Protocol Buffers binary format: encodes the field number a
 
 pb_encode_tag_for_field
 -----------------------
-Same as `pb_encode_tag`_, except takes the parameters from a *pb_field_t* structure. ::
+Same as `pb_encode_tag`_, except takes the parameters from a *pb_field_iter_t* structure. ::
 
-    bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_t *field);
+    bool pb_encode_tag_for_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 
 :stream:        Output stream to write to. 1-5 bytes will be written.
-:field:         Field description structure. Usually autogenerated.
+:field:         Field iterator for this field.
 :returns:       True on success, false on IO error or unknown field type.
 
 This function only considers the LTYPE of the field. You can use it from your field callbacks, because the source generator writes correct LTYPE also for callback type fields.
@@ -573,27 +657,32 @@ Writes 8 bytes to stream and swaps bytes on big-endian architecture. Works for f
 :value:     Pointer to a 8-bytes large C variable, for example `uint64_t foo;`.
 :returns:   True on success, false on IO error.
 
+pb_encode_float_as_double
+-------------------------
+Encodes a 32-bit `float` value so that it appears like a 64-bit `double` in the
+encoded message. This is sometimes needed when platforms like AVR that do not
+support need to communicate using a message type that contains `double` fields. ::
+
+    bool pb_encode_float_as_double(pb_ostream_t *stream, float value);
+
+:stream:    Output stream to write to.
+:value:     Float value to encode.
+:returns:   True on success, false on IO error.
+
 pb_encode_submessage
 --------------------
 Encodes a submessage field, including the size header for it. Works for fields of any message type::
 
-    bool pb_encode_submessage(pb_ostream_t *stream, const pb_field_t fields[], const void *src_struct);
+    bool pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct);
 
 :stream:        Output stream to write to.
-:fields:        Pointer to the autogenerated field description array for the submessage type, e.g. `MyMessage_fields`.
+:fields:        Pointer to the autogenerated message descriptor for the submessage type, e.g. `MyMessage_fields`.
 :src:           Pointer to the structure where submessage data is.
 :returns:       True on success, false on IO errors, pb_encode errors or if submessage size changes between calls.
 
 In Protocol Buffers format, the submessage size must be written before the submessage contents. Therefore, this function has to encode the submessage twice in order to know the size beforehand.
 
 If the submessage contains callback fields, the callback function might misbehave and write out a different amount of data on the second call. This situation is recognized and *false* is returned, but garbage will be written to the output before the problem is detected.
-
-
-
-
-
-
-
 
 
 
@@ -629,16 +718,14 @@ pb_decode
 ---------
 Read and decode all fields of a structure. Reads until EOF on input stream. ::
 
-    bool pb_decode(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+    bool pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
 
 :stream:        Input stream to read from.
-:fields:        A field description array. Usually autogenerated.
+:fields:        Message descriptor, usually autogenerated.
 :dest_struct:   Pointer to structure where data will be stored.
 :returns:       True on success, false on IO error, on detectable errors in field description, if a field encoder returns false or if a required field is missing.
 
 In Protocol Buffers binary format, EOF is only allowed between fields. If it happens anywhere else, pb_decode will return *false*. If pb_decode returns false, you cannot trust any of the data in the structure.
-
-In addition to EOF, the pb_decode implementation supports terminating a message with a 0 byte. This is compatible with the official Protocol Buffers because 0 is never a valid field tag.
 
 For optional fields, this function applies the default value and sets *has_<field>* to false if the field is not present.
 
@@ -646,40 +733,35 @@ If *PB_ENABLE_MALLOC* is defined, this function may allocate storage for any poi
 In this case, you have to call `pb_release`_ to release the memory after you are done with the message.
 On error return `pb_decode` will release the memory itself.
 
-pb_decode_noinit
-----------------
-Same as `pb_decode`_, except does not apply the default values to fields. ::
+pb_decode_ex
+------------
+Same as `pb_decode`_, but allows extended options. ::
 
-    bool pb_decode_noinit(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
+    bool pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
 
-(parameters are the same as for `pb_decode`_.)
+:stream:        Input stream to read from.
+:fields:        Message descriptor, usually autogenerated.
+:dest_struct:   Pointer to structure where data will be stored.
+:flags:         Extended options, see below
+:returns:       True on success, false on IO error, on detectable errors in field description, if a field encoder returns false or if a required field is missing.
 
-The destination structure should be filled with zeros before calling this function. Doing a *memset* manually can be slightly faster than using `pb_decode`_ if you don't need any default values.
+The following options can be defined and combined with bitwise `|` operator:
 
-In addition to decoding a single message, this function can be used to merge two messages, so that
-values from previous message will remain if the new message does not contain a field.
+:PB_DECODE_NOINIT:         Do not initialize structure before decoding. This can be used to combine multiple messages, or if you have already initialized the message yourself.
+:PB_DECODE_DELIMITED:      Expect a length prefix in varint format before message. The counterpart of `PB_ENCODE_DELIMITED`.
+:PB_DECODE_NULLTERMINATED: Expect the message to be terminated with zero tag. The counterpart of `PB_ENCODE_NULLTERMINATED`.
 
-This function *will not* release the message even on error return. If you use *PB_ENABLE_MALLOC*,
-you will need to call `pb_release`_ yourself.
-
-pb_decode_delimited
--------------------
-Same as `pb_decode`_, except that it first reads a varint with the length of the message. ::
-
-    bool pb_decode_delimited(pb_istream_t *stream, const pb_field_t fields[], void *dest_struct);
-
-(parameters are the same as for `pb_decode`_.)
-
-A common method to indicate message size in Protocol Buffers is to prefix it with a varint.
-This function is compatible with *writeDelimitedTo* in the Google's Protocol Buffers library.
+If *PB_ENABLE_MALLOC* is defined, this function may allocate storage for any pointer type fields.
+In this case, you have to call `pb_release`_ to release the memory after you are done with the message.
+On error return `pb_decode_ex` will release the memory itself.
 
 pb_release
 ----------
 Releases any dynamically allocated fields::
 
-    void pb_release(const pb_field_t fields[], void *dest_struct);
+    void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
 
-:fields:        A field description array. Usually autogenerated.
+:fields:        Message descriptor, usually autogenerated.
 :dest_struct:   Pointer to structure where data is stored. If NULL, function does nothing.
 
 This function is only available if *PB_ENABLE_MALLOC* is defined. It will release any
@@ -730,6 +812,17 @@ Read and decode a varint_ encoded integer. ::
 :dest:          Storage for the decoded integer. Value is undefined on error.
 :returns:       True on success, false if value exceeds uint64_t range or an IO error happens.
 
+pb_decode_varint32
+------------------
+Same as `pb_decode_varint`, but limits the value to 32 bits::
+
+    bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest);
+
+Parameters are the same as `pb_decode_varint`. This function can be used for
+decoding lengths and other commonly occurring elements that you know shouldn't
+be larger than 32 bit. It will return an error if the value exceeds the `uint32_t`
+datatype.
+
 pb_decode_svarint
 -----------------
 Similar to `pb_decode_varint`_, except that it performs zigzag-decoding on the value. This corresponds to the Protocol Buffers *sint32* and *sint64* datatypes. ::
@@ -764,6 +857,17 @@ Decode a *fixed64*, *sfixed64* or *double* value. ::
 
 Same as `pb_decode_fixed32`_, except this reads 8 bytes.
 
+pb_decode_double_as_float
+-------------------------
+Decodes a 64-bit `double` value into a 32-bit `float` variable.
+Counterpart of `pb_encode_float_as_double`_. ::
+
+    bool pb_decode_double_as_float(pb_istream_t *stream, float *dest);
+
+:stream:        Input stream to read from. 8 bytes will be read.
+:dest:          Pointer to destination *float*.
+:returns:       True on success, false on IO errors.
+
 pb_make_string_substream
 ------------------------
 Decode the length for a field with wire type *PB_WT_STRING* and create a substream for reading the data. ::
@@ -787,3 +891,61 @@ Close the substream created with `pb_make_string_substream`_. ::
 
 This function copies back the state from the substream to the parent stream.
 It must be called after done with the substream.
+
+
+
+pb_common.h
+===========
+
+pb_field_iter_begin
+-------------------
+Begins iterating over the fields in a message type::
+
+    bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *message);
+
+:iter:     Pointer to destination `pb_field_iter_t`_ variable.
+:desc:     Autogenerated message descriptor.
+:message:  Pointer to message structure.
+:returns:  True on success, false if the message type has no fields.
+
+pb_field_iter_next
+------------------
+Advance to the next field in the message::
+
+    bool pb_field_iter_next(pb_field_iter_t *iter);
+
+:iter:      Pointer to `pb_field_iter_t`_ previously initialized by `pb_field_iter_begin`_.
+:returns:   True on success, false after last field in the message.
+
+When the last field in the message has been processed, this function will return
+false and initialize `iter` back to the first field in the message.
+
+pb_field_iter_find
+------------------
+Find a field specified by tag number in the message::
+
+    bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag);
+
+:iter:      Pointer to `pb_field_iter_t`_ previously initialized by `pb_field_iter_begin`_.
+:tag:       Tag number to search for.
+:returns:   True if field was found, false otherwise.
+
+This function is functionally identical to calling `pb_field_iter_next()` until
+`iter.tag` equals the searched value. Internally this function avoids fully
+processing the descriptor for intermediate fields.
+
+pb_validate_utf8
+----------------
+Validates an UTF8 encoded string::
+
+    bool pb_validate_utf8(const char *s);
+
+:s:         Pointer to beginning of a string.
+:returns:   True, if string is valid UTF-8, false otherwise.
+
+The protobuf standard requires that `string` fields only contain valid UTF-8
+encoded text, while `bytes` fields can contain arbitrary data. When the
+compilation option `PB_VALIDATE_UTF8` is defined, nanopb will automatically
+validate strings on both encoding and decoding.
+
+User code can call this function to validate strings in e.g. custom callbacks.

@@ -29,7 +29,7 @@ security issues, such as execution of arbitrary code:
 1. Callback, pointer and extension fields in message structures given to
    pb_encode() and pb_decode(). These fields are memory pointers, and are
    generated depending on the message definition in the .proto file.
-2. The automatically generated field definitions, i.e. *pb_field_t* lists.
+2. The automatically generated field definitions, i.e. *pb_msgdesc_t*.
 3. Contents of the *pb_istream_t* and *pb_ostream_t* structures (this does not
    mean the contents of the stream itself, just the stream definition).
 
