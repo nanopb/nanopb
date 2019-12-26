@@ -52,7 +52,7 @@ except TypeError:
          ****************************************************************************
     ''' + '\n')
     raise
-except (ValueError, SystemError):
+except (ValueError, SystemError, ImportError):
     # Probably invoked directly instead of via installed scripts.
     import proto.nanopb_pb2 as nanopb_pb2
     import proto.plugin_pb2 as plugin_pb2
