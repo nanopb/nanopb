@@ -1902,7 +1902,6 @@ def main_cli():
         else:
             data = open(filename, 'rb').read()
 
-        open("debug", "wb").write(data)
         fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
         fdescs[fdesc.name] = fdesc
 
