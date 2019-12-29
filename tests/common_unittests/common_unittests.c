@@ -94,12 +94,12 @@ int main()
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 8)
 
-        TEST(pb_field_iter_next(&iter) && iter.tag == 99 && iter.pData == &msg.end && !iter.pSize)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 200 && iter.pData == &msg.extensions && !iter.pSize)
         TEST(iter.required_field_index == 20)
         TEST(iter.submessage_index == 9)
 
-        TEST(pb_field_iter_next(&iter) && iter.tag == 200 && iter.pData == &msg.extensions && !iter.pSize)
-        TEST(iter.required_field_index == 21)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 999 && iter.pData == &msg.end && !iter.pSize)
+        TEST(iter.required_field_index == 20)
         TEST(iter.submessage_index == 9)
 
         TEST(!pb_field_iter_next(&iter))

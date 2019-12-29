@@ -186,7 +186,7 @@ static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
     {
         /* Prepend */
         uint8_t *tmp = malloc_with_check(g_bufsize);
-        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), g_bufsize - *msglen, 512);
+        size_t s = rand_fill_protobuf(tmp, rand_len(max_size), g_bufsize - *msglen, 1000);
         memmove(buffer + s, buffer, *msglen);
         memcpy(buffer, tmp, s);
         free_with_check(tmp);
@@ -195,7 +195,7 @@ static void do_protobuf_noise(uint8_t *buffer, size_t *msglen)
     else if (m == 2)
     {
         /* Append */
-        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), g_bufsize - *msglen, 512);
+        size_t s = rand_fill_protobuf(buffer + *msglen, rand_len(max_size), g_bufsize - *msglen, 1000);
         *msglen += s;
     }
 }
