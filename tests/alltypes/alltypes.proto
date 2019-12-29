@@ -117,7 +117,7 @@ message AllTypes {
 
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.
-    required int32      end = 99;
+    required int32      end = 999;
 
 
     extensions 200 to 255;

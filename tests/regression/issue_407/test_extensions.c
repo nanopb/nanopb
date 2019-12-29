@@ -30,6 +30,15 @@ int main()
         TEST(pb_encode(&stream, SimpleMessage_fields, &msg));
         msglen = stream.bytes_written;
         TEST(msglen == 9); /* 3 for number, 3 for submsg tag+len, 3 for second_number */
+        TEST(buffer[0] == 0x08); /* varint 1 */
+        TEST(buffer[1] == 0xD2); /* number = 1234 */
+        TEST(buffer[2] == 0x09);
+        TEST(buffer[3] == 0xE2); /* submsg 1100 */
+        TEST(buffer[4] == 0x44);
+        TEST(buffer[5] == 0x03); /* length 3 */
+        TEST(buffer[6] == 0x08); /* varint 1 */
+        TEST(buffer[7] == 0xae); /* second_number = 5678 */
+        TEST(buffer[8] == 0x2c);
     }
 
     {
