@@ -513,10 +513,11 @@ int main(int argc, char **argv)
         /* Run in stand-alone mode */
         random_seed = atol(argv[1]);
         iterations = (argc >= 3) ? atol(argv[2]) : 10000;
-        fprintf(stderr, "Random seed: %u, iterations: %d\n", (unsigned)random_seed, iterations);
+        fprintf(stderr, "Random seed: %lu, iterations: %d\n", (unsigned long)random_seed, iterations);
 
         for (i = 0; i < iterations; i++)
         {
+            fprintf(stderr, "Iteration %d/%d\n", i, iterations);
             run_iteration();
         }
     }

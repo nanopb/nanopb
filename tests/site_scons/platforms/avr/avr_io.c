@@ -3,6 +3,7 @@
  */
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
@@ -29,6 +30,15 @@ int uart_getchar(FILE *stream)
     return UDR0;
 }
 
+void abort(void)
+{
+    fprintf(stderr, "abort() called\n");
+    DDRB = 3;
+    PORTB = 1;
+    cli();
+    while (1) sleep_mode();
+}
+
 FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
 int main(void)
@@ -39,6 +49,9 @@ int main(void)
     UBRR0 = (8000000 / (16UL * 9600)) - 1; /* 9600 bps with default 8 MHz clock */
     UCSR0B = _BV(TXEN0) | _BV(RXEN0);
     
+    /* This should be enough for the max stack usage in test cases */
+    __malloc_margin = 2048;
+
     stdout = stdin = stderr = &uart_str;
     
     fread((char*)&g_args, 1, sizeof(g_args), stdin);
@@ -47,9 +60,14 @@ int main(void)
 
     DDRB = 3;
     if (status)
-        PORTB = 1;
+    {
+        fprintf(stderr, "Error exit: %d\n", status);
+        PORTB = 1; // PB0 indicates error
+    }
     else
-        PORTB = 2;
+    {
+        PORTB = 2; // PB1 indicates success
+    }
   
     cli();
     sleep_mode();
