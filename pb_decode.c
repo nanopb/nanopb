@@ -24,6 +24,7 @@
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof);
 static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
+static bool checkreturn check_wire_type(pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
@@ -387,6 +388,34 @@ bool checkreturn pb_close_string_substream(pb_istream_t *stream, pb_istream_t *s
  * Decode a single field *
  *************************/
 
+static bool checkreturn check_wire_type(pb_wire_type_t wire_type, pb_field_iter_t *field)
+{
+    switch (PB_LTYPE(field->type))
+    {
+        case PB_LTYPE_BOOL:
+        case PB_LTYPE_VARINT:
+        case PB_LTYPE_UVARINT:
+        case PB_LTYPE_SVARINT:
+            return wire_type == PB_WT_VARINT;
+
+        case PB_LTYPE_FIXED32:
+            return wire_type == PB_WT_32BIT;
+
+        case PB_LTYPE_FIXED64:
+            return wire_type == PB_WT_64BIT;
+
+        case PB_LTYPE_BYTES:
+        case PB_LTYPE_STRING:
+        case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
+        case PB_LTYPE_FIXED_LENGTH_BYTES:
+            return wire_type == PB_WT_STRING;
+
+        default:
+            return false;
+    }
+}
+
 static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_field_iter_t *field)
 {
     switch (PB_LTYPE(field->type))
@@ -426,9 +455,15 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
     switch (PB_HTYPE(field->type))
     {
         case PB_HTYPE_REQUIRED:
+            if (!check_wire_type(wire_type, field))
+                PB_RETURN_ERROR(stream, "wrong wire type");
+
             return decode_basic_field(stream, field);
             
         case PB_HTYPE_OPTIONAL:
+            if (!check_wire_type(wire_type, field))
+                PB_RETURN_ERROR(stream, "wrong wire type");
+
             if (field->pSize != NULL)
                 *(bool*)field->pSize = true;
             return decode_basic_field(stream, field);
@@ -470,6 +505,9 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 pb_size_t *size = (pb_size_t*)field->pSize;
                 field->pData = (char*)field->pField + field->data_size * (*size);
 
+                if (!check_wire_type(wire_type, field))
+                    PB_RETURN_ERROR(stream, "wrong wire type");
+
                 if ((*size)++ >= field->array_size)
                     PB_RETURN_ERROR(stream, "array overflow");
 
@@ -489,6 +527,10 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                  * pb_dec_submessage() will set any default values. */
                 memset(field->pData, 0, (size_t)field->data_size);
             }
+
+            if (!check_wire_type(wire_type, field))
+                PB_RETURN_ERROR(stream, "wrong wire type");
+
             return decode_basic_field(stream, field);
 
         default:
@@ -581,6 +623,9 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
         case PB_HTYPE_ONEOF:
+            if (!check_wire_type(wire_type, field))
+                PB_RETURN_ERROR(stream, "wrong wire type");
+
             if (PB_LTYPE_IS_SUBMSG(field->type) && *(void**)field->pField != NULL)
             {
                 /* Duplicate field, have to release the old allocation first. */
@@ -672,6 +717,9 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 if (*size == PB_SIZE_MAX)
                     PB_RETURN_ERROR(stream, "too many array entries");
                 
+                if (!check_wire_type(wire_type, field))
+                    PB_RETURN_ERROR(stream, "wrong wire type");
+
                 (*size)++;
                 if (!allocate_field(stream, field->pField, field->data_size, *size))
                     return false;
