@@ -321,22 +321,20 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
     uint8_t *buf2 = malloc_with_check(g_bufsize);
     uint8_t *buf3 = malloc_with_check(g_bufsize);
     size_t msglen2, msglen3;
-    alltypes_static_AllTypes *msg1 = malloc_with_check(sizeof(alltypes_static_AllTypes));
-    alltypes_static_AllTypes *msg2 = malloc_with_check(sizeof(alltypes_static_AllTypes));
-    memset(msg1, 0, sizeof(alltypes_static_AllTypes));
-    memset(msg2, 0, sizeof(alltypes_static_AllTypes));
+    alltypes_static_AllTypes *msg = malloc_with_check(sizeof(alltypes_static_AllTypes));
     
     {
         pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
-        status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg1);
+        memset(msg, 0, sizeof(alltypes_static_AllTypes));
+        status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "srt1 pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
-        sanity_check_static(msg1);
+        sanity_check_static(msg);
     }
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
-        status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg1);
+        status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "srt2 pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen2 = stream.bytes_written;
@@ -344,15 +342,16 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
     
     {
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
-        status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg2);
+        memset(msg, 0, sizeof(alltypes_static_AllTypes));
+        status = pb_decode(&stream, alltypes_static_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "srt3 pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
-        sanity_check_static(msg2);
+        sanity_check_static(msg);
     }
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf3, g_bufsize);
-        status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg2);
+        status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "srt4 pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen3 = stream.bytes_written;
@@ -361,8 +360,7 @@ static void do_static_roundtrip(const uint8_t *buffer, size_t msglen)
     assert(msglen2 == msglen3);
     assert(memcmp(buf2, buf3, msglen2) == 0);
     
-    free_with_check(msg1);
-    free_with_check(msg2);
+    free_with_check(msg);
     free_with_check(buf2);
     free_with_check(buf3);
 }
@@ -374,36 +372,37 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
     uint8_t *buf2 = malloc_with_check(g_bufsize);
     uint8_t *buf3 = malloc_with_check(g_bufsize);
     size_t msglen2, msglen3;
-    alltypes_pointer_AllTypes *msg1 = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
-    alltypes_pointer_AllTypes *msg2 = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
-    memset(msg1, 0, sizeof(alltypes_pointer_AllTypes));
-    memset(msg2, 0, sizeof(alltypes_pointer_AllTypes));
+    alltypes_pointer_AllTypes *msg = malloc_with_check(sizeof(alltypes_pointer_AllTypes));
     
     {
         pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
-        status = pb_decode(&stream, alltypes_pointer_AllTypes_fields, msg1);
+        memset(msg, 0, sizeof(alltypes_pointer_AllTypes));
+        status = pb_decode(&stream, alltypes_pointer_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "prt1 pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
     }
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
-        status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg1);
+        status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "prt2 pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen2 = stream.bytes_written;
     }
     
+    pb_release(alltypes_pointer_AllTypes_fields, msg);
+
     {
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
-        status = pb_decode(&stream, alltypes_pointer_AllTypes_fields, msg2);
+        memset(msg, 0, sizeof(alltypes_pointer_AllTypes));
+        status = pb_decode(&stream, alltypes_pointer_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "prt3 pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
     }
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf3, g_bufsize);
-        status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg2);
+        status = pb_encode(&stream, alltypes_pointer_AllTypes_fields, msg);
         if (!status) fprintf(stderr, "prt4 pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen3 = stream.bytes_written;
@@ -412,10 +411,8 @@ static void do_pointer_roundtrip(const uint8_t *buffer, size_t msglen)
     assert(msglen2 == msglen3);
     assert(memcmp(buf2, buf3, msglen2) == 0);
     
-    pb_release(alltypes_pointer_AllTypes_fields, msg1);
-    pb_release(alltypes_pointer_AllTypes_fields, msg2);
-    free_with_check(msg1);
-    free_with_check(msg2);
+    pb_release(alltypes_pointer_AllTypes_fields, msg);
+    free_with_check(msg);
     free_with_check(buf2);
     free_with_check(buf3);
 }
