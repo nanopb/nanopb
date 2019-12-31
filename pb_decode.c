@@ -508,6 +508,16 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
     if (data_size == 0 || array_size == 0)
         PB_RETURN_ERROR(stream, "invalid size");
     
+#ifdef __AVR__
+    /* Workaround for AVR libc bug 53284: http://savannah.nongnu.org/bugs/?53284
+     * Realloc to size of 1 byte can cause corruption of the malloc structures.
+     */
+    if (data_size == 1 && array_size == 1)
+    {
+        data_size = 2;
+    }
+#endif
+
     /* Check for multiplication overflows.
      * This code avoids the costly division if the sizes are small enough.
      * Multiplication is safe as long as only half of bits are set
