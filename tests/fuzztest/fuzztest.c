@@ -22,16 +22,16 @@ static size_t g_bufsize = 4096;
 
 #ifndef LLVMFUZZER
 
-static uint64_t random_seed;
+static uint32_t random_seed;
 
 /* Uses xorshift64 here instead of rand() for both speed and
  * reproducibility across platforms. */
 static uint32_t rand_word()
 {
-    random_seed ^= random_seed >> 12;
-    random_seed ^= random_seed << 25;
-    random_seed ^= random_seed >> 27;
-    return random_seed * 2685821657736338717ULL;
+    random_seed ^= random_seed << 13;
+    random_seed ^= random_seed >> 17;
+    random_seed ^= random_seed << 5;
+    return random_seed;
 }
 
 /* Get a random integer in range, with approximately flat distribution. */
@@ -511,13 +511,12 @@ int main(int argc, char **argv)
     if (argc >= 2)
     {
         /* Run in stand-alone mode */
-        random_seed = atol(argv[1]);
+        random_seed = strtoul(argv[1], NULL, 0);
         iterations = (argc >= 3) ? atol(argv[2]) : 10000;
-        fprintf(stderr, "Random seed: %lu, iterations: %d\n", (unsigned long)random_seed, iterations);
 
         for (i = 0; i < iterations; i++)
         {
-            fprintf(stderr, "Iteration %d/%d\n", i, iterations);
+            fprintf(stderr, "Iteration %d/%d, seed %lu\n", i, iterations, (unsigned long)random_seed);
             run_iteration();
         }
     }
