@@ -432,7 +432,9 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
 /* Fuzzer stub for Google OSSFuzz integration */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
+#ifndef __AVR__
     g_bufsize = 65536;
+#endif
 
     if (size > g_bufsize)
         return 0;
