@@ -20,9 +20,21 @@ env.Command("alltypes_pointer.proto", "#alltypes/alltypes.proto",
 
 p1 = env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
 p2 = env.NanopbProto(["alltypes_static", "alltypes_static.options"])
+
+# Do the same for proto3 versions
+env.Command("alltypes_proto3_static.proto", "#alltypes_proto3/alltypes.proto",
+            lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_proto3_static'))
+env.Command("alltypes_proto3_pointer.proto", "#alltypes_proto3/alltypes.proto",
+            lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_proto3_pointer'))
+
+p1 = env.NanopbProto(["alltypes_proto3_pointer", "alltypes_proto3_pointer.options"])
+p2 = env.NanopbProto(["alltypes_proto3_static", "alltypes_proto3_static.options"])
+
 fuzz = malloc_env.Program(["fuzztest.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
+                    "alltypes_proto3_pointer.pb.c",
+                    "alltypes_proto3_static.pb.c",
                     "$COMMON/pb_encode_with_malloc.o",
                     "$COMMON/pb_decode_with_malloc.o",
                     "$COMMON/pb_common_with_malloc.o",
