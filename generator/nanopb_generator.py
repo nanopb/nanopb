@@ -132,8 +132,10 @@ class Globals:
 # String types (for python 2 / python 3 compatibility)
 try:
     strtypes = (unicode, str)
+    openmode_unicode = 'rU'
 except NameError:
     strtypes = (str, )
+    openmode_unicode = 'r'
 
 
 class Names:
@@ -1647,9 +1649,9 @@ def read_options_file(infile):
     '''
     results = []
     data = infile.read()
-    data = re.sub('/\*.*?\*/', '', data, flags = re.MULTILINE)
-    data = re.sub('//.*?$', '', data, flags = re.MULTILINE)
-    data = re.sub('#.*?$', '', data, flags = re.MULTILINE)
+    data = re.sub(r'/\*.*?\*/', '', data, flags = re.MULTILINE)
+    data = re.sub(r'//.*?$', '', data, flags = re.MULTILINE)
+    data = re.sub(r'#.*?$', '', data, flags = re.MULTILINE)
     for i, line in enumerate(data.split('\n')):
         line = line.strip()
         if not line:
@@ -1796,7 +1798,7 @@ def parse_file(filename, fdesc, options):
             optfilename = os.path.join(p, optfilename)
             if options.verbose:
                 sys.stderr.write('Reading options from ' + optfilename + '\n')
-            Globals.separate_options = read_options_file(open(optfilename, "rU"))
+            Globals.separate_options = read_options_file(open(optfilename, openmode_unicode))
             break
     else:
         # If we are given a full filename and it does not exist, give an error.
