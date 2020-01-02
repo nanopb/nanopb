@@ -516,7 +516,7 @@ int main(int argc, char **argv)
 
         for (i = 0; i < iterations; i++)
         {
-            fprintf(stderr, "Iteration %d/%d, seed %lu\n", i, iterations, (unsigned long)random_seed);
+            printf("Iteration %d/%d, seed %lu\n", i, iterations, (unsigned long)random_seed);
             run_iteration();
         }
     }
