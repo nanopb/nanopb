@@ -76,6 +76,8 @@ int main(int argc, char **argv)
         alltypes.rep_fbytes_count = 5;
         memcpy(alltypes.rep_fbytes[4], "2019", 4);
         
+        alltypes.rep_farray[4] = 2040;
+
         alltypes.req_limits.int32_min  = INT32_MIN;
         alltypes.req_limits.int32_max  = INT32_MAX;
         alltypes.req_limits.uint32_min = 0;

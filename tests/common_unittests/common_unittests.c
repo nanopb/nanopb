@@ -60,6 +60,7 @@ int main()
         TEST(pb_field_iter_next(&iter) && iter.tag == 37 && iter.pData == &msg.rep_enum     && iter.pSize == &msg.rep_enum_count)
         TEST(pb_field_iter_next(&iter) && iter.tag == 38 && iter.pData == &msg.rep_emptymsg && iter.pSize == &msg.rep_emptymsg_count)
         TEST(pb_field_iter_next(&iter) && iter.tag == 39 && iter.pData == &msg.rep_fbytes   && iter.pSize == &msg.rep_fbytes_count)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 40 && iter.pData == &msg.rep_farray   && iter.pSize == &iter.array_size && iter.array_size == 5)
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 4)
 

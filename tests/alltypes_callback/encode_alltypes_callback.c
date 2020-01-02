@@ -360,6 +360,9 @@ int main(int argc, char **argv)
     alltypes.rep_fbytes.funcs.encode = &write_repeated_string;
     alltypes.rep_fbytes.arg = "2019";
     
+    alltypes.rep_farray.funcs.encode = &write_repeated_varint;
+    alltypes.rep_farray.arg = (void*)2040;
+
     alltypes.req_limits.funcs.encode = &write_limits;
     
     /* Bind callbacks for optional fields */

@@ -81,6 +81,7 @@ message AllTypes {
     repeated MyEnum     rep_enum    = 10037;
     repeated EmptyMessage rep_emptymsg = 10038;
     repeated bytes      rep_fbytes  = 10039;
+    repeated int32      rep_farray  = 10040;
     
     optional int32      opt_int32   = 10041 [default = 4041];
     optional int64      opt_int64   = 10042 [default = 4042];

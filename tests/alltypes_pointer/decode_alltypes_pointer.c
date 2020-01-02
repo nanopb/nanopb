@@ -80,6 +80,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_fbytes_count == 5);
     TEST(alltypes.rep_fbytes[0][0] == 0 && alltypes.rep_fbytes[0][3] == 0);
     TEST(memcmp(alltypes.rep_fbytes[4], "2019", 4) == 0);
+    TEST(alltypes.rep_farray && (*alltypes.rep_farray)[0] == 0 && (*alltypes.rep_farray)[4] == 2040);
 
     if (mode == 0)
     {

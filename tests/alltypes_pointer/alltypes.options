@@ -1,4 +1,5 @@
 # Generate all fields as pointers.
 * type:FT_POINTER
 *.*fbytes fixed_length:true max_size:4
+*.*farray fixed_count:true max_count:5
 

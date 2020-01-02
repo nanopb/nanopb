@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     MyEnum      rep_enum[5]       = {0, 0, 0, 0, MyEnum_Truth};
     EmptyMessage rep_emptymsg[5]  = {{0}, {0}, {0}, {0}, {0}};
     pb_byte_t   rep_fbytes[5][4]  = {{0}, {0}, {0}, {0}, {'2', '0', '1', '9'}};
+    int32_t     rep_farray[5]     = {0, 0, 0, 0, 2040};
 
     /* Values for optional fields */
     int32_t     opt_int32         = 3041;
@@ -150,6 +151,7 @@ int main(int argc, char **argv)
     alltypes.rep_enum_count     = 5; alltypes.rep_enum      = rep_enum;
     alltypes.rep_emptymsg_count = 5; alltypes.rep_emptymsg  = rep_emptymsg;
     alltypes.rep_fbytes_count   = 5; alltypes.rep_fbytes    = rep_fbytes;
+    alltypes.rep_farray = &rep_farray;
     
     if (mode != 0)
     {

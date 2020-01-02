@@ -570,7 +570,7 @@ struct pb_extension_s {
 #define PB_SIZE_OFFSET_CB_FIXARRAY(structname, fieldname) 0
 
 #define PB_ARRAY_SIZE_STATIC(htype, structname, fieldname) PB_ARRAY_SIZE_ ## htype(structname, fieldname)
-#define PB_ARRAY_SIZE_POINTER(htype, structname, fieldname) 1
+#define PB_ARRAY_SIZE_POINTER(htype, structname, fieldname) PB_ARRAY_SIZE_PTR_ ## htype(structname, fieldname)
 #define PB_ARRAY_SIZE_CALLBACK(htype, structname, fieldname) 1
 #define PB_ARRAY_SIZE_REQUIRED(structname, fieldname) 1
 #define PB_ARRAY_SIZE_SINGULAR(structname, fieldname) 1
@@ -578,6 +578,12 @@ struct pb_extension_s {
 #define PB_ARRAY_SIZE_ONEOF(structname, fieldname) 1
 #define PB_ARRAY_SIZE_REPEATED(structname, fieldname) pb_arraysize(structname, fieldname)
 #define PB_ARRAY_SIZE_FIXARRAY(structname, fieldname) pb_arraysize(structname, fieldname)
+#define PB_ARRAY_SIZE_PTR_REQUIRED(structname, fieldname) 1
+#define PB_ARRAY_SIZE_PTR_SINGULAR(structname, fieldname) 1
+#define PB_ARRAY_SIZE_PTR_OPTIONAL(structname, fieldname) 1
+#define PB_ARRAY_SIZE_PTR_ONEOF(structname, fieldname) 1
+#define PB_ARRAY_SIZE_PTR_REPEATED(structname, fieldname) 1
+#define PB_ARRAY_SIZE_PTR_FIXARRAY(structname, fieldname) pb_arraysize(structname, fieldname[0])
 
 #define PB_DATA_SIZE_STATIC(htype, structname, fieldname) PB_DATA_SIZE_ ## htype(structname, fieldname)
 #define PB_DATA_SIZE_POINTER(htype, structname, fieldname) PB_DATA_SIZE_PTR_ ## htype(structname, fieldname)
@@ -593,7 +599,7 @@ struct pb_extension_s {
 #define PB_DATA_SIZE_PTR_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname[0])
 #define PB_DATA_SIZE_PTR_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname)[0])
 #define PB_DATA_SIZE_PTR_REPEATED(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DATA_SIZE_PTR_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0])
+#define PB_DATA_SIZE_PTR_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0][0])
 #define PB_DATA_SIZE_CB_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DATA_SIZE_CB_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DATA_SIZE_CB_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname)

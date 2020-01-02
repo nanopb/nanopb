@@ -475,7 +475,7 @@ class Field:
             if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct _%s *%s;' % (self.ctype, self.name)
-            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+            elif self.pbtype == 'FIXED_LENGTH_BYTES' or self.rules == 'FIXARRAY':
                 # Pointer to fixed size array
                 result += '    %s (*%s)%s;' % (self.ctype, self.name, self.array_decl)
             elif self.rules in ['REPEATED', 'FIXARRAY'] and self.pbtype in ['STRING', 'BYTES']:
