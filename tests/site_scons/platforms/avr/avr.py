@@ -10,7 +10,7 @@ def set_avr_platform(env):
                 CXX = "avr-g++")
     env.Replace(TEST_RUNNER = "build/run_test")
     env.Append(CFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
-    env.Append(CXXFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
+    env.Append(CXXFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os -Wno-type-limits")
     env.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1, 'UNITTESTS_SHORT_MSGS': 1,
                              '__ASSERT_USE_STDERR': 1, 'MAX_REALLOC_SIZE': '4096'})
     env.Append(LINKFLAGS = "-mmcu=atmega1284")
