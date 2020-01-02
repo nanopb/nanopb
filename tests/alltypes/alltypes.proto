@@ -27,6 +27,12 @@ message Limits {
     required uint64     uint64_max =  8 [default = 0];
     required HugeEnum   enum_min   =  9 [default = Positive];
     required HugeEnum   enum_max   = 10 [default = Negative];
+    required int32      largetag   = 65535 [default = 0];
+}
+
+message DescriptorSize8 {
+    required int32 first = 1;
+    required int32 second = 22222;
 }
 
 enum MyEnum {
@@ -113,7 +119,11 @@ message AllTypes {
         EmptyMessage oneof_msg2 = 61;
     }
     
+    // Check support for 8-word descriptors
+    required DescriptorSize8 req_ds8 = 97;
+
     // Check that extreme integer values are handled correctly
+    // Also checks support for 4-word descriptors
     required Limits     req_limits = 98;
 
     // Just to make sure that the size of the fields has been calculated

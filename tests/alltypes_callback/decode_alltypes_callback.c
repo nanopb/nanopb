@@ -223,6 +223,7 @@ static bool read_limits(pb_istream_t *stream, const pb_field_t *field, void **ar
     TEST(decoded.uint64_max == UINT64_MAX);
     TEST(decoded.enum_min   == HugeEnum_Negative);
     TEST(decoded.enum_max   == HugeEnum_Positive);
+    TEST(decoded.largetag   == 1001);
     
     return true;
 }

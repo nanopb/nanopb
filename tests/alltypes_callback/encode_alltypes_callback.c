@@ -190,9 +190,18 @@ static bool write_limits(pb_ostream_t *stream, const pb_field_t *field, void * c
     limits.uint64_max = UINT64_MAX;
     limits.enum_min   = HugeEnum_Negative;
     limits.enum_max   = HugeEnum_Positive;
+    limits.largetag   = 1001;
    
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_submessage(stream, Limits_fields, &limits);
+}
+
+static bool write_ds8(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+    DescriptorSize8 ds8 = {9991,9992};
+
+    return pb_encode_tag_for_field(stream, field) &&
+           pb_encode_submessage(stream, DescriptorSize8_fields, &ds8);
 }
 
 static bool write_repeated_emptymsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -365,6 +374,8 @@ int main(int argc, char **argv)
 
     alltypes.req_limits.funcs.encode = &write_limits;
     
+    alltypes.req_ds8.funcs.encode = &write_ds8;
+
     /* Bind callbacks for optional fields */
     if (mode != 0)
     {

@@ -88,6 +88,10 @@ int main(int argc, char **argv)
         alltypes.req_limits.uint64_max = UINT64_MAX;
         alltypes.req_limits.enum_min   = HugeEnum_Negative;
         alltypes.req_limits.enum_max   = HugeEnum_Positive;
+        alltypes.req_limits.largetag   = 1001;
+
+        alltypes.req_ds8.first = 9991;
+        alltypes.req_ds8.second = 9992;
     }
     
     if (mode == 1)

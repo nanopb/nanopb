@@ -97,6 +97,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.req_limits.uint64_max == UINT64_MAX);
         TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
         TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
+        TEST(alltypes.req_limits.largetag   == 1001);
+
+        TEST(alltypes.req_ds8.first == 9991);
+        TEST(alltypes.req_ds8.second == 9992);
     }
     
     if (mode == 0)

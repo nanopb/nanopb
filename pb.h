@@ -690,7 +690,7 @@ struct pb_extension_s {
 #define PB_FIELDINFO_8(tag, type, data_offset, data_size, size_offset, array_size) \
     (3 | (((tag) << 2) & 0xFF) | ((type) << 8)), \
     ((uint32_t)(int8_t)(size_offset) | (((uint32_t)(tag) << 2) & 0xFFFFFF00)), \
-    (data_offset), (data_size), (array_size)
+    (data_offset), (data_size), (array_size), 0, 0, 0,
 
 /* These assertions verify that the field information fits in the allocated space.
  * The generator tries to automatically determine the correct width that can fit all
