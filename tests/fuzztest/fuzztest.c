@@ -436,7 +436,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     g_bufsize = 65536;
 #endif
 
-    if (size > g_bufsize)
+    /* In some cases, when we re-encode input it can expand close to 2x.
+     * This is because 0xFFFFFFFF in int32 is decoded as -1, but the
+     * canonical encoding for it is 0xFFFFFFFFFFFFFFFF.
+     * Thus we reserve 64k for the buffers but reject inputs longer than 32k.
+     */
+    if (size > 32767)
         return 0;
 
     if (do_static_decode(data, size, false))
