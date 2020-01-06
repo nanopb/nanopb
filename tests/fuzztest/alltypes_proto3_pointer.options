@@ -1,3 +1,5 @@
 * type:FT_POINTER
 *.*fbytes fixed_length:true max_size:4
 *.req_limits proto3_singular_msgs:true
+*.*farray fixed_count:true max_count:5
+DescriptorSize8 descriptorsize:DS_8
