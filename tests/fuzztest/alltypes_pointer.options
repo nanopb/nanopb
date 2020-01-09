@@ -2,4 +2,4 @@
 * type:FT_POINTER
 *.*fbytes fixed_length:true max_size:4
 *.*farray fixed_count:true max_count:5
-DescriptorSize8 descriptorsize:DS_8
+*.DescriptorSize8 descriptorsize:DS_8
