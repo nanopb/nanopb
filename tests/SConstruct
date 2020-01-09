@@ -21,6 +21,8 @@ scons CC=clang CXX=clang++
 
 import os
 env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
+env.SConsignFile("build/sconsign")
+env.Replace(CONFIGUREDIR = "build/config")
 
 if ARGUMENTS.get('PLATFORM') == 'STM32':
     set_stm32_platform(env)
@@ -200,7 +202,7 @@ if not env.get("EMBEDDED"):
 env.SetDefault(LINKLIBS = '')
 env.Replace(LINKCOM = env['LINKCOM'] + " $LINKLIBS")
 
-# Now include the SConscript files from all subdirectories
+# Place build files under separate folder
 import os.path
 env['VARIANT_DIR'] = 'build'
 env['BUILD'] = '#' + env['VARIANT_DIR']
@@ -210,6 +212,7 @@ env['COMMON'] = '#' + env['VARIANT_DIR'] + '/common'
 # to other SConscripts.
 SConscript("common/SConscript", exports = 'env', variant_dir = env['VARIANT_DIR'] + '/common')
 
+# Now include the SConscript files from all subdirectories
 for subdir in Glob('*/SConscript') + Glob('regression/*/SConscript'):
     if str(subdir).startswith("common/"): continue
     if str(subdir).startswith("common\\"): continue
