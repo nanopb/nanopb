@@ -1199,8 +1199,8 @@ class Message:
                 # so we fake it with int64.
                 enums[field.name] = (names_from_type_name(field.type_name), field.default_value)
                 field.type = FieldD.TYPE_INT64
-                field.ClearField('default_value')
-                field.ClearField('type_name')
+                field.ClearField(str('default_value'))
+                field.ClearField(str('type_name'))
 
         if len(optional_only.field) == 0:
             return b''
