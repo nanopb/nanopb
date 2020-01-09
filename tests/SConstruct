@@ -71,7 +71,19 @@ if not env.GetOption('clean'):
         context.Result(result)
         return result
     
-    conf = Configure(env, custom_tests = {'CheckCCFLAGS': check_ccflags})
+    def check_protocversion(context):
+        context.Display("Checking protoc version... ")
+        status, output = context.TryAction('$PROTOC --version > $TARGET')
+        if status:
+            context.Result(str(output.strip()))
+        else:
+            context.Display("error: %s\n" % output.strip())
+            context.did_show_result = 1
+            context.Result("3.6.1") # Assumption
+
+    conf = Configure(env, custom_tests =
+                     {'CheckCCFLAGS': check_ccflags,
+                      'CheckProtocVersion': check_protocversion})
 
     # If the platform doesn't support C99, use our own header file instead.
     stdbool = conf.CheckCHeader('stdbool.h')
@@ -92,18 +104,11 @@ if not env.GetOption('clean'):
         if stdlib: conf.env.Append(CPPDEFINES = {'HAVE_STDLIB_H': 1})
         if limits: conf.env.Append(CPPDEFINES = {'HAVE_LIMITS_H': 1})
     
-    # Check if we can use pkg-config to find protobuf include path
-    status, output = conf.TryAction('pkg-config protobuf --variable=includedir > $TARGET')
-    if status:
-        conf.env.Append(PROTOCPATH = output.strip())
-    else:
-        conf.env.Append(PROTOCPATH = '/usr/include')
-    
     # Check protoc version
-    status, output = conf.TryAction('$PROTOC --version > $TARGET')
-    if status:
-        conf.env['PROTOC_VERSION'] = output
+    conf.env['PROTOC_VERSION'] = conf.CheckProtocVersion()
 
+    # Initialize compiler arguments with defaults, unless overridden on
+    # command line.
     if not env.get('NODEFARGS'):
         # Check if libmudflap is available (only with GCC)
         if 'gcc' in env['CC']:
