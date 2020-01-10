@@ -13,13 +13,13 @@
 static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (intptr_t)*arg);
 }
 
 static bool write_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
 static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -30,6 +30,18 @@ static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * 
 
 static bool write_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
+    return pb_encode_tag_for_field(stream, field) &&
+           pb_encode_fixed64(stream, *arg);
+}
+
+static bool write_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+        return pb_encode_tag_for_field(stream, field) &&
+               pb_encode_float_as_double(stream, *(float*)*arg);
+#endif
+
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_fixed64(stream, *arg);
 }
@@ -65,7 +77,7 @@ static bool write_repeated_varint(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_varint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_varint(stream, (long)*arg);
+           pb_encode_varint(stream, (intptr_t)*arg);
 }
 
 static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -79,7 +91,7 @@ static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_tag_for_field(stream, field) &&
            pb_encode_svarint(stream, 0) &&
            pb_encode_tag_for_field(stream, field) &&
-           pb_encode_svarint(stream, (long)*arg);
+           pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
 static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -99,6 +111,31 @@ static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field
 static bool write_repeated_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint64_t dummy = 0;
+
+    /* Make it a packed field */
+    return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
+           pb_encode_varint(stream, 5 * 8) && /* Number of bytes */
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, &dummy) &&
+           pb_encode_fixed64(stream, *arg);
+}
+
+static bool write_repeated_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+    uint64_t dummy = 0;
+
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    if (sizeof(double) == sizeof(float))
+        return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
+               pb_encode_varint(stream, 5 * 8) && /* Number of bytes */
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, 0.0f) &&
+               pb_encode_float_as_double(stream, *(float*)*arg);
+#endif
 
     /* Make it a packed field */
     return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
@@ -153,9 +190,18 @@ static bool write_limits(pb_ostream_t *stream, const pb_field_t *field, void * c
     limits.uint64_max = UINT64_MAX;
     limits.enum_min   = HugeEnum_Negative;
     limits.enum_max   = HugeEnum_Positive;
+    limits.largetag   = 1001;
    
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_submessage(stream, Limits_fields, &limits);
+}
+
+static bool write_ds8(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+    DescriptorSize8 ds8 = {9991,9992};
+
+    return pb_encode_tag_for_field(stream, field) &&
+           pb_encode_submessage(stream, DescriptorSize8_fields, &ds8);
 }
 
 static bool write_repeated_emptymsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
@@ -246,7 +292,7 @@ int main(int argc, char **argv)
     alltypes.req_sfixed64.funcs.encode = &write_fixed64;
     alltypes.req_sfixed64.arg = &req_sfixed64;
     
-    alltypes.req_double.funcs.encode = &write_fixed64;
+    alltypes.req_double.funcs.encode = &write_double;
     alltypes.req_double.arg = &req_double;
     
     alltypes.req_string.funcs.encode = &write_string;
@@ -303,7 +349,7 @@ int main(int argc, char **argv)
     alltypes.rep_sfixed64.funcs.encode = &write_repeated_fixed64;
     alltypes.rep_sfixed64.arg = &rep_sfixed64;
     
-    alltypes.rep_double.funcs.encode = &write_repeated_fixed64;
+    alltypes.rep_double.funcs.encode = &write_repeated_double;
     alltypes.rep_double.arg = &rep_double;
     
     alltypes.rep_string.funcs.encode = &write_repeated_string;
@@ -323,8 +369,13 @@ int main(int argc, char **argv)
     alltypes.rep_fbytes.funcs.encode = &write_repeated_string;
     alltypes.rep_fbytes.arg = "2019";
     
+    alltypes.rep_farray.funcs.encode = &write_repeated_varint;
+    alltypes.rep_farray.arg = (void*)2040;
+
     alltypes.req_limits.funcs.encode = &write_limits;
     
+    alltypes.req_ds8.funcs.encode = &write_ds8;
+
     /* Bind callbacks for optional fields */
     if (mode != 0)
     {
@@ -364,7 +415,7 @@ int main(int argc, char **argv)
         alltypes.opt_sfixed64.funcs.encode = &write_fixed64;
         alltypes.opt_sfixed64.arg = &opt_sfixed64;
         
-        alltypes.opt_double.funcs.encode = &write_fixed64;
+        alltypes.opt_double.funcs.encode = &write_double;
         alltypes.opt_double.arg = &opt_double;
         
         alltypes.opt_string.funcs.encode = &write_string;

@@ -15,10 +15,9 @@ ioerr = env.Program(["io_errors.c", "alltypes.pb.c",
                      "$COMMON/malloc_wrappers.o"])
 
 # Run tests under valgrind if available
-valgrind = env.WhereIs('valgrind')
 kwargs = {}
-if valgrind:
-    kwargs['COMMAND'] = valgrind
+if env.get("VALGRIND"):
+    kwargs['COMMAND'] = env['VALGRIND']
     kwargs['ARGS'] = ["-q", "--error-exitcode=99", ioerr[0].abspath]
 
 env.RunTest("io_errors.output", [ioerr, "$BUILD/alltypes/encode_alltypes.output"], **kwargs)

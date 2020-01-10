@@ -12,10 +12,9 @@ p = malloc_env.Program(["callback_pointer.c",
                          "$COMMON/malloc_wrappers.o"])
 
 # Run test under valgrind if available
-valgrind = env.WhereIs('valgrind')
 kwargs = {}
-if valgrind:
-    kwargs['COMMAND'] = valgrind
+if env.get("VALGRIND"):
+    kwargs['COMMAND'] = env['VALGRIND']
     kwargs['ARGS'] = ["-q", "--error-exitcode=99", p[0].abspath]
 
 env.RunTest(p, **kwargs)

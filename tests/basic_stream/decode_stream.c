@@ -58,14 +58,17 @@ bool print_person(pb_istream_t *stream)
 bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*)stream->state;
-    bool status;
+    size_t len = fread(buf, 1, count, file);
     
-    status = (fread(buf, 1, count, file) == count);
-    
-    if (feof(file))
+    if (len == count)
+    {
+        return true;
+    }
+    else
+    {
         stream->bytes_left = 0;
-    
-    return status;
+        return false;
+    }
 }
 
 int main()

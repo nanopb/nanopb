@@ -26,6 +26,11 @@ bool pb_field_iter_next(pb_field_iter_t *iter);
  * Returns false if no such field exists. */
 bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag);
 
+#ifdef PB_VALIDATE_UTF8
+/* Validate UTF-8 text string */
+bool pb_validate_utf8(const char *s);
+#endif
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

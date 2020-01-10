@@ -11,3 +11,5 @@ env.NanopbProto("proto3_options")
 env.Object('proto3_options.pb.c')
 env.Match(['proto3_options.pb.h', 'proto3_options.expected'])
 
+p = env.Program(["options.c", "options.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+env.RunTest(p)

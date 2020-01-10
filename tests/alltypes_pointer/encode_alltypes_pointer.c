@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     MyEnum      rep_enum[5]       = {0, 0, 0, 0, MyEnum_Truth};
     EmptyMessage rep_emptymsg[5]  = {{0}, {0}, {0}, {0}, {0}};
     pb_byte_t   rep_fbytes[5][4]  = {{0}, {0}, {0}, {0}, {'2', '0', '1', '9'}};
+    int32_t     rep_farray[5]     = {0, 0, 0, 0, 2040};
 
     /* Values for optional fields */
     int32_t     opt_int32         = 3041;
@@ -101,11 +102,18 @@ int main(int argc, char **argv)
     static uint64_t uint64_max = UINT64_MAX;
     static HugeEnum enum_min   = HugeEnum_Negative;
     static HugeEnum enum_max   = HugeEnum_Positive;
+    static int32_t largetag    = 1001;
     Limits req_limits = {&int32_min,    &int32_max,
                          &uint32_min,   &uint32_max,
                          &int64_min,    &int64_max,
                          &uint64_min,   &uint64_max,
-                         &enum_min,     &enum_max};
+                         &enum_min,     &enum_max,
+                         &largetag};
+
+    /* Values for DescriptorSize8 message. */
+    static int32_t first = 9991;
+    static int32_t second = 9992;
+    DescriptorSize8 req_ds8 = {&first, &second};
 
     /* Initialize the message struct with pointers to the fields. */
     AllTypes alltypes = {0};
@@ -130,6 +138,7 @@ int main(int argc, char **argv)
     alltypes.req_emptymsg      = &req_emptymsg;
     alltypes.req_fbytes        = &req_fbytes;
     alltypes.req_limits        = &req_limits;
+    alltypes.req_ds8           = &req_ds8;
     
     alltypes.rep_int32_count    = 5; alltypes.rep_int32     = rep_int32;
     alltypes.rep_int64_count    = 5; alltypes.rep_int64     = rep_int64;
@@ -150,6 +159,7 @@ int main(int argc, char **argv)
     alltypes.rep_enum_count     = 5; alltypes.rep_enum      = rep_enum;
     alltypes.rep_emptymsg_count = 5; alltypes.rep_emptymsg  = rep_emptymsg;
     alltypes.rep_fbytes_count   = 5; alltypes.rep_fbytes    = rep_fbytes;
+    alltypes.rep_farray = &rep_farray;
     
     if (mode != 0)
     {

@@ -86,8 +86,8 @@ message AllTypes {
     
     oneof oneof
     {
-        SubMessage oneof_msg1 = 59;
-        EmptyMessage oneof_msg2 = 60;
+        SubMessage oneof_msg1 = 60;
+        EmptyMessage oneof_msg2 = 61;
     }
     
     // Check that extreme integer values are handled correctly
@@ -95,6 +95,6 @@ message AllTypes {
 
     // Just to make sure that the size of the fields has been calculated
     // properly, i.e. otherwise a bug in last field might not be detected.
-    int32      end = 99;
+    int32      end = 999;
 }
 

@@ -7,6 +7,6 @@ message SubMessage {
 }
 
 message TestMessage {
-    SubMessage submsg = 1;
+    SubMessage submsg = 1 [(nanopb).proto3_singular_msgs = true];
 }
 

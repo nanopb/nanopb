@@ -256,7 +256,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
            -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
-           "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${CMAKE_CURRENT_BINARY_DIR}" ${ABS_FIL}
+           "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}"
+           "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}" ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
            ${NANOPB_OPTIONS_FILE} ${NANOPB_DEPENDS}
       COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"

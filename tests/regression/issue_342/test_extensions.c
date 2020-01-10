@@ -6,7 +6,7 @@
 #include "extensions.pb.h"
 #include "unittests.h"
 
-static bool write_string(pb_ostream_t *stream, const pb_field_t *field, const void *arg)
+static bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_string(stream, (const void*)"abc", 3);
@@ -41,7 +41,7 @@ int main(int argc, char **argv)
         BaseMessage msg = {0};
         
         ext.type = &string_extension;
-        /* Note: ext.dest remains null to trigger buf #342 */
+        /* Note: ext.dest remains null to trigger bug #342 */
         msg.extensions = &ext;
     
         TEST(pb_decode(&stream, BaseMessage_fields, &msg));

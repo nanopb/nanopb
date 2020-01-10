@@ -82,9 +82,13 @@ end in an error, the test cases were successful.
 
 Note: Mac OS X by default aliases 'clang' as 'gcc', while not actually
 supporting the same command line options as gcc does. To run tests on
-Mac OS X, use: "scons CC=clang CXX=clang". Same way can be used to run
+Mac OS X, use: `scons CC=clang CXX=clang`. Same way can be used to run
 tests with different compilers on any platform.
 
+For embedded platforms, there is currently support for running the tests
+on STM32 discovery board and [simavr](https://github.com/buserror/simavr)
+AVR simulator. Use `scons PLATFORM=STM32` and `scons PLATFORM=AVR` to run
+these tests.
 
 
 Build systems and integration
@@ -99,7 +103,9 @@ There exist build rules for several systems:
 * **CMake**: `extra/FindNanopb.cmake`, see `examples/cmake`
 * **SCons**: `tests/site_scons` (generator only)
 * **Bazel**: `BUILD` in source root
+* **Conan**: `conanfile.py` in source root
 * **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
+* **PyPI/pip**: https://pypi.org/project/nanopb/
 
 And also integration to platform interfaces:
 

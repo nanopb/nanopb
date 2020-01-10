@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <time.h>
 #include "alltypes_static.pb.h"
 
 static uint64_t random_seed;
@@ -66,7 +65,7 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
 static void generate_message()
 {
     alltypes_static_AllTypes msg;
-    uint8_t buf[8192];
+    uint8_t buf[4096];
     pb_ostream_t stream = {0};
     
     do {
@@ -83,16 +82,15 @@ static void generate_message()
 
 int main(int argc, char **argv)
 {
-    if (argc > 1)
+    if (argc < 2)
     {
-        random_seed = atol(argv[1]);
+        fprintf(stderr, "Usage: generate_message <seed>\n");
+        return 1;
     }
-    else
-    {
-        random_seed = time(NULL);
-    }
-    
-    fprintf(stderr, "Random seed: %llu\n", (long long unsigned)random_seed);
+
+    random_seed = atol(argv[1]);
+
+    fprintf(stderr, "Random seed: %u\n", (unsigned)random_seed);
     
     generate_message();
     

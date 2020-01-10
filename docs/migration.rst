@@ -137,6 +137,44 @@ which work both in 0.4.0 and 0.3.9.
 
 **Error indications:** Error message from `pb_decode()`: 'zero_tag'.
 
+Submessages now have has_field in proto3 mode
+---------------------------------------------
+**Rationale:** Previously nanopb considered proto3 submessages as 'present' only
+when their contents was non-zero. Most other protobuf libraries allow explicit
+'null' state for submessages.
+
+**Changes:** Submessages now have separate `has_field` in proto3 mode also.
+
+**Required actions:** When using submessages in proto3 mode, user code must now
+set `mymsg.has_submsg = true` for each submessage that is present. Alternatively,
+the field option `proto3_singular_msgs` can be used to restore the old behavior.
+
+**Error indications:** Submessages do not get encoded.
+
+PB_OLD_CALLBACK_STYLE option has been removed
+---------------------------------------------
+**Rationale:** Back in 2013, function signature for callbacks was changed. The
+`PB_OLD_CALLBACK_STYLE` option allowed compatibility with old code, but
+complicated code and testing because of the different options.
+
+**Changes:** `PB_OLD_CALLBACK_STYLE` option no-longer has any effect.
+
+**Required actions:** If `PB_OLD_CALLBACK_STYLE` option was in use previously,
+function signatures must be updated to use double pointers (`void**` and
+`void * const *`).
+
+**Error indications:** Assignment from incompatible pointer type.
+
+protoc insertion points are no longer included by default
+---------------------------------------------------------
+**Rationale:** Protoc allows including comments in form `@@protoc_insertion_point`
+to identify locations for other plugins to insert their own extra content.
+Previously these were included by default, but they clutter the generated files
+and are rarely used.
+
+**Changes:** Insertion points are now included only when `--protoc-insertion-points`
+option is passed to the generator.
+
 Nanopb-0.3.9.4, 0.4.0 (2019-xx-xx)
 ==================================
 

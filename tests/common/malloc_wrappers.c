@@ -1,50 +1,96 @@
+/* The wrapper functions in this file work like regular malloc() and free(),
+ * but store check values before and after the allocation. This helps to catch
+ * any buffer overrun errors in the test cases.
+ */
+
 #include "malloc_wrappers.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 
 static size_t alloc_count = 0;
 
+#define GUARD_SIZE (sizeof(size_t)*3)
+#define PREFIX_SIZE (sizeof(size_t)*2)
+#define CHECK1 ((size_t)0xDEADBEEF)
+#define CHECK2 ((size_t)0x600DCAFE)
+
+#ifndef MAX_REALLOC_SIZE
+#define MAX_REALLOC_SIZE 1024*1024
+#endif
+
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
-    size_t size32 = (size + 3) / 4 + 3;
-    uint32_t *buf = malloc(size32 * sizeof(uint32_t));
-    buf[0] = size32;
-    buf[1] = 0xDEADBEEF;
-    buf[size32 - 1] = 0xBADBAD;
-    return buf + 2;
+    char *buf = malloc(size + GUARD_SIZE);
+    if (buf)
+    {
+        ((size_t*)buf)[0] = size;
+        ((size_t*)buf)[1] = CHECK1;
+        ((size_t*)(buf + size))[2] = CHECK2;
+        alloc_count++;
+        return buf + PREFIX_SIZE;
+    }
+    else
+    {
+        fprintf(stderr, "malloc(%u) failed\n", (unsigned)size);
+        return NULL;
+    }
 }
 
 /* Free memory allocated with malloc_with_check() and do the checks. */
 void free_with_check(void *mem)
 {
-    uint32_t *buf = (uint32_t*)mem - 2;
-    assert(buf[1] == 0xDEADBEEF);
-    assert(buf[buf[0] - 1] == 0xBADBAD);
-    free(buf);
-}
-
-/* Track memory usage */
-void* counting_realloc(void *ptr, size_t size)
-{
-    /* Don't allocate crazy amounts of RAM when fuzzing */
-    if (size > 1000000)
-        return NULL;
-
-    if (!ptr && size)
-        alloc_count++;
-    
-    return realloc(ptr, size);
-}
-
-void counting_free(void *ptr)
-{
-    if (ptr)
+    if (mem)
     {
+        char *buf = (char*)mem - PREFIX_SIZE;
+        size_t size = ((size_t*)buf)[0];
+        assert(((size_t*)buf)[1] == CHECK1);
+        assert(((size_t*)(buf + size))[2] == CHECK2);
         assert(alloc_count > 0);
         alloc_count--;
-        free(ptr);
+        free(buf);
+    }
+}
+
+/* Reallocate block and check / write guard values */
+void* realloc_with_check(void *ptr, size_t size)
+{
+    /* Don't allocate crazy amounts of RAM when fuzzing */
+    if (size > MAX_REALLOC_SIZE)
+        return NULL;
+    
+    if (!ptr && size)
+    {
+        /* Allocate new block and write guard values */
+        return malloc_with_check(size);
+    }
+    else if (ptr && size)
+    {
+        /* Change block size */
+        char *buf = (char*)ptr - PREFIX_SIZE;
+        size_t oldsize = ((size_t*)buf)[0];
+        assert(((size_t*)buf)[1] == CHECK1);
+        assert(((size_t*)(buf + oldsize))[2] == CHECK2);
+        assert(alloc_count > 0);
+
+        buf = realloc(buf, size + GUARD_SIZE);
+        ((size_t*)buf)[0] = size;
+        ((size_t*)buf)[1] = CHECK1;
+        ((size_t*)(buf + size))[2] = CHECK2;
+        return buf + PREFIX_SIZE;
+    }
+    else if (ptr && !size)
+    {
+        /* Deallocate */
+        free_with_check(ptr);
+        return NULL;
+    }
+    else
+    {
+        /* No action */
+        return NULL;
     }
 }
 

@@ -33,6 +33,7 @@ import SCons.Builder
 import SCons.Util
 from SCons.Script import Dir, File
 import os.path
+import platform
 
 class NanopbWarning(SCons.Warnings.Warning):
     pass
@@ -63,6 +64,14 @@ def _detect_protoc(env):
     if os.path.exists(p1):
         # Use protoc bundled with binary package
         return env['ESCAPE'](p1)
+
+    p = os.path.join(n, 'generator', 'protoc')
+    if os.path.exists(p):
+        # Use the grcpio-tools protoc wrapper
+        if env['PLATFORM'] == 'win32':
+            return env['ESCAPE'](p + '.bat')
+        else:
+            return env['ESCAPE'](p)
 
     p = env.WhereIs('protoc')
     if p:

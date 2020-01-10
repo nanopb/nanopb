@@ -17,7 +17,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 {
     int status = 0;
 
-    /* Uses _init_default to just make sure that it works. */
+    /* Uses _init_default to just make sure that the macro works. */
     AllTypes alltypes = AllTypes_init_default;
     
     /* Fill with garbage to better detect initialization errors */
@@ -85,6 +85,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.rep_fbytes[0][0] == 0 && alltypes.rep_fbytes[0][3] == 0);
         TEST(memcmp(alltypes.rep_fbytes[4], "2019", 4) == 0);
 
+        TEST(alltypes.rep_farray[0] == 0 && alltypes.rep_farray[4] == 2040);
+
         TEST(alltypes.req_limits.int32_min  == INT32_MIN);
         TEST(alltypes.req_limits.int32_max  == INT32_MAX);
         TEST(alltypes.req_limits.uint32_min == 0);
@@ -95,6 +97,10 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.req_limits.uint64_max == UINT64_MAX);
         TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
         TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
+        TEST(alltypes.req_limits.largetag   == 1001);
+
+        TEST(alltypes.req_ds8.first == 9991);
+        TEST(alltypes.req_ds8.second == 9992);
     }
     
     if (mode == 0)
@@ -246,6 +252,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.rep_enum_count == 0);
         TEST(alltypes.rep_emptymsg_count == 0);
         TEST(alltypes.rep_fbytes_count == 0);
+        TEST(alltypes.rep_farray[0] == 0 && alltypes.rep_farray[4] == 0);
     
         TEST(alltypes.has_opt_int32     == false);
         TEST(alltypes.has_opt_int64     == false);
@@ -278,6 +285,9 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     return status == 0;
 }
 
+#ifdef __cplusplus
+extern "C"
+#endif
 int main(int argc, char **argv)
 {
     uint8_t buffer[1024];

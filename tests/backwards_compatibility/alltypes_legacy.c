@@ -28,12 +28,13 @@ PB_BIND(AllTypes, AllTypes, 2)
 
 
 
-
+#ifndef PB_CONVERT_DOUBLE_FLOAT
 /* On some platforms (such as AVR), double is really float.
  * Using double on these platforms is not directly supported
  * by nanopb, but see example_avr_double.
  * To get rid of this error, remove any double fields from your .proto.
  */
 PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)
+#endif
 
 /* @@protoc_insertion_point(eof) */

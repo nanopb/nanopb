@@ -1,6 +1,8 @@
 import subprocess
 import sys
 import re
+from platforms.stm32.stm32 import set_stm32_platform
+from platforms.avr.avr import set_avr_platform
 
 try:
     # Make terminal colors work on windows
@@ -26,6 +28,9 @@ def add_nanopb_builders(env):
         
         if env.has_key('ARGS'):
             args.extend(env['ARGS'])
+
+        if env.has_key("TEST_RUNNER"):
+            args = [env["TEST_RUNNER"]] + args
         
         print('Command line: ' + str(args))
         pipe = subprocess.Popen(args,

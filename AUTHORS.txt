@@ -52,4 +52,12 @@ Michal Rostecki <mrostecki@suse.de>
 Pei Wang <wangpei10@baidu.com>
 Noah Pendleton <2538614+noahp@users.noreply.github.com>
 Pavol Rusnak <pavol@rusnak.io>
+der-imp <falkjan@msn.com>
+Mark Hill <markleehill@gmail.com>
+Torfinn Berset <torfinn@bloom-life.com>
+Bo Langgaard Lind <bo.langgaard.lind@gmail.com>
+Stephane Dorre <stephane.dorre@cobi.bike>
+Phillip Cao <Phillip.Cao@fphcare.co.nz>
+Melvin Wang <melvin.mc.wang@gmail.com>
+Joshua Salzedo <thHunkn0WNd@gmail.com>
 

@@ -9,6 +9,8 @@
 # On the other hand, using the callback interface, it is not necessary
 # to set a limit on the number of files in the response.
 
-ListFilesResponse.file  type:FT_CALLBACK, callback_datatype:"void*"
+* include:"sys/types.h"
+* include:"dirent.h"
+ListFilesResponse.file  type:FT_CALLBACK, callback_datatype:"DIR*"
 ListFilesRequest.path 	max_size:128
 FileInfo.name 		max_size:128

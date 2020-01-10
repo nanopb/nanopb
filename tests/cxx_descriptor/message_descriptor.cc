@@ -2,7 +2,7 @@
 #include "message.pb.h"
 #include "unittests.h"
 
-int main() {
+extern "C" int main() {
   using namespace nanopb;
 
 #if __cplusplus >= 201103L

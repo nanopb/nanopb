@@ -22,8 +22,8 @@ the following command::
 
   ../../generator-bin/protoc --nanopb_out=. simple.proto
 
-After that, add the following four files to your project and compile:
+After that, add the following five files to your project and compile:
 
-  simple.c  simple.pb.c  pb_encode.c  pb_decode.c
+  simple.c  simple.pb.c  pb_encode.c  pb_decode.c  pb_common.c
 
 
