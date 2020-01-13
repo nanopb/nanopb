@@ -18,8 +18,8 @@ env.Command("alltypes_static.proto", "#alltypes/alltypes.proto",
 env.Command("alltypes_pointer.proto", "#alltypes/alltypes.proto",
             lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_pointer'))
 
-p1 = env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
-p2 = env.NanopbProto(["alltypes_static", "alltypes_static.options"])
+env.NanopbProto(["alltypes_pointer", "alltypes_pointer.options"])
+env.NanopbProto(["alltypes_static", "alltypes_static.options"])
 
 # Do the same for proto3 versions
 env.Command("alltypes_proto3_static.proto", "#alltypes_proto3/alltypes.proto",
@@ -27,8 +27,13 @@ env.Command("alltypes_proto3_static.proto", "#alltypes_proto3/alltypes.proto",
 env.Command("alltypes_proto3_pointer.proto", "#alltypes_proto3/alltypes.proto",
             lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_proto3_pointer'))
 
-p1 = env.NanopbProto(["alltypes_proto3_pointer", "alltypes_proto3_pointer.options"])
-p2 = env.NanopbProto(["alltypes_proto3_static", "alltypes_proto3_static.options"])
+env.NanopbProto(["alltypes_proto3_pointer", "alltypes_proto3_pointer.options"])
+env.NanopbProto(["alltypes_proto3_static", "alltypes_proto3_static.options"])
+
+# And also a callback version
+env.Command("alltypes_callback.proto", "#alltypes/alltypes.proto",
+            lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_callback'))
+env.NanopbProto(["alltypes_callback", "alltypes_callback.options"])
 
 fuzz = malloc_env.Program(["fuzztest.c",
                     "random_data.c",
@@ -36,6 +41,7 @@ fuzz = malloc_env.Program(["fuzztest.c",
                     "flakystream.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
+                    "alltypes_callback.pb.c",
                     "alltypes_proto3_pointer.pb.c",
                     "alltypes_proto3_static.pb.c",
                     "$COMMON/pb_encode_with_malloc.o",

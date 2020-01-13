@@ -20,6 +20,7 @@
 #include "test_helpers.h"
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
+#include "alltypes_callback.pb.h"
 #include "alltypes_proto3_static.pb.h"
 #include "alltypes_proto3_pointer.pb.h"
 
@@ -84,6 +85,50 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     }
 
     pb_release(msgtype, msg);
+    free_with_check(msg);
+    assert(get_alloc_count() == initial_alloc_count);
+
+    return status;
+}
+
+static int g_sentinel;
+
+static bool field_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+    assert(*arg == &g_sentinel);
+    return pb_read(stream, NULL, stream->bytes_left);
+}
+
+static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
+{
+    bool status;
+    pb_istream_t stream;
+    size_t initial_alloc_count = get_alloc_count();
+    alltypes_callback_AllTypes *msg = malloc_with_check(sizeof(alltypes_callback_AllTypes));
+
+    memset(msg, 0, sizeof(alltypes_callback_AllTypes));
+    stream = pb_istream_from_buffer(buffer, msglen);
+
+    msg->rep_int32.funcs.decode = &field_callback;
+    msg->rep_int32.arg = &g_sentinel;
+    msg->rep_string.funcs.decode = &field_callback;
+    msg->rep_string.arg = &g_sentinel;
+    msg->rep_farray.funcs.decode = &field_callback;
+    msg->rep_farray.arg = &g_sentinel;
+    msg->req_limits.int64_min.funcs.decode = &field_callback;
+    msg->req_limits.int64_min.arg = &g_sentinel;
+    msg->cb_oneof.funcs.decode = &field_callback;
+    msg->cb_oneof.arg = &g_sentinel;
+
+    status = pb_decode(&stream, alltypes_callback_AllTypes_fields, msg);
+
+    if (assert_success)
+    {
+        if (!status) fprintf(stderr, "pb_decode: %s\n", PB_GET_ERROR(&stream));
+        assert(status);
+    }
+
+    pb_release(alltypes_callback_AllTypes_fields, msg);
     free_with_check(msg);
     assert(get_alloc_count() == initial_alloc_count);
 
@@ -183,6 +228,9 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         /* Test successful decoding also when using a stream */
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, true);
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, true);
+
+        /* Test callbacks */
+        do_callback_decode(data, size, true);
     }
     else if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
     {
@@ -214,6 +262,9 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT, false);
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_DELIMITED, false);
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NULLTERMINATED, false);
+
+    /* Test callbacks also when message is not valid */
+    do_callback_decode(data, size, false);
 
     assert(get_alloc_count() == initial_alloc_count);
 }
