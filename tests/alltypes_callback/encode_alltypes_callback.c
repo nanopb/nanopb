@@ -204,6 +204,14 @@ static bool write_ds8(pb_ostream_t *stream, const pb_field_t *field, void * cons
            pb_encode_submessage(stream, DescriptorSize8_fields, &ds8);
 }
 
+static bool write_intsizes(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+{
+    IntSizes intsizes = {-128, 255, -128, -32768, 65535, -32768};
+
+    return pb_encode_tag_for_field(stream, field) &&
+           pb_encode_submessage(stream, IntSizes_fields, &intsizes);
+}
+
 static bool write_repeated_emptymsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
     EmptyMessage emptymsg = {0};
@@ -375,6 +383,8 @@ int main(int argc, char **argv)
     alltypes.req_limits.funcs.encode = &write_limits;
     
     alltypes.req_ds8.funcs.encode = &write_ds8;
+
+    alltypes.req_intsizes.funcs.encode = &write_intsizes;
 
     /* Bind callbacks for optional fields */
     if (mode != 0)

@@ -91,21 +91,25 @@ int main()
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 7)
 
-        TEST(pb_field_iter_next(&iter) && iter.tag == 97 && iter.pData == &msg.req_ds8 && !iter.pSize)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 96 && iter.pData == &msg.req_intsizes && !iter.pSize)
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 8)
 
-        TEST(pb_field_iter_next(&iter) && iter.tag == 98 && iter.pData == &msg.req_limits && !iter.pSize)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 97 && iter.pData == &msg.req_ds8 && !iter.pSize)
         TEST(iter.required_field_index == 20)
         TEST(iter.submessage_index == 9)
 
-        TEST(pb_field_iter_next(&iter) && iter.tag == 200 && iter.pData == &msg.extensions && !iter.pSize)
+        TEST(pb_field_iter_next(&iter) && iter.tag == 98 && iter.pData == &msg.req_limits && !iter.pSize)
         TEST(iter.required_field_index == 21)
         TEST(iter.submessage_index == 10)
 
+        TEST(pb_field_iter_next(&iter) && iter.tag == 200 && iter.pData == &msg.extensions && !iter.pSize)
+        TEST(iter.required_field_index == 22)
+        TEST(iter.submessage_index == 11)
+
         TEST(pb_field_iter_next(&iter) && iter.tag == 999 && iter.pData == &msg.end && !iter.pSize)
-        TEST(iter.required_field_index == 21)
-        TEST(iter.submessage_index == 10)
+        TEST(iter.required_field_index == 22)
+        TEST(iter.submessage_index == 11)
 
         TEST(!pb_field_iter_next(&iter))
 

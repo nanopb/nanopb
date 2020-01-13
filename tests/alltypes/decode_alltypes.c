@@ -101,6 +101,13 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
         TEST(alltypes.req_ds8.first == 9991);
         TEST(alltypes.req_ds8.second == 9992);
+
+        TEST(alltypes.req_intsizes.req_int8 == -128);
+        TEST(alltypes.req_intsizes.req_uint8 == 255);
+        TEST(alltypes.req_intsizes.req_sint8 == -128);
+        TEST(alltypes.req_intsizes.req_int16 == -32768);
+        TEST(alltypes.req_intsizes.req_uint16 == 65535);
+        TEST(alltypes.req_intsizes.req_sint16 == -32768);
     }
     
     if (mode == 0)

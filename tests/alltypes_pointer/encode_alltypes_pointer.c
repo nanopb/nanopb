@@ -115,6 +115,16 @@ int main(int argc, char **argv)
     static int32_t second = 9992;
     DescriptorSize8 req_ds8 = {&first, &second};
 
+    /* Values for IntSizes message. */
+    static int8_t req_int8 = -128;
+    static uint8_t req_uint8 = 255;
+    static int8_t req_sint8 = -128;
+    static int16_t req_int16 = -32768;
+    static uint16_t req_uint16 = 65535;
+    static int16_t req_sint16 = -32768;
+    IntSizes req_intsizes = {&req_int8, &req_uint8, &req_sint8,
+                             &req_int16, &req_uint16, &req_sint16};
+
     /* Initialize the message struct with pointers to the fields. */
     AllTypes alltypes = {0};
 
@@ -139,6 +149,7 @@ int main(int argc, char **argv)
     alltypes.req_fbytes        = &req_fbytes;
     alltypes.req_limits        = &req_limits;
     alltypes.req_ds8           = &req_ds8;
+    alltypes.req_intsizes      = &req_intsizes;
     
     alltypes.rep_int32_count    = 5; alltypes.rep_int32     = rep_int32;
     alltypes.rep_int64_count    = 5; alltypes.rep_int64     = rep_int64;

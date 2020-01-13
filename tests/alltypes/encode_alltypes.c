@@ -92,6 +92,13 @@ int main(int argc, char **argv)
 
         alltypes.req_ds8.first = 9991;
         alltypes.req_ds8.second = 9992;
+
+        alltypes.req_intsizes.req_int8 = -128;
+        alltypes.req_intsizes.req_uint8 = 255;
+        alltypes.req_intsizes.req_sint8 = -128;
+        alltypes.req_intsizes.req_int16 = -32768;
+        alltypes.req_intsizes.req_uint16 = 65535;
+        alltypes.req_intsizes.req_sint16 = -32768;
     }
     
     if (mode == 1)

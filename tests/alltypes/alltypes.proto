@@ -30,6 +30,15 @@ message Limits {
     required int32      largetag   = 65535 [default = 0];
 }
 
+message IntSizes {
+    required int32  req_int8 =   1 ;
+    required uint32 req_uint8 =  2 ;
+    required sint32 req_sint8 =  3 ;
+    required int32  req_int16 =  4 ;
+    required uint32 req_uint16 = 5 ;
+    required sint32 req_sint16 = 6 ;
+}
+
 message DescriptorSize8 {
     required int32 first = 1;
     required int32 second = 22222;
@@ -119,6 +128,9 @@ message AllTypes {
         EmptyMessage oneof_msg2 = 61;
     }
     
+    // Check support for custom integer sizes
+    required IntSizes req_intsizes = 96;
+
     // Check support for 8-word descriptors
     required DescriptorSize8 req_ds8 = 97;
 
