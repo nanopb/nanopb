@@ -99,6 +99,12 @@ static bool field_callback(pb_istream_t *stream, const pb_field_t *field, void *
     return pb_read(stream, NULL, stream->bytes_left);
 }
 
+static bool submsg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+{
+    assert(*arg == &g_sentinel);
+    return true;
+}
+
 static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
 {
     bool status;
@@ -117,7 +123,7 @@ static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert
     msg->rep_farray.arg = &g_sentinel;
     msg->req_limits.int64_min.funcs.decode = &field_callback;
     msg->req_limits.int64_min.arg = &g_sentinel;
-    msg->cb_oneof.funcs.decode = &field_callback;
+    msg->cb_oneof.funcs.decode = &submsg_callback;
     msg->cb_oneof.arg = &g_sentinel;
 
     status = pb_decode(&stream, alltypes_callback_AllTypes_fields, msg);

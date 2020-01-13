@@ -3,9 +3,7 @@
 #ifndef RANDOM_DATA_H
 #define RANDOM_DATA_H
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <pb.h>
 
 void random_set_seed(uint32_t seed);
 uint32_t random_get_seed();

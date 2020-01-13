@@ -4,9 +4,6 @@
 #ifndef FLAKYSTREAM_H
 #define FLAKYSTREAM_H
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <pb_decode.h>
 
 typedef struct {
