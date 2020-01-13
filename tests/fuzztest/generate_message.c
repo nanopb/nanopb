@@ -9,27 +9,7 @@
 #include <string.h>
 #include <assert.h>
 #include "alltypes_static.pb.h"
-
-static uint64_t random_seed;
-
-/* Uses xorshift64 here instead of rand() for both speed and
- * reproducibility across platforms. */
-static uint32_t rand_word()
-{
-    random_seed ^= random_seed >> 12;
-    random_seed ^= random_seed << 25;
-    random_seed ^= random_seed >> 27;
-    return random_seed * 2685821657736338717ULL;
-}
-
-/* Fills a buffer with random data. */
-static void rand_fill(uint8_t *buf, size_t count)
-{
-    while (count--)
-    {
-        *buf++ = rand_word() & 0xff;
-    }
-}
+#include "random_data.h"
 
 /* Check that size/count fields do not exceed their max size.
  * Otherwise we would have to loop pretty long in generate_message().
@@ -88,9 +68,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    random_seed = atol(argv[1]);
+    random_set_seed(atol(argv[1]));
 
-    fprintf(stderr, "Random seed: %u\n", (unsigned)random_seed);
+    fprintf(stderr, "Random seed: %u\n", (unsigned)random_get_seed());
     
     generate_message();
     

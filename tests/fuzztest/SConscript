@@ -31,6 +31,8 @@ p1 = env.NanopbProto(["alltypes_proto3_pointer", "alltypes_proto3_pointer.option
 p2 = env.NanopbProto(["alltypes_proto3_static", "alltypes_proto3_static.options"])
 
 fuzz = malloc_env.Program(["fuzztest.c",
+                    "random_data.c",
+                    "validation.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
                     "alltypes_proto3_pointer.pb.c",
@@ -49,7 +51,9 @@ else:
 env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
 generate_message = malloc_env.Program(["generate_message.c",
+                    "random_data.c",
                     "alltypes_static.pb.c",
                     "$COMMON/pb_encode.o",
-                    "$COMMON/pb_common.o"])
+                    "$COMMON/pb_common.o",
+                    "$COMMON/malloc_wrappers.o"])
 
