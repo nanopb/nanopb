@@ -134,3 +134,9 @@ message AllTypes {
     extensions 200 to 255;
 }
 
+message TestExtension {
+    extend AllTypes {
+        optional TestExtension testextension = 250;
+    }
+    optional string strval = 1;
+}

@@ -68,6 +68,23 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     uint8_t *buf3 = malloc_with_check(g_bufsize);
     size_t msglen2, msglen3;
     void *msg = malloc_with_check(structsize);
+
+    /* For proto2 types, we also test extension fields */
+    alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
+    pb_extension_t ext = pb_extension_init_zero;
+    pb_extension_t **ext_field = NULL;
+    ext.type = &alltypes_static_TestExtension_testextension;
+    ext.dest = &extmsg;
+    ext.next = NULL;
+
+    if (msgtype == alltypes_static_AllTypes_fields)
+    {
+        ext_field = &((alltypes_static_AllTypes*)msg)->extensions;
+    }
+    else if (msgtype == alltypes_pointer_AllTypes_fields)
+    {
+        ext_field = &((alltypes_pointer_AllTypes*)msg)->extensions;
+    }
     
     /* Decode and encode the input data.
      * This will bring it into canonical format.
@@ -75,6 +92,7 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     {
         pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
         memset(msg, 0, structsize);
+        if (ext_field) *ext_field = &ext;
         status = pb_decode(&stream, msgtype, msg);
         if (!status) fprintf(stderr, "pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
@@ -96,6 +114,7 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     {
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
         memset(msg, 0, structsize);
+        if (ext_field) *ext_field = &ext;
         status = pb_decode(&stream, msgtype, msg);
         if (!status) fprintf(stderr, "pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
@@ -181,6 +200,8 @@ static bool generate_base_message(uint8_t *buffer, size_t *msglen)
     /* Apply randomness to the data before encoding */
     while (rand_int(0, 7))
         rand_mess((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
+
+    msg->extensions = NULL;
 
     stream = pb_ostream_from_buffer(buffer, g_bufsize);
     status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
