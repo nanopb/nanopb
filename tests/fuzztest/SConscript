@@ -33,6 +33,7 @@ p2 = env.NanopbProto(["alltypes_proto3_static", "alltypes_proto3_static.options"
 fuzz = malloc_env.Program(["fuzztest.c",
                     "random_data.c",
                     "validation.c",
+                    "flakystream.c",
                     "alltypes_pointer.pb.c",
                     "alltypes_static.pb.c",
                     "alltypes_proto3_pointer.pb.c",
