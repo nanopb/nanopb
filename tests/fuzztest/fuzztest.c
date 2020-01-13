@@ -32,7 +32,7 @@ static size_t g_bufsize = 2048;
 static size_t g_bufsize = 4096;
 #endif
 
-static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype, bool assert_success)
+static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
 {
     bool status;
     pb_istream_t stream;
@@ -41,7 +41,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     
     memset(msg, 0, structsize);
     stream = pb_istream_from_buffer(buffer, msglen);
-    status = pb_decode(&stream, msgtype, msg);
+    status = pb_decode_ex(&stream, msgtype, msg, flags);
 
     if (status)
     {
@@ -174,7 +174,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     size_t initial_alloc_count = get_alloc_count();
 
     /* Check decoding as static fields */
-    if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
     {
         /* Any message that is decodeable as proto2 should be decodeable as proto3 */
         do_roundtrip(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields);
@@ -184,13 +184,13 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, true);
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, true);
     }
-    else if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, expect_valid))
+    else if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields);
     }
 
     /* Check decoding as pointer fields */
-    if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields);
         do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
@@ -199,7 +199,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, true);
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, true);
     }
-    else if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, expect_valid))
+    else if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
     }
@@ -209,6 +209,11 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     do_stream_decode(data, size, size - 16, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, false);
     do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, false);
     do_stream_decode(data, size, size - 16, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, false);
+
+    /* Test pb_decode_ex() modes */
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT, false);
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_DELIMITED, false);
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NULLTERMINATED, false);
 
     assert(get_alloc_count() == initial_alloc_count);
 }
