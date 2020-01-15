@@ -49,11 +49,9 @@ static void generate_message()
     pb_ostream_t stream = {0};
     
     do {
-        if (stream.errmsg)
-            fprintf(stderr, "Encoder error: %s\n", stream.errmsg);
-        
         stream = pb_ostream_from_buffer(buf, sizeof(buf));
         rand_fill((void*)&msg, sizeof(msg));
+        msg.extensions = NULL;
         limit_sizes(&msg);
     } while (!pb_encode(&stream, alltypes_static_AllTypes_fields, &msg));
     
