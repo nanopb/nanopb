@@ -39,8 +39,23 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     pb_istream_t stream;
     size_t initial_alloc_count = get_alloc_count();
     void *msg = malloc_with_check(structsize);
-    
+    alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
+    pb_extension_t ext = pb_extension_init_zero;
+
     memset(msg, 0, structsize);
+    ext.type = &alltypes_static_TestExtension_testextension;
+    ext.dest = &extmsg;
+    ext.next = NULL;
+
+    if (msgtype == alltypes_static_AllTypes_fields)
+    {
+        ((alltypes_static_AllTypes*)msg)->extensions = &ext;
+    }
+    else if (msgtype == alltypes_pointer_AllTypes_fields)
+    {
+        ((alltypes_pointer_AllTypes*)msg)->extensions = &ext;
+    }
+
     stream = pb_istream_from_buffer(buffer, msglen);
     status = pb_decode_ex(&stream, msgtype, msg, flags);
 
