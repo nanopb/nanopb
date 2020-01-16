@@ -45,14 +45,23 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
 static void generate_message()
 {
     alltypes_static_AllTypes msg;
+    alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
+    pb_extension_t ext = pb_extension_init_zero;
+
     uint8_t buf[4096];
     pb_ostream_t stream = {0};
     
     do {
-        stream = pb_ostream_from_buffer(buf, sizeof(buf));
         rand_fill((void*)&msg, sizeof(msg));
-        msg.extensions = NULL;
         limit_sizes(&msg);
+
+        rand_fill((void*)&extmsg, sizeof(extmsg));
+        ext.type = &alltypes_static_TestExtension_testextension;
+        ext.dest = &extmsg;
+        ext.next = NULL;
+        msg.extensions = &ext;
+
+        stream = pb_ostream_from_buffer(buf, sizeof(buf));
     } while (!pb_encode(&stream, alltypes_static_AllTypes_fields, &msg));
     
     fwrite(buf, 1, stream.bytes_written, stdout);

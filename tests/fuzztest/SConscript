@@ -64,3 +64,5 @@ generate_message = malloc_env.Program(["generate_message.c",
                     "$COMMON/pb_common.o",
                     "$COMMON/malloc_wrappers.o"])
 
+env.RunTest(generate_message, ARGS = [str(seed)])
+env.RunTest("generate_message.output.fuzzed", [fuzz, "generate_message.output"])
