@@ -28,7 +28,6 @@ static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_fie
 static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *field);
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
-static void *pb_const_cast(const void *p);
 static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, uint32_t high);
 static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_varint(pb_ostream_t *stream, const pb_field_iter_t *field);
@@ -444,7 +443,7 @@ static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb
 {
     pb_field_iter_t iter;
 
-    if (!pb_field_iter_begin_extension(&iter, (pb_extension_t*)pb_const_cast(extension)))
+    if (!pb_field_iter_begin_extension_const(&iter, extension))
         PB_RETURN_ERROR(stream, "invalid extension");
 
     return encode_field(stream, &iter);
@@ -478,22 +477,10 @@ static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_fi
  * Encode all fields *
  *********************/
 
-static void *pb_const_cast(const void *p)
-{
-    /* Note: this casts away const, in order to use the common field iterator
-     * logic for both encoding and decoding. */
-    union {
-        void *p1;
-        const void *p2;
-    } t;
-    t.p2 = p;
-    return t.p1;
-}
-
 bool checkreturn pb_encode(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
 {
     pb_field_iter_t iter;
-    if (!pb_field_iter_begin(&iter, fields, pb_const_cast(src_struct)))
+    if (!pb_field_iter_begin_const(&iter, fields, src_struct))
         return true; /* Empty message type */
     
     do {

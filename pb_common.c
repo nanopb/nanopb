@@ -222,6 +222,29 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     }
 }
 
+static void *pb_const_cast(const void *p)
+{
+    /* Note: this casts away const, in order to use the common field iterator
+     * logic for both encoding and decoding. The cast is done using union
+     * to avoid spurious compiler warnings. */
+    union {
+        void *p1;
+        const void *p2;
+    } t;
+    t.p2 = p;
+    return t.p1;
+}
+
+bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
+{
+    return pb_field_iter_begin(iter, desc, pb_const_cast(message));
+}
+
+bool pb_field_iter_begin_extension_const(pb_field_iter_t *iter, const pb_extension_t *extension)
+{
+    return pb_field_iter_begin_extension(iter, (pb_extension_t*)pb_const_cast(extension));
+}
+
 bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
 {
     if (field->data_size == sizeof(pb_callback_t))
