@@ -94,7 +94,15 @@ void* realloc_with_check(void *ptr, size_t size)
     }
 }
 
+/* Return total number of allocations not yet released */
 size_t get_alloc_count()
 {
     return alloc_count;
+}
+
+/* Return allocated size for a pointer returned from malloc(). */
+size_t get_allocation_size(const void *mem)
+{
+    char *buf = (char*)mem - PREFIX_SIZE;
+    return ((size_t*)buf)[0];
 }
