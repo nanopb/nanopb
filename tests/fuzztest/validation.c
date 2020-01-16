@@ -22,6 +22,14 @@ void validate_static(pb_field_iter_t *iter)
         assert(memcmp(iter->pSize, &truebool, sizeof(bool)) == 0 ||
                memcmp(iter->pSize, &falsebool, sizeof(bool)) == 0);
     }
+    else if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+    {
+        if (*(pb_size_t*)iter->pSize != iter->tag)
+        {
+            /* Some different field in oneof */
+            return;
+        }
+    }
 
     for (i = 0; i < count; i++)
     {
@@ -58,7 +66,15 @@ void validate_pointer(pb_field_iter_t *iter)
     bool truebool = true;
     bool falsebool = false;
 
-    if (!iter->pData)
+    if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+    {
+        if (*(pb_size_t*)iter->pSize != iter->tag)
+        {
+            /* Some different field in oneof */
+            return;
+        }
+    }
+    else if (!iter->pData)
     {
         /* Nothing allocated */
         if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED && iter->pSize != &iter->array_size)
