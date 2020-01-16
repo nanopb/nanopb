@@ -61,7 +61,7 @@ void validate_pointer(pb_field_iter_t *iter)
     if (!iter->pData)
     {
         /* Nothing allocated */
-        if (iter->pSize)
+        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED && iter->pSize != &iter->array_size)
         {
             assert(*(pb_size_t*)iter->pSize == 0);
         }
