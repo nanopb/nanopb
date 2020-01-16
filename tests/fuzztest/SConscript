@@ -1,6 +1,8 @@
 # Run a fuzz test to verify robustness against corrupted/malicious data.
 
 import time
+import zipfile
+import subprocess
 
 Import("env", "malloc_env")
 
@@ -49,8 +51,8 @@ fuzz = malloc_env.Program(["fuzztest.c",
                     "$COMMON/pb_common_with_malloc.o",
                     "$COMMON/malloc_wrappers.o"])
 
+# Run the stand-alone fuzz tester
 seed = int(time.time())
-
 if env.get('EMBEDDED'):
     iterations = 100
 else:
@@ -64,5 +66,36 @@ generate_message = malloc_env.Program(["generate_message.c",
                     "$COMMON/pb_common.o",
                     "$COMMON/malloc_wrappers.o"])
 
+# Test the message generator
 env.RunTest(generate_message, ARGS = [str(seed)])
 env.RunTest("generate_message.output.fuzzed", [fuzz, "generate_message.output"])
+
+# Run against the latest corpus from ossfuzz
+# This allows quick testing against regressions and also lets us more
+# completely test slow embedded targets.
+def run_against_corpus(target, source, env):
+    corpus = zipfile.ZipFile(str(source[1]), 'r')
+    count = 0
+    args = [str(source[0])]
+
+    if env.has_key("TEST_RUNNER"):
+        args = [env["TEST_RUNNER"]] + args
+
+    for filename in corpus.namelist():
+        if filename.endswith('/'):
+            continue
+
+        count += 1
+        process = subprocess.Popen(args, stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = process.communicate(input = corpus.read(filename))
+        result = process.wait()
+        if result != 0:
+            print(stdout)
+            print('\033[31m[FAIL]\033[0m   Program ' + str(args) + ' returned ' + str(result) + ' with input ' + filename + ' from ' + str(source[1]))
+            return result
+
+    open(str(target[0]), 'w').write(str(count))
+    print('\033[32m[ OK ]\033[0m   Ran ' + str(args) + " against " + str(source[1]) + " (" + str(count) + " entries)")
+
+env.Command("corpus.zip.fuzzed", [fuzz, "corpus.zip"], run_against_corpus)
