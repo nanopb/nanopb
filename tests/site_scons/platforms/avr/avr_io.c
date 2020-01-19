@@ -41,6 +41,8 @@ void abort(void)
 
 FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
 
+static char g_malloc_heap[8192];
+
 int main(void)
 {
     const char *argv[4] = {"main", g_args.args[0], g_args.args[1], g_args.args[2]};
@@ -49,8 +51,8 @@ int main(void)
     UBRR0 = (8000000 / (16UL * 9600)) - 1; /* 9600 bps with default 8 MHz clock */
     UCSR0B = _BV(TXEN0) | _BV(RXEN0);
     
-    /* This should be enough for the max stack usage in test cases */
-    __malloc_margin = 2048;
+    __malloc_heap_start = g_malloc_heap;
+    __malloc_heap_end = g_malloc_heap + sizeof(g_malloc_heap);
 
     stdout = stdin = stderr = &uart_str;
     

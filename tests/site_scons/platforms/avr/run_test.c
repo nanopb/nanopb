@@ -100,6 +100,7 @@ void init_uart()
     uint32_t flags = 0;
     avr_ioctl(g_avr, AVR_IOCTL_UART_GET_FLAGS('0'), &flags);
     flags &= ~AVR_UART_FLAG_STDIO;
+    flags &= ~AVR_UART_FLAG_POLL_SLEEP;
     avr_ioctl(g_avr, AVR_IOCTL_UART_SET_FLAGS('0'), &flags);
 
     avr_irq_t *src = avr_io_getirq(g_avr, AVR_IOCTL_UART_GETIRQ('0'), UART_IRQ_OUTPUT);
