@@ -33,11 +33,26 @@ static size_t g_bufsize = 2048;
 static size_t g_bufsize = 4096;
 #endif
 
+static uint32_t xor32_checksum(const void *data, size_t len)
+{
+    const uint8_t *buf = (const uint8_t*)data;
+    uint32_t checksum = 1234;
+    while (len--)
+    {
+        checksum ^= checksum << 13;
+        checksum ^= checksum >> 17;
+        checksum ^= checksum << 5;
+        checksum += *buf++;
+    }
+    return checksum;
+}
+
 static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
 {
     bool status;
     pb_istream_t stream;
     size_t initial_alloc_count = get_alloc_count();
+    uint8_t *buf2 = malloc_with_check(g_bufsize); /* This is just to match the amount of memory allocations in do_roundtrips(). */
     void *msg = malloc_with_check(structsize);
     alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
     pb_extension_t ext = pb_extension_init_zero;
@@ -72,6 +87,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
 
     pb_release(msgtype, msg);
     free_with_check(msg);
+    free_with_check(buf2);
     assert(get_alloc_count() == initial_alloc_count);
     
     return status;
@@ -160,9 +176,9 @@ static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert
 static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype)
 {
     bool status;
-    uint8_t *buf2 = malloc_with_check(g_bufsize);
-    uint8_t *buf3 = malloc_with_check(g_bufsize);
+    uint32_t checksum2, checksum3;
     size_t msglen2, msglen3;
+    uint8_t *buf2 = malloc_with_check(g_bufsize);
     void *msg = malloc_with_check(structsize);
 
     /* For proto2 types, we also test extension fields */
@@ -202,11 +218,12 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
         if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen2 = stream.bytes_written;
+        checksum2 = xor32_checksum(buf2, msglen2);
     }
     
     pb_release(msgtype, msg);
 
-    /* Then decode and encode again. Result should remain the same. */
+    /* Then decode from canonical format and re-encode. Result should remain the same. */
     {
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
         memset(msg, 0, structsize);
@@ -219,20 +236,20 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf3, g_bufsize);
+        pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
         status = pb_encode(&stream, msgtype, msg);
         if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen3 = stream.bytes_written;
+        checksum3 = xor32_checksum(buf2, msglen3);
     }
     
     assert(msglen2 == msglen3);
-    assert(memcmp(buf2, buf3, msglen2) == 0);
+    assert(checksum2 == checksum3);
     
     pb_release(msgtype, msg);
     free_with_check(msg);
     free_with_check(buf2);
-    free_with_check(buf3);
 }
 
 void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)

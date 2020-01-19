@@ -1,5 +1,6 @@
 # Run a fuzz test to verify robustness against corrupted/malicious data.
 
+import sys
 import time
 import zipfile
 import subprocess
@@ -81,9 +82,10 @@ def run_against_corpus(target, source, env):
     if env.has_key("TEST_RUNNER"):
         args = [env["TEST_RUNNER"]] + args
 
-    for filename in corpus.namelist():
-        if filename.endswith('/'):
-            continue
+    files = [n for n in corpus.namelist() if not n.endswith('/')]
+    for filename in files:
+        sys.stdout.write("Fuzzing: %5d/%5d: %-40.40s\r" % (count, len(files), filename))
+        sys.stdout.flush()
 
         count += 1
         process = subprocess.Popen(args, stdin=subprocess.PIPE,

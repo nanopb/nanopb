@@ -20,6 +20,10 @@ static size_t alloc_count = 0;
 #define MAX_REALLOC_SIZE 1024*1024
 #endif
 
+#ifndef DEBUG_MALLOC
+#define DEBUG_MALLOC 0
+#endif
+
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
@@ -30,11 +34,12 @@ void* malloc_with_check(size_t size)
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
         alloc_count++;
+        if (DEBUG_MALLOC) fprintf(stderr, "Alloc 0x%04x/%u\n", (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
         return buf + PREFIX_SIZE;
     }
     else
     {
-        fprintf(stderr, "malloc(%u) failed\n", (unsigned)size);
+        if (DEBUG_MALLOC) fprintf(stderr, "malloc(%u) failed\n", (unsigned)size);
         return NULL;
     }
 }
@@ -50,6 +55,7 @@ void free_with_check(void *mem)
         assert(((size_t*)(buf + size))[2] == CHECK2);
         assert(alloc_count > 0);
         alloc_count--;
+        if (DEBUG_MALLOC) fprintf(stderr, "Release 0x%04x/%u\n", (unsigned)(uintptr_t)mem, (unsigned)size);
         free(buf);
     }
 }
@@ -79,6 +85,8 @@ void* realloc_with_check(void *ptr, size_t size)
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
+
+        if (DEBUG_MALLOC) fprintf(stderr, "Realloc 0x%04x/%u to 0x%04x/%u\n", (unsigned)(uintptr_t)ptr, (unsigned)oldsize, (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
         return buf + PREFIX_SIZE;
     }
     else if (ptr && !size)
