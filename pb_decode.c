@@ -1547,8 +1547,11 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_
     if (!pb_decode_varint32(stream, &size))
         return false;
 
+    if (size == (uint32_t)-1)
+        PB_RETURN_ERROR(stream, "size too large");
+
     /* Space for null terminator */
-    alloc_size = (size_t)((size_t)size + 1);
+    alloc_size = (size_t)(size + 1);
 
     if (alloc_size < size)
         PB_RETURN_ERROR(stream, "size too large");
