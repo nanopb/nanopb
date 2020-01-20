@@ -21,7 +21,7 @@ static void HardFaultHandler()
     while(1);
 }
 
-void* const g_vector_table[] __attribute__((section(".isr_vector"))) = {
+void* const g_vector_table[16] __attribute__((section(".isr_vector"))) = {
     (void*)&__StackTop,
     (void*)&_start,
     (void*)&HardFaultHandler,

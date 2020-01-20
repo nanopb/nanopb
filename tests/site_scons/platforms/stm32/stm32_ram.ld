@@ -46,8 +46,8 @@ SECTIONS
 {
 	.text :
 	{
-	    KEEP(*(.ramboot))
 		KEEP(*(.isr_vector))
+	    KEEP(*(.ramboot))
 		*(.text*)
 
 		KEEP(*(.init))
