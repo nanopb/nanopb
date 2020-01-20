@@ -4,17 +4,13 @@
 #include <pb_decode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
-
-#define TEST(x) if (!(x)) { \
-    fprintf(stderr, "Test " #x " failed.\n"); \
-    status = false; \
-    }
+#include "unittests.h"
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
 bool check_alltypes(pb_istream_t *stream, int mode)
 {
-    bool status = true;
+    int status = 0;
     AllTypes alltypes;
     
     /* Fill with garbage to better detect initialization errors */
@@ -168,7 +164,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
     pb_release(AllTypes_fields, &alltypes);
 
-    return status;
+    return status == 0;
 }
 
 int main(int argc, char **argv)

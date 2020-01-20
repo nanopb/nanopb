@@ -11,7 +11,7 @@
 #include "test_helpers.h"
 
 #define TEST(x) if (!(x)) { \
-    printf("Test " #x " failed (in field %d).\n", field->tag); \
+    printf("Test %s failed (in field %d).\n", #x, field->tag); \
     return false; \
     }
 

@@ -8,7 +8,7 @@
 #include "mem_release.pb.h"
 
 #define TEST(x) if (!(x)) { \
-    fprintf(stderr, "Test " #x " on line %d failed.\n", __LINE__); \
+    fprintf(stderr, "Test %s on line %d failed.\n", #x, __LINE__); \
     return false; \
     }
 
