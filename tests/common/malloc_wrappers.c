@@ -82,6 +82,12 @@ void* realloc_with_check(void *ptr, size_t size)
         assert(alloc_count > 0);
 
         buf = realloc(buf, size + GUARD_SIZE);
+        if (!buf)
+        {
+            if (DEBUG_MALLOC) fprintf(stderr, "Realloc 0x%04x/%u to %u failed\n", (unsigned)(uintptr_t)ptr, (unsigned)oldsize, (unsigned)size);
+            return NULL;
+        }
+
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
