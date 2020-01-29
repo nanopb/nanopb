@@ -912,14 +912,14 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb
 bool pb_encode_float_as_double(pb_ostream_t *stream, float value)
 {
     union { float f; uint32_t i; } in;
-    uint8_t sign;
+    uint_least8_t sign;
     int exponent;
     uint64_t mantissa;
 
     in.f = value;
 
     /* Decompose input value */
-    sign = (uint8_t)((in.i >> 31) & 1);
+    sign = (uint_least8_t)((in.i >> 31) & 1);
     exponent = (int)((in.i >> 23) & 0xFF) - 127;
     mantissa = in.i & 0x7FFFFF;
 

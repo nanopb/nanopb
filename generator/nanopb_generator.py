@@ -1092,7 +1092,7 @@ class Message:
         defval = self.default_value(dependencies)
         if defval:
             hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
-            result += '#define %s_DEFAULT (const uint8_t*)"%s\\x00"\n' % (self.name, hexcoded)
+            result += '#define %s_DEFAULT (const pb_byte_t*)"%s\\x00"\n' % (self.name, hexcoded)
         else:
             result += '#define %s_DEFAULT NULL\n' % self.name
 

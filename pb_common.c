@@ -9,8 +9,8 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     uint32_t word0;
     uint32_t data_offset;
-    uint8_t format;
-    int8_t size_offset;
+    uint_least8_t format;
+    int_least8_t size_offset;
 
     if (iter->index >= iter->descriptor->field_count)
         return false;
@@ -24,7 +24,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     {
         /* 1-word format */
         iter->array_size = 1;
-        size_offset = (int8_t)((word0 >> 24) & 0x0F);
+        size_offset = (int_least8_t)((word0 >> 24) & 0x0F);
         data_offset = (word0 >> 16) & 0xFF;
         iter->data_size = (pb_size_t)((word0 >> 28) & 0x0F);
     }
@@ -35,7 +35,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 
         iter->array_size = (pb_size_t)((word0 >> 16) & 0x0FFF);
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 28) << 6));
-        size_offset = (int8_t)((word0 >> 28) & 0x0F);
+        size_offset = (int_least8_t)((word0 >> 28) & 0x0F);
         data_offset = word1 & 0xFFFF;
         iter->data_size = (pb_size_t)((word1 >> 16) & 0x0FFF);
     }
@@ -48,7 +48,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 
         iter->array_size = (pb_size_t)(word0 >> 16);
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
-        size_offset = (int8_t)(word1 & 0xFF);
+        size_offset = (int_least8_t)(word1 & 0xFF);
         data_offset = word2;
         iter->data_size = (pb_size_t)word3;
     }
@@ -62,7 +62,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 
         iter->array_size = (pb_size_t)word4;
         iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
-        size_offset = (int8_t)(word1 & 0xFF);
+        size_offset = (int_least8_t)(word1 & 0xFF);
         data_offset = word2;
         iter->data_size = (pb_size_t)word3;
     }

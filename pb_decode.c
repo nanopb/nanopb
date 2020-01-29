@@ -204,7 +204,7 @@ static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *d
             if (bitpos >= 32)
             {
                 /* Note: The varint could have trailing 0x80 bytes, or 0xFF for negative. */
-                uint8_t sign_extension = (bitpos < 63) ? 0xFF : 0x01;
+                pb_byte_t sign_extension = (bitpos < 63) ? 0xFF : 0x01;
                 
                 if ((byte & 0x7F) != 0x00 && ((result >> 31) == 0 || byte != sign_extension))
                 {
@@ -1135,7 +1135,7 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
             if ((req_field_count & 31) != 0)
             {
                 if (fields_seen.bitfield[req_field_count >> 5] !=
-                    (allbits >> (uint8_t)(32 - (req_field_count & 31))))
+                    (allbits >> (uint_least8_t)(32 - (req_field_count & 31))))
                 {
                     PB_RETURN_ERROR(stream, "missing required field");
                 }
@@ -1666,7 +1666,7 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, const pb
 #ifdef PB_CONVERT_DOUBLE_FLOAT
 bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
 {
-    uint8_t sign;
+    uint_least8_t sign;
     int exponent;
     uint32_t mantissa;
     uint64_t value;
@@ -1676,7 +1676,7 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
         return false;
 
     /* Decompose input value */
-    sign = (uint8_t)((value >> 63) & 1);
+    sign = (uint_least8_t)((value >> 63) & 1);
     exponent = (int)((value >> 52) & 0x7FF) - 1023;
     mantissa = (value >> 28) & 0xFFFFFF; /* Highest 24 bits */
 
