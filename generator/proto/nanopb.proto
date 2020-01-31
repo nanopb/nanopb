@@ -131,6 +131,9 @@ message NanoPBOptions {
 
   // Extra files to include in generated `.pb.h`
   repeated string include = 24;
+
+  // Package name that applies only for nanopb.
+  optional string package = 25;
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

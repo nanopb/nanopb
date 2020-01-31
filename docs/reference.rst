@@ -102,6 +102,9 @@ fixed_length                   Generate 'bytes' fields with constant length
                                (max_size must also be defined).
 fixed_count                    Generate arrays with constant length
                                (max_count must also be defined).
+package                        Package name that applies only for nanopb
+                               generator, as opposed to the .proto file
+                               *package* keyword that applies for all languages.
 ============================  ================================================
 
 These options can be defined for the .proto files before they are converted

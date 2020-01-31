@@ -1333,6 +1333,10 @@ class ProtoFile:
             replacement_prefix = ""
             for part in self.fdesc.package.split("."):
                 replacement_prefix += part[0]
+        elif self.file_options.package:
+            strip_prefix = "." + self.fdesc.package
+            replacement_prefix = self.file_options.package
+
 
         def create_name(names):
             if mangle_names == nanopb_pb2.M_NONE or mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
@@ -1353,14 +1357,15 @@ class ProtoFile:
                     return "." + replacement_prefix + typename[len(strip_prefix):]
                 else:
                     return typename[len(strip_prefix):]
+            elif self.file_options.package:
+                return "." + replacement_prefix + typename
             else:
                 return typename
 
-        if self.fdesc.package:
-            if replacement_prefix is not None:
-                base_name = Names(replacement_prefix)
-            else:
-                base_name = Names(self.fdesc.package.split('.'))
+        if replacement_prefix is not None:
+            base_name = Names(replacement_prefix.split('.'))
+        elif self.fdesc.package:
+            base_name = Names(self.fdesc.package.split('.'))
         else:
             base_name = Names()
 
@@ -1390,6 +1395,11 @@ class ProtoFile:
         for names, extension in iterate_extensions(self.fdesc, flatten):
             name = create_name(names + extension.name)
             field_options = get_nanopb_suboptions(extension, self.file_options, name)
+
+            extension = copy.deepcopy(extension)
+            if extension.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
+                extension.type_name = mangle_field_typename(extension.type_name)
+
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.extensions.append(ExtensionField(name, extension, field_options))
 
