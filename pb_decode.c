@@ -1631,7 +1631,7 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     /* Now decode the submessage contents */
     if (status)
     {
-        status = pb_decode_noinit(&substream, field->submsg_desc, field->pData);
+        status = pb_decode_inner(&substream, field->submsg_desc, field->pData, 0);
     }
     
     if (!pb_close_string_substream(stream, &substream))
