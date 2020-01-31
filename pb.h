@@ -34,12 +34,6 @@
    or to save some code space. */
 /* #define PB_WITHOUT_64BIT 1 */
 
-/* Set the fieldinfo width for all messages using automatic width
- * selection. Valid values are 2, 4 and 8. Usually even if you need
- * to change the width manually for some reason, it is preferrable
- * to do so through the descriptorsize option in .options file. */
-/* #define PB_FIELDINFO_WIDTH 4 */
-
 /* Don't encode scalar arrays as packed. This is only to be used when
  * the decoder on the receiving side cannot process packed scalar arrays.
  * Such example is older protobuf.js. */
@@ -728,9 +722,10 @@ struct pb_extension_s {
 
 /* Automatic picking of FIELDINFO width:
  * Uses width 1 when possible, otherwise resorts to width 2.
+ * This is used when PB_BIND() is called with "AUTO" as the argument.
+ * The generator will give explicit size argument when it knows that a message
+ * structure grows beyond 1-word format limits.
  */
-
-#ifndef PB_FIELDINFO_WIDTH
 #define PB_FIELDINFO_WIDTH_AUTO(atype, htype, ltype) PB_FIELDINFO_WIDTH_ ## atype(htype, ltype)
 #define PB_FIELDINFO_WIDTH_STATIC(htype, ltype) PB_FIELDINFO_WIDTH_ ## htype(ltype)
 #define PB_FIELDINFO_WIDTH_POINTER(htype, ltype) PB_FIELDINFO_WIDTH_ ## htype(ltype)
@@ -762,9 +757,6 @@ struct pb_extension_s {
 #define PB_FIELDINFO_WIDTH_UINT64    1
 #define PB_FIELDINFO_WIDTH_EXTENSION 1
 #define PB_FIELDINFO_WIDTH_FIXED_LENGTH_BYTES 2
-#else
-#define PB_FIELDINFO_WIDTH_AUTO(atype, htype, ltype) PB_FIELDINFO_WIDTH
-#endif
 
 /* The mapping from protobuf types to LTYPEs is done using these macros. */
 #define PB_LTYPE_MAP_BOOL               PB_LTYPE_BOOL
