@@ -670,12 +670,25 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 
                 while (substream.bytes_left)
                 {
+                    if (*size == PB_SIZE_MAX)
+                    {
+#ifndef PB_NO_ERRMSG
+                        stream->errmsg = "too many array entries";
+#endif
+                        status = false;
+                        break;
+                    }
+
                     if ((size_t)*size + 1 > allocated_size)
                     {
                         /* Allocate more storage. This tries to guess the
                          * number of remaining entries. Round the division
                          * upwards. */
-                        allocated_size += (substream.bytes_left - 1) / field->data_size + 1;
+                        size_t remain = (substream.bytes_left - 1) / field->data_size + 1;
+                        if (remain < PB_SIZE_MAX - allocated_size)
+                            allocated_size += remain;
+                        else
+                            allocated_size += 1;
                         
                         if (!allocate_field(&substream, field->pField, field->data_size, allocated_size))
                         {
@@ -689,15 +702,6 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                     initialize_pointer_field(field->pData, field);
                     if (!decode_basic_field(&substream, field))
                     {
-                        status = false;
-                        break;
-                    }
-                    
-                    if (*size == PB_SIZE_MAX)
-                    {
-#ifndef PB_NO_ERRMSG
-                        stream->errmsg = "too many array entries";
-#endif
                         status = false;
                         break;
                     }
