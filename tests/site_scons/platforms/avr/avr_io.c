@@ -30,18 +30,23 @@ int uart_getchar(FILE *stream)
     return UDR0;
 }
 
+FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
+static char g_malloc_heap[8192];
+extern uint32_t __bss_end;
+
 void abort(void)
 {
+    if (__bss_end != 0xDEADBEEF)
+    {
+        fprintf(stderr, "possible stack overflow\n");
+    }
+
     fprintf(stderr, "abort() called\n");
     DDRB = 3;
     PORTB = 1;
     cli();
     while (1) sleep_mode();
 }
-
-FILE uart_str = FDEV_SETUP_STREAM(uart_putchar, uart_getchar, _FDEV_SETUP_RW);
-
-static char g_malloc_heap[8192];
 
 int main(void)
 {
@@ -54,11 +59,19 @@ int main(void)
     __malloc_heap_start = g_malloc_heap;
     __malloc_heap_end = g_malloc_heap + sizeof(g_malloc_heap);
 
+    __bss_end = 0xDEADBEEF;
+
     stdout = stdin = stderr = &uart_str;
     
     fread((char*)&g_args, 1, sizeof(g_args), stdin);
     
     status = app_main(g_args.argc + 1, argv);
+
+    if (__bss_end != 0xDEADBEEF)
+    {
+        status = 255;
+        fprintf(stderr, "possible stack overflow\n");
+    }
 
     DDRB = 3;
     if (status)

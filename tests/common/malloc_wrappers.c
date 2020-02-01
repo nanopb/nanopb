@@ -9,8 +9,6 @@
 #include <assert.h>
 #include <string.h>
 
-static size_t alloc_count = 0;
-
 #define GUARD_SIZE (sizeof(size_t)*3)
 #define PREFIX_SIZE (sizeof(size_t)*2)
 #define CHECK1 ((size_t)0xDEADBEEF)
@@ -24,6 +22,9 @@ static size_t alloc_count = 0;
 #define DEBUG_MALLOC 0
 #endif
 
+static size_t g_alloc_count = 0;
+static size_t g_max_realloc_size = MAX_REALLOC_SIZE;
+
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
@@ -33,7 +34,7 @@ void* malloc_with_check(size_t size)
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
-        alloc_count++;
+        g_alloc_count++;
         if (DEBUG_MALLOC) fprintf(stderr, "Alloc 0x%04x/%u\n", (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
         return buf + PREFIX_SIZE;
     }
@@ -51,11 +52,11 @@ void free_with_check(void *mem)
     {
         char *buf = (char*)mem - PREFIX_SIZE;
         size_t size = ((size_t*)buf)[0];
+        if (DEBUG_MALLOC) fprintf(stderr, "Release 0x%04x/%u\n", (unsigned)(uintptr_t)mem, (unsigned)size);
         assert(((size_t*)buf)[1] == CHECK1);
         assert(((size_t*)(buf + size))[2] == CHECK2);
-        assert(alloc_count > 0);
-        alloc_count--;
-        if (DEBUG_MALLOC) fprintf(stderr, "Release 0x%04x/%u\n", (unsigned)(uintptr_t)mem, (unsigned)size);
+        assert(g_alloc_count > 0);
+        g_alloc_count--;
         free(buf);
     }
 }
@@ -64,7 +65,7 @@ void free_with_check(void *mem)
 void* realloc_with_check(void *ptr, size_t size)
 {
     /* Don't allocate crazy amounts of RAM when fuzzing */
-    if (size > MAX_REALLOC_SIZE)
+    if (size > g_max_realloc_size)
         return NULL;
     
     if (!ptr && size)
@@ -79,7 +80,7 @@ void* realloc_with_check(void *ptr, size_t size)
         size_t oldsize = ((size_t*)buf)[0];
         assert(((size_t*)buf)[1] == CHECK1);
         assert(((size_t*)(buf + oldsize))[2] == CHECK2);
-        assert(alloc_count > 0);
+        assert(g_alloc_count > 0);
 
         buf = realloc(buf, size + GUARD_SIZE);
         if (!buf)
@@ -111,7 +112,7 @@ void* realloc_with_check(void *ptr, size_t size)
 /* Return total number of allocations not yet released */
 size_t get_alloc_count()
 {
-    return alloc_count;
+    return g_alloc_count;
 }
 
 /* Return allocated size for a pointer returned from malloc(). */
@@ -120,3 +121,10 @@ size_t get_allocation_size(const void *mem)
     char *buf = (char*)mem - PREFIX_SIZE;
     return ((size_t*)buf)[0];
 }
+
+/* Set limit for allocation size */
+void set_max_realloc_size(size_t max_size)
+{
+    g_max_realloc_size = max_size;
+}
+
