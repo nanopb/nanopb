@@ -255,6 +255,7 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
 void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 {
     size_t initial_alloc_count = get_alloc_count();
+    size_t orig_max_alloc_bytes = get_max_alloc_bytes();
 
     /* Check decoding as static fields */
     if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
@@ -290,6 +291,12 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
     }
     
+    /* Test decoding when memory size is limited */
+    set_max_alloc_bytes(get_alloc_bytes() + 1024);
+    do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
+    do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, false);
+    set_max_alloc_bytes(orig_max_alloc_bytes);
+
     /* Test decoding on a failing stream */
     do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
     do_stream_decode(data, size, size - 16, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, false);

@@ -14,8 +14,8 @@
 #define CHECK1 ((size_t)0xDEADBEEF)
 #define CHECK2 ((size_t)0x600DCAFE)
 
-#ifndef MAX_REALLOC_SIZE
-#define MAX_REALLOC_SIZE 1024*1024
+#ifndef MAX_ALLOC_BYTES
+#define MAX_ALLOC_BYTES 16*1024*1024
 #endif
 
 #ifndef DEBUG_MALLOC
@@ -23,18 +23,26 @@
 #endif
 
 static size_t g_alloc_count = 0;
-static size_t g_max_realloc_size = MAX_REALLOC_SIZE;
+static size_t g_alloc_bytes = 0;
+static size_t g_max_alloc_bytes = MAX_ALLOC_BYTES;
 
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
-    char *buf = malloc(size + GUARD_SIZE);
+    char *buf = NULL;
+
+    if (g_alloc_bytes + size <= g_max_alloc_bytes)
+    {
+        buf = malloc(size + GUARD_SIZE);
+    }
+
     if (buf)
     {
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
         g_alloc_count++;
+        g_alloc_bytes += size;
         if (DEBUG_MALLOC) fprintf(stderr, "Alloc 0x%04x/%u\n", (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
         return buf + PREFIX_SIZE;
     }
@@ -56,7 +64,9 @@ void free_with_check(void *mem)
         assert(((size_t*)buf)[1] == CHECK1);
         assert(((size_t*)(buf + size))[2] == CHECK2);
         assert(g_alloc_count > 0);
+        assert(g_alloc_bytes >= size);
         g_alloc_count--;
+        g_alloc_bytes -= size;
         free(buf);
     }
 }
@@ -64,10 +74,6 @@ void free_with_check(void *mem)
 /* Reallocate block and check / write guard values */
 void* realloc_with_check(void *ptr, size_t size)
 {
-    /* Don't allocate crazy amounts of RAM when fuzzing */
-    if (size > g_max_realloc_size)
-        return NULL;
-    
     if (!ptr && size)
     {
         /* Allocate new block and write guard values */
@@ -81,8 +87,17 @@ void* realloc_with_check(void *ptr, size_t size)
         assert(((size_t*)buf)[1] == CHECK1);
         assert(((size_t*)(buf + oldsize))[2] == CHECK2);
         assert(g_alloc_count > 0);
+        assert(g_alloc_bytes >= oldsize);
 
-        buf = realloc(buf, size + GUARD_SIZE);
+        if (g_alloc_bytes - oldsize + size <= g_max_alloc_bytes)
+        {
+            buf = realloc(buf, size + GUARD_SIZE);
+        }
+        else
+        {
+            buf = NULL;
+        }
+
         if (!buf)
         {
             if (DEBUG_MALLOC) fprintf(stderr, "Realloc 0x%04x/%u to %u failed\n", (unsigned)(uintptr_t)ptr, (unsigned)oldsize, (unsigned)size);
@@ -92,6 +107,8 @@ void* realloc_with_check(void *ptr, size_t size)
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
         ((size_t*)(buf + size))[2] = CHECK2;
+        g_alloc_bytes -= oldsize;
+        g_alloc_bytes += size;
 
         if (DEBUG_MALLOC) fprintf(stderr, "Realloc 0x%04x/%u to 0x%04x/%u\n", (unsigned)(uintptr_t)ptr, (unsigned)oldsize, (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
         return buf + PREFIX_SIZE;
@@ -122,9 +139,19 @@ size_t get_allocation_size(const void *mem)
     return ((size_t*)buf)[0];
 }
 
-/* Set limit for allocation size */
-void set_max_realloc_size(size_t max_size)
+/* Get total number of allocated bytes */
+size_t get_alloc_bytes()
 {
-    g_max_realloc_size = max_size;
+    return g_alloc_bytes;
 }
 
+/* Set limit for allocation size */
+void set_max_alloc_bytes(size_t max_bytes)
+{
+    g_max_alloc_bytes = max_bytes;
+}
+
+size_t get_max_alloc_bytes()
+{
+    return g_max_alloc_bytes;
+}
