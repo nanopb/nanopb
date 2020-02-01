@@ -1,4 +1,5 @@
 import subprocess
+import os.path
 
 def has_grpcio_protoc():
     # type: () -> bool
@@ -24,6 +25,15 @@ def invoke_protoc(argv):
     """
     if has_grpcio_protoc():
         import grpc_tools.protoc as protoc
+        import pkg_resources
+        proto_include = pkg_resources.resource_filename('grpc_tools', '_proto')
+        nanopb_include = os.path.dirname(os.path.abspath(__file__))
+
+        if not [x for x in argv if x.startswith('-I')]:
+            argv = argv + ["-I."]
+
+        argv = argv + ['-I' + proto_include, '-I' + nanopb_include]
+
         return protoc.main(argv)
     else:
         return subprocess.check_call(argv)
