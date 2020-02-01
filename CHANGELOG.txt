@@ -1,3 +1,8 @@
+nanopb-0.3.9.5 (2020-02-02)
+ Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
+ Add workaround for avr-libc realloc() bug (#475)
+ Fix empty submessages getting encoded in proto3 mode (#395)
+
 nanopb-0.3.9.4 (2019-10-13)
  Fix undefined behavior with bool fields (#434)
  Fix enum min/max defines when values are not in order (#405)
