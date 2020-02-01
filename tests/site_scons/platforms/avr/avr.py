@@ -15,10 +15,12 @@ def set_avr_platform(env):
                              '__ASSERT_USE_STDERR': 1, 'MAX_REALLOC_SIZE': '4096',
                              'FUZZTEST_BUFSIZE': 2048})
     env.Append(LINKFLAGS = "-mmcu=atmega1284")
-    env.Append(LINKFLAGS = "build/avr_io.o -Wl,-Map,avr.map")
-    avr_io = env.Object("build/avr_io.o", "site_scons/platforms/avr/avr_io.c")
+    env.Append(LINKFLAGS = "-Wl,-Map,build/avr.map")
+
+    # Build library for communicating with test runner
+    avr_io = env.Library("build/avr_io.o", "site_scons/platforms/avr/avr_io.c")
+    env.Append(LIBS = avr_io)
     
-    # These fake defines just ensure that the needed platform files get built.
-    env.Depends("build/common/pb_common.o", runner)
-    env.Depends("build/common/pb_common.o", avr_io)
-    
+    # This fake define just ensures that the test runner gets build also
+    env.Depends(avr_io, runner)
+
