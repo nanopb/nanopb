@@ -998,14 +998,13 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
     const uint32_t allbits = ~(uint32_t)0;
     pb_field_iter_t iter;
 
-    /* Return value ignored, as empty message types will be correctly handled by
-     * pb_field_iter_find() anyway. */
-    (void)pb_field_iter_begin(&iter, fields, dest_struct);
-
-    if ((flags & PB_DECODE_NOINIT) == 0)
+    if (pb_field_iter_begin(&iter, fields, dest_struct))
     {
-        if (!pb_message_set_to_defaults(&iter))
-            PB_RETURN_ERROR(stream, "failed to set defaults");
+        if ((flags & PB_DECODE_NOINIT) == 0)
+        {
+            if (!pb_message_set_to_defaults(&iter))
+                PB_RETURN_ERROR(stream, "failed to set defaults");
+        }
     }
 
     while (stream->bytes_left)
