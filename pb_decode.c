@@ -1002,6 +1002,12 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
      * pb_field_iter_find() anyway. */
     (void)pb_field_iter_begin(&iter, fields, dest_struct);
 
+    if ((flags & PB_DECODE_NOINIT) == 0)
+    {
+        if (!pb_message_set_to_defaults(&iter))
+            PB_RETURN_ERROR(stream, "failed to set defaults");
+    }
+
     while (stream->bytes_left)
     {
         uint32_t tag;
@@ -1150,17 +1156,6 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
 {
     bool status;
 
-    if ((flags & PB_DECODE_NOINIT) == 0)
-    {
-        pb_field_iter_t iter;
-
-        if (pb_field_iter_begin(&iter, fields, dest_struct))
-        {
-            if (!pb_message_set_to_defaults(&iter))
-                PB_RETURN_ERROR(stream, "failed to set defaults");
-        }
-    }
-
     if ((flags & PB_DECODE_DELIMITED) == 0)
     {
       status = pb_decode_inner(stream, fields, dest_struct, flags);
@@ -1187,7 +1182,16 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
 
 bool checkreturn pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct)
 {
-  return pb_decode_ex(stream, fields, dest_struct, 0);
+    bool status;
+
+    status = pb_decode_inner(stream, fields, dest_struct, 0);
+
+#ifdef PB_ENABLE_MALLOC
+    if (!status)
+        pb_release(fields, dest_struct);
+#endif
+
+    return status;
 }
 
 #ifdef PB_ENABLE_MALLOC
