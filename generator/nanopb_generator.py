@@ -1860,7 +1860,7 @@ def process_file(filename, fdesc, options, other_files = {}):
 
     # List of .proto files that should not be included in the C header file
     # even if they are mentioned in the source .proto.
-    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude
+    excludes = ['nanopb.proto', 'google/protobuf/descriptor.proto'] + options.exclude + list(f.file_options.exclude)
     includes = [d for d in f.fdesc.dependency if d not in excludes]
 
     headerdata = ''.join(f.generate_header(includes, headerbasename, options))

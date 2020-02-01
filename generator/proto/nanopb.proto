@@ -132,6 +132,10 @@ message NanoPBOptions {
   // Extra files to include in generated `.pb.h`
   repeated string include = 24;
 
+  // Automatic includes to exlude from generated `.pb.h`
+  // Same as nanopb_generator.py command line flag -x.
+  repeated string exclude = 26;
+
   // Package name that applies only for nanopb.
   optional string package = 25;
 }
