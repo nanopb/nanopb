@@ -655,11 +655,11 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 if (*size == PB_SIZE_MAX)
                     PB_RETURN_ERROR(stream, "too many array entries");
                 
-                (*size)++;
-                if (!allocate_field(stream, iter->pData, iter->pos->data_size, *size))
+                if (!allocate_field(stream, iter->pData, iter->pos->data_size, (size_t)(*size + 1)))
                     return false;
             
-                pItem = *(char**)iter->pData + iter->pos->data_size * (*size - 1);
+                pItem = *(char**)iter->pData + iter->pos->data_size * (*size);
+                (*size)++;
                 initialize_pointer_field(pItem, iter);
                 return func(stream, iter->pos, pItem);
             }
