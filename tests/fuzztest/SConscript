@@ -88,11 +88,18 @@ def run_against_corpus(target, source, env):
         sys.stdout.flush()
 
         count += 1
-        process = subprocess.Popen(args, stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = process.communicate(input = corpus.read(filename))
-        result = process.wait()
+
+        try:
+            process = subprocess.Popen(args, stdin=subprocess.PIPE,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate(input = corpus.read(filename))
+            result = process.wait()
+        except Exception as e:
+            print('Exception when fuzzing against ' + filename + ": " + str(e))
+            raise
+
         if result != 0:
+            stdout += stderr
             print(stdout)
             print('\033[31m[FAIL]\033[0m   Program ' + str(args) + ' returned ' + str(result) + ' with input ' + filename + ' from ' + str(source[1]))
             return result
