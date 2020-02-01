@@ -1,3 +1,7 @@
+nanopb-0.2.9.4 (2020-02-02)
+ Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
+ Add workaround for avr-libc realloc() bug (#475)
+
 nanopb-0.2.9.3 (2016-06-19)
  Protect against corrupted _count fields in pb_release (#205)
 
