@@ -31,7 +31,7 @@ void* malloc_with_check(size_t size)
 {
     char *buf = NULL;
 
-    if (g_alloc_bytes + size <= g_max_alloc_bytes)
+    if (size <= g_max_alloc_bytes - g_alloc_bytes)
     {
         buf = malloc(size + GUARD_SIZE);
     }
@@ -89,7 +89,7 @@ void* realloc_with_check(void *ptr, size_t size)
         assert(g_alloc_count > 0);
         assert(g_alloc_bytes >= oldsize);
 
-        if (g_alloc_bytes - oldsize + size <= g_max_alloc_bytes)
+        if (size <= g_max_alloc_bytes - (g_alloc_bytes - oldsize))
         {
             buf = realloc(buf, size + GUARD_SIZE);
         }
