@@ -720,11 +720,11 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 if (!check_wire_type(wire_type, field))
                     PB_RETURN_ERROR(stream, "wrong wire type");
 
-                (*size)++;
-                if (!allocate_field(stream, field->pField, field->data_size, *size))
+                if (!allocate_field(stream, field->pField, field->data_size, (size_t)(*size + 1)))
                     return false;
             
-                field->pData = *(char**)field->pField + field->data_size * (*size - 1);
+                field->pData = *(char**)field->pField + field->data_size * (*size);
+                (*size)++;
                 initialize_pointer_field(field->pData, field);
                 return decode_basic_field(stream, field);
             }
