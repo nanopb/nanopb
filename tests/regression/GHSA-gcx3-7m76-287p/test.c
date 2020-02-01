@@ -29,7 +29,7 @@ int main()
     stream.state = stdin;
     SET_BINARY_MODE(stdin);
 
-    set_max_realloc_size(512);
+    set_max_alloc_bytes(512);
 
     status = pb_decode(&stream, MyMessage_fields, &msg);
     assert(!status);
