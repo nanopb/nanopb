@@ -8,6 +8,7 @@ def set_stm32_platform(env):
     env.Replace(CC  = "arm-none-eabi-gcc",
                 CXX = "arm-none-eabi-g++")
     env.Replace(TEST_RUNNER = "site_scons/platforms/stm32/run_test.sh")
+    env.Append(CPPDEFINES = {'FUZZTEST_BUFSIZE': 4096})
     env.Append(CFLAGS = "-mcpu=cortex-m3 -mthumb -Os")
     env.Append(CXXFLAGS = "-mcpu=cortex-m3 -mthumb -Os")
     env.Append(LINKFLAGS = "-mcpu=cortex-m3 -mthumb")

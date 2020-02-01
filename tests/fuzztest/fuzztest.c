@@ -25,13 +25,13 @@
 #include "alltypes_proto3_pointer.pb.h"
 
 /* Longer buffer size allows hitting more branches, but lowers performance. */
-#if defined(LLVMFUZZER)
-static size_t g_bufsize = 256*1024;
-#elif defined(__AVR__)
-static size_t g_bufsize = 2048;
-#else
-static size_t g_bufsize = 4096;
+#ifndef FUZZTEST_BUFSIZE
+#define FUZZTEST_BUFSIZE 256*1024
 #endif
+#ifndef FUZZTEST_MAX_STANDALONE_BUFSIZE
+#define FUZZTEST_MAX_STANDALONE_BUFSIZE 16384
+#endif
+static size_t g_bufsize = FUZZTEST_BUFSIZE;
 
 static uint32_t xor32_checksum(const void *data, size_t len)
 {
@@ -393,6 +393,9 @@ int main(int argc, char **argv)
     if (argc >= 2)
     {
         /* Run in stand-alone mode */
+        if (g_bufsize > FUZZTEST_MAX_STANDALONE_BUFSIZE)
+            g_bufsize = FUZZTEST_MAX_STANDALONE_BUFSIZE;
+
         random_set_seed(strtoul(argv[1], NULL, 0));
         iterations = (argc >= 3) ? atol(argv[2]) : 10000;
 
@@ -411,8 +414,16 @@ int main(int argc, char **argv)
         buffer = malloc_with_check(g_bufsize);
 
         SET_BINARY_MODE(stdin);
-        msglen = fread(buffer, 1, g_bufsize, stdin);
+        msglen = fread(buffer, 1, g_bufsize/2, stdin);
         LLVMFuzzerTestOneInput(buffer, msglen);
+
+        while (!feof(stdin))
+        {
+            /* Read any leftover input data if our buffer is smaller than
+             * message size. */
+            fprintf(stderr, "Warning: input message too long\n");
+            fread(buffer, 1, g_bufsize, stdin);
+        }
 
         free_with_check(buffer);
     }

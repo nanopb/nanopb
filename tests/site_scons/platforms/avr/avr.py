@@ -12,7 +12,8 @@ def set_avr_platform(env):
     env.Append(CFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
     env.Append(CXXFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os -Wno-type-limits")
     env.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1, 'UNITTESTS_SHORT_MSGS': 1,
-                             '__ASSERT_USE_STDERR': 1, 'MAX_REALLOC_SIZE': '4096'})
+                             '__ASSERT_USE_STDERR': 1, 'MAX_REALLOC_SIZE': '4096',
+                             'FUZZTEST_BUFSIZE': 2048})
     env.Append(LINKFLAGS = "-mmcu=atmega1284")
     env.Append(LINKFLAGS = "build/avr_io.o -Wl,-Map,avr.map")
     avr_io = env.Object("build/avr_io.o", "site_scons/platforms/avr/avr_io.c")
