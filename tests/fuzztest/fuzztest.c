@@ -424,12 +424,12 @@ int main(int argc, char **argv)
         msglen = fread(buffer, 1, g_bufsize/2, stdin);
         LLVMFuzzerTestOneInput(buffer, msglen);
 
-        while (!feof(stdin))
+        if (!feof(stdin))
         {
             /* Read any leftover input data if our buffer is smaller than
              * message size. */
             fprintf(stderr, "Warning: input message too long\n");
-            fread(buffer, 1, g_bufsize, stdin);
+            while (fread(buffer, 1, g_bufsize, stdin) == g_bufsize);
         }
 
         free_with_check(buffer);
