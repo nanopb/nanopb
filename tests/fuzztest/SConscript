@@ -89,7 +89,7 @@ def run_against_corpus(target, source, env):
 
         count += 1
 
-        maxsize = env['CPPDEFINES'].get('FUZZTEST_BUFSIZE', 256*1024)
+        maxsize = env.get('CPPDEFINES', {}).get('FUZZTEST_BUFSIZE', 256*1024)
         data_in = corpus.read(filename)[:maxsize]
 
         try:
