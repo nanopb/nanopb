@@ -1,3 +1,25 @@
+nanopb-0.4.1 (2019-02-02)
+ Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
+ Avoid overflows in allocation for packed fields.
+ Verify stream size before allocating string / bytes.
+ Add workaround for avr-libc realloc() bug (#475)
+ Fix bug with field numbers >255 (#407)
+ Fix compilation error on platforms without uint8_t (#485)
+ Fix warnings on Python3.8 (#399, #467)
+ Make fixed_count option work when combined with FT_POINTER.
+ Add missing #define for submsg callbacks, add regression test (#472)
+ Fix ImportError when using generator/protoc with Python 3
+ Remove accidental debug code in generator
+ Reduce stack usage (#484)
+ Remove PB_FIELDINFO_WIDTH option (#473)
+ Add nanopb-specific package name option (#422)
+ Add testcase for Any type (#163)
+ Add exclude option also from .proto/.options
+ Set default include path in the grpc_tools protoc wrapper.
+ Add workaround for python-protobuf 3.6.1 bug (#478)
+ Detect invalid wire type when decoding fields.
+ Improved fuzz testing
+
 nanopb-0.4.0 (2019-12-20)
  New field descriptor format.
  Make nanopb_generator automatically compile .proto files (#462)
@@ -36,6 +58,12 @@ nanopb-0.4.0 (2019-12-20)
  Implement conan recipe (#378)
  CMake: Split nanopb_out command (#454)
  CMake: install created shared library(dll) in windows to the binary folder (#447)
+
+nanopb-0.3.9.5 (2020-02-02)
+ Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
+ Add workaround for avr-libc realloc() bug (#475)
+ Fix empty submessages getting encoded in proto3 mode (#395)
+ Avoid overflows in allocation for packed fields.
 
 nanopb-0.3.9.4 (2019-10-13)
  Fix undefined behavior with bool fields (#434)
@@ -201,6 +229,22 @@ nanopb-0.3.0 (2014-08-26)
  Added PB_ prefix to macro names (issue 106)
  Added #if version guard to generated files (issue 129)
  Added migration document
+
+nanopb-0.2.9.4 (2020-02-02)
+ Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
+ Add workaround for avr-libc realloc() bug (#475)
+
+nanopb-0.2.9.3 (2016-06-19)
+ Protect against corrupted _count fields in pb_release (#205)
+
+nanopb-0.2.9.2 (2015-01-24)
+ Fix memory leaks with PB_ENABLE_MALLOC with some submessage hierarchies (issue 138)
+ Fix compilation error with generated initializers for repeated pointer fields
+
+nanopb-0.2.9.1 (2014-09-11)
+ Fix security issue due to size_t overflows. (issue 132)
+ Fix memory leak with duplicated fields and PB_ENABLE_MALLOC
+ Fix crash if pb_release() is called twice.
 
 nanopb-0.2.9 (2014-08-09)
  NOTE: If you are using the -e option with the generator, you have
