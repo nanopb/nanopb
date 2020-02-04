@@ -1908,9 +1908,10 @@ def main_cli():
     include_path = ['-I%s' % p for p in options.options_path]
     for filename in filenames:
         if filename.endswith(".proto"):
-            with tempfile.NamedTemporaryFile(suffix = ".pb") as tmp:
-                invoke_protoc(["protoc"] + include_path + ['-o' + tmp.name, filename])
-                data = tmp.read()
+            with tempfile.TemporaryDirectory() as tmpdir:
+                tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
+                invoke_protoc(["protoc"] + include_path + ['-o' + tmpname, filename])
+                data = open(tmpname, 'rb').read()
         else:
             data = open(filename, 'rb').read()
 
