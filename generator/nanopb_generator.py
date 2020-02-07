@@ -1185,6 +1185,7 @@ class Message:
         # Remove fields without default values
         # The iteration is done in reverse order to avoid remove() messing up iteration.
         for field in reversed(list(optional_only.field)):
+            field.ClearField(str('extendee'))
             parsed_field = self.field_for_tag(field.number)
             if parsed_field is None or parsed_field.allocation != 'STATIC':
                 optional_only.field.remove(field)
@@ -1207,6 +1208,8 @@ class Message:
 
         optional_only.ClearField(str('oneof_decl'))
         optional_only.ClearField(str('nested_type'))
+        optional_only.ClearField(str('extension'))
+        optional_only.ClearField(str('enum_type'))
         desc = google.protobuf.descriptor.MakeDescriptor(optional_only)
         msg = reflection.MakeClass(desc)()
 
