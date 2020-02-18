@@ -318,6 +318,9 @@ class FieldMaxSize:
         self.checks.extend(extend.checks)
 
 class Field:
+    macro_x_param = 'X'
+    macro_a_param = 'a'
+
     def __init__(self, struct_name, desc, field_options):
         '''desc is FieldDescriptorProto'''
         self.tag = desc.number
@@ -620,7 +623,13 @@ class Field:
           else:
             name = '(%s,%s,%s)' % (self.union_name, self.name, self.name)
 
-        return 'X(a, %-9s %-9s %-9s %-16s %3d)' % (self.allocation + ',', self.rules + ',', self.pbtype + ',', name + ',', self.tag)
+        return '%s(%s, %-9s %-9s %-9s %-16s %3d)' % (self.macro_x_param,
+                                                     self.macro_a_param,
+                                                     self.allocation + ',',
+                                                     self.rules + ',',
+                                                     self.pbtype + ',',
+                                                     name + ',',
+                                                     self.tag)
 
     def data_size(self, dependencies):
         '''Return estimated size of this field in the C struct.
@@ -1077,7 +1086,16 @@ class Message:
 
     def fields_declaration(self, dependencies):
         '''Return X-macro declaration of all fields in this message.'''
-        result = '#define %s_FIELDLIST(X, a) \\\n' % (self.name)
+        Field.macro_x_param = 'X'
+        Field.macro_a_param = 'a'
+        while any(field.name == Field.macro_x_param for field in self.fields):
+            Field.macro_x_param += '_'
+        while any(field.name == Field.macro_a_param for field in self.fields):
+            Field.macro_a_param += '_'
+
+        result = '#define %s_FIELDLIST(%s, %s) \\\n' % (self.name,
+                                                        Field.macro_x_param,
+                                                        Field.macro_a_param)
         result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
         result += '\n'
 
