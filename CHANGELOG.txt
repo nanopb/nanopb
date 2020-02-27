@@ -1,4 +1,4 @@
-nanopb-0.4.1 (2019-02-02)
+nanopb-0.4.1 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
  Avoid overflows in allocation for packed fields.
  Verify stream size before allocating string / bytes.
