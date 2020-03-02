@@ -138,6 +138,9 @@ message NanoPBOptions {
 
   // Package name that applies only for nanopb.
   optional string package = 25;
+  
+  // Override type of the field in generated C code. Only to be used with related field types
+  optional google.protobuf.FieldDescriptorProto.Type type_override = 27;
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

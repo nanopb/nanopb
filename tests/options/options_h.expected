@@ -17,4 +17,8 @@ Message5_EnumValue1
 \s+PB_MSG\(105,[0-9]*,Message5\) \\
 #define Message5_msgid 105
 ! has_proto3field
+Enum1 normal
+uint32_t overriden
+#define TypeOverrideMessage_init_default[ ]*\{_Enum1_MIN, 0\}
+#define TypeOverrideMessage_init_zero[ ]*\{_Enum1_MIN, 0\}
 

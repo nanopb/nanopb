@@ -417,6 +417,9 @@ class Field:
         else:
             raise NotImplementedError(field_options.type)
 
+        if field_options.HasField("type_override"):
+            desc.type = field_options.type_override
+
         # Decide the C data type to use in the struct.
         if desc.type in datatypes:
             self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[desc.type]
