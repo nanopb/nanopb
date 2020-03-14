@@ -215,8 +215,15 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
         status = pb_encode(&stream, msgtype, msg);
-        if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
-        assert(status);
+
+        /* Some messages expand when re-encoding and might no longer fit
+         * in the buffer. */
+        if (!status && strcmp(PB_GET_ERROR(&stream), "stream full") != 0)
+        {
+            fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
+            assert(status);
+        }
+
         msglen2 = stream.bytes_written;
         checksum2 = xor32_checksum(buf2, msglen2);
     }
@@ -224,6 +231,7 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     pb_release(msgtype, msg);
 
     /* Then decode from canonical format and re-encode. Result should remain the same. */
+    if (status)
     {
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
         memset(msg, 0, structsize);
@@ -235,6 +243,7 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
         validate_message(msg, structsize, msgtype);
     }
     
+    if (status)
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
         status = pb_encode(&stream, msgtype, msg);
@@ -242,10 +251,10 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
         assert(status);
         msglen3 = stream.bytes_written;
         checksum3 = xor32_checksum(buf2, msglen3);
+
+        assert(msglen2 == msglen3);
+        assert(checksum2 == checksum3);
     }
-    
-    assert(msglen2 == msglen3);
-    assert(checksum2 == checksum3);
     
     pb_release(msgtype, msg);
     free_with_check(msg);
@@ -317,12 +326,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 /* Fuzzer stub for Google OSSFuzz integration */
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    /* In some cases, when we re-encode input it can expand close to 2x.
-     * This is because 0xFFFFFFFF in int32 is decoded as -1, but the
-     * canonical encoding for it is 0xFFFFFFFFFFFFFFFF.
-     * Thus we reserve double the space for intermediate buffers.
-     */
-    if (size > g_bufsize / 2)
+    if (size > g_bufsize)
         return 0;
 
     do_roundtrips(data, size, false);
