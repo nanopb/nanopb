@@ -110,3 +110,16 @@ There exist build rules for several systems:
 And also integration to platform interfaces:
 
 * **Arduino**: http://platformio.org/lib/show/1385/nanopb-arduino
+
+Building nanopb - Using vcpkg
+-----------------------------
+
+You can download and install nanopb using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+
+    git clone https://github.com/Microsoft/vcpkg.git
+    cd vcpkg
+    ./bootstrap-vcpkg.sh
+    ./vcpkg integrate install
+    ./vcpkg install nanopb
+
+The nanopb port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
