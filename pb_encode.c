@@ -304,6 +304,12 @@ static bool pb_check_proto3_default_value(const pb_field_t *field, const void *p
             return true;
         }
     }
+
+    /* Compares pointers to NULL in case of FT_POINTER */
+    if (PB_ATYPE(type) == PB_ATYPE_POINTER && PB_LTYPE(type) > PB_LTYPE_LAST_PACKABLE)
+    {
+        return !*(const void**)((uintptr_t)pData);
+    }
     
 	{
 	    /* Catch-all branch that does byte-per-byte comparison for zero value.
