@@ -335,8 +335,6 @@ find_path(NANOPB_GENERATOR_SOURCE_DIR
 )
 mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 
-find_package(PythonInterp REQUIRED)
-
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Nanopb DEFAULT_MSG
   NANOPB_INCLUDE_DIRS
