@@ -338,7 +338,7 @@ mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 find_package(PythonInterp REQUIRED)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(NANOPB DEFAULT_MSG
+find_package_handle_standard_args(Nanopb DEFAULT_MSG
   NANOPB_INCLUDE_DIRS
   NANOPB_SRCS NANOPB_HDRS
   NANOPB_GENERATOR_SOURCE_DIR
