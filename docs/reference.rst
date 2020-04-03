@@ -29,7 +29,6 @@ PB_MAX_REQUIRED_FIELDS         Maximum number of required fields to check for
                                warning will tell if you need this.
 PB_FIELD_32BIT                 Add support for tag numbers > 65535 and fields
                                larger than 65535 bytes or 65535 array entries.
-                               Increases code size 9 bytes per each field.
                                Compiler error will tell if you need this.
 PB_NO_ERRMSG                   Disables the support for error messages; only
                                error information is the true/false return
