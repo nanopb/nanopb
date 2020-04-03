@@ -1792,7 +1792,7 @@ optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
 optparser.add_option("--error-on-unmatched", dest="error_on_unmatched", action="store_true", default=False,
                      help ="Stop generation if there are unmatched fields in options file")
 optparser.add_option("--no-error-on-unmatched", dest="error_on_unmatched", action="store_false", default=False,
-                     help ="Continue generation if there are unmatched fields in options file")
+                     help ="Continue generation if there are unmatched fields in options file (default)")
 optparser.add_option("-D", "--output-dir", dest="output_dir",
                      metavar="OUTPUTDIR", default=None,
                      help="Output directory of .pb.h and .pb.c files")
