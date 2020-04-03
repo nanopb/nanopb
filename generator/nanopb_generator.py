@@ -11,6 +11,7 @@ import re
 import codecs
 import copy
 import tempfile
+import shutil
 import os
 from functools import reduce
 
@@ -70,6 +71,18 @@ except:
          ********************************************************************
     ''' + '\n')
     raise
+
+try:
+    from tempfile import TemporaryDirectory
+except ImportError:
+    class TemporaryDirectory:
+        '''TemporaryDirectory fallback for Python 2'''
+        def __enter__(self):
+            self.dir = tempfile.mkdtemp()
+            return self.dir
+
+        def __exit__(self, *args):
+            shutil.rmtree(self.dir)
 
 # ---------------------------------------------------------------------------
 #                     Generation of single fields
@@ -1933,7 +1946,7 @@ def main_cli():
     include_path = ['-I%s' % p for p in options.options_path]
     for filename in filenames:
         if filename.endswith(".proto"):
-            with tempfile.TemporaryDirectory() as tmpdir:
+            with TemporaryDirectory() as tmpdir:
                 tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
                 invoke_protoc(["protoc"] + include_path + ['-o' + tmpname, filename])
                 data = open(tmpname, 'rb').read()
