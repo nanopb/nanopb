@@ -249,6 +249,13 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
     endif()
 
+    # There is a problem with ':' as option separator in protoc args so deal with it by splitting the options
+    # However this requires a version of protoc >= 3.6 so keep the old behavior for non-windows systems
+    if(CMAKE_HOST_SYSTEM MATCHES "Windows")
+        set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}")
+    else()
+      set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${CMAKE_CURRENT_BINARY_DIR}")
+    endif()
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
@@ -256,8 +263,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
            -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
-           "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}"
-           "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}" ${ABS_FIL}
+            ${NANOPB_OPT_STRING}
+            ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
            ${NANOPB_OPTIONS_FILE} ${NANOPB_DEPENDS}
       COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
