@@ -249,6 +249,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
     endif()
 
+    set(NANOPB_OUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}")
+
     # We need to pass the path to the option files to the nanopb plugin. There are two ways to do it.
     # - An older hacky one using ':' as option separator in protoc args preventing the ':' to be used in path.
     # - Or a newer one, using --nanopb_opt which requires a version of protoc >= 3.6
@@ -258,13 +260,13 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
     if(PROTOC_VERSION VERSION_LESS "3.6.0")
         #try to use the older way
-        string(REGEX MATCH ":" HAS_COLON_IN_PATH ${NANOPB_PLUGIN_OPTIONS} ${CMAKE_CURRENT_BINARY_DIR})
+        string(REGEX MATCH ":" HAS_COLON_IN_PATH ${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OUT})
         if(HAS_COLON_IN_PATH)
           message(FATAL_ERROR "Your path includes a ':' character used as an option separator for nanopb. Upgrade to protoc version >= 3.6.0 or use a different path.")
         endif()
-        set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${CMAKE_CURRENT_BINARY_DIR}")
+        set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
     else()
-      set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}")
+      set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${NANOPB_OUT}")
     endif()
 
     add_custom_command(
