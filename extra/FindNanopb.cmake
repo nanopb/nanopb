@@ -249,6 +249,27 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
     endif()
 
+    # based on the version of protoc it might be necessary to add "/${FIL_PATH_REL}" currently dealt with in #516
+    set(NANOPB_OUT "${CMAKE_CURRENT_BINARY_DIR}")
+
+    # We need to pass the path to the option files to the nanopb plugin. There are two ways to do it.
+    # - An older hacky one using ':' as option separator in protoc args preventing the ':' to be used in path.
+    # - Or a newer one, using --nanopb_opt which requires a version of protoc >= 3.6
+    # So we will determine which version of protoc we have available and choose accordingly.
+    execute_process(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --version OUTPUT_VARIABLE PROTOC_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REGEX MATCH "[(0-9)].*.[(0-9)].*.[(0-9)].*" PROTOC_VERSION ${PROTOC_VERSION_STRING})
+
+    if(PROTOC_VERSION VERSION_LESS "3.6.0")
+        #try to use the older way
+        string(REGEX MATCH ":" HAS_COLON_IN_PATH ${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OUT})
+        if(HAS_COLON_IN_PATH)
+          message(FATAL_ERROR "Your path includes a ':' character used as an option separator for nanopb. Upgrade to protoc version >= 3.6.0 or use a different path.")
+        endif()
+        set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
+    else()
+      set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${NANOPB_OUT}")
+    endif()
+
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
@@ -256,8 +277,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
            -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
-           "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}"
-           "--nanopb_out=${CMAKE_CURRENT_BINARY_DIR}" ${ABS_FIL}
+           ${NANOPB_OPT_STRING}
+           ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
            ${NANOPB_OPTIONS_FILE} ${NANOPB_DEPENDS}
       COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
