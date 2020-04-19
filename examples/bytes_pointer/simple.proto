@@ -1,0 +1,10 @@
+// A very simple protocol definition, consisting of a 
+// simple int and a byte array
+
+syntax = "proto3";
+
+message SimpleMessage {
+    int32 lucky_number = 1;
+    bytes dataField = 2;
+}
+
