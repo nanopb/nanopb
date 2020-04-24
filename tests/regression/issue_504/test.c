@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     memcpy(pStrAligned, STR, sizeof(STR));
 
     msg.submessage.somestring = pStrAligned;
-    printf("%p: '%s'\n", msg.submessage.somestring, msg.submessage.somestring);
+    printf("%p: '%s'\n", (void*)msg.submessage.somestring, msg.submessage.somestring);
 
     if (!pb_encode(&ostream, MyMessage_fields, &msg)) {
         fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&ostream));
