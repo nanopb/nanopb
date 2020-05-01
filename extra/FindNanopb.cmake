@@ -21,6 +21,9 @@
 #
 #   NANOPB_GENERATE_CPP_APPEND_PATH - By default -I will be passed to protoc
 #                                     for each directory where a proto file is referenced.
+#                                     This causes all output files to go directly
+#                                     under build directory, instead of mirroring
+#                                     relative paths of source directories.
 #                                     Set to FALSE if you want to disable this behaviour.
 #
 # Defines the following variables:
