@@ -41,9 +41,9 @@ endif()
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
 
-    find_package(PythonInterp 2.7 REQUIRED)
+    find_package(Python REQUIRED)
     execute_process(
-        COMMAND ${PYTHON_EXECUTABLE} -c
+        COMMAND ${Python_EXECUTABLE} -c
             "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix=''))"
         OUTPUT_VARIABLE PYTHON_INSTDIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -60,7 +60,7 @@ if(nanopb_BUILD_GENERATOR)
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
-			DESTINATION ${PYTHON_INSTDIR}
+            DESTINATION ${Python_SITELIB}
         )
     endforeach()
 endif()
