@@ -176,6 +176,11 @@ class Names:
     def __eq__(self, other):
         return isinstance(other, Names) and self.parts == other.parts
 
+    def __lt__(self, other):
+        if not isinstance(other, Names):
+            return NotImplemented
+        return str(self) < str(other)
+
 def names_from_type_name(type_name):
     '''Parse Names() from FieldDescriptorProto type_name'''
     if type_name[0] != '.':
