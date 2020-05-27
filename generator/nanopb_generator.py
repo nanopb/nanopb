@@ -60,9 +60,15 @@ except TypeError:
     ''' + '\n')
     raise
 except (ValueError, SystemError, ImportError):
-    # Probably invoked directly instead of via installed scripts.
-    import proto.nanopb_pb2 as nanopb_pb2
-    from proto._utils import invoke_protoc
+    try:
+        # Probably invoked directly instead of via installed scripts.
+        import proto.nanopb_pb2 as nanopb_pb2
+        from proto._utils import invoke_protoc
+    except ImportError:
+        # Invoked using bazel
+        import generator.proto.nanopb_pb2 as nanopb_pb2
+        from generator.proto._utils import invoke_protoc
+
 except:
     sys.stderr.write('''
          ********************************************************************
@@ -2067,7 +2073,7 @@ def main_plugin():
 
 if __name__ == '__main__':
     # Check if we are running as a plugin under protoc
-    if 'protoc-gen-' in sys.argv[0] or '--protoc-plugin' in sys.argv:
+    if 'protoc-gen-' in sys.argv[0] or '--protoc-plugin' in sys.argv or '_bazel_' in sys.argv[0]:
         main_plugin()
     else:
         main_cli()

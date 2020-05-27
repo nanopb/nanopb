@@ -1,5 +1,3 @@
-workspace(name = "com_github_nanopb_nanopb")
-
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
@@ -47,3 +45,9 @@ pip_import(
 load("@protobuf_py_deps//:requirements.bzl", protobuf_pip_install = "pip_install")
 
 protobuf_pip_install()
+
+git_repository(
+    name = "com_github_nanopb_nanopb",
+    commit = "766ee1cebf6e1500dd9bd94fc217abb554ef55e7",
+    remote = "https://github.com/silvergasp/nanopb.git",
+)
