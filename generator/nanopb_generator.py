@@ -354,6 +354,7 @@ class Field:
         self.ctype = None
         self.fixed_count = False
         self.callback_datatype = field_options.callback_datatype
+        self.math_include_required = False
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -487,6 +488,10 @@ class Field:
         else:
             raise NotImplementedError(desc.type)
 
+        if self.default and self.pbtype in ['FLOAT', 'DOUBLE']:
+            if 'inf' in self.default or 'nan' in self.default:
+                self.math_include_required = True
+
     def __lt__(self, other):
         return self.tag < other.tag
 
@@ -584,11 +589,15 @@ class Field:
                 inner_init = str(self.default) + 'ull'
             elif self.pbtype in ['SFIXED64', 'INT64']:
                 inner_init = str(self.default) + 'll'
-            elif self.pbtype == 'FLOAT':
+            elif self.pbtype in ['FLOAT', 'DOUBLE']:
                 inner_init = str(self.default)
-                if not '.' in inner_init:
+                if 'inf' in inner_init:
+                    inner_init = inner_init.replace('inf', 'INFINITY')
+                elif 'nan' in inner_init:
+                    inner_init = inner_init.replace('nan', 'NAN')
+                elif (not '.' in inner_init) and self.pbtype == 'FLOAT':
                     inner_init += '.0f'
-                else:
+                elif self.pbtype == 'FLOAT':
                     inner_init += 'f'
             else:
                 inner_init = str(self.default)
@@ -964,6 +973,7 @@ class Message:
         self.fields = []
         self.oneofs = {}
         self.desc = desc
+        self.math_include_required = False
 
         if message_options.msgid:
             self.msgid = message_options.msgid
@@ -1017,6 +1027,8 @@ class Message:
                     self.oneofs[f.oneof_index].add_field(field)
             else:
                 self.fields.append(field)
+                if field.math_include_required:
+                    self.math_include_required = True
 
         if len(desc.extension_range) > 0:
             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
@@ -1354,7 +1366,12 @@ class ProtoFile:
         self.fdesc = fdesc
         self.file_options = file_options
         self.dependencies = {}
+        self.math_include_required = False
         self.parse()
+        for message in self.messages:
+            if message.math_include_required:
+                self.math_include_required = True
+                break
 
         # Some of types used in this file probably come from the file itself.
         # Thus it has implicit dependency on itself.
@@ -1489,6 +1506,8 @@ class ProtoFile:
             symbol = make_identifier(headername)
         yield '#ifndef PB_%s_INCLUDED\n' % symbol
         yield '#define PB_%s_INCLUDED\n' % symbol
+        if self.math_include_required:
+            yield '#include <math.h>\n'
         try:
             yield options.libformat % ('pb.h')
         except TypeError:
