@@ -1231,7 +1231,6 @@ class Message:
             return b''
 
         optional_only = copy.deepcopy(self.desc)
-        enums = {}
 
         # Remove fields without default values
         # The iteration is done in reverse order to avoid remove() messing up iteration.
@@ -1241,18 +1240,28 @@ class Message:
             if parsed_field is None or parsed_field.allocation != 'STATIC':
                 optional_only.field.remove(field)
             elif (field.label == FieldD.LABEL_REPEATED or
-                  field.type == FieldD.TYPE_MESSAGE or
-                  not field.HasField('default_value')):
+                  field.type == FieldD.TYPE_MESSAGE):
                 optional_only.field.remove(field)
             elif hasattr(field, 'oneof_index') and field.HasField('oneof_index'):
                 optional_only.field.remove(field)
             elif field.type == FieldD.TYPE_ENUM:
                 # The partial descriptor doesn't include the enum type
                 # so we fake it with int64.
-                enums[field.name] = (names_from_type_name(field.type_name), field.default_value)
-                field.type = FieldD.TYPE_INT64
-                field.ClearField(str('default_value'))
-                field.ClearField(str('type_name'))
+                enumname = names_from_type_name(field.type_name)
+                enumtype = dependencies[str(enumname)]
+                if field.HasField('default_value'):
+                    defvals = [v for n,v in enumtype.values if n.parts[-1] == field.default_value]
+                else:
+                    # If no default is specified, the default is the first value.
+                    defvals = [v for n,v in enumtype.values]
+                if defvals and defvals[0] != 0:
+                    field.type = FieldD.TYPE_INT64
+                    field.default_value = str(defvals[0])
+                    field.ClearField(str('type_name'))
+                else:
+                    optional_only.field.remove(field)
+            elif not field.HasField('default_value'):
+                optional_only.field.remove(field)
 
         if len(optional_only.field) == 0:
             return b''
@@ -1273,14 +1282,6 @@ class Message:
                 setattr(msg, field.name, float(field.default_value))
             elif field.type == FieldD.TYPE_BOOL:
                 setattr(msg, field.name, field.default_value == 'true')
-            elif field.name in enums:
-                # Lookup the enum default value
-                enumname = enums[field.name][0]
-                defval = enums[field.name][1]
-                enumtype = dependencies[str(enumname)]
-                defvals = [v for n,v in enumtype.values if n.parts[-1] == defval]
-                if defvals:
-                    setattr(msg, field.name, defvals[0])
             else:
                 setattr(msg, field.name, int(field.default_value))
 

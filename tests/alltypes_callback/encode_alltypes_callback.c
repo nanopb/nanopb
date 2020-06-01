@@ -447,6 +447,9 @@ int main(int argc, char **argv)
 
         alltypes.oneof_msg1.funcs.encode = &write_submsg;
         alltypes.oneof_msg1.arg = &oneof_msg1;
+
+        alltypes.opt_non_zero_based_enum.funcs.encode = &write_varint;
+        alltypes.opt_non_zero_based_enum.arg = (void *)NonZeroBasedEnum_Three;
     }
     
     alltypes.end.funcs.encode = &write_varint;

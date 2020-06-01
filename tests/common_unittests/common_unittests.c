@@ -91,6 +91,8 @@ int main()
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 7)
 
+        TEST(pb_field_iter_next(&iter) && iter.tag == 62 && iter.pData == &msg.opt_non_zero_based_enum && iter.pSize == &msg.has_opt_non_zero_based_enum)
+
         TEST(pb_field_iter_next(&iter) && iter.tag == 96 && iter.pData == &msg.req_intsizes && !iter.pSize)
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 8)

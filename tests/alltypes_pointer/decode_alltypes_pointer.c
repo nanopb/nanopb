@@ -103,6 +103,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_fbytes        == NULL);
 
         TEST(alltypes.which_oneof       == 0);
+
+        TEST(alltypes.opt_non_zero_based_enum == NULL);
     }
     else
     {
@@ -134,6 +136,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.which_oneof == AllTypes_oneof_msg1_tag);
         TEST(alltypes.oneof.oneof_msg1 && strcmp(alltypes.oneof.oneof_msg1->substuff1, "4059") == 0);
         TEST(alltypes.oneof.oneof_msg1->substuff2 && *alltypes.oneof.oneof_msg1->substuff2 == 4059);
+
+        TEST(alltypes.opt_non_zero_based_enum && *alltypes.opt_non_zero_based_enum == NonZeroBasedEnum_Three);
     }
     
     TEST(alltypes.req_limits->int32_min && *alltypes.req_limits->int32_min   == INT32_MIN);
