@@ -1,8 +1,5 @@
 module nanopb {
-    header "../pb.h"
-    header "../pb_common.h"
-    header "../pb_decode.h"
-    header "../pb_encode.h"
+    umbrella header "nanopb.h"
 
     export *
 }

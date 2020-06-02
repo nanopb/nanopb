@@ -11,12 +11,16 @@ let package = Package(
         .tvOS(.v9),
         .watchOS(.v2)
     ],
+
   products: [
+    .executable(name: "nanopb-test", targets: ["swift-test", "objc-test"]),
+
     .library(
       name: "nanopb",
       targets: ["nanopb"]
     ),
   ],
+
   targets: [
     .target(
       name: "nanopb",
@@ -30,8 +34,34 @@ let package = Package(
         "pb_encode.h",
         "pb_encode.c"
       ],
-      publicHeadersPath: ".",
+      publicHeadersPath: "SwiftPackage",
       cSettings: [
+        .define("PB_FIELD_32BIT", to: "1"),
+        .define("PB_NO_PACKED_STRUCTS", to: "1"),
+        .define("PB_ENABLE_MALLOC", to: "1"),
+      ]
+    ),
+    .target(
+      name: "swift-test",
+      dependencies: [
+        "nanopb",
+      ],
+      path: "spm-test/swift",
+      cSettings: [
+        .headerSearchPath("../"),
+        .define("PB_FIELD_32BIT", to: "1"),
+        .define("PB_NO_PACKED_STRUCTS", to: "1"),
+        .define("PB_ENABLE_MALLOC", to: "1"),
+      ]
+    ),
+    .target(
+      name: "objc-test",
+      dependencies: [
+        "nanopb",
+      ],
+      path: "spm-test/objc",
+      cSettings: [
+        .headerSearchPath("../"),
         .define("PB_FIELD_32BIT", to: "1"),
         .define("PB_NO_PACKED_STRUCTS", to: "1"),
         .define("PB_ENABLE_MALLOC", to: "1"),
