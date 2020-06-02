@@ -150,6 +150,9 @@ int main(int argc, char **argv)
         alltypes.which_oneof = AllTypes_oneof_msg1_tag;
         strcpy(alltypes.oneof.oneof_msg1.substuff1, "4059");
         alltypes.oneof.oneof_msg1.substuff2 = 4059;
+
+        alltypes.has_opt_non_zero_based_enum = true;
+        alltypes.opt_non_zero_based_enum = NonZeroBasedEnum_Three;
     }
     
     alltypes.end = 1099;

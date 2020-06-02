@@ -1,5 +1,11 @@
 syntax = "proto2";
 
+enum NonZeroBasedEnum {
+    Two = 2;
+    Three = 3;
+    Four = 4;
+}
+
 message SubMessage {
     required string substuff1 = 1 [default = "1"];
     required int32 substuff2 = 2 [default = 2];
@@ -126,6 +132,8 @@ message AllTypes {
         SubMessage oneof_msg1 = 10060;
         EmptyMessage oneof_msg2 = 10061;
     }
+
+    optional NonZeroBasedEnum opt_non_zero_based_enum = 10062;
 
     // Check support for custom integer sizes
     required IntSizes req_intsizes = 96;

@@ -450,6 +450,9 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
         alltypes.oneof_msg1.funcs.decode = &read_submsg;
         alltypes.oneof_msg1.arg = &oneof_msg1;
+
+        alltypes.opt_non_zero_based_enum.funcs.decode = &read_varint;
+        alltypes.opt_non_zero_based_enum.arg = (void *)NonZeroBasedEnum_Three;
     }
     
     status = pb_decode(stream, AllTypes_fields, &alltypes);

@@ -22,7 +22,7 @@ def modify_c(target, source, env):
 
     data = open(str(source[0]), 'r').read()
     
-    type_names = ['AllTypes', 'MyEnum', 'HugeEnum']
+    type_names = ['AllTypes', 'MyEnum', 'HugeEnum', 'NonZeroBasedEnum']
     for name in type_names:
         data = data.replace(name, 'test_package_' + name)
     

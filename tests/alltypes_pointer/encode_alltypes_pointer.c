@@ -91,6 +91,8 @@ int main(int argc, char **argv)
     static int32_t oneof_substuff = 4059;
     SubMessage  oneof_msg1        = {"4059", &oneof_substuff};
 
+    NonZeroBasedEnum opt_non_zero_based_enum = NonZeroBasedEnum_Three;
+
     /* Values for the Limits message. */
     static int32_t  int32_min  = INT32_MIN;
     static int32_t  int32_max  = INT32_MAX;
@@ -197,6 +199,8 @@ int main(int argc, char **argv)
 
         alltypes.which_oneof = AllTypes_oneof_msg1_tag;
         alltypes.oneof.oneof_msg1 = &oneof_msg1;
+
+        alltypes.opt_non_zero_based_enum = &opt_non_zero_based_enum;
     }
     
     alltypes.end = &end;
