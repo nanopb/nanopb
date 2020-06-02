@@ -30,7 +30,7 @@ let package = Package(
         "pb_encode.h",
         "pb_encode.c"
       ],
-      publicHeadersPath: "SwiftPackage",
+      publicHeadersPath: ".",
       cSettings: [
         .define("PB_FIELD_32BIT", to: "1"),
         .define("PB_NO_PACKED_STRUCTS", to: "1"),
