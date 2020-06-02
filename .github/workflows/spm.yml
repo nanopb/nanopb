@@ -1,5 +1,12 @@
 name: spm
 
+on:
+  pull_request:
+    paths:
+    - '.github/workflows/spm.yml'
+    - 'Package.swift'
+    - '*.[ch]'
+
 jobs:
   swift-build-run:
     runs-on: macOS-latest
