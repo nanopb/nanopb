@@ -1,7 +1,7 @@
 name: spm
 
 on:
-  push:
+  [push, pull\_request]:
     paths:
     - '.github/workflows/spm.yml'
     - 'Package.swift'
