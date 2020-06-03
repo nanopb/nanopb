@@ -3,6 +3,7 @@
 import sys
 import time
 import zipfile
+import random
 import subprocess
 
 Import("env", "malloc_env")
@@ -57,7 +58,7 @@ seed = int(time.time())
 if env.get('EMBEDDED'):
     iterations = 100
 else:
-    iterations = 10000
+    iterations = 1000
 env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
 generate_message = malloc_env.Program(["generate_message.c",
@@ -73,7 +74,8 @@ env.RunTest("generate_message.output.fuzzed", [fuzz, "generate_message.output"])
 
 # Run against the latest corpus from ossfuzz
 # This allows quick testing against regressions and also lets us more
-# completely test slow embedded targets.
+# completely test slow embedded targets. To reduce runtime, only a subset
+# of the corpus is fuzzed each time.
 def run_against_corpus(target, source, env):
     corpus = zipfile.ZipFile(str(source[1]), 'r')
     count = 0
@@ -82,7 +84,13 @@ def run_against_corpus(target, source, env):
     if env.has_key("TEST_RUNNER"):
         args = [env["TEST_RUNNER"]] + args
 
+    if env.has_key("FUZZTEST_CORPUS_SAMPLESIZE"):
+        samplesize = int(env["FUZZTEST_CORPUS_SAMPLESIZE"])
+    else:
+        samplesize = 100
+
     files = [n for n in corpus.namelist() if not n.endswith('/')]
+    files = random.sample(files, 100)
     for filename in files:
         sys.stdout.write("Fuzzing: %5d/%5d: %-40.40s\r" % (count, len(files), filename))
         sys.stdout.flush()
