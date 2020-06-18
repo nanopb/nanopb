@@ -41,4 +41,4 @@ find $DEST -name '*.c' -o -name '*.h' -o -name '*.txt' \
     -exec sed -i 's/[^\r]$/\r/' '{}' \;
 
 # Zip it all up
-( cd dist; rm $VERSION.zip; powershell "Compress-Archive $VERSION $VERSION.zip" )
+( cd dist; rm -f $VERSION.zip; powershell "Compress-Archive $VERSION $VERSION.zip" )
