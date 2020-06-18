@@ -11,8 +11,33 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.4.0 (future)
-=====================
+Nanopb-0.4.2 (2020-xx-xx)
+=========================
+
+Generator now uses Python 3 by default
+--------------------------------------
+
+**Rationale:** Previously `nanopb-generator.py` had hashbang of
+`#!/usr/bin/env python`, which would execute with Python 2 on most systems.
+Python 2 is now deprecated and many libraries are dropping support for it, which
+makes installing dependencies difficult. While `nanopb_generator.py` has worked
+with Python 3 for years now, and overriding the python version was possible
+with virtualenv, that was an extra complication.
+
+**Changes:** Hashbang now uses `#!/usr/bin/env python3`. New file
+`nanopb_generator.py2` can be used to run with Python 2, if necessary.
+
+**Required actions:** If possible, just verify Python 3 is installed and necessary
+dependencies are installed for it. For example `pip3 install protobuf grpcio-tools`
+should take care of it. If this is not possible, call `nanopb_generator.py2` from
+your build scripts instead.
+
+**Error indications:** `python3: command not found` if Python 3 is not installed.
+`Could not import the Google protobuf Python libraries` if dependencies are only
+installed for Python 2.
+
+Nanopb-0.4.0 (2019-12-20)
+=========================
 
 New field descriptor format
 ---------------------------

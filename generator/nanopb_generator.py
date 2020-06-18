@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # kate: replace-tabs on; indent-width 4;
 
 from __future__ import unicode_literals
@@ -34,7 +34,7 @@ except:
     sys.stderr.write('''
          *************************************************************
          *** Could not import the Google protobuf Python libraries ***
-         *** Try installing package 'python-protobuf' or similar.  ***
+         *** Try installing package 'python3-protobuf' or similar.  ***
          *************************************************************
     ''' + '\n')
     raise
@@ -52,7 +52,7 @@ except TypeError:
          *** Please check the output of the following commands:                   ***
          *** which protoc                                                         ***
          *** protoc --version                                                     ***
-         *** python -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
+         *** python3 -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
          *** If you are not able to find the python protobuf version using the    ***
          *** above command, use this command.                                     ***
          *** pip freeze | grep -i protobuf                                        ***
