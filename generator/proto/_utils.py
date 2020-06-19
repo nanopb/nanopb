@@ -40,4 +40,4 @@ def invoke_protoc(argv):
 
         return protoc.main(argv)
     else:
-        return subprocess.check_call(argv)
+        return subprocess.call(argv)

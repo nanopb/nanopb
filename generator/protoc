@@ -24,6 +24,5 @@ if __name__ == '__main__':
     if os.path.isfile(protoc_gen_nanopb):
          args = ['--plugin=protoc-gen-nanopb=%s' % protoc_gen_nanopb] + args
 
-    print(args)
     status = invoke_protoc(['protoc'] + args)
     sys.exit(status)
