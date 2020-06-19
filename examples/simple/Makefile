@@ -3,7 +3,7 @@ include ../../extra/nanopb.mk
 
 # Compiler flags to enable all warnings & debug info
 CFLAGS = -Wall -Werror -g -O0
-CFLAGS += -I$(NANOPB_DIR)
+CFLAGS += "-I$(NANOPB_DIR)"
 
 # C source code files that are required
 CSRC  = simple.c                   # The main program
