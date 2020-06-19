@@ -20,15 +20,14 @@ endif
 ifneq "$(wildcard $(NANOPB_DIR)/generator-bin)" ""
 	# Binary package
 	PROTOC = $(NANOPB_DIR)/generator-bin/protoc
-	PROTOC_OPTS = 
+	PROTOC_OPTS =
 else
 	# Source only or git checkout
+	PROTOC_OPTS =
 	ifdef WINDOWS
-	    PROTOC = "python $(NANOPB_DIR)/generator/protoc"
-	    PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb.bat
+	    PROTOC = python "$(NANOPB_DIR)/generator/protoc"
 	else
-	    PROTOC = $(NANOPB_DIR)/generator/protoc
-		PROTOC_OPTS = --plugin=protoc-gen-nanopb=$(NANOPB_DIR)/generator/protoc-gen-nanopb
+	    PROTOC = "$(NANOPB_DIR)/generator/protoc"
 	endif
 endif
 
