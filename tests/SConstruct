@@ -20,6 +20,7 @@ scons CC=clang CXX=clang++
 ''')
 
 import os
+import platform
 env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 env.SConsignFile("build/sconsign")
 env.Replace(CONFIGUREDIR = "build/config")
@@ -36,6 +37,11 @@ try:
     resource.setrlimit(resource.RLIMIT_AS, (100*1024*1024, hard))
 except:
     pass
+
+# On Mac OS X, gcc is usually alias for clang.
+# To avoid problem with default options, use clang directly.
+if platform.system() == "Darwin":
+    env.Replace(CC = "clang", CXX = "clang")
 
 # Allow overriding the compiler with scons CC=???
 if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
