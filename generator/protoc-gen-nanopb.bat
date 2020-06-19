@@ -9,4 +9,4 @@
 :: --plugin= on the command line.
 
 set mydir=%~dp0
-python "%mydir%\nanopb_generator.py" --protoc-plugin
+py -3 "%mydir%\nanopb_generator.py" --protoc-plugin
