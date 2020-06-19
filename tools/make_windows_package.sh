@@ -38,7 +38,7 @@ cp $DEST/generator-bin/nanopb_generator.exe $DEST/generator-bin/protoc-gen-nanop
 # Convert line breaks for convenience
 find $DEST -name '*.c' -o -name '*.h' -o -name '*.txt' \
     -o -name '*.proto' -o -name '*.py' -o -name '*.options' \
-    -exec sed -i 's/[^\r]$/\r/' '{}' \;
+    -exec sed -i 's/$/\r/' '{}' \;
 
 # Zip it all up
 ( cd dist; rm -f $VERSION.zip; powershell "Compress-Archive $VERSION $VERSION.zip" )
