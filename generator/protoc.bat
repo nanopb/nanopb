@@ -5,5 +5,5 @@
 
 setLocal enableDelayedExpansion
 set mydir=%~dp0
-python "%mydir%\protoc" %*
+py -3 "%mydir%\protoc" %*
 exit /b %ERRORLEVEL%
