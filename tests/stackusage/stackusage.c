@@ -20,7 +20,8 @@ static uint32_t *g_stackptr;
 void start_stack_measuring()
 {
     uint32_t i = 0;
-    g_stackptr = &i - MAX_STACK_ENTRIES;
+    uint32_t stackfill[MAX_STACK_ENTRIES];
+    g_stackptr = stackfill;
     for (i = 0; i < MAX_STACK_ENTRIES; i++)
     {
         g_stackbuf[i] = g_stackptr[i];
