@@ -14,6 +14,7 @@ LINKLIBS    Flags to pass to linker after object files
 PROTOC      Path to protoc binary
 PROTOCFLAGS Arguments to pass protoc
 NODEFARGS   Do not add the default CCFLAGS
+NOVALGRIND  Do not use valgrind for memory checks
 
 For example, for a clang build, use:
 scons CC=clang CXX=clang++
@@ -25,10 +26,13 @@ env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
 env.SConsignFile("build/sconsign")
 env.Replace(CONFIGUREDIR = "build/config")
 
-if ARGUMENTS.get('PLATFORM') == 'STM32':
-    set_stm32_platform(env)
-elif ARGUMENTS.get('PLATFORM') == 'AVR':
-    set_avr_platform(env)
+if ARGUMENTS.get('PLATFORM'):
+    platform_func = platforms.get(ARGUMENTS.get('PLATFORM'))
+    if not platform_func:
+        print("Supported platforms: " + str(platforms.keys()))
+        raise Exception("Unsupported platform: " + ARGUMENTS.get('PLATFORM'))
+    else:
+        platform_func(env)
 
 # Limit memory usage. This is to catch problems like issue #338
 try:
@@ -54,6 +58,7 @@ if 'LINKLIBS' in ARGUMENTS: env.Append(LINKLIBS = ARGUMENTS['LINKLIBS'])
 if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
 if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
 if 'NODEFARGS' in ARGUMENTS: env.Replace(NODEFARGS = ARGUMENTS['NODEFARGS'])
+if 'NOVALGRIND' in ARGUMENTS: env.Replace(NOVALGRIND = ARGUMENTS['NOVALGRIND'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
@@ -199,7 +204,7 @@ if not env.get('NODEFARGS'):
 
 env.SetDefault(CORECFLAGS = '')
 
-if not env.get("EMBEDDED"):
+if not env.get("EMBEDDED") and not env.get("NOVALGRIND"):
     valgrind = env.WhereIs('valgrind')
     if valgrind:
         env.SetDefault(VALGRIND = valgrind)
