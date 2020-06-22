@@ -141,6 +141,11 @@ message NanoPBOptions {
   
   // Override type of the field in generated C code. Only to be used with related field types
   optional google.protobuf.FieldDescriptorProto.Type type_override = 27;
+
+  // Due to historical reasons, nanopb orders fields in structs by their tag number
+  // instead of the order in .proto. Set this to false to keep the .proto order.
+  // The default value will probably change to false in nanopb-0.5.0.
+  optional bool sort_by_tag = 28 [default = true];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

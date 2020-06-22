@@ -362,6 +362,7 @@ class Field:
         self.fixed_count = False
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
+        self.sort_by_tag = field_options.sort_by_tag
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -871,7 +872,7 @@ class ExtensionField(Field):
 # ---------------------------------------------------------------------------
 
 class OneOf(Field):
-    def __init__(self, struct_name, oneof_desc):
+    def __init__(self, struct_name, oneof_desc, oneof_options):
         self.struct_name = struct_name
         self.name = oneof_desc.name
         self.ctype = 'union'
@@ -880,7 +881,8 @@ class OneOf(Field):
         self.allocation = 'ONEOF'
         self.default = None
         self.rules = 'ONEOF'
-        self.anonymous = False
+        self.anonymous = oneof_options.anonymous_oneof
+        self.sort_by_tag = oneof_options.sort_by_tag
         self.has_msg_cb = False
 
     def add_field(self, field):
@@ -888,7 +890,9 @@ class OneOf(Field):
         field.rules = 'ONEOF'
         field.anonymous = self.anonymous
         self.fields.append(field)
-        self.fields.sort(key = lambda f: f.tag)
+
+        if self.sort_by_tag:
+            self.fields.sort()
 
         if field.pbtype == 'MSG_W_CB':
             self.has_msg_cb = True
@@ -1019,11 +1023,8 @@ class Message:
                 elif oneof_options.type == nanopb_pb2.FT_IGNORE:
                     pass # No union and skip fields also
                 else:
-                    oneof = OneOf(self.name, f)
-                    if oneof_options.anonymous_oneof:
-                        oneof.anonymous = True
+                    oneof = OneOf(self.name, f, oneof_options)
                     self.oneofs[i] = oneof
-                    self.fields.append(oneof)
         else:
             sys.stderr.write('Note: This Python protobuf library has no OneOf support\n')
 
@@ -1038,6 +1039,9 @@ class Message:
                 f.oneof_index not in no_unions):
                 if f.oneof_index in self.oneofs:
                     self.oneofs[f.oneof_index].add_field(field)
+
+                    if self.oneofs[f.oneof_index] not in self.fields:
+                        self.fields.append(self.oneofs[f.oneof_index])
             else:
                 self.fields.append(field)
                 if field.math_include_required:
@@ -1048,6 +1052,9 @@ class Message:
             range_start = min([r.start for r in desc.extension_range])
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.fields.append(ExtensionRange(self.name, range_start, field_options))
+
+        if message_options.sort_by_tag:
+            self.fields.sort()
 
     def get_dependencies(self):
         '''Get list of type names that this structure refers to.'''
@@ -1064,7 +1071,7 @@ class Message:
             # Therefore add a dummy field if an empty message occurs.
             result += '    char dummy_field;'
 
-        result += '\n'.join([str(f) for f in sorted(self.fields)])
+        result += '\n'.join([str(f) for f in self.fields])
 
         if Globals.protoc_insertion_points:
             result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
@@ -1090,7 +1097,7 @@ class Message:
             return '{0}'
 
         parts = []
-        for field in sorted(self.fields):
+        for field in self.fields:
             parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
 
