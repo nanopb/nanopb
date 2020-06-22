@@ -104,8 +104,11 @@ bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t cou
 {
     if (count > 0 && stream->callback != NULL)
     {
-        if (stream->bytes_written + count > stream->max_size)
+        if (stream->bytes_written + count < stream->bytes_written ||
+            stream->bytes_written + count > stream->max_size)
+        {
             PB_RETURN_ERROR(stream, "stream full");
+        }
 
 #ifdef PB_BUFFER_ONLY
         if (!buf_write(stream, buf, count))
@@ -849,6 +852,7 @@ static bool checkreturn pb_enc_fixed32(pb_ostream_t *stream, const pb_field_t *f
 static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *field, const void *src)
 {
     const pb_bytes_array_t *bytes = NULL;
+    size_t allocsize;
 
     bytes = (const pb_bytes_array_t*)src;
     
@@ -858,8 +862,9 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_t *fie
         return pb_encode_string(stream, NULL, 0);
     }
     
-    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-        PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) > field->data_size)
+    allocsize = PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size);
+    if (allocsize < bytes->size ||
+        (PB_ATYPE(field->type) == PB_ATYPE_STATIC && allocsize > field->data_size))
     {
         PB_RETURN_ERROR(stream, "bytes size exceeded");
     }
