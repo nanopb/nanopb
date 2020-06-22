@@ -10,4 +10,10 @@ message MyMessage
 message SubMessage
 {
     string somestring = 1 [(nanopb).type = FT_POINTER];
+    SubMessage2 submsg2 = 2 [(nanopb).type = FT_POINTER];
+}
+
+message SubMessage2
+{
+    uint32 foo = 1;
 }
