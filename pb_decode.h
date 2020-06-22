@@ -122,10 +122,13 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Create an input stream for reading from a memory buffer.
  *
+ * msglen should be the actual length of the message, not the full size of
+ * allocated buffer.
+ *
  * Alternatively, you can use a custom stream that reads directly from e.g.
  * a file or a network socket.
  */
-pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t bufsize);
+pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen);
 
 /* Function to read from a pb_istream_t. You can use this if you need to
  * read some custom header data, or to read data in field callbacks.

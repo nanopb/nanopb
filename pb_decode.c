@@ -139,7 +139,7 @@ static bool checkreturn pb_readbyte(pb_istream_t *stream, pb_byte_t *buf)
     return true;    
 }
 
-pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t bufsize)
+pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
 {
     pb_istream_t stream;
     /* Cast away the const from buf without a compiler error.  We are
@@ -156,7 +156,7 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t bufsize)
 #endif
     state.c_state = buf;
     stream.state = state.state;
-    stream.bytes_left = bufsize;
+    stream.bytes_left = msglen;
 #ifndef PB_NO_ERRMSG
     stream.errmsg = NULL;
 #endif
