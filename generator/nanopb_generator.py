@@ -683,6 +683,9 @@ class Field:
                 size = dependencies[str(self.submsgname)].data_size(dependencies)
             else:
                 size = 256 # Message is in other file, this is reasonable guess for most cases
+
+            if self.pbtype == 'MSG_W_CB':
+                size += 16
         elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
             size = self.max_size
         elif self.pbtype == 'BYTES':
