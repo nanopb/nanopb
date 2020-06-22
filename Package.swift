@@ -12,15 +12,6 @@ let package = Package(
         .watchOS(.v2)
     ],
 
-  products: [
-    .executable(name: "nanopb-test", targets: ["swift-test", "objc-test"]),
-
-    .library(
-      name: "nanopb",
-      targets: ["nanopb"]
-    ),
-  ],
-
   targets: [
     .target(
       name: "nanopb",
@@ -41,7 +32,7 @@ let package = Package(
         .define("PB_ENABLE_MALLOC", to: "1"),
       ]
     ),
-    .target(
+    .testTarget(
       name: "swift-test",
       dependencies: [
         "nanopb",
@@ -54,7 +45,7 @@ let package = Package(
         .define("PB_ENABLE_MALLOC", to: "1"),
       ]
     ),
-    .target(
+    .testTarget(
       name: "objc-test",
       dependencies: [
         "nanopb",
