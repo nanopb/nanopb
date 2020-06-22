@@ -205,24 +205,27 @@ assert varint_max_size(128) == 2
 class EncodedSize:
     '''Class used to represent the encoded size of a field or a message.
     Consists of a combination of symbolic sizes and integer sizes.'''
-    def __init__(self, value = 0, symbols = []):
+    def __init__(self, value = 0, symbols = [], declarations = []):
         if isinstance(value, EncodedSize):
             self.value = value.value
             self.symbols = value.symbols
+            self.declarations = value.declarations
         elif isinstance(value, strtypes + (Names,)):
             self.symbols = [str(value)]
             self.value = 0
+            self.declarations = []
         else:
             self.value = value
             self.symbols = symbols
+            self.declarations = declarations
 
     def __add__(self, other):
         if isinstance(other, int):
-            return EncodedSize(self.value + other, self.symbols)
+            return EncodedSize(self.value + other, self.symbols, self.declarations)
         elif isinstance(other, strtypes + (Names,)):
-            return EncodedSize(self.value, self.symbols + [str(other)])
+            return EncodedSize(self.value, self.symbols + [str(other)], self.declarations)
         elif isinstance(other, EncodedSize):
-            return EncodedSize(self.value + other.value, self.symbols + other.symbols)
+            return EncodedSize(self.value + other.value, self.symbols + other.symbols, self.declarations + other.declarations)
         else:
             raise ValueError("Cannot add size: " + repr(other))
 
@@ -237,6 +240,9 @@ class EncodedSize:
             return str(self.value)
         else:
             return '(' + str(self.value) + ' + ' + ' + '.join(self.symbols) + ')'
+
+    def get_declarations(self):
+        return '\n'.join(self.declarations)
 
     def upperlimit(self):
         if not self.symbols:
@@ -930,32 +936,35 @@ class OneOf(Field):
     def encoded_size(self, dependencies):
         '''Returns the size of the largest oneof field.'''
         largest = 0
-        symbols = []
+        dynamic_sizes = {}
         for f in self.fields:
             size = EncodedSize(f.encoded_size(dependencies))
             if size is None or size.value is None:
                 return None
             elif size.symbols:
-                symbols.append((f.tag, size.symbols[0]))
+                dynamic_sizes[f.tag] = size
             elif size.value > largest:
                 largest = size.value
 
-        if not symbols:
+        if not dynamic_sizes:
             # Simple case, all sizes were known at generator time
-            return largest
+            return EncodedSize(largest)
 
         if largest > 0:
             # Some sizes were known, some were not
-            symbols.insert(0, (0, largest))
+            dynamic_sizes[0] = EncodedSize(largest)
 
-        if len(symbols) == 1:
+        # Couldn't find size for submessage at generation time,
+        # have to rely on macro resolution at compile time.
+        if len(dynamic_sizes) == 1:
             # Only one symbol was needed
-            return EncodedSize(5, [symbols[0][1]])
+            return dynamic_sizes.values()[0]
         else:
             # Use sizeof(union{}) construct to find the maximum size of
             # submessages.
-            union_def = ' '.join('char f%d[%s];' % s for s in symbols)
-            return EncodedSize(5, ['sizeof(union{%s})' % union_def])
+            union_name = "%s_%s_size_union" % (self.struct_name, self.name)
+            union_def = 'union %s {%s};\n' % (union_name, ' '.join('char f%d[%s];' % (k, s) for k,s in dynamic_sizes.items()))
+            return EncodedSize(0, ['sizeof(%s)' % union_name], [union_def])
 
     def has_callbacks(self):
         return bool([f for f in self.fields if f.has_callbacks()])
@@ -1599,6 +1608,7 @@ class ProtoFile:
                 msize = msg.encoded_size(self.dependencies)
                 identifier = '%s_size' % msg.name
                 if msize is not None:
+                    yield msize.get_declarations()
                     yield '#define %-40s %s\n' % (identifier, msize)
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
