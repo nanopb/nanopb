@@ -12,4 +12,4 @@ jobs:
     - name: Build
       run: swift build
     - name: Run
-      run: swift run
+      run: swift test
