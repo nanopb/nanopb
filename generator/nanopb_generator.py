@@ -1974,13 +1974,13 @@ def main_cli():
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
                 tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
-                invoke_protoc(["protoc"] + include_path + ['-o' + tmpname, filename])
+                invoke_protoc(["protoc"] + include_path + ['--include_imports', '-o' + tmpname, filename])
                 data = open(tmpname, 'rb').read()
         else:
             data = open(filename, 'rb').read()
 
-        fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
-        fdescs[fdesc.name] = fdesc
+        for fdesc in descriptor.FileDescriptorSet.FromString(data).file:
+            fdescs[fdesc.name] = fdesc
 
     # Process any include files first, in order to have them
     # available as dependencies
