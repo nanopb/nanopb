@@ -1601,6 +1601,7 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_iter_
 static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field)
 {
     bool status = true;
+    bool submsg_consumed = false;
     pb_istream_t substream;
 
     if (!pb_make_string_substream(stream, &substream))
@@ -1632,11 +1633,16 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
         if (callback->funcs.decode)
         {
             status = callback->funcs.decode(&substream, field, &callback->arg);
+
+            if (substream.bytes_left == 0)
+            {
+                submsg_consumed = true;
+            }
         }
     }
 
     /* Now decode the submessage contents */
-    if (status)
+    if (status && !submsg_consumed)
     {
         status = pb_decode_inner(&substream, field->submsg_desc, field->pData, 0);
     }
