@@ -1747,7 +1747,7 @@ def read_options_file(infile):
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
                              "Option lines should have space between field name and options. " +
                              "Skipping line: '%s'\n" % line)
-            continue
+            sys.exit(1)
 
         opts = nanopb_pb2.NanoPBOptions()
 
@@ -1757,7 +1757,7 @@ def read_options_file(infile):
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
                              "Unparseable option line: '%s'. " % line +
                              "Error: %s\n" % str(e))
-            continue
+            sys.exit(1)
         results.append((parts[0], opts))
 
     return results
@@ -1984,7 +1984,8 @@ def main_cli():
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
                 tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
-                invoke_protoc(["protoc"] + include_path + ['--include_imports', '-o' + tmpname, filename])
+                status = invoke_protoc(["protoc"] + include_path + ['--include_imports', '-o' + tmpname, filename])
+                if status != 0: sys.exit(status)
                 data = open(tmpname, 'rb').read()
         else:
             data = open(filename, 'rb').read()
