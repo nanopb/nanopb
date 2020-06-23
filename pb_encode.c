@@ -842,8 +842,8 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_iter_t
         return pb_encode_string(stream, NULL, 0);
     }
     
-    if ((size_t)bytes->size > ((size_t)-1) - offsetof(pb_bytes_array_t, bytes) ||
-        (PB_ATYPE(field->type) == PB_ATYPE_STATIC && PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) > field->data_size))
+    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
+        bytes->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
     {
         PB_RETURN_ERROR(stream, "bytes size exceeded");
     }
