@@ -26,6 +26,12 @@ except:
     pass
 
 try:
+    # Make sure grpc_tools gets included in binary package if it is available
+    import grpc_tools.protoc
+except:
+    pass
+
+try:
     import google.protobuf.text_format as text_format
     import google.protobuf.descriptor_pb2 as descriptor
     import google.protobuf.compiler.plugin_pb2 as plugin_pb2
