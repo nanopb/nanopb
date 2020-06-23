@@ -67,31 +67,40 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         iter->data_size = (pb_size_t)word3;
     }
 
-    iter->pField = (char*)iter->message + data_offset;
-
-    if (size_offset)
+    if (!iter->message)
     {
-        iter->pSize = (char*)iter->pField - size_offset;
-    }
-    else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
-             (PB_ATYPE(iter->type) == PB_ATYPE_STATIC ||
-              PB_ATYPE(iter->type) == PB_ATYPE_POINTER))
-    {
-        /* Fixed count array */
-        iter->pSize = &iter->array_size;
-    }
-    else
-    {
+        /* Avoid doing arithmetic on null pointers, it is undefined */
+        iter->pField = NULL;
         iter->pSize = NULL;
     }
-
-    if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER && iter->pField != NULL)
-    {
-        iter->pData = *(void**)iter->pField;
-    }
     else
     {
-        iter->pData = iter->pField;
+        iter->pField = (char*)iter->message + data_offset;
+
+        if (size_offset)
+        {
+            iter->pSize = (char*)iter->pField - size_offset;
+        }
+        else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+                 (PB_ATYPE(iter->type) == PB_ATYPE_STATIC ||
+                  PB_ATYPE(iter->type) == PB_ATYPE_POINTER))
+        {
+            /* Fixed count array */
+            iter->pSize = &iter->array_size;
+        }
+        else
+        {
+            iter->pSize = NULL;
+        }
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER && iter->pField != NULL)
+        {
+            iter->pData = *(void**)iter->pField;
+        }
+        else
+        {
+            iter->pData = iter->pField;
+        }
     }
 
     if (PB_LTYPE_IS_SUBMSG(iter->type))
@@ -150,11 +159,6 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 
     iter->descriptor = desc;
     iter->message = message;
-
-    if (!desc || !message)
-    {
-        return false;
-    }
 
     return load_descriptor_values(iter);
 }

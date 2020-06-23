@@ -819,9 +819,9 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     pb_field_iter_t iter;
 
     if (!pb_field_iter_begin_extension(&iter, extension))
-        return true; /* Empty field list or extension->dest is null for static fields */
+        PB_RETURN_ERROR(stream, "invalid extension");
 
-    if (iter.tag != tag)
+    if (iter.tag != tag || !iter.message)
         return true;
 
     extension->found = true;
