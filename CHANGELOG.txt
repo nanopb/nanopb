@@ -1,3 +1,9 @@
+nanopb-0.3.9.6 (2020-06-xx)
+ Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
+ Fix proto3 submessage improperly considered empty (#504)
+ Fix ImportError when using generator/protoc with Python 3
+ Add build rules for Swift package manager (#549)
+
 nanopb-0.3.9.5 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
  Add workaround for avr-libc realloc() bug (#475)
