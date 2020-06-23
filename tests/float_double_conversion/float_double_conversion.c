@@ -73,7 +73,16 @@ int main()
             pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
             DoubleMsg msg = { 0.0 };
             TEST(pb_decode(&stream, &DoubleMsg_msg, &msg));
-            TEST(memcmp(&msg.value, &expected_double, sizeof(double)) == 0);
+
+            if (isnan(expected_double))
+            {
+                /* Bottom bits of NAN converted to double can vary */
+                TEST(isnan(msg.value));
+            }
+            else
+            {
+                TEST(memcmp(&msg.value, &expected_double, sizeof(double)) == 0);
+            }
         }
     }
 
