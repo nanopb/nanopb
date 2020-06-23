@@ -3,7 +3,7 @@ from os import path
 
 class NanoPbConan(ConanFile):
     name = "nanopb"
-    version = "0.4.2"
+    version = "0.4.3-dev"
     license = "zlib"
     url = "https://jpa.kapsi.fi/nanopb/"
     description = "Protocol Buffers with small code size"

@@ -1,4 +1,4 @@
-nanopb-0.4.2 (2020-06-xx)
+nanopb-0.4.2 (2020-06-23)
  Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
  Fix segfault with pointer fields and proto3_singular_msgs = true. (#504,#505)
  Fix Windows 10 temp file handling (#486)
