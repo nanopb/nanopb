@@ -20,8 +20,7 @@ static volatile uint32_t *g_stackptr;
 void start_stack_measuring()
 {
     uint32_t i = 0;
-    uint32_t stackfill[MAX_STACK_ENTRIES];
-    g_stackptr = stackfill;
+    g_stackptr = (volatile uint32_t*)((uintptr_t)&i - MAX_STACK_ENTRIES * sizeof(uint32_t));
     for (i = 0; i < MAX_STACK_ENTRIES; i++)
     {
         g_stackbuf[i] = g_stackptr[i];
