@@ -15,7 +15,7 @@ static size_t g_msglen;
  */
 #define MAX_STACK_ENTRIES 1024
 static uint32_t g_stackbuf[MAX_STACK_ENTRIES];
-static uint32_t *g_stackptr;
+static volatile uint32_t *g_stackptr;
 
 void start_stack_measuring()
 {
