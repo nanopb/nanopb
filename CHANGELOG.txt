@@ -1,3 +1,36 @@
+nanopb-0.4.2 (2020-06-xx)
+ Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
+ Fix segfault with pointer fields and proto3_singular_msgs = true. (#504,#505)
+ Fix Windows 10 temp file handling (#486)
+ Fix macro name conflicts (ATMEGA32U4 UENUM and more) (#522)
+ Fix generator error with nested messages and default values (#487)
+ Fix nanopb_generator exception on enums with aliases (#535)
+ Fix compile error when struct members are called X or a (#492)
+ Fix sizeof(union ...) fallback not compiling with C++ (#415, #494)
+ Fix "missing required field" error with submessage callback (#544)
+ Fix field descriptor sizing with submsg_callback option (#545)
+ Fix protoc calling on Python 2 (#503)
+ Fix handling of varying NaN representations in PB_CONVERT_DOUBLE_FLOAT (#543)
+ Change generator to use Python 3 by default (#441, #509)
+ Binary packages updated to use Python 3 and grpcio-tools
+ Add support for infinity and nan floating-point defaults (#530, #538)
+ Add generator option sort_by_tag (#542)
+ Add type_override option to override type defined in .proto (#497)
+ Set proto2 enum fields to first value when no default is given, even if nonzero (#532,#539)
+ Include protoc-gen-nanopb in path in protoc wrapper script
+ Properly pass error status from protoc wrapper when calling binary protoc
+ Generator: pass --include_imports when calling protoc (#494)
+ Create intermediate directories when writing files to relative path (#512)
+ Add current directory to include path for protoc (#499)
+ Update readme to use nanopb_generator.py directly
+ Regression test for proto3 incorrectly considered empty (#504)
+ CMake: change package name to Nanopb for cmake 3.17 compatibility (#506)
+ CMake: remove find_package(PythonInterp) (#508)
+ CMake: use split --nanopb_opt only on protoc >= 3.6 (#515)
+ CMake: Relax python version spec, allowing Python3. (#534)
+ Swift package manager (#549)
+ Rename BUILD as BUILD.bazel (#537)
+
 nanopb-0.4.1 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
  Avoid overflows in allocation for packed fields.

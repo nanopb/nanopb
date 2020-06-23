@@ -60,4 +60,28 @@ Stephane Dorre <stephane.dorre@cobi.bike>
 Phillip Cao <Phillip.Cao@fphcare.co.nz>
 Melvin Wang <melvin.mc.wang@gmail.com>
 Joshua Salzedo <thHunkn0WNd@gmail.com>
-
+Adam Klama <klama.adam@gmail.com>
+Anton Matosov <amatosov@roblox.com>
+berni155 <bdkrae@gmail.com>
+bolind <bolind@users.noreply.github.com>
+David Lin <dtwlin@google.com>
+dch <david.hotham@blueyonder.co.uk>
+devjoa <devjoa@gmail.com>
+Evan Fisher <schleb@gmail.com>
+Fay <fay2003hiend@gmail.com>
+Florian Märkl <info@florianmaerkl.de>
+Franck <franck.sehedic@ledger.fr>
+Ilya Averyanov <i.averyanov@geoscan.aero>
+John Ullman <jrullman@google.com>
+Ket3r <peter.kempter@gmail.com>
+maciej <maciej.matuszak@gmail.com>
+Marek Zukal <marek.zukal@gmail.com>
+Paul Beusterien <paulbeusterien@google.com>
+Rogers Guedes <rogers.guedes@smdautomacao.com>
+Stefan R. Filipek <srfilipek@gmail.com>
+T. Carl Beery <beeryt@users.noreply.github.com>
+Vitali Lovich <vlovich@google.com>
+Vojtěch Boček <vbocek@gmail.com>
+Wael Nasreddine <wael.nasreddine@gmail.com>
+wangli28 <wangli28@beyondsoft.com>
+Zukaitis <gediminas.zukaitis@office.auriga.msk>
