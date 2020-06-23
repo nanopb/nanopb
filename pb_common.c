@@ -151,6 +151,11 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
     iter->descriptor = desc;
     iter->message = message;
 
+    if (!desc || !message)
+    {
+        return false;
+    }
+
     return load_descriptor_values(iter);
 }
 

@@ -833,7 +833,6 @@ static bool checkreturn pb_enc_fixed(pb_ostream_t *stream, const pb_field_iter_t
 static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
     const pb_bytes_array_t *bytes = NULL;
-    size_t allocsize;
 
     bytes = (const pb_bytes_array_t*)field->pData;
     
@@ -843,9 +842,8 @@ static bool checkreturn pb_enc_bytes(pb_ostream_t *stream, const pb_field_iter_t
         return pb_encode_string(stream, NULL, 0);
     }
     
-    allocsize = PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size);
-    if (allocsize < bytes->size ||
-        (PB_ATYPE(field->type) == PB_ATYPE_STATIC && allocsize > field->data_size))
+    if ((size_t)bytes->size > ((size_t)-1) - offsetof(pb_bytes_array_t, bytes) ||
+        (PB_ATYPE(field->type) == PB_ATYPE_STATIC && PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) > field->data_size))
     {
         PB_RETURN_ERROR(stream, "bytes size exceeded");
     }

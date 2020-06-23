@@ -11,6 +11,7 @@ nanopb-0.4.2 (2020-06-xx)
  Fix field descriptor sizing with submsg_callback option (#545)
  Fix protoc calling on Python 2 (#503)
  Fix handling of varying NaN representations in PB_CONVERT_DOUBLE_FLOAT (#543)
+ Fix clang undefined behavior sanitizer errors.
  Change generator to use Python 3 by default (#441, #509)
  Binary packages updated to use Python 3 and grpcio-tools
  Add support for infinity and nan floating-point defaults (#530, #538)
@@ -30,6 +31,8 @@ nanopb-0.4.2 (2020-06-xx)
  CMake: Relax python version spec, allowing Python3. (#534)
  Swift package manager (#549)
  Rename BUILD as BUILD.bazel (#537)
+
+Note: Windows binary packages in 0.4.2 and later require Windows 7 or newer.
 
 nanopb-0.4.1 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
@@ -91,6 +94,12 @@ nanopb-0.4.0 (2019-12-20)
  Implement conan recipe (#378)
  CMake: Split nanopb_out command (#454)
  CMake: install created shared library(dll) in windows to the binary folder (#447)
+
+nanopb-0.3.9.6 (2020-06-23)
+ Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
+ Fix proto3 submessage improperly considered empty (#504)
+ Fix ImportError when using generator/protoc with Python 3
+ Add build rules for Swift package manager (#549)
 
 nanopb-0.3.9.5 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
@@ -262,6 +271,10 @@ nanopb-0.3.0 (2014-08-26)
  Added PB_ prefix to macro names (issue 106)
  Added #if version guard to generated files (issue 129)
  Added migration document
+
+nanopb-0.2.9.5 (2020-06-23)
+ Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
+ Backport Python 3 and protoc 3.x fixes to test cases
 
 nanopb-0.2.9.4 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)

@@ -819,7 +819,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
     pb_field_iter_t iter;
 
     if (!pb_field_iter_begin_extension(&iter, extension))
-        PB_RETURN_ERROR(stream, "invalid extension");
+        return true; /* Empty field list or extension->dest is null for static fields */
 
     if (iter.tag != tag)
         return true;
@@ -1277,7 +1277,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
         
         if (field->pData)
         {
-            while (count--)
+            for (; count > 0; count--)
             {
                 pb_release(field->submsg_desc, field->pData);
                 field->pData = (char*)field->pData + field->data_size;
@@ -1294,7 +1294,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
             /* Release entries in repeated string or bytes array */
             void **pItem = *(void***)field->pField;
             pb_size_t count = *(pb_size_t*)field->pSize;
-            while (count--)
+            for (; count > 0; count--)
             {
                 pb_free(*pItem);
                 *pItem++ = NULL;
