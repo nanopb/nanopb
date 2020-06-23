@@ -1,3 +1,7 @@
+nanopb-0.2.9.5 (2020-06-23)
+ Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
+ Backport Python 3 and protoc 3.x fixes to test cases
+
 nanopb-0.2.9.4 (2020-02-02)
  Fix invalid free() after failed realloc() (GHSA-gcx3-7m76-287p)
  Add workaround for avr-libc realloc() bug (#475)
