@@ -53,6 +53,31 @@ def _detect_nanopb(env):
     raise SCons.Errors.StopError(NanopbWarning,
         "Could not find the nanopb root directory")
 
+def _detect_python(env):
+    '''Find Python executable to use.'''
+    if env.has_key('PYTHON'):
+        return env['PYTHON']
+
+    p = env.WhereIs('python3')
+    if p:
+        return env['ESCAPE'](p)
+
+    p = env.WhereIs('py.exe')
+    if p:
+        return env['ESCAPE'](p) + " -3"
+
+    return env['ESCAPE'](sys.executable)
+
+def _detect_nanopb_generator(env):
+    '''Return command for running nanopb_generator.py'''
+    generator_cmd = os.path.join(env['NANOPB'], 'generator-bin', 'nanopb_generator' + env['PROGSUFFIX'])
+    if os.path.exists(generator_cmd):
+        # Binary package
+        return env['ESCAPE'](generator_cmd)
+    else:
+        # Source package
+        return env['PYTHON'] + " " + env['ESCAPE'](os.path.join(env['NANOPB'], 'generator', 'nanopb_generator.py'))
+
 def _detect_protoc(env):
     '''Find the path to the protoc compiler.'''
     if env.has_key('PROTOC'):
@@ -148,6 +173,8 @@ def generate(env):
     env['NANOPB'] = _detect_nanopb(env)
     env['PROTOC'] = _detect_protoc(env)
     env['PROTOCFLAGS'] = _detect_protocflags(env)
+    env['PYTHON'] = _detect_python(env)
+    env['NANOPB_GENERATOR'] = _detect_nanopb_generator(env)
     env.SetDefault(NANOPBFLAGS = '')
 
     env.SetDefault(PROTOCPATH = [".", os.path.join(env['NANOPB'], 'generator', 'proto')])
