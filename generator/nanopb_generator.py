@@ -2025,6 +2025,7 @@ def main_cli():
             sys.stderr.write("Writing to %s\n" % paths)
 
         for path, data in to_write:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'w') as f:
                 f.write(data)
 
