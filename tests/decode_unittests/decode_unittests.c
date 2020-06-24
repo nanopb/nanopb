@@ -237,34 +237,25 @@ int main()
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         float d;
 
-        f.type = PB_LTYPE_FIXED32;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_fixed using float (failures here may be caused by imperfect rounding)")
-        TEST((s = S("\x00\x00\x00\x00"), pb_dec_fixed(&s, &f) && d == 0.0f))
-        TEST((s = S("\x00\x00\xc6\x42"), pb_dec_fixed(&s, &f) && d == 99.0f))
-        TEST((s = S("\x4e\x61\x3c\xcb"), pb_dec_fixed(&s, &f) && d == -12345678.0f))
+        TEST((s = S("\x00\x00\x00\x00"), pb_decode_fixed32(&s, &d) && d == 0.0f))
+        TEST((s = S("\x00\x00\xc6\x42"), pb_decode_fixed32(&s, &d) && d == 99.0f))
+        TEST((s = S("\x4e\x61\x3c\xcb"), pb_decode_fixed32(&s, &d) && d == -12345678.0f))
         d = -12345678.0f;
-        TEST((s = S("\x00"), !pb_dec_fixed(&s, &f) && d == -12345678.0f))
+        TEST((s = S("\x00"), !pb_decode_fixed32(&s, &d) && d == -12345678.0f))
     }
 
+    if (sizeof(double) == 8)
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         double d;
 
-        f.type = PB_LTYPE_FIXED64;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_fixed64 using double (failures here may be caused by imperfect rounding)")
-        TEST((s = S("\x00\x00\x00\x00\x00\x00\x00\x00"), pb_dec_fixed(&s, &f) && d == 0.0))
-        TEST((s = S("\x00\x00\x00\x00\x00\xc0\x58\x40"), pb_dec_fixed(&s, &f) && d == 99.0))
-        TEST((s = S("\x00\x00\x00\xc0\x29\x8c\x67\xc1"), pb_dec_fixed(&s, &f) && d == -12345678.0f))
+        TEST((s = S("\x00\x00\x00\x00\x00\x00\x00\x00"), pb_decode_fixed64(&s, &d) && d == 0.0))
+        TEST((s = S("\x00\x00\x00\x00\x00\xc0\x58\x40"), pb_decode_fixed64(&s, &d) && d == 99.0))
+        TEST((s = S("\x00\x00\x00\xc0\x29\x8c\x67\xc1"), pb_decode_fixed64(&s, &d) && d == -12345678.0f))
     }
 
     {
