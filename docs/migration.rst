@@ -11,7 +11,22 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.4.2 (2020-xx-xx)
+Nanopb-0.4.3 (2020-xx-xx)
+=========================
+
+pb_msgdesc_t struct has new fields
+----------------------------------
+
+**Changes:** New fields `required_field_count` and `largest_tag` were added
+to `pb_msgdesc_t` and existing fields were reordered.
+
+**Required actions:** All `.pb.c` files must be recompiled. Regeneration is not
+needed.
+
+**Error indications:** Messages may fail to encode or decode, or the code can
+crash inside `load_descriptor_values()` in `pb_common.c`.
+
+Nanopb-0.4.2 (2020-06-23)
 =========================
 
 Generator now uses Python 3 by default

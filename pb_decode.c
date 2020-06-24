@@ -1091,27 +1091,15 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
     /* Check that all required fields were present. */
     {
-        /* First figure out the number of required fields by
-         * seeking to the end of the field array. Usually we
-         * are already close to end after decoding.
-         */
-        pb_size_t req_field_count;
-        pb_type_t last_type;
-        pb_size_t i;
-        do {
-            req_field_count = iter.required_field_index;
-            last_type = iter.type;
-        } while (pb_field_iter_next(&iter));
-
-        /* Fixup if last field was also required. */
-        if (PB_HTYPE(last_type) == PB_HTYPE_REQUIRED && iter.tag != 0)
-            req_field_count++;
-
-        if (req_field_count > PB_MAX_REQUIRED_FIELDS)
-            req_field_count = PB_MAX_REQUIRED_FIELDS;
+        pb_size_t req_field_count = iter.descriptor->required_field_count;
 
         if (req_field_count > 0)
         {
+            pb_size_t i;
+
+            if (req_field_count > PB_MAX_REQUIRED_FIELDS)
+                req_field_count = PB_MAX_REQUIRED_FIELDS;
+
             /* Check the whole words */
             for (i = 0; i < (req_field_count >> 5); i++)
             {

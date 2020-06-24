@@ -276,17 +276,18 @@ typedef struct pb_field_iter_s pb_field_iter_t;
 /* This structure is used in auto-generated constants
  * to specify struct fields.
  */
-PB_PACKED_STRUCT_START
 typedef struct pb_msgdesc_s pb_msgdesc_t;
 struct pb_msgdesc_s {
-    pb_size_t field_count;
     const uint32_t *field_info;
     const pb_msgdesc_t * const * submsg_info;
     const pb_byte_t *default_value;
 
     bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
-} pb_packed;
-PB_PACKED_STRUCT_END
+
+    pb_size_t field_count;
+    pb_size_t required_field_count;
+    pb_size_t largest_tag;
+};
 
 /* Iterator for message descriptor */
 struct pb_field_iter_s {
@@ -469,15 +470,21 @@ struct pb_extension_s {
     }; \
     const pb_msgdesc_t structname ## _msg = \
     { \
-       0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
        structname ## _field_info, \
        structname ## _submsg_info, \
        msgname ## _DEFAULT, \
        msgname ## _CALLBACK, \
+       0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
+       0 msgname ## _FIELDLIST(PB_GEN_REQ_FIELD_COUNT, structname), \
+       0 msgname ## _FIELDLIST(PB_GEN_LARGEST_TAG, structname), \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
 #define PB_GEN_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) +1
+#define PB_GEN_REQ_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) \
+    + (PB_HTYPE_ ## htype == PB_HTYPE_REQUIRED)
+#define PB_GEN_LARGEST_TAG(structname, atype, htype, ltype, fieldname, tag) \
+    * 0 + tag
 
 /* X-macro for generating the entries in struct_field_info[] array. */
 #define PB_GEN_FIELD_INFO_1(structname, atype, htype, ltype, fieldname, tag) \

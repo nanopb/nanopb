@@ -198,6 +198,10 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     {
         return true; /* Nothing to do, correct field already. */
     }
+    else if (tag > iter->descriptor->largest_tag)
+    {
+        return false;
+    }
     else
     {
         pb_size_t start = iter->index;
