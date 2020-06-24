@@ -77,8 +77,10 @@ size_t rand_len(size_t max)
 /* Fills a buffer with random data with skewed distribution. */
 void rand_fill(uint8_t *buf, size_t count)
 {
-    while (count--)
+    for (; count > 0; count--)
+    {
         *buf++ = rand_byte();
+    }
 }
 
 /* Fill with random protobuf-like data */

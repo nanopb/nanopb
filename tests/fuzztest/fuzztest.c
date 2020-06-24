@@ -37,7 +37,7 @@ static uint32_t xor32_checksum(const void *data, size_t len)
 {
     const uint8_t *buf = (const uint8_t*)data;
     uint32_t checksum = 1234;
-    while (len--)
+    for (; len > 0; len--)
     {
         checksum ^= checksum << 13;
         checksum ^= checksum >> 17;
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
         buffer = malloc_with_check(g_bufsize);
 
         SET_BINARY_MODE(stdin);
-        msglen = fread(buffer, 1, g_bufsize/2, stdin);
+        msglen = fread(buffer, 1, g_bufsize, stdin);
         LLVMFuzzerTestOneInput(buffer, msglen);
 
         if (!feof(stdin))
