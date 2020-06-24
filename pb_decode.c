@@ -598,14 +598,8 @@ static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
     else if (PB_LTYPE_IS_SUBMSG(field->type))
     {
         /* We memset to zero so that any callbacks are set to NULL.
-         * Then set any default values. */
-        pb_field_iter_t submsg_iter;
+         * Default values will be set by pb_dec_submessage(). */
         memset(pItem, 0, field->data_size);
-
-        if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, pItem))
-        {
-            (void)pb_message_set_to_defaults(&submsg_iter);
-        }
     }
 }
 #endif
@@ -892,9 +886,14 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
 
         if (init_data)
         {
-            if (PB_LTYPE_IS_SUBMSG(field->type))
+            if (PB_LTYPE_IS_SUBMSG(field->type) &&
+                (field->submsg_desc->default_value != NULL ||
+                 field->submsg_desc->field_callback != NULL ||
+                 field->submsg_desc->submsg_info[0] != NULL))
             {
-                /* Initialize submessage to defaults */
+                /* Initialize submessage to defaults.
+                 * Only needed if it has default values
+                 * or callback/submessage fields. */
                 pb_field_iter_t submsg_iter;
                 if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
                 {
@@ -1599,19 +1598,6 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     if (field->submsg_desc == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
     
-    /* New array entries need to be initialized, while required and optional
-     * submessages have already been initialized in the top-level pb_decode. */
-    if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED ||
-        PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-    {
-        pb_field_iter_t submsg_iter;
-        if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
-        {
-            if (!pb_message_set_to_defaults(&submsg_iter))
-                PB_RETURN_ERROR(stream, "failed to set defaults");
-        }
-    }
-
     /* Submessages can have a separate message-level callback that is called
      * before decoding the message. Typically it is used to set callback fields
      * inside oneofs. */
@@ -1633,7 +1619,18 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     /* Now decode the submessage contents */
     if (status && !submsg_consumed)
     {
-        status = pb_decode_inner(&substream, field->submsg_desc, field->pData, 0);
+        unsigned int flags = 0;
+
+        /* Static required/optional fields are already initialized by top-level
+         * pb_decode(), no need to initialize them again. */
+        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
+            PB_HTYPE(field->type) != PB_HTYPE_REPEATED &&
+            PB_HTYPE(field->type) != PB_HTYPE_ONEOF)
+        {
+            flags = PB_DECODE_NOINIT;
+        }
+
+        status = pb_decode_inner(&substream, field->submsg_desc, field->pData, flags);
     }
     
     if (!pb_close_string_substream(stream, &substream))
