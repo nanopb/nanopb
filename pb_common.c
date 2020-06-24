@@ -9,62 +9,66 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     uint32_t word0;
     uint32_t data_offset;
-    uint_least8_t format;
     int_least8_t size_offset;
 
     if (iter->index >= iter->descriptor->field_count)
         return false;
 
     word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
-    format = word0 & 3;
-    iter->tag = (pb_size_t)((word0 >> 2) & 0x3F);
     iter->type = (pb_type_t)((word0 >> 8) & 0xFF);
 
-    if (format == 0)
+    switch(word0 & 3)
     {
-        /* 1-word format */
-        iter->array_size = 1;
-        size_offset = (int_least8_t)((word0 >> 24) & 0x0F);
-        data_offset = (word0 >> 16) & 0xFF;
-        iter->data_size = (pb_size_t)((word0 >> 28) & 0x0F);
-    }
-    else if (format == 1)
-    {
-        /* 2-word format */
-        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+        case 0: {
+            /* 1-word format */
+            iter->array_size = 1;
+            iter->tag = (pb_size_t)((word0 >> 2) & 0x3F);
+            size_offset = (int_least8_t)((word0 >> 24) & 0x0F);
+            data_offset = (word0 >> 16) & 0xFF;
+            iter->data_size = (pb_size_t)((word0 >> 28) & 0x0F);
+            break;
+        }
 
-        iter->array_size = (pb_size_t)((word0 >> 16) & 0x0FFF);
-        iter->tag = (pb_size_t)(iter->tag | ((word1 >> 28) << 6));
-        size_offset = (int_least8_t)((word0 >> 28) & 0x0F);
-        data_offset = word1 & 0xFFFF;
-        iter->data_size = (pb_size_t)((word1 >> 16) & 0x0FFF);
-    }
-    else if (format == 2)
-    {
-        /* 4-word format */
-        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
-        uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
-        uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
+        case 1: {
+            /* 2-word format */
+            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
 
-        iter->array_size = (pb_size_t)(word0 >> 16);
-        iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
-        size_offset = (int_least8_t)(word1 & 0xFF);
-        data_offset = word2;
-        iter->data_size = (pb_size_t)word3;
-    }
-    else
-    {
-        /* 8-word format */
-        uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
-        uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
-        uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
-        uint32_t word4 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 4]);
+            iter->array_size = (pb_size_t)((word0 >> 16) & 0x0FFF);
+            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 28) << 6));
+            size_offset = (int_least8_t)((word0 >> 28) & 0x0F);
+            data_offset = word1 & 0xFFFF;
+            iter->data_size = (pb_size_t)((word1 >> 16) & 0x0FFF);
+            break;
+        }
 
-        iter->array_size = (pb_size_t)word4;
-        iter->tag = (pb_size_t)(iter->tag | ((word1 >> 8) << 6));
-        size_offset = (int_least8_t)(word1 & 0xFF);
-        data_offset = word2;
-        iter->data_size = (pb_size_t)word3;
+        case 2: {
+            /* 4-word format */
+            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+            uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
+            uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
+
+            iter->array_size = (pb_size_t)(word0 >> 16);
+            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 8) << 6));
+            size_offset = (int_least8_t)(word1 & 0xFF);
+            data_offset = word2;
+            iter->data_size = (pb_size_t)word3;
+            break;
+        }
+
+        default: {
+            /* 8-word format */
+            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+            uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
+            uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
+            uint32_t word4 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 4]);
+
+            iter->array_size = (pb_size_t)word4;
+            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 8) << 6));
+            size_offset = (int_least8_t)(word1 & 0xFF);
+            data_offset = word2;
+            iter->data_size = (pb_size_t)word3;
+            break;
+        }
     }
 
     if (!iter->message)
@@ -139,17 +143,13 @@ static void advance_iterator(pb_field_iter_t *iter)
         pb_type_t prev_type = (prev_descriptor >> 8) & 0xFF;
         pb_size_t descriptor_len = (pb_size_t)(1 << (prev_descriptor & 3));
 
+        /* Add to fields.
+         * The cast to pb_size_t is needed to avoid -Wconversion warning.
+         * Because the data is is constants from generator, there is no danger of overflow.
+         */
         iter->field_info_index = (pb_size_t)(iter->field_info_index + descriptor_len);
-
-        if (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED)
-        {
-            iter->required_field_index++;
-        }
-
-        if (PB_LTYPE_IS_SUBMSG(prev_type))
-        {
-            iter->submessage_index++;
-        }
+        iter->required_field_index = (pb_size_t)(iter->required_field_index + (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED));
+        iter->submessage_index = (pb_size_t)(iter->submessage_index + PB_LTYPE_IS_SUBMSG(prev_type));
     }
 }
 
@@ -202,6 +202,14 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     {
         pb_size_t start = iter->index;
         uint32_t fieldinfo;
+
+        if (tag < iter->tag)
+        {
+            /* Fields are in tag number order, so we know that tag is between
+             * 0 and our start position. Setting index to end forces
+             * advance_iterator() call below to restart from beginning. */
+            iter->index = iter->descriptor->field_count;
+        }
 
         do
         {
