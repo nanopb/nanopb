@@ -31,8 +31,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
-static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_field_iter_t *iter);
-static bool checkreturn find_extension_field(pb_field_iter_t *iter);
+static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
 static bool pb_message_set_to_defaults(pb_field_iter_t *iter);
 static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_t *field);
@@ -831,9 +830,8 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
 /* Try to decode an unknown field as an extension field. Tries each extension
  * decoder in turn, until one of them handles the field or loop ends. */
 static bool checkreturn decode_extension(pb_istream_t *stream,
-    uint32_t tag, pb_wire_type_t wire_type, pb_field_iter_t *iter)
+    uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension)
 {
-    pb_extension_t *extension = *(pb_extension_t* const *)iter->pData;
     size_t pos = stream->bytes_left;
     
     while (extension != NULL && pos == stream->bytes_left)
@@ -851,22 +849,6 @@ static bool checkreturn decode_extension(pb_istream_t *stream,
     }
     
     return true;
-}
-
-/* Step through the iterator until an extension field is found or until all
- * entries have been checked. There can be only one extension field per
- * message. Returns false if no extension field is found. */
-static bool checkreturn find_extension_field(pb_field_iter_t *iter)
-{
-    pb_size_t start = iter->index;
-
-    do {
-        if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
-            return true;
-        (void)pb_field_iter_next(iter);
-    } while (iter->index != start);
-    
-    return false;
 }
 
 /* Initialize message fields to default values, recursively */
@@ -989,6 +971,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
     uint32_t extension_range_start = 0;
+    pb_extension_t *extensions = NULL;
 
     /* 'fixed_count_field' and 'fixed_count_size' track position of a repeated fixed
      * count field. This can only handle _one_ repeated fixed count field that
@@ -1040,25 +1023,31 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
         if (!pb_field_iter_find(&iter, tag) || PB_LTYPE(iter.type) == PB_LTYPE_EXTENSION)
         {
             /* No match found, check if it matches an extension. */
+            if (extension_range_start == 0)
+            {
+                if (pb_field_iter_find_extension(&iter))
+                {
+                    extensions = *(pb_extension_t* const *)iter.pData;
+                    extension_range_start = iter.tag;
+                }
+
+                if (!extensions)
+                {
+                    extension_range_start = (uint32_t)-1;
+                }
+            }
+
             if (tag >= extension_range_start)
             {
-                if (!find_extension_field(&iter))
-                    extension_range_start = (uint32_t)-1;
-                else
-                    extension_range_start = iter.tag;
+                size_t pos = stream->bytes_left;
 
-                if (tag >= extension_range_start)
+                if (!decode_extension(stream, tag, wire_type, extensions))
+                    return false;
+
+                if (pos != stream->bytes_left)
                 {
-                    size_t pos = stream->bytes_left;
-
-                    if (!decode_extension(stream, tag, wire_type, &iter))
-                        return false;
-
-                    if (pos != stream->bytes_left)
-                    {
-                        /* The field was handled */
-                        continue;
-                    }
+                    /* The field was handled */
+                    continue;
                 }
             }
 

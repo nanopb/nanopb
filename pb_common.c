@@ -239,6 +239,37 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     }
 }
 
+bool pb_field_iter_find_extension(pb_field_iter_t *iter)
+{
+    if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+    {
+        return true;
+    }
+    else
+    {
+        pb_size_t start = iter->index;
+        uint32_t fieldinfo;
+
+        do
+        {
+            /* Advance iterator but don't load values yet */
+            advance_iterator(iter);
+
+            /* Do fast check for field type */
+            fieldinfo = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
+
+            if (PB_LTYPE((fieldinfo >> 8) & 0xFF) == PB_LTYPE_EXTENSION)
+            {
+                return load_descriptor_values(iter);
+            }
+        } while (iter->index != start);
+
+        /* Searched all the way back to start, and found nothing. */
+        (void)load_descriptor_values(iter);
+        return false;
+    }
+}
+
 static void *pb_const_cast(const void *p)
 {
     /* Note: this casts away const, in order to use the common field iterator
