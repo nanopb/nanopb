@@ -9,6 +9,14 @@ It is primarily suitable for 32-bit microcontrollers.
 
 __ https://developers.google.com/protocol-buffers/docs/reference/overview
 
+Documentation version
+=====================
+
+This documentation applies for nanopb 0.4.0 and later versions. For documentation
+of older releases, `see here`__.
+
+__ https://github.com/nanopb/nanopb/blob/maintenance_0.3/docs/index.rst
+
 Overall structure
 =================
 

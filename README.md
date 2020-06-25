@@ -36,6 +36,9 @@ you need to generate `.pb.c` and `.pb.h` files from it:
     python generator/nanopb_generator.py myprotocol.proto  # For source checkout
     generator-bin/nanopb_generator myprotocol.proto        # For binary package
 
+(Note: For instructions for nanopb-0.3.9.x and older, see the documentation
+of that particular version [here](https://github.com/nanopb/nanopb/blob/maintenance_0.3/README.md))
+
 The binary packages for Windows, Linux and Mac OS X should contain all necessary
 dependencies, including Python, python-protobuf library and protoc. If you are
 using a git checkout or a plain source distribution, you will need to install
