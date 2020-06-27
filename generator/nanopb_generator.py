@@ -2033,7 +2033,7 @@ def main_cli():
         for path, data in to_write:
             dirname = os.path.dirname(path)
             if dirname and not os.path.exists(dirname):
-                os.makedirs(dirname, exist_ok=True)
+                os.makedirs(dirname)
 
             with open(path, 'w') as f:
                 f.write(data)
