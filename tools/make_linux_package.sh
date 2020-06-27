@@ -17,32 +17,24 @@ mkdir -p $DEST
 # Export the files from newest commit
 git archive HEAD | tar x -C $DEST
 
-# Rebuild the Python .proto files
-make -BC $DEST/generator/proto
+# Rebuild the Python .proto files and .pyc
+( cd $DEST/generator; python3 nanopb_generator.py ||: )
 
 # Package the Python libraries
-( cd $DEST/generator; pyinstaller nanopb_generator.py )
+( cd $DEST/generator; python3 -m PyInstaller nanopb_generator.py )
+( cd $DEST/generator; python3 -m PyInstaller protoc  )
 mv $DEST/generator/dist/nanopb_generator $DEST/generator-bin
+cp $DEST/generator/dist/protoc/protoc $DEST/generator-bin
+
+# Include Google's descriptor.proto and nanopb.proto
+cp -pr $(python3 -c 'import grpc_tools, os.path; print(os.path.dirname(grpc_tools.__file__))')/_proto $DEST/generator-bin/grpc_tools/
+cp -pr $DEST/generator/proto $DEST/generator-bin/proto
 
 # Remove temp files
 rm -rf $DEST/generator/dist $DEST/generator/build $DEST/generator/nanopb_generator.spec
 
 # Make the nanopb generator available as a protoc plugin
 cp $DEST/generator-bin/nanopb_generator $DEST/generator-bin/protoc-gen-nanopb
-
-# Package the protoc compiler
-cp `which protoc` $DEST/generator-bin/protoc.bin
-LIBPROTOC=$(ldd `which protoc` | grep -o '/.*libprotoc[^ ]*')
-LIBPROTOBUF=$(ldd `which protoc` | grep -o '/.*libprotobuf[^ ]*')
-cp $LIBPROTOC $LIBPROTOBUF $DEST/generator-bin/
-cat > $DEST/generator-bin/protoc << EOF
-#!/bin/bash
-SCRIPTDIR=\$(dirname "\$0")
-export LD_LIBRARY_PATH=\$SCRIPTDIR
-export PATH=\$SCRIPTDIR:\$PATH
-exec "\$SCRIPTDIR/protoc.bin" "\$@"
-EOF
-chmod +x $DEST/generator-bin/protoc
 
 # Remove debugging symbols to reduce size of package
 ( cd $DEST/generator-bin; strip *.so *.so.* )
