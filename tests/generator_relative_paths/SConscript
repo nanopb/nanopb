@@ -35,3 +35,10 @@ env.Match("simple_pb_h_ok", ["build/simple.pb.h", "simple.expected"])
 env.Match("simple_pb_c_ok", ["build/simple.pb.c", "simple.expected"])
 env.Match("any_pb_h_ok", ["build/protobuf/any.pb.h", "any.expected"])
 env.Match("any_pb_c_ok", ["build/protobuf/any.pb.c", "any.expected"])
+
+# Test when not using -D
+env.Command(["test.pb.c", "test.pb.h"], "test.proto",
+            env['NANOPB_GENERATOR'] + " test.proto",
+            chdir = True)
+env.Match("test_pb_h_ok", ["test.pb.h", "test.expected"])
+env.Match("test_pb_c_ok", ["test.pb.c", "test.expected"])

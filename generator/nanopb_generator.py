@@ -2006,8 +2006,8 @@ def main_cli():
         else:
             data = open(filename, 'rb').read()
 
-        for fdesc in descriptor.FileDescriptorSet.FromString(data).file:
-            fdescs[fdesc.name] = fdesc
+        fdesc = descriptor.FileDescriptorSet.FromString(data).file[-1]
+        fdescs[fdesc.name] = fdesc
 
     # Process any include files first, in order to have them
     # available as dependencies
@@ -2031,7 +2031,10 @@ def main_cli():
             sys.stderr.write("Writing to %s\n" % paths)
 
         for path, data in to_write:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
+            dirname = os.path.dirname(path)
+            if dirname and not os.path.exists(dirname):
+                os.makedirs(dirname, exist_ok=True)
+
             with open(path, 'w') as f:
                 f.write(data)
 
