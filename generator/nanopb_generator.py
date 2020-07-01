@@ -1426,28 +1426,26 @@ class ProtoFile:
 
 
         def create_name(names):
-            if mangle_names == nanopb_pb2.M_NONE or mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
+            if mangle_names in (nanopb_pb2.M_NONE, nanopb_pb2.M_PACKAGE_INITIALS):
                 return base_name + names
-            elif mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+            if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
                 return Names(names)
-            else:
-                single_name = names
-                if isinstance(names, Names):
-                    single_name = names.parts[-1]
-                return Names(single_name)
+            single_name = names
+            if isinstance(names, Names):
+                single_name = names.parts[-1]
+            return Names(single_name)
 
         def mangle_field_typename(typename):
             if mangle_names == nanopb_pb2.M_FLATTEN:
                 return "." + typename.split(".")[-1]
-            elif strip_prefix is not None and typename.startswith(strip_prefix):
+            if strip_prefix is not None and typename.startswith(strip_prefix):
                 if replacement_prefix is not None:
                     return "." + replacement_prefix + typename[len(strip_prefix):]
                 else:
                     return typename[len(strip_prefix):]
-            elif self.file_options.package:
+            if self.file_options.package:
                 return "." + replacement_prefix + typename
-            else:
-                return typename
+            return typename
 
         if replacement_prefix is not None:
             base_name = Names(replacement_prefix.split('.'))
