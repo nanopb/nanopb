@@ -60,7 +60,7 @@ if(nanopb_BUILD_GENERATOR)
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
-            DESTINATION ${Python_SITELIB}
+            DESTINATION ${PYTHON_INSTDIR}
         )
     endforeach()
 endif()
