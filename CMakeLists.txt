@@ -60,9 +60,27 @@ if(nanopb_BUILD_GENERATOR)
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
-            DESTINATION ${PYTHON_INSTDIR}
+                  ${generator_proto_file}
+            DESTINATION ${PYTHON_INSTDIR}/proto/
         )
     endforeach()
+endif()
+
+install( FILES generator/proto/_utils.py
+         DESTINATION ${PYTHON_INSTDIR}/proto/ )
+
+if( WIN32 )
+        install(
+            PROGRAMS generator/nanopb_generator.py
+                     generator/protoc-gen-nanopb.bat
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+else()
+        install(
+            PROGRAMS generator/nanopb_generator.py
+                     generator/protoc-gen-nanopb
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
 endif()
 
 if(nanopb_BUILD_RUNTIME)
