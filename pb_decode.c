@@ -204,8 +204,10 @@ static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *d
             {
                 /* Note: The varint could have trailing 0x80 bytes, or 0xFF for negative. */
                 pb_byte_t sign_extension = (bitpos < 63) ? 0xFF : 0x01;
-                
-                if ((byte & 0x7F) != 0x00 && ((result >> 31) == 0 || byte != sign_extension))
+                bool valid_extension = ((byte & 0x7F) == 0x00 ||
+                         ((result >> 31) != 0 && byte == sign_extension));
+
+                if (bitpos >= 64 || !valid_extension)
                 {
                     PB_RETURN_ERROR(stream, "varint overflow");
                 }

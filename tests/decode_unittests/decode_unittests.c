@@ -104,6 +104,7 @@ int main()
         TEST((s = S("\xFF\xFF\xFF\xFF\x10"), !pb_decode_varint32(&s, &u)));
         TEST((s = S("\xFF\xFF\xFF\xFF\x40"), !pb_decode_varint32(&s, &u)));
         TEST((s = S("\xFF\xFF\xFF\xFF\xFF\x01"), !pb_decode_varint32(&s, &u)));
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x00"), !pb_decode_varint32(&s, &u)));
     }
 
     {
