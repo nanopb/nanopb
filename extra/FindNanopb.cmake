@@ -346,6 +346,8 @@ find_program(PROTOBUF_PROTOC_EXECUTABLE
     PATHS
     ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release
     ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug
+    ${NANOPB_SRC_ROOT_FOLDER}/generator-bin
+    ${NANOPB_SRC_ROOT_FOLDER}/generator
 )
 mark_as_advanced(PROTOBUF_PROTOC_EXECUTABLE)
 
