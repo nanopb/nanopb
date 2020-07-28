@@ -219,15 +219,15 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     set(NANOPB_OPTIONS_DIRS)
 
     # If there an options file in the same working directory, set it as a dependency
-    set(NANOPB_OPTIONS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${FIL_DIR}/${FIL_WE}.options)
-    if(EXISTS ${NANOPB_OPTIONS_FILE})
+    get_filename_component(ABS_OPT_FIL ${FIL_DIR}/${FIL_WE}.options ABSOLUTE)
+    if(EXISTS ${ABS_OPT_FIL})
         # Get directory as lookups for dependency options fail if an options
         # file is used. The options is still set as a dependency of the
         # generated source and header.
-        get_filename_component(options_dir ${NANOPB_OPTIONS_FILE} DIRECTORY)
+        get_filename_component(options_dir ${ABS_OPT_FIL} DIRECTORY)
         list(APPEND NANOPB_OPTIONS_DIRS ${options_dir})
     else()
-        set(NANOPB_OPTIONS_FILE)
+        set(ABS_OPT_FIL)
     endif()
 
     # If the dependencies are options files, we need to pass the directories
@@ -283,7 +283,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
            ${NANOPB_OPT_STRING}
            ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
-           ${NANOPB_OPTIONS_FILE} ${NANOPB_DEPENDS}
+           ${ABS_OPT_FIL} ${NANOPB_DEPENDS}
       COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
       VERBATIM )
 
