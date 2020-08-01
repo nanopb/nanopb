@@ -26,6 +26,30 @@ static size_t g_alloc_count = 0;
 static size_t g_alloc_bytes = 0;
 static size_t g_max_alloc_bytes = MAX_ALLOC_BYTES;
 
+#ifdef LLVMFUZZER
+/* LLVM libsanitizer has a realloc() implementation that always copies
+ * the whole memory block, even if there would be space to expand it in
+ * place. This gets pretty slow when fuzzing, so this wrapper limits the
+ * realloc() calls by rounding allocation size upwards. Real world
+ * realloc() implementations are hopefully smarter. */
+static size_t round_blocksize(size_t size)
+{
+    if (size < 256)
+    {
+        return size;
+    }
+    else
+    {
+        return (size + 1023) / 1024 * 1024;
+    }
+}
+#else
+static size_t round_blocksize(size_t size)
+{
+    return size;
+}
+#endif
+
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
@@ -33,7 +57,7 @@ void* malloc_with_check(size_t size)
 
     if (size <= g_max_alloc_bytes - g_alloc_bytes)
     {
-        buf = malloc(size + GUARD_SIZE);
+        buf = malloc(round_blocksize(size + GUARD_SIZE));
     }
 
     if (buf)
@@ -71,20 +95,6 @@ void free_with_check(void *mem)
     }
 }
 
-#ifdef LLVMFUZZER
-static size_t round_blocksize(size_t size)
-{
-    if (size < 256)
-    {
-        return size;
-    }
-    else
-    {
-        return (size + 1023) / 1024 * 1024;
-    }
-}
-#endif
-
 /* Reallocate block and check / write guard values */
 void* realloc_with_check(void *ptr, size_t size)
 {
@@ -105,12 +115,6 @@ void* realloc_with_check(void *ptr, size_t size)
 
         if (size <= g_max_alloc_bytes - (g_alloc_bytes - oldsize))
         {
-#ifdef LLVMFUZZER
-            /* LLVM libsanitizer has a realloc() implementation that always copies
-             * the whole memory block, even if there would be space to expand it in
-             * place. This gets pretty slow when fuzzing, so this wrapper limits the
-             * realloc() calls by . Real world
-             * realloc() implementations are hopefully smarter. */
             size_t new_rounded = round_blocksize(size + GUARD_SIZE);
             size_t old_rounded = round_blocksize(oldsize + GUARD_SIZE);
 
@@ -118,9 +122,6 @@ void* realloc_with_check(void *ptr, size_t size)
             {
                 buf = realloc(buf, new_rounded);
             }
-#else
-            buf = realloc(buf, size + GUARD_SIZE);
-#endif
         }
         else
         {
