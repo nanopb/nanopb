@@ -89,6 +89,8 @@ void free_with_check(void *mem)
         assert(((size_t*)(buf + size))[2] == CHECK2);
         assert(g_alloc_count > 0);
         assert(g_alloc_bytes >= size);
+        ((size_t*)buf)[1] = 0;
+        ((size_t*)(buf + size))[2] = 0;
         g_alloc_count--;
         g_alloc_bytes -= size;
         free(buf);
