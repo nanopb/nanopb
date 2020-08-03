@@ -33,6 +33,21 @@
 #endif
 static size_t g_bufsize = FUZZTEST_BUFSIZE;
 
+/* Focusing on a single test case at a time improves fuzzing performance.
+ * If no test case is specified, enable all tests.
+ */
+#if !defined(FUZZTEST_PROTO2_STATIC) && \
+    !defined(FUZZTEST_PROTO3_STATIC) && \
+    !defined(FUZZTEST_PROTO2_POINTER) && \
+    !defined(FUZZTEST_PROTO3_POINTER) && \
+    !defined(FUZZTEST_IO_ERRORS)
+#define FUZZTEST_PROTO2_STATIC
+#define FUZZTEST_PROTO3_STATIC
+#define FUZZTEST_PROTO2_POINTER
+#define FUZZTEST_PROTO3_POINTER
+#define FUZZTEST_IO_ERRORS
+#endif
+
 static uint32_t xor32_checksum(const void *data, size_t len)
 {
     const uint8_t *buf = (const uint8_t*)data;
@@ -261,45 +276,46 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
     free_with_check(buf2);
 }
 
+/* Run all enabled test cases for a given input */
 void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 {
     size_t initial_alloc_count = get_alloc_count();
     size_t orig_max_alloc_bytes = get_max_alloc_bytes();
 
-    /* Check decoding as static fields */
+#ifdef FUZZTEST_PROTO2_STATIC
     if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
     {
-        /* Any message that is decodeable as proto2 should be decodeable as proto3 */
         do_roundtrip(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields);
-        do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields);
-
-        /* Test successful decoding also when using a stream */
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, true);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, true);
-
-        /* Test callbacks */
         do_callback_decode(data, size, true);
     }
-    else if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
+#endif
+
+#ifdef FUZZTEST_PROTO3_STATIC
+    if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, true);
     }
+#endif
 
-    /* Check decoding as pointer fields */
+#ifdef FUZZTEST_PROTO2_POINTER
     if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields);
-        do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
-
-        /* Test successful decoding also when using a stream */
         do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, true);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, true);
     }
-    else if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, expect_valid))
+#endif
+
+#ifdef FUZZTEST_PROTO3_POINTER
+    if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, true);
     }
-    
+#endif
+
+#ifdef FUZZTEST_IO_ERRORS
     /* Test decoding when memory size is limited */
     set_max_alloc_bytes(get_alloc_bytes() + 1024);
     do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
@@ -319,6 +335,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 
     /* Test callbacks also when message is not valid */
     do_callback_decode(data, size, false);
+#endif
 
     assert(get_alloc_count() == initial_alloc_count);
 }
