@@ -141,12 +141,16 @@ static int g_sentinel;
 
 static bool field_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
+    assert(stream);
+    assert(field);
     assert(*arg == &g_sentinel);
     return pb_read(stream, NULL, stream->bytes_left);
 }
 
 static bool submsg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {
+    assert(stream);
+    assert(field);
     assert(*arg == &g_sentinel);
     return true;
 }
@@ -280,6 +284,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
 void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 {
     size_t initial_alloc_count = get_alloc_count();
+    PB_UNUSED(expect_valid); /* Potentially unused depending on configuration */
 
 #ifdef FUZZTEST_PROTO2_STATIC
     if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
