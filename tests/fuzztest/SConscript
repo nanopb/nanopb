@@ -122,3 +122,48 @@ def run_against_corpus(target, source, env):
     print('\033[32m[ OK ]\033[0m   Ran ' + str(args) + " against " + str(source[1]) + " (" + str(count) + " entries)")
 
 env.Command("corpus.zip.fuzzed", [fuzz, "corpus.zip"], run_against_corpus)
+
+# Build separate fuzzers for each test case.
+# Having them separate speeds up control flow based fuzzer engines.
+# These are mainly used by oss-fuzz project.
+common_objs = ["random_data.o",
+                "validation.o",
+                "flakystream.o",
+                "alltypes_pointer.pb.o",
+                "alltypes_static.pb.o",
+                "alltypes_callback.pb.o",
+                "alltypes_proto3_pointer.pb.o",
+                "alltypes_proto3_static.pb.o",
+                "$COMMON/malloc_wrappers.o"]
+objs_malloc = ["$COMMON/pb_encode_with_malloc.o",
+               "$COMMON/pb_decode_with_malloc.o",
+               "$COMMON/pb_common_with_malloc.o"] + common_objs
+objs_static = ["$COMMON/pb_encode.o",
+               "$COMMON/pb_decode.o",
+               "$COMMON/pb_common.o"] + common_objs
+
+env_proto2_static = env.Clone()
+env_proto2_static.Append(CPPDEFINES = {'FUZZTEST_PROTO2_STATIC': '1'})
+env_proto2_static.Program("fuzztest_proto2_static",
+    [env_proto2_static.Object("fuzztest_proto2_static.o", "fuzztest.c")] + objs_static)
+
+env_proto2_pointer = malloc_env.Clone()
+env_proto2_pointer.Append(CPPDEFINES = {'FUZZTEST_PROTO2_POINTER': '1'})
+env_proto2_pointer.Program("fuzztest_proto2_pointer",
+    [env_proto2_pointer.Object("fuzztest_proto2_pointer.o", "fuzztest.c")] + objs_malloc)
+
+env_proto3_static = env.Clone()
+env_proto3_static.Append(CPPDEFINES = {'FUZZTEST_PROTO3_STATIC': '1'})
+env_proto3_static.Program("fuzztest_proto3_static",
+    [env_proto3_static.Object("fuzztest_proto3_static.o", "fuzztest.c")] + objs_static)
+
+env_proto3_pointer = malloc_env.Clone()
+env_proto3_pointer.Append(CPPDEFINES = {'FUZZTEST_PROTO3_POINTER': '1'})
+env_proto3_pointer.Program("fuzztest_proto3_pointer",
+    [env_proto3_pointer.Object("fuzztest_proto3_pointer.o", "fuzztest.c")] + objs_malloc)
+
+env_io_errors = malloc_env.Clone()
+env_io_errors.Append(CPPDEFINES = {'FUZZTEST_IO_ERRORS': '1'})
+env_io_errors.Program("fuzztest_io_errors",
+    [env_io_errors.Object("fuzztest_io_errors.o", "fuzztest.c")] + objs_malloc)
+

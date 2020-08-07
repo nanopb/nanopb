@@ -151,7 +151,7 @@ static bool submsg_callback(pb_istream_t *stream, const pb_field_t *field, void 
     return true;
 }
 
-static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
+bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
 {
     bool status;
     pb_istream_t stream;
@@ -188,7 +188,7 @@ static bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert
 }
 
 /* Do a decode -> encode -> decode -> encode roundtrip */
-static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype)
+void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype)
 {
     bool status;
     uint32_t checksum2, checksum3;
@@ -280,7 +280,6 @@ static void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize
 void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 {
     size_t initial_alloc_count = get_alloc_count();
-    size_t orig_max_alloc_bytes = get_max_alloc_bytes();
 
 #ifdef FUZZTEST_PROTO2_STATIC
     if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
@@ -316,11 +315,14 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 #endif
 
 #ifdef FUZZTEST_IO_ERRORS
-    /* Test decoding when memory size is limited */
-    set_max_alloc_bytes(get_alloc_bytes() + 1024);
-    do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
-    do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, false);
-    set_max_alloc_bytes(orig_max_alloc_bytes);
+    {
+        size_t orig_max_alloc_bytes = get_max_alloc_bytes();
+        /* Test decoding when memory size is limited */
+        set_max_alloc_bytes(get_alloc_bytes() + 1024);
+        do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
+        do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, false);
+        set_max_alloc_bytes(orig_max_alloc_bytes);
+    }
 
     /* Test decoding on a failing stream */
     do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
