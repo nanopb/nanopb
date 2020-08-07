@@ -113,6 +113,9 @@ bool pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_s
  * pb_decode() returns with an error, the message is already released.
  */
 void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
+#else
+/* Allocation is not supported, so release is no-op */
+#define pb_release(fields, dest_struct) PB_UNUSED(fields); PB_UNUSED(dest_struct);
 #endif
 
 
