@@ -39,19 +39,23 @@ env.Command("alltypes_callback.proto", "#alltypes/alltypes.proto",
             lambda target, source, env: set_pkgname(source[0], target[0], 'alltypes_callback'))
 env.NanopbProto(["alltypes_callback", "alltypes_callback.options"])
 
-fuzz = malloc_env.Program(["fuzztest.c",
-                    "random_data.c",
-                    "validation.c",
-                    "flakystream.c",
-                    "alltypes_pointer.pb.c",
-                    "alltypes_static.pb.c",
-                    "alltypes_callback.pb.c",
-                    "alltypes_proto3_pointer.pb.c",
-                    "alltypes_proto3_static.pb.c",
-                    "$COMMON/pb_encode_with_malloc.o",
-                    "$COMMON/pb_decode_with_malloc.o",
-                    "$COMMON/pb_common_with_malloc.o",
-                    "$COMMON/malloc_wrappers.o"])
+common_objs = [env.Object("random_data.c"),
+               env.Object("validation.c"),
+               env.Object("flakystream.c"),
+               env.Object("alltypes_pointer.pb.c"),
+               env.Object("alltypes_static.pb.c"),
+               env.Object("alltypes_callback.pb.c"),
+               env.Object("alltypes_proto3_pointer.pb.c"),
+               env.Object("alltypes_proto3_static.pb.c"),
+                "$COMMON/malloc_wrappers.o"]
+objs_malloc = ["$COMMON/pb_encode_with_malloc.o",
+               "$COMMON/pb_decode_with_malloc.o",
+               "$COMMON/pb_common_with_malloc.o"] + common_objs
+objs_static = ["$COMMON/pb_encode.o",
+               "$COMMON/pb_decode.o",
+               "$COMMON/pb_common.o"] + common_objs
+
+fuzz = malloc_env.Program(["fuzztest.c"] + objs_malloc)
 
 # Run the stand-alone fuzz tester
 seed = int(time.time())
@@ -61,12 +65,7 @@ else:
     iterations = 1000
 env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
-generate_message = malloc_env.Program(["generate_message.c",
-                    "random_data.c",
-                    "alltypes_static.pb.c",
-                    "$COMMON/pb_encode.o",
-                    "$COMMON/pb_common.o",
-                    "$COMMON/malloc_wrappers.o"])
+generate_message = malloc_env.Program(["generate_message.c"] + objs_static)
 
 # Test the message generator
 env.RunTest(generate_message, ARGS = [str(seed)])
@@ -126,22 +125,6 @@ env.Command("corpus.zip.fuzzed", [fuzz, "corpus.zip"], run_against_corpus)
 # Build separate fuzzers for each test case.
 # Having them separate speeds up control flow based fuzzer engines.
 # These are mainly used by oss-fuzz project.
-common_objs = ["random_data.o",
-                "validation.o",
-                "flakystream.o",
-                "alltypes_pointer.pb.o",
-                "alltypes_static.pb.o",
-                "alltypes_callback.pb.o",
-                "alltypes_proto3_pointer.pb.o",
-                "alltypes_proto3_static.pb.o",
-                "$COMMON/malloc_wrappers.o"]
-objs_malloc = ["$COMMON/pb_encode_with_malloc.o",
-               "$COMMON/pb_decode_with_malloc.o",
-               "$COMMON/pb_common_with_malloc.o"] + common_objs
-objs_static = ["$COMMON/pb_encode.o",
-               "$COMMON/pb_decode.o",
-               "$COMMON/pb_common.o"] + common_objs
-
 env_proto2_static = env.Clone()
 env_proto2_static.Append(CPPDEFINES = {'FUZZTEST_PROTO2_STATIC': '1'})
 env_proto2_static.Program("fuzztest_proto2_static",
