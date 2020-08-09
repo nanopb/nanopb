@@ -48,7 +48,7 @@ static void generate_message()
     alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
     pb_extension_t ext = pb_extension_init_zero;
 
-    uint8_t buf[4096];
+    static uint8_t buf[FUZZTEST_BUFSIZE];
     pb_ostream_t stream = {0};
     
     do {
@@ -77,8 +77,6 @@ int main(int argc, char **argv)
 
     random_set_seed(atol(argv[1]));
 
-    fprintf(stderr, "Random seed: %u\n", (unsigned)random_get_seed());
-    
     generate_message();
     
     return 0;

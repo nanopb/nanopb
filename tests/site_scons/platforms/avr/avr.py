@@ -9,7 +9,7 @@ def set_avr_platform(env):
     env.Replace(CC  = "avr-gcc",
                 CXX = "avr-g++")
     env.Replace(TEST_RUNNER = "build/run_test")
-    env.Append(CFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os")
+    env.Append(CFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os -g -Wall ")
     env.Append(CXXFLAGS = "-mmcu=atmega1284 -Dmain=app_main -Os -Wno-type-limits")
     env.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1, 'UNITTESTS_SHORT_MSGS': 1,
                              '__ASSERT_USE_STDERR': 1, 'MAX_ALLOC_BYTES': 32768,
@@ -18,7 +18,7 @@ def set_avr_platform(env):
     env.Append(LINKFLAGS = "-Wl,-Map,build/avr.map")
 
     # Build library for communicating with test runner
-    avr_io = env.Library("build/avr_io.o", "site_scons/platforms/avr/avr_io.c")
+    avr_io = env.Object("build/avr_io.o", "site_scons/platforms/avr/avr_io.c")
     env.Append(LIBS = avr_io)
     
     # This fake define just ensures that the test runner gets build also
