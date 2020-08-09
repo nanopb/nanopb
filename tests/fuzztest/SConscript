@@ -89,7 +89,7 @@ def run_against_corpus(target, source, env):
         samplesize = 100
 
     files = [n for n in corpus.namelist() if not n.endswith('/')]
-    files = random.sample(files, 100)
+    files = random.sample(files, min(samplesize, len(files)))
     for filename in files:
         sys.stdout.write("Fuzzing: %5d/%5d: %-40.40s\r" % (count, len(files), filename))
         sys.stdout.flush()
@@ -121,6 +121,7 @@ def run_against_corpus(target, source, env):
     print('\033[32m[ OK ]\033[0m   Ran ' + str(args) + " against " + str(source[1]) + " (" + str(count) + " entries)")
 
 env.Command("corpus.zip.fuzzed", [fuzz, "corpus.zip"], run_against_corpus)
+env.Command("regressions.zip.fuzzed", [fuzz, "regressions.zip"], run_against_corpus)
 
 # Build separate fuzzers for each test case.
 # Having them separate speeds up control flow based fuzzer engines.
