@@ -11,6 +11,10 @@
 #include "alltypes_static.pb.h"
 #include "random_data.h"
 
+#ifndef FUZZTEST_BUFSIZE
+#define FUZZTEST_BUFSIZE 4096
+#endif
+
 /* Check that size/count fields do not exceed their max size.
  * Otherwise we would have to loop pretty long in generate_message().
  * Note that there may still be a few encoding errors from submessages.
