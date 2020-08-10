@@ -13,6 +13,6 @@ def set_stm32_platform(env):
     env.Append(CXXFLAGS = "-mcpu=cortex-m3 -mthumb -Os")
     env.Append(LINKFLAGS = "-mcpu=cortex-m3 -mthumb")
     env.Append(LINKFLAGS = "site_scons/platforms/stm32/vectors.c")
-    env.Append(LINKFLAGS = "--specs=rdimon.specs --specs=nano.specs")
+    env.Append(LINKFLAGS = "--specs=rdimon.specs")
     env.Append(LINKFLAGS = "-Tsite_scons/platforms/stm32/stm32_ram.ld")
     
