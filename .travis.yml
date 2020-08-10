@@ -1,33 +1,18 @@
-# Travis CI has no ability to handle 3 langauges (c, c++, python)
-# and it overrides $CC/$CXX if language is set to c/c++ (only one, not both).
-#
-# Set language to python since at least the result of that is something useful.
-language: python
+language: c
+dist: focal
 
-python:
-    - "2.7"
-    - "3.4"
-
-# Manage the C/C++ compiler manually
+# Test using both gcc and clang
 env:
     - CC=gcc     CXX=g++
-    - CC=gcc-4.8 CXX=g++-4.8
-    - CC=gcc-4.9 CXX=g++-4.9
-    - CC=gcc-5   CXX=g++-5
     - CC=clang   CXX=clang++
 
 addons:
     apt:
-        sources:
-            - ubuntu-toolchain-r-test
         packages:
-            - gcc-4.8
-            - g++-4.8
-            - gcc-4.9
-            - g++-4.9
-            - gcc-5
-            - g++-5
             - scons
+            - python3
+            - python3-protobuf
+            - protobuf-compiler
 
 
 before_install:
@@ -38,24 +23,10 @@ before_install:
     - python --version
     - lsb_release -a
 
-# Seems to be issues with concurrent builds
-#cache:
-#    directories:
-#        - $HOME/protobuf
-
-# Rather then compile protobuf 3 from source, use the binaries now available
-# to speed up build time and reduce surprises until Ubuntu adds protobuf3
-# packages to the repository.
-install:
-    - mkdir -p $HOME/protobuf && pushd $HOME/protobuf
-      && curl -LO 'https://github.com/google/protobuf/releases/download/v3.4.0/protoc-3.4.0-linux-x86_64.zip'
-      && unzip protoc-3.4.0-linux-x86_64.zip
-      && popd
-    - curl -L 'https://github.com/google/protobuf/releases/download/v3.4.0/protobuf-python-3.4.0.tar.gz' | tar xzf -
-      && pushd protobuf-3.4.0/python
-      && python setup.py build && python setup.py install
-      && popd
-
 script:
-    - pushd generator/proto && make && popd
     - pushd tests && scons CC=$CC CXX=$CXX && popd
+
+notifications:
+    email:
+        recipients:
+            - jpa@travis.mail.kapsi.fi

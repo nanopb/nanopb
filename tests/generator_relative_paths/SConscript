@@ -6,16 +6,16 @@
 #
 # should result in:
 #
-# ├── build
-# │   ├── protobuf
-# │   │   ├── any.pb.c
-# │   │   └── any.pb.h
-# │   ├── simple.pb.c
-# │   └── simple.pb.h
-# └── proto
-#     ├── protobuf
-#     │   └── any.proto
-#     └── simple.proto
+# |-- build
+# |   |-- protobuf
+# |   |   +-- any.pb.c
+# |   |   +-- any.pb.h
+# |   +-- simple.pb.c
+# |   +-- simple.pb.h
+# +-- proto
+#     |-- protobuf
+#     |   +-- any.proto
+#     +-- simple.proto
 
 
 Import('env')
