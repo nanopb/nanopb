@@ -7,7 +7,7 @@ class NanoPbConan(ConanFile):
     license = "zlib"
     url = "https://jpa.kapsi.fi/nanopb/"
     description = "Protocol Buffers with small code size"
-    settings = "os", "compiler", "build_type", "arch"
+    settings = "os_build", "compiler", "build_type", "arch"
     generators = "cmake"
     exports = '*'
     options = {
@@ -18,7 +18,7 @@ class NanoPbConan(ConanFile):
     }
 
     def configure(self):
-        if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
+        if self.settings.os_build == "Windows" and self.settings.compiler == "Visual Studio":
             del self.options.fPIC
 
     def build(self):
