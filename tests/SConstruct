@@ -59,6 +59,7 @@ if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
 if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
 if 'NODEFARGS' in ARGUMENTS: env.Replace(NODEFARGS = ARGUMENTS['NODEFARGS'])
 if 'NOVALGRIND' in ARGUMENTS: env.Replace(NOVALGRIND = ARGUMENTS['NOVALGRIND'])
+if 'PYTHON' in ARGUMENTS: env.Replace(PYTHON = ARGUMENTS['PYTHON'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
