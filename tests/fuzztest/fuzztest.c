@@ -329,15 +329,14 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         set_max_alloc_bytes(orig_max_alloc_bytes);
     }
 
-    /* Test decoding on a failing stream */
+    /* Test decoding on a failing stream.
+     * Testing proto2 is enough for good coverage, as there is no difference in IO when decoding proto3 fields.
+     */
     do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
-    do_stream_decode(data, size, size - 16, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, false);
     do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, false);
-    do_stream_decode(data, size, size - 16, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, false);
 
     /* Test pb_decode_ex() modes */
-    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT, false);
-    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_DELIMITED, false);
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT | PB_DECODE_DELIMITED, false);
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NULLTERMINATED, false);
 
     /* Test callbacks also when message is not valid */
