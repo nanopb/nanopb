@@ -136,6 +136,9 @@ message AllTypes {
 
     optional NonZeroBasedEnum opt_non_zero_based_enum = 62;
     
+    // Second fixed length array field to test the length check logic.
+    repeated fixed32 rep_farray2 = 95 [packed = true];
+
     // Check support for custom integer sizes
     required IntSizes req_intsizes = 96;
 

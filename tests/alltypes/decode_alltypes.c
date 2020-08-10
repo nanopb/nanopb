@@ -86,6 +86,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(memcmp(alltypes.rep_fbytes[4], "2019", 4) == 0);
 
         TEST(alltypes.rep_farray[0] == 0 && alltypes.rep_farray[4] == 2040);
+        TEST(alltypes.rep_farray2[0] == 0 && alltypes.rep_farray2[2] == 2095);
 
         TEST(alltypes.req_limits.int32_min  == INT32_MIN);
         TEST(alltypes.req_limits.int32_max  == INT32_MAX);
