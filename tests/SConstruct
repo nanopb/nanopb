@@ -22,7 +22,7 @@ scons CC=clang CXX=clang++
 
 import os
 import platform
-env = Environment(ENV = os.environ, tools = ['default', 'nanopb'])
+env = Environment(ENV = os.environ, tools = ['default', 'nanopb'], **ARGUMENTS)
 env.SConsignFile("build/sconsign")
 env.Replace(CONFIGUREDIR = "build/config")
 
@@ -46,20 +46,6 @@ except:
 # To avoid problem with default options, use clang directly.
 if platform.system() == "Darwin":
     env.Replace(CC = "clang", CXX = "clang")
-
-# Allow overriding the compiler with scons CC=???
-if 'CC' in ARGUMENTS: env.Replace(CC = ARGUMENTS['CC'])
-if 'CXX' in ARGUMENTS: env.Replace(CXX = ARGUMENTS['CXX'])
-if 'LINK' in ARGUMENTS: env.Replace(LINK = ARGUMENTS['LINK'])
-if 'CCFLAGS' in ARGUMENTS: env.Append(CCFLAGS = ARGUMENTS['CCFLAGS'])
-if 'CXXFLAGS' in ARGUMENTS: env.Append(CXXFLAGS = ARGUMENTS['CXXFLAGS'])
-if 'LINKFLAGS' in ARGUMENTS: env.Append(LINKFLAGS = ARGUMENTS['LINKFLAGS'])
-if 'LINKLIBS' in ARGUMENTS: env.Append(LINKLIBS = ARGUMENTS['LINKLIBS'])
-if 'PROTOC' in ARGUMENTS: env.Replace(PROTOC = ARGUMENTS['PROTOC'])
-if 'PROTOCFLAGS' in ARGUMENTS: env.Replace(PROTOCFLAGS = ARGUMENTS['PROTOCFLAGS'])
-if 'NODEFARGS' in ARGUMENTS: env.Replace(NODEFARGS = ARGUMENTS['NODEFARGS'])
-if 'NOVALGRIND' in ARGUMENTS: env.Replace(NOVALGRIND = ARGUMENTS['NOVALGRIND'])
-if 'PYTHON' in ARGUMENTS: env.Replace(PYTHON = ARGUMENTS['PYTHON'])
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
