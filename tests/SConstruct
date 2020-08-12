@@ -22,10 +22,15 @@ scons CC=clang CXX=clang++
 
 import os
 import platform
-env = Environment(ENV = os.environ, tools = ['default', 'nanopb'], **ARGUMENTS)
+env = Environment(ENV = os.environ)
 env.SConsignFile("build/sconsign")
 env.Replace(CONFIGUREDIR = "build/config")
 
+# Allow giving environment flags on command line
+env.Append(**ARGUMENTS)
+
+# If a cross compilation platform is given, apply the environment settings
+# from site_scons/platforms/X/X.py
 if ARGUMENTS.get('PLATFORM'):
     platform_func = platforms.get(ARGUMENTS.get('PLATFORM'))
     if not platform_func:
@@ -33,6 +38,9 @@ if ARGUMENTS.get('PLATFORM'):
         raise Exception("Unsupported platform: " + ARGUMENTS.get('PLATFORM'))
     else:
         platform_func(env)
+
+# Load nanopb generator build rules from site_scons/site_tools/nanopb.py
+env.Tool("nanopb")
 
 # Limit memory usage. This is to catch problems like issue #338
 try:
@@ -44,7 +52,7 @@ except:
 
 # On Mac OS X, gcc is usually alias for clang.
 # To avoid problem with default options, use clang directly.
-if platform.system() == "Darwin":
+if platform.system() == "Darwin" and 'CC' not in ARGUMENTS:
     env.Replace(CC = "clang", CXX = "clang")
 
 # Add the builders defined in site_init.py
