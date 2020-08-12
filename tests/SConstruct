@@ -26,8 +26,13 @@ env = Environment(ENV = os.environ)
 env.SConsignFile("build/sconsign")
 env.Replace(CONFIGUREDIR = "build/config")
 
-# Allow giving environment flags on command line
-env.Append(**ARGUMENTS)
+# Allow giving environment flags on command line.
+list_vars = ['CCFLAGS', 'CXXFLAGS', 'LINKFLAGS', 'LINKLIBS', 'PROTOCFLAGS']
+for var,val in ARGUMENTS.items():
+    if var in list_vars:
+        env.Append(**{var: val})
+    else:
+        env.Replace(**{var: val})
 
 # If a cross compilation platform is given, apply the environment settings
 # from site_scons/platforms/X/X.py
