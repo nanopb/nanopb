@@ -71,6 +71,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     void *msg = malloc_with_check(structsize);
     alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
     pb_extension_t ext = pb_extension_init_zero;
+    assert(msg);
 
     memset(msg, 0, structsize);
     ext.type = &alltypes_static_TestExtension_testextension;
@@ -114,6 +115,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     flakystream_t stream;
     size_t initial_alloc_count = get_alloc_count();
     void *msg = malloc_with_check(structsize);
+    assert(msg);
 
     memset(msg, 0, structsize);
     flakystream_init(&stream, buffer, msglen, fail_after);
@@ -161,6 +163,7 @@ bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_succes
     pb_istream_t stream;
     size_t initial_alloc_count = get_alloc_count();
     alltypes_callback_AllTypes *msg = malloc_with_check(sizeof(alltypes_callback_AllTypes));
+    assert(msg);
 
     memset(msg, 0, sizeof(alltypes_callback_AllTypes));
     stream = pb_istream_from_buffer(buffer, msglen);
@@ -207,6 +210,8 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     ext.type = &alltypes_static_TestExtension_testextension;
     ext.dest = &extmsg;
     ext.next = NULL;
+
+    assert(buf2 && msg);
 
     if (msgtype == alltypes_static_AllTypes_fields)
     {
@@ -322,18 +327,15 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 #ifdef FUZZTEST_IO_ERRORS
     {
         size_t orig_max_alloc_bytes = get_max_alloc_bytes();
-        /* Test decoding when memory size is limited */
-        set_max_alloc_bytes(get_alloc_bytes() + 1024);
-        do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
-        do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, false);
+        /* Test decoding when error conditions occur.
+         * The decoding will end either when running out of memory or when stream returns IO error.
+         * Testing proto2 is enough for good coverage here, as it has a superset of the field types of proto3.
+         */
+        set_max_alloc_bytes(get_alloc_bytes() + 4096);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, false);
         set_max_alloc_bytes(orig_max_alloc_bytes);
     }
-
-    /* Test decoding on a failing stream.
-     * Testing proto2 is enough for good coverage, as there is no difference in IO when decoding proto3 fields.
-     */
-    do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
-    do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, false);
 
     /* Test pb_decode_ex() modes */
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT | PB_DECODE_DELIMITED, false);
