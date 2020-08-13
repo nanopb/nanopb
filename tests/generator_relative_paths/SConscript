@@ -26,9 +26,9 @@ import os, sys
 env.Command(["build/protobuf/any.pb.h", "build/simple.pb.h", "build/protobuf/any.pb.c", "build/simple.pb.c",],
             ["proto/protobuf/any.proto", "proto/simple.proto"],
 [
-    Delete("build/generator_relative_paths/build"),
-    Mkdir("build/generator_relative_paths/build"),
-    env['NANOPB_GENERATOR'] + " -Dbuild/generator_relative_paths/build -Ibuild/generator_relative_paths/proto $SOURCES"
+    Delete("$BUILDDIR/generator_relative_paths/build"),
+    Mkdir("$BUILDDIR/generator_relative_paths/build"),
+    env['NANOPB_GENERATOR'] + " -D$BUILDDIR/generator_relative_paths/build -I$BUILDDIR/generator_relative_paths/proto $SOURCES"
 ])
 
 env.Match("simple_pb_h_ok", ["build/simple.pb.h", "simple.expected"])

@@ -4,6 +4,7 @@ It will automatically detect your platform and C compiler and
 build appropriately.
 
 You can modify the behavious using following options:
+BUILDDIR    Directory to build into (default "build")
 CC          Name of C compiler
 CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
@@ -23,8 +24,6 @@ scons CC=clang CXX=clang++
 import os
 import platform
 env = Environment(ENV = os.environ)
-env.SConsignFile("build/sconsign")
-env.Replace(CONFIGUREDIR = "build/config")
 
 # Allow giving environment flags on command line.
 list_vars = ['CCFLAGS', 'CXXFLAGS', 'LINKFLAGS', 'LINKLIBS', 'PROTOCFLAGS']
@@ -33,6 +32,10 @@ for var,val in ARGUMENTS.items():
         env.Append(**{var: val})
     else:
         env.Replace(**{var: val})
+
+env.SetDefault(BUILDDIR = "build")
+env.SConsignFile(env['BUILDDIR'] + "/sconsign")
+env.Replace(CONFIGUREDIR = env['BUILDDIR'] + "/config")
 
 # If a cross compilation platform is given, apply the environment settings
 # from site_scons/platforms/X/X.py
@@ -215,7 +218,7 @@ env.Replace(LINKCOM = env['LINKCOM'] + " $LINKLIBS")
 
 # Place build files under separate folder
 import os.path
-env['VARIANT_DIR'] = 'build'
+env['VARIANT_DIR'] = env['BUILDDIR']
 env['BUILD'] = '#' + env['VARIANT_DIR']
 env['COMMON'] = '#' + env['VARIANT_DIR'] + '/common'
 
