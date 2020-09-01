@@ -1541,8 +1541,12 @@ class ProtoFile:
         yield '\n'
 
         for incfile in self.file_options.include:
-            yield options.genformat % incfile
-            yield '\n'
+            # allow including system headers
+            if (incfile.startswith('<')):
+                yield '#include %s\n' % incfile
+            else:
+                yield options.genformat % incfile
+                yield '\n'
 
         for incfile in includes:
             noext = os.path.splitext(incfile)[0]
@@ -1558,10 +1562,6 @@ class ProtoFile:
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
-
-        yield '#ifdef __cplusplus\n'
-        yield 'extern "C" {\n'
-        yield '#endif\n\n'
 
         if self.enums:
             yield '/* Enum definitions */\n'
@@ -1586,6 +1586,10 @@ class ProtoFile:
                 for enum in self.enums:
                     yield enum.auxiliary_defines() + '\n'
                 yield '\n'
+
+        yield '#ifdef __cplusplus\n'
+        yield 'extern "C" {\n'
+        yield '#endif\n\n'
 
         if self.messages:
             yield '/* Initializer values for message structs */\n'
