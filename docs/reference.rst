@@ -147,6 +147,7 @@ options from it. The file format is as follows:
   more options. For example: *"MyMessage.myfield max_size:5 max_count:10"*.
 * The field name pattern is matched against a string of form *'Message.field'*.
   For nested messages, the string is *'Message.SubMessage.field'*.
+  A whole file can be matched by its filename *'dir/file.proto'*.
 * The field name pattern may use the notation recognized by Python fnmatch():
 
   - *\** matches any part of string, like 'Message.\*' for all fields
