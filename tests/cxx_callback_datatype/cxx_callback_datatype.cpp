@@ -1,4 +1,4 @@
-#include "message.pb.h"
+#include "message.pb.hpp"
 
 #include <pb_encode.h>
 #include <pb_decode.h>
