@@ -1,7 +1,7 @@
 Nanopb - Protocol Buffers for Embedded Systems
 ==============================================
 
-[![Build Status](https://travis-ci.org/nanopb/nanopb.svg?branch=master)](https://travis-ci.org/nanopb/nanopb)
+[![Build Status](https://travis-ci.com/nanopb/nanopb.svg?branch=master)](https://travis-ci.com/nanopb/nanopb)
 
 Nanopb is a small code-size Protocol Buffers implementation in ansi C. It is
 especially suitable for use in microcontrollers, but fits any memory
