@@ -37,7 +37,7 @@ int main()
         status = pb_decode(&stream, google_protobuf_Duration_fields, &duration);
         assert(status);
         assert(duration.seconds == 99999);
-        assert(duration.nanos = 100);
+        assert(duration.nanos == 100);
         return 0;
     }
     else
