@@ -61,7 +61,7 @@ except:
 # On Mac OS X, gcc is usually alias for clang.
 # To avoid problem with default options, use clang directly.
 if platform.system() == "Darwin" and 'CC' not in ARGUMENTS:
-    env.Replace(CC = "clang", CXX = "clang")
+    env.Replace(CC = "clang", CXX = "clang++")
 
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)

@@ -69,16 +69,16 @@ int main() {
 	}
 	if (source != destination) {
 		fprintf(stderr, "Result does not match\n");
-		fprintf(stderr, "source(%lu): ", source.size());
+		fprintf(stderr, "source(%d): ", (int)source.size());
 		for (std::vector<int>::iterator i = source.begin(); i != source.end(); ++i)
 		{
 			fprintf(stderr, "%d, ", *i);
 		}
-		fprintf(stderr, "\nencoded(%lu): ", serialized.size());
+		fprintf(stderr, "\nencoded(%d): ", (int)serialized.size());
 		for (unsigned i = 0; i != std::min(serialized.size(), outstream.bytes_written); ++i) {
-			fprintf(stderr, "%#06x ", serialized[i]);
+			fprintf(stderr, "0x%02x ", serialized[i]);
 		}
-		fprintf(stderr, "\ndestination(%lu): ", destination.size());
+		fprintf(stderr, "\ndestination(%d): ", (int)destination.size());
 		for (std::vector<int>::iterator i = destination.begin(); i != destination.end(); ++i)
 		{
 			fprintf(stderr, "%d, ", *i);
