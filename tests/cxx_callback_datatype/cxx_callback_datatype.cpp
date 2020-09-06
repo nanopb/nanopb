@@ -3,6 +3,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
+#include <algorithm>
 #include <cstdio>
 
 // See tests/alltypes_callback, tests/oneoff_callback and examples/network_server for more...
