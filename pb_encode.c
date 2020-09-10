@@ -265,6 +265,15 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
              * submessage fields. */
             return safe_read_bool(field->pSize) == false;
         }
+        else if (field->descriptor->default_value)
+        {
+            /* Proto3 messages do not have default values, but proto2 messages
+             * can contain optional fields without has_fields (generator option 'proto3').
+             * In this case they must always be encoded, to make sure that the
+             * non-zero default value is overwritten.
+             */
+            return false;
+        }
 
         /* Rest is proto3 singular fields */
         if (PB_LTYPE(type) <= PB_LTYPE_LAST_PACKABLE)
