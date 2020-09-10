@@ -10,6 +10,7 @@ import sys
 import re
 import codecs
 import copy
+import itertools
 import tempfile
 import shutil
 import os
@@ -992,7 +993,7 @@ class OneOf(Field):
             # submessages.
             union_name = "%s_%s_size_union" % (self.struct_name, self.name)
             union_def = 'union %s {%s};\n' % (union_name, ' '.join('char f%d[%s];' % (k, s) for k,s in dynamic_sizes.items()))
-            required_defs = sum([s.required_defines for k,s in dynamic_sizes.items()], start = [])
+            required_defs = list(itertools.chain.from_iterable(s.required_defines for k,s in dynamic_sizes.items()))
             return EncodedSize(0, ['sizeof(%s)' % union_name], [union_def], required_defs)
 
     def has_callbacks(self):
