@@ -211,33 +211,38 @@ assert varint_max_size(128) == 2
 class EncodedSize:
     '''Class used to represent the encoded size of a field or a message.
     Consists of a combination of symbolic sizes and integer sizes.'''
-    def __init__(self, value = 0, symbols = [], declarations = []):
+    def __init__(self, value = 0, symbols = [], declarations = [], required_defines = []):
         if isinstance(value, EncodedSize):
             self.value = value.value
             self.symbols = value.symbols
             self.declarations = value.declarations
+            self.required_defines = value.required_defines
         elif isinstance(value, strtypes + (Names,)):
             self.symbols = [str(value)]
             self.value = 0
             self.declarations = []
+            self.required_defines = [str(value)]
         else:
             self.value = value
             self.symbols = symbols
             self.declarations = declarations
+            self.required_defines = required_defines
 
     def __add__(self, other):
         if isinstance(other, int):
-            return EncodedSize(self.value + other, self.symbols, self.declarations)
+            return EncodedSize(self.value + other, self.symbols, self.declarations, self.required_defines)
         elif isinstance(other, strtypes + (Names,)):
-            return EncodedSize(self.value, self.symbols + [str(other)], self.declarations)
+            return EncodedSize(self.value, self.symbols + [str(other)], self.declarations, self.required_defines + [str(other)])
         elif isinstance(other, EncodedSize):
-            return EncodedSize(self.value + other.value, self.symbols + other.symbols, self.declarations + other.declarations)
+            return EncodedSize(self.value + other.value, self.symbols + other.symbols,
+                               self.declarations + other.declarations, self.required_defines + other.required_defines)
         else:
             raise ValueError("Cannot add size: " + repr(other))
 
     def __mul__(self, other):
         if isinstance(other, int):
-            return EncodedSize(self.value * other, [str(other) + '*' + s for s in self.symbols])
+            return EncodedSize(self.value * other, [str(other) + '*' + s for s in self.symbols],
+                               self.declarations, self.required_defines)
         else:
             raise ValueError("Cannot multiply size: " + repr(other))
 
@@ -248,7 +253,17 @@ class EncodedSize:
             return '(' + str(self.value) + ' + ' + ' + '.join(self.symbols) + ')'
 
     def get_declarations(self):
+        '''Get any declarations that must appear alongside this encoded size definition,
+        such as helper union {} types.'''
         return '\n'.join(self.declarations)
+
+    def get_cpp_guard(self, local_defines):
+        '''Get an #if preprocessor statement listing all defines that are required for this definition.'''
+        needed = [x for x in self.required_defines if x not in local_defines]
+        if needed:
+            return '#if ' + ' && '.join(['defined(%s)' % x for x in needed]) + "\n"
+        else:
+            return ''
 
     def upperlimit(self):
         if not self.symbols:
@@ -977,7 +992,8 @@ class OneOf(Field):
             # submessages.
             union_name = "%s_%s_size_union" % (self.struct_name, self.name)
             union_def = 'union %s {%s};\n' % (union_name, ' '.join('char f%d[%s];' % (k, s) for k,s in dynamic_sizes.items()))
-            return EncodedSize(0, ['sizeof(%s)' % union_name], [union_def])
+            required_defs = sum([s.required_defines for k,s in dynamic_sizes.items()], start = [])
+            return EncodedSize(0, ['sizeof(%s)' % union_name], [union_def], required_defs)
 
     def has_callbacks(self):
         return bool([f for f in self.fields if f.has_callbacks()])
@@ -1622,12 +1638,21 @@ class ProtoFile:
             yield '\n'
 
             yield '/* Maximum encoded size of messages (where known) */\n'
+            messagesizes = []
             for msg in self.messages:
-                msize = msg.encoded_size(self.dependencies)
                 identifier = '%s_size' % msg.name
+                messagesizes.append((identifier, msg.encoded_size(self.dependencies)))
+
+            # If we require a symbol from another file, put a preprocessor if statement
+            # around it to prevent compilation errors if the symbol is not actually available.
+            local_defines = [identifier for identifier, msize in messagesizes if msize is not None]
+            for identifier, msize in messagesizes:
                 if msize is not None:
+                    cpp_guard = msize.get_cpp_guard(local_defines)
+                    yield cpp_guard
                     yield msize.get_declarations()
                     yield '#define %-40s %s\n' % (identifier, msize)
+                    if cpp_guard: yield "#endif\n"
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
             yield '\n'
