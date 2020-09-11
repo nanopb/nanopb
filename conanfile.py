@@ -20,6 +20,14 @@ class NanoPbConan(ConanFile):
     def configure(self):
         if self.settings.os == "Windows" and self.settings.compiler == "Visual Studio":
             del self.options.fPIC
+            
+    def system_requirements(self):
+        import pip
+        if hasattr(pip, "main"):
+            pip.main(["install", "protobuf"])
+        else:
+            from pip._internal import main
+            main(["install", "protobuf"])
 
     def build(self):
         cmake = CMake(self)
