@@ -162,19 +162,19 @@ options from it. The file format is as follows:
   ones later.
   
 To debug problems in applying the options, you can use the *-v* option for the
-nanopb generator. With protoc, plugin options are specified in front of the output path:
+nanopb generator. With protoc, plugin options are specified with *--nanopb_opt*::
 
     nanopb_generator -v message.proto           # When invoked directly
-    protoc ... --nanopb_out=-v:. message.proto  # When invoked through protoc
+    protoc ... --nanopb_opt=-v --nanopb_out=. message.proto  # When invoked through protoc
 
 Protoc doesn't currently pass include path into plugins. Therefore if your
 *.proto* is in a subdirectory, nanopb may have trouble finding the associated
 *.options* file. A workaround is to specify include path separately to the
-nanopb plugin, like:
+nanopb plugin, like::
 
-    protoc -Isubdir --nanopb_out=-Isubdir:. message.proto
+    protoc -Isubdir --nanopb_opt=-Isubdir --nanopb_out=. message.proto
   
-If preferred, the name of the options file can be set using plugin argument
+If preferred, the name of the options file can be set using generator argument
 *-f*.
 
 Defining the options on command line
