@@ -1,3 +1,17 @@
+nanopb-0.4.3 (2020-09-21)
+ Fix generator error when output is in current directory (#553)
+ Fix issue with unknown message sizes being referred inside oneof encoded size calculation (#569)
+ Fix problem with [default=xxxx, (nanopb).proto3=true] field option combination (#558)
+ Fix cross compilation with Conan build system (#568)
+ Better support C++ types in generated structs (#577)
+ CMake rule improvements (#554, #555, #556, #561, #564)
+ Generator: fix compatibility bug with Python 3.1 and earlier
+ Make Linux and Mac packages use grpcio protoc
+ Make pb_decode_varint32() reject overlong varint encodings.
+ Performance optimizations
+ Test case improvements
+ Documentation improvements
+
 nanopb-0.4.2 (2020-06-23)
  Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
  Fix segfault with pointer fields and proto3_singular_msgs = true. (#504,#505)
