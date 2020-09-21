@@ -11,7 +11,7 @@ are included, in order to make it easier to find this document.
 
 .. contents ::
 
-Nanopb-0.4.3 (2020-xx-xx)
+Nanopb-0.4.3 (2020-09-21)
 =========================
 
 pb_msgdesc_t struct has new fields
