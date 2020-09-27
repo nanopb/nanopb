@@ -12,6 +12,10 @@ nanopb-0.4.3 (2020-09-21)
  Test case improvements
  Documentation improvements
 
+NOTE: version 0.4.3 changes layout of pb_msgdesc_t. It requires recompiling .pb.c files and
+thus breaks ABI compatibility. In general, ABI compatibility is not currently maintained
+between any nanopb versions.
+
 nanopb-0.4.2 (2020-06-23)
  Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
  Fix segfault with pointer fields and proto3_singular_msgs = true. (#504,#505)
