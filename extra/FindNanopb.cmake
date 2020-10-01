@@ -149,7 +149,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
 
   list(REMOVE_DUPLICATES _nanopb_include_path)
 
-  set(GENERATOR_PATH ${CMAKE_BINARY_DIR}/nanopb/generator)
+  set(GENERATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/nanopb/generator)
 
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
   if (CMAKE_HOST_WIN32)
