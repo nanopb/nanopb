@@ -1,8 +1,13 @@
 /*
-Author: Peter Parente
+Original author: Peter Parente
 Date: 2008/01/22
 Version: 1.0 (modified)
 Copyright: This stylesheet has been placed in the public domain - free to edit and use for all uses.
+
+--
+
+Heavily modified for use in nanopb documentation.
+2011-2020 Petteri Aimonen
 */
 
 body {
@@ -47,6 +52,16 @@ img {
   border: 0;
 }
 
+blockquote {
+  border-left: 3px solid black;
+  background-color: #f6f6f6;
+  padding: 0.5em 1em 0.2em 1em;
+}
+
+li {
+  margin-bottom: 0.5em;
+}
+
 p {
   margin: 0.5em 0 1em 0;
   line-height: 1.5em;
@@ -88,45 +103,53 @@ pre {
   background-color: #f6f6f6;
 }
 
-h1.title {
-  color: #003a6b;
-  font-size: 180%;
-  margin-bottom: 0em;
+code {
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  padding: 1px 5px;
+  border-radius: 5px;
+  background-color: rgba(128, 128, 128, 0.05);
+  white-space: nowrap;
 }
 
-h2.subtitle {
-  color: #003a6b;
-  border-bottom: 0px;
+pre code {
+  border: none;
+  background-color: transparent;
+  padding: 0px;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #555;
+  color: #000;
   background-color: transparent;
   margin: 0em;
   padding-top: 0.5em;
 }
 
 h1 {
-  font-size: 150%;
+  color: #003a6b;
+  font-size: 180%;
   margin-bottom: 0.5em;
   border-bottom: 2px solid #aaa;
 }
 
 h2 {
+  color: #003a6b;
   font-size: 130%;
   margin-bottom: 0.5em;
   border-bottom: 1px solid #aaa;
+  margin-top: 1.5em;
 }
 
 h3 {
   font-size: 120%;
   margin-bottom: 0.5em;
+  margin-top: 1.0em;
 }
 
 h4 {
   font-size: 110%;
   font-weight: bold;
   margin-bottom: 0.5em;
+  margin-top: 0.5em;
 }
 
 h5 {
@@ -149,93 +172,62 @@ dd {
   margin-bottom: 1.5em;
 }
 
-div.admonition, div.note, div.tip, div.caution, div.important {
-  margin: 2em 2em;
-  padding: 0em 1em;
-  border-top: 1px solid #aaa;
-  border-left: 1px solid #aaa;
-  border-bottom: 2px solid #555;
-  border-right: 2px solid #555;
-}
 
-div.important {
-  background: transparent url('../images/important.png') 10px 2px no-repeat;
-}
 
-div.caution {
-  background: transparent url('../images/caution.png') 10px 2px no-repeat;
-}
-
-div.note {
-  background: transparent url('../images/note.png') 10px 2px no-repeat;
-}
-
-div.tip {
-  background: transparent url('../images/tip.png') 10px 2px no-repeat;
-}
-
-div.admonition-example {
-  background: transparent url('../images/tip.png') 10px 2px no-repeat;
-}
-
-div.admonition-critical-example {
-  background: transparent url('../images/important.png') 10px 2px no-repeat;
-}
-
-p.admonition-title {
-  font-weight: bold;
-  border-bottom: 1px solid #aaa;
-  padding-left: 30px;
-}
-
-table.docutils {
+table {
   text-align: left;
-  border: 1px solid gray;
   border-collapse: collapse;
   margin: 1.5em 0em;
 }
 
-table.docutils caption {
-  font-style: italic;
+table td, table th {
+  padding: 0.25em 1em;
+  border-top: 1px solid gray;
+  border-bottom: 1px solid gray;
 }
 
-table.docutils td, table.docutils th {
-  padding: 0.25em 0.5em;
-}
-
-th.field-name {
-   text-align: right;
-   width: 15em;
-}
-
-table.docutils th {
-  font-family: monospace;
-  background-color: #f6f6f6;
-  vertical-align: middle;
-}
-
-table.field-list {
-  border: none;  
-}
-
-div.sidebar {
+#index {
   margin: 2em 2em 2em 0em;
   padding: 0em 1em;
   border-top: 1px solid #aaa;
   border-left: 1px solid #aaa;
   border-bottom: 2px solid #555;
   border-right: 2px solid #555;
+  max-width: 20em;
 }
 
-p.sidebar-title {
+#index h2 {
   margin-bottom: 0em;
+  margin-top: 0em;
   color: #003a6b;
+  font-size: 100%;
   border-bottom: 1px solid #aaa;
   font-weight: bold;
 }
 
-p.sidebar-subtitle {
-  margin-top: 0em;
-  font-style: italic;
-  color: #003a6b;
+#feedback_link {
+  float: right;
+}
+
+#feedback {
+  visibility: hidden;
+  padding: 1em;
+  border-radius: 5px;
+  position: fixed;
+  top: 10em;
+  right: 10em;
+  background: white;
+  border-top: 1px solid #aaa;
+  border-left: 1px solid #aaa;
+  border-bottom: 2px solid #555;
+  border-right: 2px solid #555;
+}
+
+#feedback:target {
+  visibility: visible;
+}
+
+#feedback .cancel {
+  color: #666;
+  padding-left: 2em;
 }
