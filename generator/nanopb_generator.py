@@ -1856,6 +1856,8 @@ optparser = OptionParser(
     usage = "Usage: nanopb_generator.py [options] file.pb ...",
     epilog = "Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. " +
              "Output will be written to file.pb.h and file.pb.c.")
+optparser.add_option("--version", dest="version", action="store_true",
+    help="Show version info and exit")
 optparser.add_option("-x", dest="exclude", metavar="FILE", action="append", default=[],
     help="Exclude file from generated #include list.")
 optparser.add_option("-e", "--extension", dest="extension", metavar="EXTENSION", default=".pb",
@@ -2005,6 +2007,10 @@ def main_cli():
 
     options, filenames = optparser.parse_args()
 
+    if options.version:
+        print(nanopb_version)
+        sys.exit(0)
+
     if not filenames:
         optparser.print_help()
         sys.exit(1)
@@ -2109,6 +2115,10 @@ def main_plugin():
         sys.exit(1)
 
     options, dummy = optparser.parse_args(args)
+
+    if options.version:
+        sys.stderr.write('%s\n' % (nanopb_version))
+        sys.exit(0)
 
     Globals.verbose_options = options.verbose
 
