@@ -2114,6 +2114,10 @@ def main_plugin():
         optparser.print_help(sys.stderr)
         sys.exit(1)
 
+    if '--version' in args:
+        sys.stderr.write('%s\n' % (nanopb_version))
+        sys.exit(0)
+
     options, dummy = optparser.parse_args(args)
 
     Globals.verbose_options = options.verbose
