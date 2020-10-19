@@ -6,6 +6,22 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
+Nanopb-0.4.4 (2020-xx-xx)
+-------------------------
+
+### Remove outdated generator/nanopb/options.proto
+
+**Changes:** Back in 2018, it was considered in pull request #241 to
+move nanopb generator options to a separate namespace. For this reason,
+a transitional file was added. It was later abandoned and is now removed
+to avoid confusion.
+
+**Required actions:** Most nanopb users probably never used that transitional
+file at all. If your `.proto` files import it, change to using `generator/proto/nanopb.proto`.
+
+**Error indications:** Errors about missing file `options.proto` when running
+the generator.
+
 Nanopb-0.4.3 (2020-09-21)
 -------------------------
 
