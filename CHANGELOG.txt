@@ -16,6 +16,11 @@ NOTE: version 0.4.3 changes layout of pb_msgdesc_t. It requires recompiling .pb.
 thus breaks ABI compatibility. In general, ABI compatibility is not currently maintained
 between any nanopb versions.
 
+NOTE: There was an apparent false positive virus identification by Windows Defender of the
+PyInstaller 3.6 based Windows package nanopb-0.4.3-windows-x86.zip. The package was replaced
+by nanopb-0.4.3-p1-windows-x86.zip with rebuilt PyInstaller 4.0, which seems to avoid the problem.
+Actual nanopb code is unchanged between the packages.
+
 nanopb-0.4.2 (2020-06-23)
  Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
  Fix segfault with pointer fields and proto3_singular_msgs = true. (#504,#505)
