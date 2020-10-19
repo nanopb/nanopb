@@ -25,16 +25,6 @@ if not os.getenv("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"):
     os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 try:
-    # Add some dummy imports to keep packaging tools happy.
-    import google # bbfreeze seems to need these
-    import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
-    import proto.nanopb_pb2 as nanopb_pb2 # pyinstaller seems to need this
-    import pkg_resources.py2_warn
-except:
-    # Don't care, we will error out later if it is actually important.
-    pass
-
-try:
     # Make sure grpc_tools gets included in binary package if it is available
     import grpc_tools.protoc
 except:
@@ -48,57 +38,42 @@ try:
     import google.protobuf.descriptor
 except:
     sys.stderr.write('''
-         *************************************************************
-         *** Could not import the Google protobuf Python libraries ***
-         *** Try installing package 'python3-protobuf' or similar.  ***
-         *************************************************************
+         **********************************************************************
+         *** Could not import the Google protobuf Python libraries          ***
+         ***                                                                ***
+         *** Easiest solution is often to install the dependencies via pip: ***
+         ***    pip install protobuf grpcio-tools                           ***
+         **********************************************************************
     ''' + '\n')
     raise
 
-try:
-    from .proto import nanopb_pb2
-    from .proto._utils import invoke_protoc
-except TypeError:
-    sys.stderr.write('''
-         ****************************************************************************
-         *** Got TypeError when importing the protocol definitions for generator. ***
-         *** This usually means that the protoc in your path doesn't match the    ***
-         *** Python protobuf library version.                                     ***
-         ***                                                                      ***
-         *** Please check the output of the following commands:                   ***
-         *** which protoc                                                         ***
-         *** protoc --version                                                     ***
-         *** python3 -c 'import google.protobuf; print(google.protobuf.__file__)'  ***
-         *** If you are not able to find the python protobuf version using the    ***
-         *** above command, use this command.                                     ***
-         *** pip freeze | grep -i protobuf                                        ***
-         ****************************************************************************
-    ''' + '\n')
-    raise
-except (ValueError, SystemError, ImportError):
-    # Probably invoked directly instead of via installed scripts.
-    import proto.nanopb_pb2 as nanopb_pb2
+# Depending on how this script is run, we may or may not have PEP366 package name
+# available for relative imports.
+if not __package__:
+    import proto
     from proto._utils import invoke_protoc
-except:
-    sys.stderr.write('''
-         ********************************************************************
-         *** Failed to import the protocol definitions for generator.     ***
-         *** You have to run 'make' in the nanopb/generator/proto folder. ***
-         ********************************************************************
-    ''' + '\n')
-    raise
+    from proto import TemporaryDirectory
+else:
+    from . import proto
+    from .proto._utils import invoke_protoc
+    from .proto import TemporaryDirectory
+
+if getattr(sys, 'frozen', False):
+    # Binary package, just import the file
+    from proto import nanopb_pb2
+else:
+    # Try to rebuild nanopb_pb2.py if necessary
+    nanopb_pb2 = proto.load_nanopb_pb2()
 
 try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    class TemporaryDirectory:
-        '''TemporaryDirectory fallback for Python 2'''
-        def __enter__(self):
-            self.dir = tempfile.mkdtemp()
-            return self.dir
-
-        def __exit__(self, *args):
-            shutil.rmtree(self.dir)
+    # Add some dummy imports to keep packaging tools happy.
+    import google # bbfreeze seems to need these
+    import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
+    from proto import nanopb_pb2 # pyinstaller seems to need this
+    import pkg_resources.py2_warn
+except:
+    # Don't care, we will error out later if it is actually important.
+    pass
 
 # ---------------------------------------------------------------------------
 #                     Generation of single fields

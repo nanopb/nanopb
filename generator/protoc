@@ -6,7 +6,13 @@
 import sys
 import os
 import os.path
-from nanopb_generator import invoke_protoc
+
+# Depending on how this script is run, we may or may not have PEP366 package name
+# available for relative imports.
+if not __package__:
+    from proto._utils import invoke_protoc
+else:
+    from .proto._utils import invoke_protoc
 
 if __name__ == '__main__':
     # Get path of the directory where this script is stored.

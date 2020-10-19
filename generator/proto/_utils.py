@@ -57,6 +57,7 @@ def print_versions():
 
     try:
         import google.protobuf
+        sys.stderr.write("Python version " + sys.version + "\n")
         sys.stderr.write("Using python-protobuf from " + google.protobuf.__file__ + "\n")
         sys.stderr.write("Python-protobuf version: " + google.protobuf.__version__ + "\n")
     except Exception as e:
