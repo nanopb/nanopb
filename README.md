@@ -11,7 +11,7 @@ restricted system.
 * **Documentation:** https://jpa.kapsi.fi/nanopb/docs/
 * **Downloads:** https://jpa.kapsi.fi/nanopb/download/
 * **Forum:** https://groups.google.com/forum/#!forum/nanopb
-
+* **Nightly builds:** https://jpa.kapsi.fi/jenkins/job/nanopb/
 
 
 Using the nanopb library
