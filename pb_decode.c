@@ -1294,7 +1294,7 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
     
     do
     {
-        pb_release_single_field(&iter);
+        /*pb_release_single_field(&iter); FIXME: Intentional bug for CIFuzz testing */
     } while (pb_field_iter_next(&iter));
 }
 #endif
