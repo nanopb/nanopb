@@ -1685,3 +1685,4 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
     return true;
 }
 #endif
+
