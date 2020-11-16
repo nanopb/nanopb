@@ -5,6 +5,7 @@
 #ifndef PB_H_INCLUDED
 #define PB_H_INCLUDED
 
+
 /*****************************************************************
  * Nanopb compilation time options. You can change these here by *
  * uncommenting the lines, or on the compiler command line.      *
