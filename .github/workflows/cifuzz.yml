@@ -1,10 +1,17 @@
 name: CIFuzz
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.c'
+      - '**.h'
   pull_request:
     branches:
       - master
     paths:
       - '**.c'
+      - '**.h'
 
 jobs:
   Fuzzing:
