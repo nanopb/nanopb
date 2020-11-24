@@ -31,6 +31,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
 static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
 static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
+static bool pb_field_set_to_default(pb_field_iter_t *field);
 static bool pb_message_set_to_defaults(pb_field_iter_t *iter);
 static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_t *field);
@@ -516,8 +517,8 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
             }
 
         case PB_HTYPE_ONEOF:
-            *(pb_size_t*)field->pSize = field->tag;
-            if (PB_LTYPE_IS_SUBMSG(field->type))
+            if (PB_LTYPE_IS_SUBMSG(field->type) &&
+                *(pb_size_t*)field->pSize != field->tag)
             {
                 /* We memset to zero so that any callbacks are set to NULL.
                  * This is because the callbacks might otherwise have values
@@ -527,7 +528,12 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                  * that can set the fields before submessage is decoded.
                  * pb_dec_submessage() will set any default values. */
                 memset(field->pData, 0, (size_t)field->data_size);
+
+                /* Set default values for the submessage fields. */
+                if (!pb_field_set_to_default(field))
+                    PB_RETURN_ERROR(stream, "failed to set defaults");
             }
+            *(pb_size_t*)field->pSize = field->tag;
 
             return decode_basic_field(stream, wire_type, field);
 
@@ -1580,8 +1586,7 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
         /* Static required/optional fields are already initialized by top-level
          * pb_decode(), no need to initialize them again. */
         if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-            PB_HTYPE(field->type) != PB_HTYPE_REPEATED &&
-            PB_HTYPE(field->type) != PB_HTYPE_ONEOF)
+            PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
         {
             flags = PB_DECODE_NOINIT;
         }
