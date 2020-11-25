@@ -133,14 +133,36 @@ static bool test_OneofMessage()
             }
         }
 
-        /* Encode second with SubMessage, invoking 'merge' behaviour */
+        /* Encode second with SubMessage, replacing the oneof item */
         {
             OneofMessage msg = OneofMessage_init_zero;
+            char *teststr = "1";
             msg.which_msgs = OneofMessage_msg2_tag;
 
             msg.first = 999;
             msg.msgs.msg2.dynamic_str = "ABCD";
+            msg.msgs.msg2.dynamic_str_arr_count = 1;
+            msg.msgs.msg2.dynamic_str_arr = &teststr;
             msg.last = 888;
+
+            if (!pb_encode(&stream, OneofMessage_fields, &msg))
+            {
+                fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
+                return false;
+            }
+        }
+
+        /* Encode second SubMessage, invoking submessage merge behavior */
+        {
+            OneofMessage msg = OneofMessage_init_zero;
+            char *teststr = "2";
+            msg.which_msgs = OneofMessage_msg2_tag;
+
+            msg.first = 99;
+            msg.msgs.msg2.dynamic_str = "EFGH";
+            msg.msgs.msg2.dynamic_str_arr_count = 1;
+            msg.msgs.msg2.dynamic_str_arr = &teststr;
+            msg.last = 88;
 
             if (!pb_encode(&stream, OneofMessage_fields, &msg))
             {
@@ -160,13 +182,16 @@ static bool test_OneofMessage()
             return false;
         }
 
-        TEST(msg.first == 999);
+        TEST(msg.first == 99);
         TEST(msg.which_msgs == OneofMessage_msg2_tag);
         TEST(msg.msgs.msg2.dynamic_str);
-        TEST(strcmp(msg.msgs.msg2.dynamic_str, "ABCD") == 0);
-        TEST(msg.msgs.msg2.dynamic_str_arr == NULL);
+        TEST(strcmp(msg.msgs.msg2.dynamic_str, "EFGH") == 0);
+        TEST(msg.msgs.msg2.dynamic_str_arr != NULL);
+        TEST(msg.msgs.msg2.dynamic_str_arr_count == 2);
+        TEST(strcmp(msg.msgs.msg2.dynamic_str_arr[0], "1") == 0);
+        TEST(strcmp(msg.msgs.msg2.dynamic_str_arr[1], "2") == 0);
         TEST(msg.msgs.msg2.dynamic_submsg == NULL);
-        TEST(msg.last == 888);
+        TEST(msg.last == 88);
 
         pb_release(OneofMessage_fields, &msg);
         TEST(get_alloc_count() == 0);
