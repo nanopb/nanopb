@@ -1,0 +1,10 @@
+# Regression test for #610:
+# Error "'dict_values' object does not support indexing" while compiling .proto files
+
+Import("env")
+
+env.NanopbProto("LogMessage.proto")
+env.NanopbProto(["DataPacket.proto", "LogMessage.proto"])
+env.Object("LogMessage.pb.c")
+env.Object("DataPacket.pb.c")
+

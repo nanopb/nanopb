@@ -987,7 +987,7 @@ class OneOf(Field):
         # have to rely on macro resolution at compile time.
         if len(dynamic_sizes) == 1:
             # Only one symbol was needed
-            return dynamic_sizes.values()[0]
+            return list(dynamic_sizes.values())[0]
         else:
             # Use sizeof(union{}) construct to find the maximum size of
             # submessages.
