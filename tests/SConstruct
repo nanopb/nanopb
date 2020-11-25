@@ -92,10 +92,12 @@ if not env.GetOption('clean'):
         status, output = context.TryAction('$PROTOC --version > $TARGET')
         if status:
             context.Result(str(output.strip()))
+            return str(output.strip())
         else:
             context.Display("error: %s\n" % output.strip())
             context.did_show_result = 1
-            context.Result("3.6.1") # Assumption
+            context.Result("unknown, assuming 3.6.1")
+            return "3.6.1"
 
     conf = Configure(env, custom_tests =
                      {'CheckCCFLAGS': check_ccflags,

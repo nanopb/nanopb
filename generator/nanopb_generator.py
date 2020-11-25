@@ -425,7 +425,11 @@ class Field:
                 # In most other protobuf libraries proto3 submessages have
                 # "null" status. For nanopb, that is implemented as has_ field.
                 self.rules = 'OPTIONAL'
+            elif hasattr(desc, "proto3_optional") and desc.proto3_optional:
+                # Protobuf 3.12 introduced optional fields for proto3 syntax
+                self.rules = 'OPTIONAL'
             else:
+                # Proto3 singular fields (without has_field)
                 self.rules = 'SINGULAR'
         elif desc.label == FieldD.LABEL_REQUIRED:
             self.rules = 'REQUIRED'
@@ -1061,18 +1065,22 @@ class Message:
                 self.descriptorsize = field_options.descriptorsize
 
             field = Field(self.name, f, field_options)
-            if (hasattr(f, 'oneof_index') and
-                f.HasField('oneof_index') and
-                f.oneof_index not in no_unions):
-                if f.oneof_index in self.oneofs:
+            if hasattr(f, 'oneof_index') and f.HasField('oneof_index'):
+                if hasattr(f, 'proto3_optional') and f.proto3_optional:
+                    no_unions.append(f.oneof_index)
+
+                if f.oneof_index in no_unions:
+                    self.fields.append(field)
+                elif f.oneof_index in self.oneofs:
                     self.oneofs[f.oneof_index].add_field(field)
 
                     if self.oneofs[f.oneof_index] not in self.fields:
                         self.fields.append(self.oneofs[f.oneof_index])
             else:
                 self.fields.append(field)
-                if field.math_include_required:
-                    self.math_include_required = True
+
+            if field.math_include_required:
+                self.math_include_required = True
 
         if len(desc.extension_range) > 0:
             field_options = get_nanopb_suboptions(desc, message_options, self.name + 'extensions')
@@ -2163,6 +2171,9 @@ def main_plugin():
                 f = response.file.add()
                 f.name = results['sourcename']
                 f.content = results['sourcedata']
+
+    if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_PROTO3_OPTIONAL"):
+        response.supported_features = plugin_pb2.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
     io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 
