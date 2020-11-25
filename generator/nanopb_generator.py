@@ -1295,7 +1295,12 @@ class Message:
                 # The partial descriptor doesn't include the enum type
                 # so we fake it with int64.
                 enumname = names_from_type_name(field.type_name)
-                enumtype = dependencies[str(enumname)]
+                try:
+                    enumtype = dependencies[str(enumname)]
+                except KeyError:
+                    raise Exception("Could not find enum type %s while generating default values for %s.\n" % (enumname, self.name)
+                                    + "Try passing all source files to generator at once, or use -I option.")
+
                 if field.HasField('default_value'):
                     defvals = [v for n,v in enumtype.values if n.parts[-1] == field.default_value]
                 else:
