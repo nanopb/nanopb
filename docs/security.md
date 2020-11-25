@@ -61,9 +61,12 @@ untrusted data has been maliciously crafted:
     -   All string fields will have null terminator.
     -   bool fields will have valid true/false values (since
         nanopb-0.3.9.4)
+    -   pointer fields will be either `NULL` or point to valid data
 5.  After `pb_encode()` returns successfully, the resulting message is a
     valid protocol buffers message. (Except if user-defined callbacks
     write incorrect data.)
+6.  All memory allocated by `pb_decode()` will be released by a subsequent
+    call to `pb_release()` on the same message.
 
 Further considerations
 ----------------------
