@@ -5,3 +5,4 @@ Import("env")
 
 env.NanopbProto("uenum.proto")
 env.Match(["uenum.pb.h", "uenum.expected"])
+env.Object("uenum.pb.c")
