@@ -1164,9 +1164,9 @@ class Message:
         '''Return X-macro declaration of all fields in this message.'''
         Field.macro_x_param = 'X'
         Field.macro_a_param = 'a'
-        while any(field.name == Field.macro_x_param for field in self.fields):
+        while any(field.name == Field.macro_x_param for field in self.all_fields()):
             Field.macro_x_param += '_'
-        while any(field.name == Field.macro_a_param for field in self.fields):
+        while any(field.name == Field.macro_a_param for field in self.all_fields()):
             Field.macro_a_param += '_'
 
         result = '#define %s_FIELDLIST(%s, %s) \\\n' % (self.name,
@@ -1518,7 +1518,7 @@ class ProtoFile:
         for enum in other.enums:
             if not enum.options.long_names:
                 for message in self.messages:
-                    for field in message.fields:
+                    for field in message.all_fields():
                         if field.default in enum.value_longnames:
                             idx = enum.value_longnames.index(field.default)
                             field.default = enum.values[idx][0]
@@ -1527,7 +1527,7 @@ class ProtoFile:
         for enum in other.enums:
             if not enum.has_negative():
                 for message in self.messages:
-                    for field in message.fields:
+                    for field in message.all_fields():
                         if field.pbtype == 'ENUM' and field.ctype == enum.names:
                             field.pbtype = 'UENUM'
 
@@ -1746,7 +1746,7 @@ class ProtoFile:
         # Add check for sizeof(double)
         has_double = False
         for msg in self.messages:
-            for field in msg.fields:
+            for field in msg.all_fields():
                 if field.ctype == 'double':
                     has_double = True
 
