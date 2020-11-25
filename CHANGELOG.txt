@@ -1,5 +1,5 @@
 nanopb-0.4.4 (2020-11-25)
- Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615)
+ Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615, GHSA-85rr-4rh9-hhwh)
  Fix generator error when oneof contains a single unresolved field size (#610)
  Fix unsigned enums not working correctly inside OneOf (#611)
  Fix recursion depth exceeded error in generator (#493)
