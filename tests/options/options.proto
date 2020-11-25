@@ -103,6 +103,14 @@ message WideMessage
     required int32 foo = 1;
 }
 
+// Wide descriptor option in a single field
+message WideMessage2
+{
+    required int32 foo = 1 [(nanopb).descriptorsize = DS_8];
+    required int32 foo2 = 2 [(nanopb).descriptorsize = DS_4];
+    required int32 foo3 = 3;
+}
+
 // Default value for has_ field
 message HasFieldMessage
 {

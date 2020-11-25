@@ -1014,6 +1014,8 @@ class Message:
         self.oneofs = {}
         self.desc = desc
         self.math_include_required = False
+        self.packed = message_options.packed_struct
+        self.descriptorsize = message_options.descriptorsize
 
         if message_options.msgid:
             self.msgid = message_options.msgid
@@ -1029,9 +1031,6 @@ class Message:
                 if field.requires_custom_field_callback():
                     self.callback_function = "%s_callback" % self.name
                     break
-
-        self.packed = message_options.packed_struct
-        self.descriptorsize = message_options.descriptorsize
 
     def load_fields(self, desc, message_options):
         '''Load field list from DescriptorProto'''
@@ -1055,6 +1054,9 @@ class Message:
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
             if field_options.type == nanopb_pb2.FT_IGNORE:
                 continue
+
+            if field_options.descriptorsize > self.descriptorsize:
+                self.descriptorsize = field_options.descriptorsize
 
             field = Field(self.name, f, field_options)
             if (hasattr(f, 'oneof_index') and
