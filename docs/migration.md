@@ -6,7 +6,7 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
-Nanopb-0.4.4 (2020-xx-xx)
+Nanopb-0.4.4 (2020-11-25)
 -------------------------
 
 ### Remove outdated generator/nanopb/options.proto

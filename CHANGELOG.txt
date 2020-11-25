@@ -1,3 +1,20 @@
+nanopb-0.4.4 (2020-11-25)
+ Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615)
+ Fix generator error when oneof contains a single unresolved field size (#610)
+ Fix unsigned enums not working correctly inside OneOf (#611)
+ Fix recursion depth exceeded error in generator (#493)
+ Add '--version' option to nanopb_generator.py (#607)
+ Add support for proto3 optional fields introduced in protoc 3.12 (#591)
+ Add better error message when enum type is not found (#592)
+ Allow specifying descriptorsize on field level also (#546)
+ Allow multiple targets to be created by calling NANOPB_GENERATE_CPP() (#596)
+ Conanfile: Add protobuf-nanopb library to cpp_info.libs (#605)
+ Include version number in generator verbose output
+ Convert documentation to markdown format (#587)
+ Remove outdated transitional generator/nanopb/options.proto.
+ Test case improvements
+ Documentation improvements
+
 nanopb-0.4.3 (2020-09-21)
  Fix generator error when output is in current directory (#553)
  Fix issue with unknown message sizes being referred inside oneof encoded size calculation (#569)
