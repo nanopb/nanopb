@@ -132,6 +132,7 @@ message AllTypes {
     {
         SubMessage oneof_msg1 = 60;
         EmptyMessage oneof_msg2 = 61;
+        SubMessage static_msg = 63;
     }
 
     optional NonZeroBasedEnum opt_non_zero_based_enum = 62;
