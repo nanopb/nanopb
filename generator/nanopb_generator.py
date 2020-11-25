@@ -703,7 +703,8 @@ class Field:
             size = 16
         elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if str(self.submsgname) in dependencies:
-                size = dependencies[str(self.submsgname)].data_size(dependencies)
+                other_dependencies = dict(x for x in dependencies.items() if x[0] != str(self.struct_name))
+                size = dependencies[str(self.submsgname)].data_size(other_dependencies)
             else:
                 size = 256 # Message is in other file, this is reasonable guess for most cases
 
@@ -742,7 +743,8 @@ class Field:
             encsize = None
             if str(self.submsgname) in dependencies:
                 submsg = dependencies[str(self.submsgname)]
-                encsize = submsg.encoded_size(dependencies)
+                other_dependencies = dict(x for x in dependencies.items() if x[0] != str(self.struct_name))
+                encsize = submsg.encoded_size(other_dependencies)
                 if encsize is not None:
                     # Include submessage length prefix
                     encsize += varint_max_size(encsize.upperlimit())
