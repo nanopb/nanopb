@@ -2033,6 +2033,7 @@ def main_cli():
         sys.exit(1)
 
     if options.verbose:
+        sys.stderr.write("Nanopb version %s\n" % nanopb_version)
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
@@ -2132,6 +2133,7 @@ def main_plugin():
     Globals.verbose_options = options.verbose
 
     if options.verbose:
+        sys.stderr.write("Nanopb version %s\n" % nanopb_version)
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
