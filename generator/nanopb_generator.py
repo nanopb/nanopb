@@ -749,16 +749,24 @@ class Field:
                 submsg = dependencies[str(self.submsgname)]
                 other_dependencies = dict(x for x in dependencies.items() if x[0] != str(self.struct_name))
                 encsize = submsg.encoded_size(other_dependencies)
+
+                my_msg = dependencies.get(str(self.struct_name))
+                external = (not my_msg or submsg.protofile != my_msg.protofile)
+
+                if encsize and encsize.symbols and external:
+                    # Couldn't fully resolve the size of a dependency from
+                    # another file. Instead of including the symbols directly,
+                    # just use the #define SubMessage_size from the header.
+                    encsize = None
+
                 if encsize is not None:
                     # Include submessage length prefix
                     encsize += varint_max_size(encsize.upperlimit())
-                else:
-                    my_msg = dependencies.get(str(self.struct_name))
-                    if my_msg and submsg.protofile == my_msg.protofile:
-                        # The dependency is from the same file and size cannot be
-                        # determined for it, thus we know it will not be possible
-                        # in runtime either.
-                        return None
+                elif not external:
+                    # The dependency is from the same file and size cannot be
+                    # determined for it, thus we know it will not be possible
+                    # in runtime either.
+                    return None
 
             if encsize is None:
                 # Submessage or its size cannot be found.
@@ -1000,7 +1008,7 @@ class OneOf(Field):
             union_name = "%s_%s_size_union" % (self.struct_name, self.name)
             union_def = 'union %s {%s};\n' % (union_name, ' '.join('char f%d[%s];' % (k, s) for k,s in dynamic_sizes.items()))
             required_defs = list(itertools.chain.from_iterable(s.required_defines for k,s in dynamic_sizes.items()))
-            return EncodedSize(0, ['sizeof(%s)' % union_name], [union_def], required_defs)
+            return EncodedSize(0, ['sizeof(union %s)' % union_name], [union_def], required_defs)
 
     def has_callbacks(self):
         return bool([f for f in self.fields if f.has_callbacks()])
