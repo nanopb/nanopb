@@ -1988,10 +1988,15 @@ def process_file(filename, fdesc, options, other_files = {}):
     '''
     f = parse_file(filename, fdesc, options)
 
-    # Provide dependencies if available
-    for dep in f.fdesc.dependency:
+    # Check the list of dependencies, and if they are available in other_files,
+    # add them to be considered for import resolving. Recursively add any files
+    # imported by the dependencies.
+    deps = list(f.fdesc.dependency)
+    while deps:
+        dep = deps.pop(0)
         if dep in other_files:
             f.add_dependency(other_files[dep])
+            deps += list(other_files[dep].fdesc.dependency)
 
     # Decide the file names
     noext = os.path.splitext(filename)[0]

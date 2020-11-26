@@ -28,3 +28,4 @@ for f in all_files:
 for f in all_files:
     env2.Object(f.replace('.proto', '.pb.c'))
 
+env2.Match(["nanopb_generator_bug/first.pb.h", "first.expected"])
