@@ -1452,6 +1452,9 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_t *fie
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
+        if (stream->bytes_left < size)
+            PB_RETURN_ERROR(stream, "end-of-stream");
+
         if (!allocate_field(stream, dest, alloc_size, 1))
             return false;
         bdest = *(pb_bytes_array_t**)dest;
@@ -1487,6 +1490,9 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, const pb_field_t *fi
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(stream, "no malloc support");
 #else
+        if (stream->bytes_left < size)
+            PB_RETURN_ERROR(stream, "end-of-stream");
+
         if (!allocate_field(stream, dest, alloc_size, 1))
             return false;
         dest = *(void**)dest;
