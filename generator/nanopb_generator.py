@@ -1439,7 +1439,7 @@ class ProtoFile:
                     msgs = '_'.join(str(n) for n in checks_msgnames)
                     yield '/* If you get an error here, it means that you need to define PB_FIELD_32BIT\n'
                     yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
+                    yield ' *\n'
                     yield ' * The reason you need to do this is that some of your messages contain tag\n'
                     yield ' * numbers or field sizes that are larger than what can fit in 8 or 16 bit\n'
                     yield ' * field descriptors.\n'
@@ -1456,7 +1456,7 @@ class ProtoFile:
                     msgs = '_'.join(str(n) for n in checks_msgnames)
                     yield '/* If you get an error here, it means that you need to define PB_FIELD_16BIT\n'
                     yield ' * compile-time option. You can do that in pb.h or on compiler command line.\n'
-                    yield ' * \n'
+                    yield ' *\n'
                     yield ' * The reason you need to do this is that some of your messages contain tag\n'
                     yield ' * numbers or field sizes that are larger than what can fit in the default\n'
                     yield ' * 8 bit descriptors.\n'
