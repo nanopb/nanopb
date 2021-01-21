@@ -19,12 +19,12 @@ def add_nanopb_builders(env):
         else:
             infile = None
         
-        if env.has_key("COMMAND"):
+        if "COMMAND" in env:
             args = [env["COMMAND"]]
         else:
             args = [str(source[0])]
         
-        if env.has_key('ARGS'):
+        if 'ARGS' in env:
             args.extend(env['ARGS'])
         
         print('Command line: ' + str(args))
@@ -82,7 +82,7 @@ def add_nanopb_builders(env):
 
     # Build command that checks that each pattern in source2 is found in source1.
     def match_files(target, source, env):
-        data = open(str(source[0]), 'rU').read()
+        data = open(str(source[0]), 'r', encoding = 'utf-8').read()
         patterns = open(str(source[1]))
         for pattern in patterns:
             if pattern.strip():

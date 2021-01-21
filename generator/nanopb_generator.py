@@ -4,6 +4,8 @@
 nanopb_version = "nanopb-0.2.9.5"
 
 import sys
+import codecs
+from functools import reduce
 
 try:
     # Add some dummy imports to keep packaging tools happy.
@@ -62,6 +64,12 @@ datatypes = {
     FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10)
 }
 
+# String types (for python 2 / python 3 compatibility)
+try:
+    strtypes = (unicode, str)
+except NameError:
+    strtypes = (str, )
+
 class Names:
     '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
@@ -73,7 +81,7 @@ class Names:
         return '_'.join(self.parts)
 
     def __add__(self, other):
-        if isinstance(other, (str, unicode)):
+        if isinstance(other, strtypes):
             return Names(self.parts + (other,))
         elif isinstance(other, tuple):
             return Names(self.parts + other)
@@ -104,16 +112,16 @@ class EncodedSize:
     '''Class used to represent the encoded size of a field or a message.
     Consists of a combination of symbolic sizes and integer sizes.'''
     def __init__(self, value = 0, symbols = []):
-        if isinstance(value, (str, Names)):
+        if isinstance(value, strtypes + (Names,)):
             symbols = [str(value)]
             value = 0
         self.value = value
         self.symbols = symbols
     
     def __add__(self, other):
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             return EncodedSize(self.value + other, self.symbols)
-        elif isinstance(other, (str, Names)):
+        elif isinstance(other, strtypes + (Names,)):
             return EncodedSize(self.value, self.symbols + [str(other)])
         elif isinstance(other, EncodedSize):
             return EncodedSize(self.value + other.value, self.symbols + other.symbols)
@@ -121,7 +129,7 @@ class EncodedSize:
             raise ValueError("Cannot add size: " + repr(other))
 
     def __mul__(self, other):
-        if isinstance(other, (int, long)):
+        if isinstance(other, int):
             return EncodedSize(self.value * other, [str(other) + '*' + s for s in self.symbols])
         else:
             raise ValueError("Cannot multiply size: " + repr(other))
@@ -225,7 +233,7 @@ class Field:
             raise NotImplementedError(field_options.type)
         
         # Decide the C data type to use in the struct.
-        if datatypes.has_key(desc.type):
+        if desc.type in datatypes:
             self.ctype, self.pbtype, self.enc_size = datatypes[desc.type]
         elif desc.type == FieldD.TYPE_ENUM:
             self.pbtype = 'ENUM'
@@ -254,8 +262,8 @@ class Field:
         else:
             raise NotImplementedError(desc.type)
         
-    def __cmp__(self, other):
-        return cmp(self.tag, other.tag)
+    def __lt__(self, other):
+        return self.tag < other.tag
     
     def __str__(self):
         result = ''
@@ -314,12 +322,11 @@ class Field:
         default = str(self.default)
         
         if self.pbtype == 'STRING':
-            default = default.encode('utf-8').encode('string_escape')
-            default = default.replace('"', '\\"')
+            default = codecs.escape_encode(self.default.encode('utf-8'))[0].decode('ascii')
             default = '"' + default + '"'
         elif self.pbtype == 'BYTES':
-            data = default.decode('string_escape')
-            data = ['0x%02x' % ord(c) for c in data]
+            data = codecs.escape_decode(self.default)[0]
+            data = ['0x%02x' % c for c in data]
             if len(data) == 0:
                 default = '{0, {0}}'
             else:
@@ -395,7 +402,7 @@ class Field:
             else:
                 return 'pb_membersize(%s, %s)' % (self.struct_name, self.name)
 
-        return max(self.tag, self.max_size, self.max_count)        
+        return max(self.tag, self.max_size or 0, self.max_count or 0)
 
     def encoded_size(self, allmsgs):
         '''Return the maximum size that this field can take when encoded,
@@ -725,17 +732,17 @@ def toposort2(data):
     From http://code.activestate.com/recipes/577413-topological-sort/
     This function is under the MIT license.
     '''
-    for k, v in data.items():
+    for k, v in list(data.items()):
         v.discard(k) # Ignore self dependencies
-    extra_items_in_deps = reduce(set.union, data.values(), set()) - set(data.keys())
+    extra_items_in_deps = reduce(set.union, list(data.values()), set()) - set(data.keys())
     data.update(dict([(item, set()) for item in extra_items_in_deps]))
     while True:
-        ordered = set(item for item,dep in data.items() if not dep)
+        ordered = set(item for item,dep in list(data.items()) if not dep)
         if not ordered:
             break
         for item in sorted(ordered):
             yield item
-        data = dict([(item, (dep - ordered)) for item,dep in data.items()
+        data = dict([(item, (dep - ordered)) for item,dep in list(data.items())
                 if item not in ordered])
     assert not data, "A cyclic dependency exists amongst %r" % data
 
@@ -890,7 +897,7 @@ def generate_source(headername, enums, messages, extensions, options):
         checks_msgnames.append(msg.name)
         for field in msg.fields:
             status = field.largest_field_value()
-            if isinstance(status, (str, unicode)):
+            if isinstance(status, strtypes):
                 checks.append(status)
             elif status > worst:
                 worst = status
@@ -968,7 +975,14 @@ def read_options_file(infile):
         
         parts = line.split(None, 1)
         opts = nanopb_pb2.NanoPBOptions()
-        text_format.Merge(parts[1], opts)
+
+        try:
+            text_format.Merge(parts[1], opts)
+        except Exception as e:
+            sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
+                             "Unparseable option line: '%s'. " % line +
+                             "Error: %s\n" % str(e))
+            continue
         results.append((parts[0], opts))
 
     return results
@@ -1081,7 +1095,7 @@ def process_file(filename, fdesc, options):
         if options.verbose:
             sys.stderr.write('Reading options from ' + optfilename + '\n')
 
-        Globals.separate_options = read_options_file(open(optfilename, "rU"))
+        Globals.separate_options = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
     else:
         # If we are given a full filename and it does not exist, give an error.
         # However, don't give error when we automatically look for .options file
@@ -1152,14 +1166,15 @@ def main_cli():
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
 
-    import sys
+    import io, sys
     if sys.platform == "win32":
         import os, msvcrt
         # Set stdin and stdout to binary mode
         msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
         msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
     
-    data = sys.stdin.read()
+    data = io.open(sys.stdin.fileno(), "rb").read()
+
     request = plugin_pb2.CodeGeneratorRequest.FromString(data)
     
     import shlex
@@ -1183,7 +1198,7 @@ def main_plugin():
                 f.name = results['sourcename']
                 f.content = results['sourcedata']    
     
-    sys.stdout.write(response.SerializeToString())
+    io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 
 if __name__ == '__main__':
     # Check if we are running as a plugin under protoc

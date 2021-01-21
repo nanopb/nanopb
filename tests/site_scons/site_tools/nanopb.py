@@ -33,13 +33,18 @@ import SCons.Builder
 import SCons.Util
 import os.path
 
-class NanopbWarning(SCons.Warnings.Warning):
+try:
+    warningbase = SCons.Warnings.SConsWarning
+except AttributeError:
+    warningbase = SCons.Warnings.Warning
+
+class NanopbWarning(warningbase):
     pass
 SCons.Warnings.enableWarningClass(NanopbWarning)
 
 def _detect_nanopb(env):
     '''Find the path to nanopb root directory.'''
-    if env.has_key('NANOPB'):
+    if 'NANOPB' in env:
         # Use nanopb dir given by user
         return env['NANOPB']
     
@@ -53,7 +58,7 @@ def _detect_nanopb(env):
 
 def _detect_protoc(env):
     '''Find the path to the protoc compiler.'''
-    if env.has_key('PROTOC'):
+    if 'PROTOC' in env:
         # Use protoc defined by user
         return env['PROTOC']
     
@@ -73,7 +78,7 @@ def _detect_protoc(env):
 
 def _detect_protocflags(env):
     '''Find the options to use for protoc.'''
-    if env.has_key('PROTOCFLAGS'):
+    if 'PROTOCFLAGS' in env:
         return env['PROTOCFLAGS']
     
     p = _detect_protoc(env)
