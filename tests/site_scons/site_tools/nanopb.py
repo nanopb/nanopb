@@ -35,7 +35,12 @@ from SCons.Script import Dir, File
 import os.path
 import platform
 
-class NanopbWarning(SCons.Warnings.Warning):
+try:
+    warningbase = SCons.Warnings.SconsWarning
+except AttributeError:
+    warningbase = SCons.Warnings.Warning
+
+class NanopbWarning(warningbase):
     pass
 SCons.Warnings.enableWarningClass(NanopbWarning)
 
