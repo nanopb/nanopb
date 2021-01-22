@@ -135,6 +135,12 @@ nanopb-0.4.0 (2019-12-20)
  CMake: Split nanopb_out command (#454)
  CMake: install created shared library(dll) in windows to the binary folder (#447)
 
+nanopb-0.3.9.7 (2020-11-25)
+ Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615, GHSA-85rr-4rh9-hhwh)
+ Fix unsigned enums not working correctly inside OneOf (#611)
+ Add '--version' option to nanopb_generator.py (#607)
+ SwiftPM rule updates (#567, #585)
+
 nanopb-0.3.9.6 (2020-06-23)
  Fix buffer overflow when encoding bytes with size set to 65535 (#547, GHSA-3p39-mfxg-hrq4)
  Fix proto3 submessage improperly considered empty (#504)
