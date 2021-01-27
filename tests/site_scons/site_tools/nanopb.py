@@ -36,7 +36,7 @@ import os.path
 import platform
 
 try:
-    warningbase = SCons.Warnings.SconsWarning
+    warningbase = SCons.Warnings.SConsWarning
 except AttributeError:
     warningbase = SCons.Warnings.Warning
 
