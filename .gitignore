@@ -27,3 +27,4 @@ examples/using_union_messages/decode
 examples/using_union_messages/encode
 generator/nanopb_pb2.pyc
 !generator-bin/**/*
+bazel-*
