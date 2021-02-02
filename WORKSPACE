@@ -1,1 +1,1 @@
-workspace(name="com_github_nanopb_nanopb")
+workspace(name = "com_github_nanopb_nanopb")
