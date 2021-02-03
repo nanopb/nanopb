@@ -198,6 +198,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.which_oneof == AllTypes_oneof_msg1_tag);
         TEST(strcmp(alltypes.oneof.oneof_msg1.substuff1, "4059") == 0);
         TEST(alltypes.oneof.oneof_msg1.substuff2 == 4059);
+        TEST(alltypes.oneof.oneof_msg1.substuff3 == 3);
     }
     else if (mode == 2)
     {
