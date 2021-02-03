@@ -530,8 +530,17 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 memset(field->pData, 0, (size_t)field->data_size);
 
                 /* Set default values for the submessage fields. */
-                if (!pb_field_set_to_default(field))
-                    PB_RETURN_ERROR(stream, "failed to set defaults");
+                if (field->submsg_desc->default_value != NULL ||
+                    field->submsg_desc->field_callback != NULL ||
+                    field->submsg_desc->submsg_info[0] != NULL)
+                {
+                    pb_field_iter_t submsg_iter;
+                    if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
+                    {
+                        if (!pb_message_set_to_defaults(&submsg_iter))
+                            PB_RETURN_ERROR(stream, "failed to set defaults");
+                    }
+                }
             }
             *(pb_size_t*)field->pSize = field->tag;
 
