@@ -312,14 +312,16 @@ class ProtoElement:
         '''
         return self.element_path() + [FIELD_PATH, member_index]
 
-    def get_comments_for_member(self, index):
-        '''Get leading & trailing comments for enum member based on path.'''
+    def get_comments(self, path, leading_indent=True):
+        '''Get leading & trailing comments for enum member based on path.
 
-        # Compute path for enum member
-        comment_path = self.member_path(index)
+        path is the proto path of an element or member (ex. [5 0] or [4 1 2 0])
+        leading_indent is a flag that indicates if leading comments should be indented
+        '''
+
         # Obtain SourceCodeInfo.Location object containing comment
         # information (based on the member path)
-        comment = self.comments.get(str(comment_path))
+        comment = self.comments.get(str(path))
 
         leading_comment = ""
         trailing_comment = ""
@@ -328,7 +330,8 @@ class ProtoElement:
             return leading_comment, trailing_comment
 
         if comment.leading_comments:
-            leading_comment = "    /* %s */" % comment.leading_comments.strip()
+            leading_comment = "    " if leading_indent else ""
+            leading_comment += "/* %s */" % comment.leading_comments.strip()
 
         if comment.trailing_comments:
             trailing_comment = "/* %s */" % comment.trailing_comments.strip()
@@ -370,12 +373,20 @@ class Enum(ProtoElement):
         return max([varint_max_size(v) for n,v in self.values])
 
     def __str__(self):
-        result = 'typedef enum _%s {\n' % self.names
+        enum_path = self.element_path()
+        leading_comment, trailing_comment = self.get_comments(enum_path, leading_indent=False)
+
+        result = ''
+        if leading_comment:
+            result = '%s\n' % leading_comment
+
+        result += 'typedef enum _%s { %s\n' % (self.names, trailing_comment)
 
         enum_length = len(self.values)
         enum_values = []
         for index, (name, value) in enumerate(self.values):
-            leading_comment, trailing_comment = self.get_comments_for_member(index)
+            member_path = self.member_path(index)
+            leading_comment, trailing_comment = self.get_comments(member_path)
 
             if leading_comment:
                 enum_values.append(leading_comment)
@@ -1589,6 +1600,7 @@ class ProtoFile:
             for location in self.fdesc.source_code_info.location
             if location.leading_comments or location.leading_detached_comments or location.trailing_comments
         }
+        # breakpoint()
 
         for index, enum in enumerate(self.fdesc.enum_type):
             name = create_name(enum.name)
