@@ -1608,10 +1608,10 @@ class ProtoFile:
                     field.type_name = mangle_field_typename(field.type_name)
 
             self.messages.append(Message(name, message, message_options))
-            for enum in message.enum_type:
+            for index, enum in enumerate(message.enum_type):
                 name = create_name(names + enum.name)
                 enum_options = get_nanopb_suboptions(enum, message_options, name)
-                self.enums.append(Enum(name, enum, enum_options))
+                self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
 
         for names, extension in iterate_extensions(self.fdesc, flatten):
             name = create_name(names + extension.name)
