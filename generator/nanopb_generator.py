@@ -963,7 +963,8 @@ class ExtensionField(Field):
         else:
             self.skip = False
             self.rules = 'REQUIRED' # We don't really want the has_field for extensions
-            self.msg = Message(self.fullname + "extmsg", None, field_options)
+            # currently no support for comments for extension fields => provide 0, {}
+            self.msg = Message(self.fullname + "extmsg", None, field_options, 0, {})
             self.msg.fields.append(self)
 
     def tags(self):
@@ -1118,8 +1119,9 @@ class OneOf(Field):
 # ---------------------------------------------------------------------------
 
 
-class Message:
-    def __init__(self, names, desc, message_options):
+class Message(ProtoElement):
+    def __init__(self, names, desc, message_options, index, comments):
+        super().__init__(MESSAGE_PATH, index, comments)
         self.name = names
         self.fields = []
         self.oneofs = {}
@@ -1204,14 +1206,31 @@ class Message:
         return deps
 
     def __str__(self):
-        result = 'typedef struct _%s {\n' % self.name
+        message_path = self.element_path()
+        leading_comment, trailing_comment = self.get_comments(message_path, leading_indent=False)
+
+        result = ''
+        if leading_comment:
+            result = '%s\n' % leading_comment
+
+        result += 'typedef struct _%s { %s\n' % (self.name, trailing_comment)
 
         if not self.fields:
             # Empty structs are not allowed in C standard.
             # Therefore add a dummy field if an empty message occurs.
             result += '    char dummy_field;'
 
-        result += '\n'.join([str(f) for f in self.fields])
+        msg_fields = []
+        for index, field in enumerate(self.fields):
+            member_path = self.member_path(index)
+            leading_comment, trailing_comment = self.get_comments(member_path)
+
+            if leading_comment:
+                msg_fields.append(leading_comment)
+
+            msg_fields.append("%s %s" % (str(field), trailing_comment))
+
+        result += '\n'.join(msg_fields)
 
         if Globals.protoc_insertion_points:
             result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
@@ -1607,7 +1626,7 @@ class ProtoFile:
             enum_options = get_nanopb_suboptions(enum, self.file_options, name)
             self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
 
-        for names, message in iterate_messages(self.fdesc, flatten):
+        for index, (names, message) in enumerate(iterate_messages(self.fdesc, flatten)):
             name = create_name(names)
             message_options = get_nanopb_suboptions(message, self.file_options, name)
 
@@ -1619,7 +1638,7 @@ class ProtoFile:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
                     field.type_name = mangle_field_typename(field.type_name)
 
-            self.messages.append(Message(name, message, message_options))
+            self.messages.append(Message(name, message, message_options, index, self.comment_locations))
             for index, enum in enumerate(message.enum_type):
                 name = create_name(names + enum.name)
                 enum_options = get_nanopb_suboptions(enum, message_options, name)
