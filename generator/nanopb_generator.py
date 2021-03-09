@@ -272,9 +272,79 @@ class EncodedSize:
         else:
             return 2**32 - 1
 
-class Enum:
-    def __init__(self, names, desc, enum_options):
-        '''desc is EnumDescriptorProto'''
+
+'''
+Constants regarding path of proto elements in file descriptor.
+They are used to connect proto elements with source code information (comments)
+These values come from:
+    https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto
+'''
+MESSAGE_PATH = 4
+ENUM_PATH = 5
+FIELD_PATH = 2
+
+
+class ProtoElement:
+    def __init__(self, path, index, comments):
+        '''
+        path is a predefined value for each element type in proto file.
+            For example, message == 4, enum == 5, service == 6
+        index is the N-th occurance of the `path` in the proto file.
+            For example, 4-th message in the proto file or 2-nd enum etc ...
+        comments is a pointer to SourceCodeInfo object containing all comment
+            information for each element & field in the original proto file.
+        '''
+        self.path = path
+        self.index = index
+        self.comments = comments
+
+    def element_path(self):
+        '''Get path to proto element.'''
+        return [self.path, self.index]
+
+    def member_path(self, member_index):
+        '''Get path to member of proto element.
+        Example paths:
+        [4, m] - message comments, m: msgIdx in proto from 0
+        [4, m, 2, f] - field comments in message, f: fieldIdx in message from 0
+        [6, s] - service comments, s: svcIdx in proto from 0
+        [6, s, 2, r] - rpc comments in service, r: rpc method def in service from 0
+        '''
+        return self.element_path() + [FIELD_PATH, member_index]
+
+    def get_comments_for_member(self, index):
+        '''Get leading & trailing comments for enum member based on path.'''
+
+        # Compute path for enum member
+        comment_path = self.member_path(index)
+        # Obtain SourceCodeInfo.Location object containing comment
+        # information (based on the member path)
+        comment = self.comments.get(str(comment_path))
+
+        leading_comment = ""
+        trailing_comment = ""
+
+        if not comment:
+            return leading_comment, trailing_comment
+
+        if comment.leading_comments:
+            leading_comment = "    /* %s */" % comment.leading_comments.strip()
+
+        if comment.trailing_comments:
+            trailing_comment = "/* %s */" % comment.trailing_comments.strip()
+
+        return leading_comment, trailing_comment
+
+
+class Enum(ProtoElement):
+    def __init__(self, names, desc, enum_options, index, comments):
+        '''
+        desc is EnumDescriptorProto
+        index is the index of this enum element inside the file
+        comments is a dictionary mapping between element path & SourceCodeInfo.Location
+            (contains information about source comments)
+        '''
+        super().__init__(ENUM_PATH, index, comments)
 
         self.options = enum_options
         self.names = names
@@ -301,7 +371,17 @@ class Enum:
 
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
-        result += ',\n'.join(["    %s = %d" % x for x in self.values])
+
+        enum_values = []
+        for index, (name, value) in enumerate(self.values):
+            leading_comment, trailing_comment = self.get_comments_for_member(index)
+
+            if leading_comment:
+                enum_values.append(leading_comment)
+
+            enum_values.append("    %s = %d, %s" % (name, value, trailing_comment))
+
+        result += '\n'.join(enum_values)
         result += '\n}'
 
         if self.packed:
@@ -1496,10 +1576,18 @@ class ProtoFile:
         else:
             base_name = Names()
 
-        for enum in self.fdesc.enum_type:
+        # process source code comment locations
+        # ignores any locations that do not contain any comment information
+        self.comment_locations = {
+            str(location.path): location
+            for location in self.fdesc.source_code_info.location
+            if location.leading_comments or location.leading_detached_comments or location.trailing_comments
+        }
+
+        for index, enum in enumerate(self.fdesc.enum_type):
             name = create_name(enum.name)
             enum_options = get_nanopb_suboptions(enum, self.file_options, name)
-            self.enums.append(Enum(name, enum, enum_options))
+            self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
 
         for names, message in iterate_messages(self.fdesc, flatten):
             name = create_name(names)
