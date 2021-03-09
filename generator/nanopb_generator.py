@@ -372,6 +372,7 @@ class Enum(ProtoElement):
     def __str__(self):
         result = 'typedef enum _%s {\n' % self.names
 
+        enum_length = len(self.values)
         enum_values = []
         for index, (name, value) in enumerate(self.values):
             leading_comment, trailing_comment = self.get_comments_for_member(index)
@@ -379,7 +380,12 @@ class Enum(ProtoElement):
             if leading_comment:
                 enum_values.append(leading_comment)
 
-            enum_values.append("    %s = %d, %s" % (name, value, trailing_comment))
+            comma = ","
+            if index == enum_length - 1:
+                # last enum member should not end with a comma
+                comma = ""
+
+            enum_values.append("    %s = %d%s %s" % (name, value, comma, trailing_comment))
 
         result += '\n'.join(enum_values)
         result += '\n}'
