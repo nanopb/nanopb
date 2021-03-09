@@ -291,8 +291,8 @@ class ProtoElement:
             For example, message == 4, enum == 5, service == 6
         index is the N-th occurance of the `path` in the proto file.
             For example, 4-th message in the proto file or 2-nd enum etc ...
-        comments is a pointer to SourceCodeInfo object containing all comment
-            information for each element & field in the original proto file.
+        comments is a dictionary mapping between element path & SourceCodeInfo.Location
+            (contains information about source comments).
         '''
         self.path = path
         self.index = index
