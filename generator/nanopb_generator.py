@@ -2190,7 +2190,7 @@ def main_cli():
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
                 tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
-                status = invoke_protoc(["protoc"] + include_path + ['--include_imports', '-o' + tmpname, filename])
+                status = invoke_protoc(["protoc"] + include_path + ['--include_imports', '--include_source_info', '-o' + tmpname, filename])
                 if status != 0: sys.exit(status)
                 data = open(tmpname, 'rb').read()
         else:
