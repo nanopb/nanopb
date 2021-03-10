@@ -284,7 +284,7 @@ ENUM_PATH = 5
 FIELD_PATH = 2
 
 
-class ProtoElement:
+class ProtoElement(object):
     def __init__(self, path, index, comments):
         '''
         path is a predefined value for each element type in proto file.
@@ -347,7 +347,7 @@ class Enum(ProtoElement):
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments)
         '''
-        super().__init__(ENUM_PATH, index, comments)
+        super(Enum, self).__init__(ENUM_PATH, index, comments)
 
         self.options = enum_options
         self.names = names
@@ -1121,7 +1121,7 @@ class OneOf(Field):
 
 class Message(ProtoElement):
     def __init__(self, names, desc, message_options, index, comments):
-        super().__init__(MESSAGE_PATH, index, comments)
+        super(Message, self).__init__(MESSAGE_PATH, index, comments)
         self.name = names
         self.fields = []
         self.oneofs = {}
