@@ -1615,11 +1615,10 @@ class ProtoFile:
         # process source code comment locations
         # ignores any locations that do not contain any comment information
         self.comment_locations = {
-            str(location.path): location
+            str(list(location.path)): location
             for location in self.fdesc.source_code_info.location
             if location.leading_comments or location.leading_detached_comments or location.trailing_comments
         }
-        # breakpoint()
 
         for index, enum in enumerate(self.fdesc.enum_type):
             name = create_name(enum.name)
