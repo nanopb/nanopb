@@ -207,7 +207,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
         pb_size_t start = iter->index;
         uint32_t fieldinfo;
 
-        if (tag < iter->tag && PB_HTYPE(iter->type) != PB_HTYPE_ONEOF)
+        if (tag < iter->tag)
         {
             /* Fields are in tag number order, so we know that tag is between
              * 0 and our start position. Setting index to end forces
