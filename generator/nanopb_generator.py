@@ -1068,9 +1068,6 @@ class OneOf(Field):
     def tags(self):
         return ''.join([f.tags() for f in self.fields])
 
-    def fieldlist(self):
-        return ' \\\n'.join(field.fieldlist() for field in self.fields)
-
     def data_size(self, dependencies):
         return max(f.data_size(dependencies) for f in self.fields)
 
@@ -1305,10 +1302,14 @@ class Message(ProtoElement):
         while any(field.name == Field.macro_a_param for field in self.all_fields()):
             Field.macro_a_param += '_'
 
+        # Field descriptor array must be sorted by tag number, pb_common.c relies on it.
+        sorted_fields = list(self.all_fields())
+        sorted_fields.sort(key = lambda x: x.tag)
+
         result = '#define %s_FIELDLIST(%s, %s) \\\n' % (self.name,
                                                         Field.macro_x_param,
                                                         Field.macro_a_param)
-        result += ' \\\n'.join(field.fieldlist() for field in sorted(self.fields))
+        result += ' \\\n'.join(x.fieldlist() for x in sorted_fields)
         result += '\n'
 
         has_callbacks = bool([f for f in self.fields if f.has_callbacks()])
@@ -1326,13 +1327,12 @@ class Message(ProtoElement):
         else:
             result += '#define %s_DEFAULT NULL\n' % self.name
 
-        for field in sorted(self.fields):
+        for field in sorted_fields:
             if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
-                result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
-            elif field.rules == 'ONEOF':
-                for member in field.fields:
-                    if member.pbtype in ['MESSAGE', 'MSG_W_CB']:
-                        result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, member.union_name, member.name, member.ctype)
+                if field.rules == 'ONEOF':
+                    result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, field.union_name, field.name, field.ctype)
+                else:
+                    result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
 
         return result
 

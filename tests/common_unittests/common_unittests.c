@@ -88,11 +88,10 @@ int main()
 
         TEST(pb_field_iter_next(&iter) && iter.tag == 60 && iter.pData == &msg.oneof.oneof_msg1  && iter.pSize == &msg.which_oneof   )
         TEST(pb_field_iter_next(&iter) && iter.tag == 61 && iter.pData == &msg.oneof.oneof_msg2  && iter.pSize == &msg.which_oneof   )
+        TEST(pb_field_iter_next(&iter) && iter.tag == 62 && iter.pData == &msg.opt_non_zero_based_enum && iter.pSize == &msg.has_opt_non_zero_based_enum)
         TEST(pb_field_iter_next(&iter) && iter.tag == 63 && iter.pData == &msg.oneof.static_msg  && iter.pSize == &msg.which_oneof   )
         TEST(iter.required_field_index == 19)
         TEST(iter.submessage_index == 8)
-
-        TEST(pb_field_iter_next(&iter) && iter.tag == 62 && iter.pData == &msg.opt_non_zero_based_enum && iter.pSize == &msg.has_opt_non_zero_based_enum)
 
         TEST(pb_field_iter_next(&iter) && iter.tag == 95 && iter.pData == &msg.rep_farray2 && iter.pSize == &iter.array_size && iter.array_size == 3)
         TEST(iter.required_field_index == 19)
