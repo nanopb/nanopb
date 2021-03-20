@@ -1150,7 +1150,14 @@ static bool pb_release_union_field(pb_istream_t *stream, pb_field_iter_t *iter)
      * This shouldn't fail unless the pb_field_t structure is corrupted. */
     if (!pb_field_iter_find(iter, new_tag))
         PB_RETURN_ERROR(stream, "iterator error");
-    
+
+    if (PB_ATYPE(iter->pos->type) == PB_ATYPE_POINTER)
+    {
+        /* Initialize the pointer to NULL to make sure it is valid
+         * even in case of error return. */
+        *(void**)iter->pData = NULL;
+    }
+
     return true;
 }
 
