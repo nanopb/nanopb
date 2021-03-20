@@ -1804,15 +1804,25 @@ class ProtoFile:
             # If we require a symbol from another file, put a preprocessor if statement
             # around it to prevent compilation errors if the symbol is not actually available.
             local_defines = [identifier for identifier, msize in messagesizes if msize is not None]
+            guards = {}
             for identifier, msize in messagesizes:
                 if msize is not None:
                     cpp_guard = msize.get_cpp_guard(local_defines)
-                    yield cpp_guard
-                    yield msize.get_declarations()
-                    yield '#define %-40s %s\n' % (identifier, msize)
-                    if cpp_guard: yield "#endif\n"
+                    if cpp_guard not in guards:
+                        guards[cpp_guard] = set()
+                    for decl in msize.get_declarations().splitlines():
+                        guards[cpp_guard].add(decl)
+                    guards[cpp_guard].add('#define %-40s %s' % (identifier, msize))
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
+            for guard, values in guards.items():
+                if guard:
+                    yield guard
+                for v in sorted(values):
+                    yield v
+                    yield '\n'
+                if guard:
+                    yield '#endif\n'
             yield '\n'
 
             if [msg for msg in self.messages if hasattr(msg,'msgid')]:
