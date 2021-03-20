@@ -1203,6 +1203,14 @@ static bool pb_release_union_field(pb_istream_t *stream, pb_field_iter_t *field)
 
     pb_release_single_field(&old_field);
 
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        /* Initialize the pointer to NULL to make sure it is valid
+         * even in case of error return. */
+        *(void**)field->pField = NULL;
+        field->pData = NULL;
+    }
+
     return true;
 }
 
