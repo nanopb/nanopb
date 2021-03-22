@@ -800,9 +800,12 @@ class Field:
         '''
         if self.allocation == 'POINTER' or self.pbtype == 'EXTENSION':
             size = 8
+            alignment = 8
         elif self.allocation == 'CALLBACK':
             size = 16
+            alignment = 8
         elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
+            alignment = 8
             if str(self.submsgname) in dependencies:
                 other_dependencies = dict(x for x in dependencies.items() if x[0] != str(self.struct_name))
                 size = dependencies[str(self.submsgname)].data_size(other_dependencies)
@@ -813,10 +816,15 @@ class Field:
                 size += 16
         elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
             size = self.max_size
+            alignment = 4
         elif self.pbtype == 'BYTES':
             size = self.max_size + 4
+            alignment = 4
         elif self.data_item_size is not None:
             size = self.data_item_size
+            alignment = 4
+            if self.data_item_size >= 8:
+                alignment = 8
         else:
             raise Exception("Unhandled field type: %s" % self.pbtype)
 
@@ -826,9 +834,9 @@ class Field:
         if self.rules not in ('REQUIRED', 'SINGULAR'):
             size += 4
 
-        if size % 4 != 0:
+        if size % alignment != 0:
             # Estimate how much alignment requirements will increase the size.
-            size += 4 - (size % 4)
+            size += alignment - (size % alignment)
 
         return size
 
