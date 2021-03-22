@@ -4,6 +4,7 @@ set -ex
 
 rm -rf build
 mkdir build
+mkdir -p dist
 
 (cd "$(git rev-parse --show-toplevel)"; git archive HEAD) > build/tmp.tar
 cd build
