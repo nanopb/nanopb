@@ -95,4 +95,6 @@ L <46594312+WakandaO2@users.noreply.github.com>
 Melvin Wang <mwang@sibros.tech>
 Tim Gates <tim.gates@iress.com>
 leabut <leabut@users.noreply.github.com>
-
+Angel ILIEV <a.v.iliev13@gmail.com>
+Jakub Tymejczyk <jakub@tymejczyk.pl>
+Matthew Simmons <simmonmt@acm.org>

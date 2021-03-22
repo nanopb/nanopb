@@ -1,3 +1,17 @@
+nanopb-0.4.5 (2021-03-22)
+ Fix invalid free() with oneof (#647, GHSA-7mv5-5mxh-qg88)
+ Fix unordered field numbers inside oneof causing fields to be ignored (#617)
+ Fix pb_decode() not initializing fields inside oneof (#635
+ Fix compiler errors with complex oneof hierarchy and sizeof() (#610)
+ Fix descriptor width calculation for 64-bit types (#644)
+ Fix compiler error in generated initializer for submessage callback (#631)
+ Fix duplicate union definition in generated file (#637)
+ Fix test case build error on SCons 4.1.0
+ Pip package: include nanopb_pb2.py (#629)
+ Make generator consider dependencies recursively (#610)
+ Bazel build system updates (#633)
+ Add support for including comments from .proto file (#85, #645)
+
 nanopb-0.4.4 (2020-11-25)
  Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615, GHSA-85rr-4rh9-hhwh)
  Fix generator error when oneof contains a single unresolved field size (#610)
@@ -134,6 +148,11 @@ nanopb-0.4.0 (2019-12-20)
  Implement conan recipe (#378)
  CMake: Split nanopb_out command (#454)
  CMake: install created shared library(dll) in windows to the binary folder (#447)
+
+nanopb-0.3.9.8 (2021-03-22)
+ Fix invalid free() with oneof (#647, GHSA-7mv5-5mxh-qg88)
+ Don't generate lines with trailing spaces (#622)
+ Verify stream size before allocating string / bytes (#620)
 
 nanopb-0.3.9.7 (2020-11-25)
  Fix memory leak with oneofs and PB_ENABLE_MALLOC (#615, GHSA-85rr-4rh9-hhwh)
