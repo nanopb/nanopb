@@ -1,9 +1,19 @@
 #!/bin/bash
 
-rm -rf nanopb
+set -ex
+
+rm -rf build
+mkdir build
+
+(cd $(git rev-parse --show-toplevel); git archive HEAD) > build/tmp.tar
+cd build
+ln -s ../dist .
+
 mkdir nanopb
-cp -pr ../../generator nanopb/
+tar xf tmp.tar README.md generator
+mv generator nanopb/
 touch nanopb/__init__.py nanopb/generator/__init__.py
-cp -pr ../../README.md .
+make -C nanopb/generator/proto
+cp ../pyproject.toml .
 sed -i -e 's/\(version =.*\)-dev.*/\1-dev'$(git rev-list HEAD --count)'"/' pyproject.toml
 poetry build

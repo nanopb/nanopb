@@ -28,3 +28,4 @@ examples/using_union_messages/encode
 generator/nanopb_pb2.pyc
 !generator-bin/**/*
 bazel-*
+extra/poetry/build
