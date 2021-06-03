@@ -639,7 +639,9 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
                     /* Decode the array entry */
                     pItem = *(char**)iter->pData + iter->pos->data_size * (*size);
-                    initialize_pointer_field(pItem, iter);
+                    if (pItem != NULL) {
+                        initialize_pointer_field(pItem, iter);
+                    }
                     if (!func(&substream, iter->pos, pItem))
                     {
                         status = false;
