@@ -377,7 +377,8 @@ typedef enum {
     PB_WT_VARINT = 0,
     PB_WT_64BIT  = 1,
     PB_WT_STRING = 2,
-    PB_WT_32BIT  = 5
+    PB_WT_32BIT  = 5,
+    PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
 } pb_wire_type_t;
 
 /* Structure for defining the handling of unknown/extension fields.
