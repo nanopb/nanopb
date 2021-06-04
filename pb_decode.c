@@ -701,6 +701,12 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
                     /* Decode the array entry */
                     field->pData = *(char**)field->pField + field->data_size * (*size);
+                    if (field->pData == NULL)
+                    {
+                        /* Shouldn't happen, but satisfies static analyzers */
+                        status = false;
+                        break;
+                    }
                     initialize_pointer_field(field->pData, field);
                     if (!decode_basic_field(&substream, PB_WT_PACKED, field))
                     {
