@@ -14,8 +14,9 @@ option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" 
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
 option(nanopb_MSVC_STATIC_RUNTIME "Link static runtime libraries" ON)
 
-if(NOT DEFINED nanopb_PROTOC_PATH)
-    set(nanopb_PROTOC_PATH "protoc")
+find_program(nanopb_PROTOC_PATH protoc)
+if(NOT EXISTS nanopb_PROTOC_PATH)
+    message(FATAL_ERROR "protoc compiler not found")
 endif()
 
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
@@ -38,7 +39,7 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
-find_package(Python REQUIRED)
+find_package(Python REQUIRED COMPONENTS Interpreter)
 execute_process(
     COMMAND ${Python_EXECUTABLE} -c
         "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix=''))"
@@ -66,21 +67,23 @@ if(nanopb_BUILD_GENERATOR)
     endforeach()
 endif()
 
-install( FILES generator/proto/_utils.py
-         DESTINATION ${PYTHON_INSTDIR}/proto/ )
+install(FILES generator/proto/_utils.py
+        DESTINATION ${PYTHON_INSTDIR}/proto/)
 
-if( WIN32 )
-        install(
-            PROGRAMS generator/nanopb_generator.py
-                     generator/protoc-gen-nanopb.bat
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
+if(WIN32)
+    install(
+        PROGRAMS
+            generator/nanopb_generator.py
+            generator/protoc-gen-nanopb.bat
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 else()
-        install(
-            PROGRAMS generator/nanopb_generator.py
-                     generator/protoc-gen-nanopb
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
+    install(
+        PROGRAMS 
+            generator/nanopb_generator.py
+            generator/protoc-gen-nanopb
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif()
 
 if(nanopb_BUILD_RUNTIME)
@@ -100,7 +103,8 @@ if(nanopb_BUILD_RUNTIME)
 	    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         target_include_directories(protobuf-nanopb INTERFACE
-          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         )
     endif()
 
@@ -118,8 +122,8 @@ if(nanopb_BUILD_RUNTIME)
         install(TARGETS protobuf-nanopb-static EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         target_include_directories(protobuf-nanopb-static INTERFACE
-          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-	  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+	        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         )
     endif()
 
