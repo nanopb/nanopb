@@ -145,7 +145,10 @@ extern "C" {
  */
 #ifndef PB_NO_STATIC_ASSERT
 #  ifndef PB_STATIC_ASSERT
-#    if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#    if defined(__ICCARM__)
+       /* IAR has static_assert keyword but no _Static_assert */
+#      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
+#    elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
        /* C11 standard _Static_assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
 #    else
