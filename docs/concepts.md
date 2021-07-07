@@ -544,7 +544,7 @@ framing format are to:
 3.  Perform any synchronization and error checking that may be needed
     depending on application.
 
-For example UDP packets already fullfill all the requirements, and TCP
+For example UDP packets already fulfill all the requirements, and TCP
 streams typically only need a way to identify the message length and
 type. Lower level interfaces such as serial ports may need a more robust
 frame format, such as HDLC (high-level data link control).
