@@ -4,6 +4,7 @@
  */
 
 #include "pb_common.h"
+#include "pb_encode.h"
 
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
@@ -382,6 +383,115 @@ bool pb_validate_utf8(const char *str)
     }
 
     return true;
+}
+
+#endif
+
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+#ifdef __GNUC__
+/* Verify that we remember to check all return values for proper error propagation */
+#define checkreturn __attribute__((warn_unused_result))
+#else
+#define checkreturn
+#endif
+
+#ifndef min
+#define min(a, b) ((a)<(b)?(a):(b))
+#endif
+
+pb_lbuf_t* pb_lbuf_alloc(void)
+{
+    pb_lbuf_t *pbuf;
+
+    pbuf = pb_realloc(NULL, sizeof(struct pb_lbuf_t));
+    if (pbuf == NULL)
+    {
+        return NULL;
+    }
+    memset(pbuf, 0, sizeof(struct pb_lbuf_t));
+
+    pbuf->rptr = pbuf->data;
+    pbuf->wptr = pbuf->data;
+    pbuf->eptr = pbuf->data + PB_LBUF_BLOCK_SZ;
+    pbuf->next = NULL;
+    return pbuf;
+}
+
+void pb_lbuf_free(pb_lbuf_t *pbuf)
+{
+    pb_lbuf_t *next, *p;
+
+    for (p = pbuf; p != NULL; p = next)
+    {
+        next = p->next;
+        pb_free(p);
+    }
+}
+
+/*
+ * write to the lbuf
+ */
+size_t pb_lbuf_write(pb_lbuf_t *pbuf, const pb_byte_t *data, size_t len)
+{
+    size_t r;
+    pb_lbuf_t **q;
+    const pb_byte_t *p, *ep;
+
+    if (pbuf == NULL || data == NULL)
+    {
+        return (size_t) -1;
+    }
+
+    p = data;
+    ep = p + len;
+    q = NULL;
+
+    while (p < ep)
+    {
+        if (pbuf == NULL)
+        {
+            pbuf = pb_lbuf_alloc();
+            if(pbuf == NULL)
+            {
+                break;
+            }
+            *q = pbuf;
+        }
+        r = (size_t) (pbuf->eptr - pbuf->wptr);
+        r = min((size_t) (ep - p), r);
+
+        memmove(pbuf->wptr, p, r);
+        pbuf->wptr += r;
+        p += r;
+
+        q = &pbuf->next;
+        pbuf = pbuf->next;
+    }
+
+    return (size_t) (p - data);
+}
+
+static bool checkreturn pb_lbuf_ostream_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+{
+    pb_lbuf_t *pbuf = stream->state;
+
+    if (pbuf == NULL)
+    {
+        return false;
+    }
+
+    if (buf == NULL)
+    {
+        return true;
+    }
+    return count == pb_lbuf_write(pbuf, buf, count);
+}
+
+void pb_lbuf_ostream_init(pb_ostream_t *stream, pb_lbuf_t *pbuf)
+{
+    stream->callback = pb_lbuf_ostream_write;
+    stream->state = pbuf;
+    stream->max_size = SIZE_MAX;
 }
 
 #endif

@@ -121,6 +121,31 @@ static bool safe_read_bool(const void *pSize)
     return false;
 }
 
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+static bool pb_lbuf_copy_to_stream(pb_ostream_t *stream, pb_lbuf_t *pbuf)
+{
+    bool status;
+    pb_lbuf_t *p;
+
+    if (stream == NULL || pbuf == NULL)
+    {
+        return false;
+    }
+
+    status = true;
+    for (p = pbuf; p != NULL; p = p->next)
+    {
+        if (!pb_write(stream, p->rptr, (size_t)(p->wptr - p->rptr)))
+        {
+            status = false;
+            break;
+        }
+    }
+    pb_lbuf_free(pbuf);
+    return status;
+}
+#endif
+
 /* Encode a static array. Handles the size calculations and possible packing. */
 static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *field)
 {
@@ -128,6 +153,9 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
     pb_size_t count;
 #ifndef PB_ENCODE_ARRAYS_UNPACKED
     size_t size;
+#endif
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+    pb_lbuf_t *pbuf;
 #endif
 
     count = *(pb_size_t*)field->pSize;
@@ -158,10 +186,20 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
         { 
             pb_ostream_t sizestream = PB_OSTREAM_SIZING;
             void *pData_orig = field->pData;
+
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+            pbuf = pb_lbuf_alloc();
+            pb_lbuf_ostream_init(&sizestream, pbuf);
+#endif
             for (i = 0; i < count; i++)
             {
                 if (!pb_enc_varint(&sizestream, field))
+                {
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+                    pb_lbuf_free(pbuf);
+#endif
                     PB_RETURN_ERROR(stream, PB_GET_ERROR(&sizestream));
+                }
                 field->pData = (char*)field->pData + field->data_size;
             }
             field->pData = pData_orig;
@@ -169,8 +207,29 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
         }
         
         if (!pb_encode_varint(stream, (pb_uint64_t)size))
+        {
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+            pb_lbuf_free(pbuf);
+#endif
             return false;
+        }
         
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32 || PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+        {
+            /* Write the data */
+            for (i = 0; i < count; i++)
+            {
+                if (!pb_enc_fixed(stream, field))
+                    return false;
+                field->pData = (char*)field->pData + field->data_size;
+            }
+        }
+        else
+        {
+            return pb_lbuf_copy_to_stream(stream, pbuf);
+        }
+#else
         if (stream->callback == NULL)
             return pb_write(stream, NULL, size); /* Just sizing.. */
         
@@ -190,6 +249,7 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
 
             field->pData = (char*)field->pData + field->data_size;
         }
+#endif
     }
     else /* Unpacked fields */
 #endif
@@ -712,12 +772,23 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = PB_OSTREAM_SIZING;
     size_t size;
+#ifndef PB_ENABLE_ENCODE_ONEPASS
     bool status;
+#endif
     
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+    pb_lbuf_t *pbuf = pb_lbuf_alloc();
+
+    pb_lbuf_ostream_init(&substream, pbuf);
+#endif
+
     if (!pb_encode(&substream, fields, src_struct))
     {
 #ifndef PB_NO_ERRMSG
         stream->errmsg = substream.errmsg;
+#endif
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+        pb_lbuf_free(pbuf);
 #endif
         return false;
     }
@@ -725,14 +796,29 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     size = substream.bytes_written;
     
     if (!pb_encode_varint(stream, (pb_uint64_t)size))
+    {
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+        pb_lbuf_free(pbuf);
+#endif
         return false;
+    }
     
+#ifndef PB_ENABLE_ENCODE_ONEPASS
     if (stream->callback == NULL)
         return pb_write(stream, NULL, size); /* Just sizing */
+#endif
     
-    if (stream->bytes_written + size > stream->max_size)
+    if (stream->bytes_written + size > stream->max_size) {
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+        pb_lbuf_free(pbuf);
+#endif
         PB_RETURN_ERROR(stream, "stream full");
-        
+    }
+
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+    return pb_lbuf_copy_to_stream(stream, pbuf);
+
+#else
     /* Use a substream to verify that a callback doesn't write more than
      * what it did the first time. */
     substream.callback = stream->callback;
@@ -755,6 +841,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
         PB_RETURN_ERROR(stream, "submsg size changed");
     
     return status;
+#endif
 }
 
 /* Field encoders */

@@ -41,6 +41,25 @@ bool pb_field_iter_find_extension(pb_field_iter_t *iter);
 bool pb_validate_utf8(const char *s);
 #endif
 
+#ifdef PB_ENABLE_ENCODE_ONEPASS
+typedef struct pb_lbuf_t pb_lbuf_t;
+struct pb_lbuf_t
+{
+    pb_byte_t *eptr;
+    pb_byte_t *rptr;
+    pb_byte_t *wptr;
+    pb_lbuf_t *next;
+    pb_byte_t data[PB_LBUF_BLOCK_SZ];
+};
+
+pb_lbuf_t* pb_lbuf_alloc(void);
+void pb_lbuf_free(pb_lbuf_t *pbuf);
+
+size_t pb_lbuf_write(pb_lbuf_t *pbuf, const pb_byte_t *data, size_t len);
+
+void pb_lbuf_ostream_init(pb_ostream_t *stream, pb_lbuf_t *pbuf);
+#endif
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

@@ -47,6 +47,11 @@
  * the string processing slightly and slightly increases code size. */
 /* #define PB_VALIDATE_UTF8 1 */
 
+/* perform encoding in one pass */
+/* #define PB_ENABLE_ENCODE_ONEPASS 1 */
+
+#define PB_LBUF_BLOCK_SZ   (512)
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
@@ -76,6 +81,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <limits.h>
+#include <stdlib.h>
 
 #ifdef PB_ENABLE_MALLOC
 #include <stdlib.h>
@@ -437,7 +443,7 @@ struct pb_extension_s {
 
 /* Memory allocation functions to use. You can define pb_realloc and
  * pb_free to custom functions if you want. */
-#ifdef PB_ENABLE_MALLOC
+#if defined (PB_ENABLE_MALLOC) || defined (PB_ENABLE_ENCODE_ONEPASS)
 #   ifndef pb_realloc
 #       define pb_realloc(ptr, size) realloc(ptr, size)
 #   endif
