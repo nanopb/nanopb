@@ -6,6 +6,18 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
+Nanopb-0.4.6 (to come)
+-------------------------
+
+### `NANOPB_VERSION` define is now a string
+
+**Changes:** To ease `NANOPB_VERSION` macro usage, the value is directly a string.
+
+**Required actions:** Most nanopb users probably never used that macro. If so,
+you certainly use the `#` preprocessor to convert it as string. You, now,
+only have to call it directly, like this for exemple:
+`strcpy(myvar, NANOPB_VERSION);`
+
 Nanopb-0.4.4 (2020-11-25)
 -------------------------
 
