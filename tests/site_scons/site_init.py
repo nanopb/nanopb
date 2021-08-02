@@ -32,15 +32,15 @@ def add_nanopb_builders(env):
         else:
             infile = None
         
-        if env.has_key("COMMAND"):
+        if "COMMAND" in env:
             args = [env["COMMAND"]]
         else:
             args = [str(source[0])]
         
-        if env.has_key('ARGS'):
+        if 'ARGS' in env:
             args.extend(env['ARGS'])
 
-        if env.has_key("TEST_RUNNER"):
+        if "TEST_RUNNER" in env:
             args = [env["TEST_RUNNER"]] + args
         
         print('Command line: ' + str(args))
