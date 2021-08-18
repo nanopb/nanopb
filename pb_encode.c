@@ -632,6 +632,10 @@ bool checkreturn pb_encode_svarint(pb_ostream_t *stream, pb_int64_t value)
 
 bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
+#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+    /* Fast path if we know that we're on little endian */
+    return pb_write(stream, (const pb_byte_t*)value, 4);
+#else
     uint32_t val = *(const uint32_t*)value;
     pb_byte_t bytes[4];
     bytes[0] = (pb_byte_t)(val & 0xFF);
@@ -639,11 +643,16 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
     bytes[2] = (pb_byte_t)((val >> 16) & 0xFF);
     bytes[3] = (pb_byte_t)((val >> 24) & 0xFF);
     return pb_write(stream, bytes, 4);
+#endif
 }
 
 #ifndef PB_WITHOUT_64BIT
 bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
+#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+    /* Fast path if we know that we're on little endian */
+    return pb_write(stream, (const pb_byte_t*)value, 8);
+#else
     uint64_t val = *(const uint64_t*)value;
     pb_byte_t bytes[8];
     bytes[0] = (pb_byte_t)(val & 0xFF);
@@ -655,6 +664,7 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
     bytes[6] = (pb_byte_t)((val >> 48) & 0xFF);
     bytes[7] = (pb_byte_t)((val >> 56) & 0xFF);
     return pb_write(stream, bytes, 8);
+#endif
 }
 #endif
 

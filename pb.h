@@ -14,7 +14,8 @@
 /* #define PB_ENABLE_MALLOC 1 */
 
 /* Define this if your CPU / compiler combination does not support
- * unaligned memory access to packed structures. */
+ * unaligned memory access to packed structures. Note that packed
+ * structures are only used when requested in .proto options. */
 /* #define PB_NO_PACKED_STRUCTS 1 */
 
 /* Increase the number of required fields that are tracked.
@@ -46,6 +47,10 @@
 /* Check whether incoming strings are valid UTF-8 sequences. Slows down
  * the string processing slightly and slightly increases code size. */
 /* #define PB_VALIDATE_UTF8 1 */
+
+/* This can be defined if the platform is little-endian and has 8-bit bytes.
+ * Normally it is automatically detected based on __BYTE_ORDER__ macro. */
+/* #define PB_LITTLE_ENDIAN_8BIT 1 */
 
 /******************************************************************
  * You usually don't need to change anything below this line.     *
@@ -114,6 +119,18 @@ extern "C" {
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed
+#endif
+
+/* Detect endianess */
+#ifndef PB_LITTLE_ENDIAN_8BIT
+#if ((defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
+     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
+      defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || \
+      defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || \
+      defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM)) \
+     && CHAR_BIT == 8
+#define PB_LITTLE_ENDIAN_8BIT 1
+#endif
 #endif
 
 /* Handly macro for suppressing unreferenced-parameter compiler warnings. */
