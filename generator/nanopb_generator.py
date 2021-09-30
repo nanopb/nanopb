@@ -271,6 +271,9 @@ class EncodedSize:
             return self.value
         else:
             return 2**32 - 1
+    
+    def addsymbol(self, symbol):
+        self.symbols.append(symbol)
 
 
 '''
@@ -473,7 +476,9 @@ class Field:
         self.name = desc.name
         self.default = None
         self.max_size = None
+        self.max_size_symbol = None
         self.max_count = None
+        self.max_count_symbol = None
         self.array_decl = ""
         self.enc_size = None
         self.data_item_size = None
@@ -491,16 +496,23 @@ class Field:
             field_options.fixed_length = True
 
         # Parse field options
-        if field_options.HasField("max_size"):
+        if field_options.HasField("max_size_symbol"):
+            self.max_size_symbol = field_options.max_size_symbol
+        elif field_options.HasField("max_size"):
             self.max_size = field_options.max_size
 
         self.default_has = field_options.default_has
 
-        if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
-            # max_length overrides max_size for strings
-            self.max_size = field_options.max_length + 1
+        if desc.type == FieldD.TYPE_STRING:
+            if field_options.HasField("max_length_symbol"):
+                self.max_size_symbol = "%s + 1" % field_options.max_length_symbol
+            elif field_options.HasField("max_length"):
+                # max_length overrides max_size for strings
+                self.max_size = field_options.max_length + 1
 
-        if field_options.HasField("max_count"):
+        if field_options.HasField("max_count_symbol"):
+            self.max_count_symbol = field_options.max_count_symbol
+        elif field_options.HasField("max_count"):
             self.max_count = field_options.max_count
 
         if desc.HasField('default_value'):
@@ -510,12 +522,16 @@ class Field:
         can_be_static = True
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
-            if self.max_count is None:
-                can_be_static = False
-            else:
+            if self.max_count_symbol:
+                self.array_decl = '[%s]' % self.max_count_symbol
+                if field_options.fixed_count:
+                    self.rules = 'FIXARRAY'
+            elif self.max_count:
                 self.array_decl = '[%d]' % self.max_count
                 if field_options.fixed_count:
-                  self.rules = 'FIXARRAY'
+                    self.rules = 'FIXARRAY'
+            else:
+                can_be_static = False
 
         elif field_options.proto3:
             if desc.type == FieldD.TYPE_MESSAGE and not field_options.proto3_singular_msgs:
@@ -537,10 +553,10 @@ class Field:
 
         # Check if the field can be implemented with static allocation
         # i.e. whether the data size is known.
-        if desc.type == FieldD.TYPE_STRING and self.max_size is None:
+        if desc.type == FieldD.TYPE_STRING and self.max_size is None and self.max_size_symbol is None:
             can_be_static = False
 
-        if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
+        if desc.type == FieldD.TYPE_BYTES and self.max_size is None and self.max_size_symbol is None:
             can_be_static = False
 
         # Decide how the field data will be allocated
@@ -551,12 +567,12 @@ class Field:
                 field_options.type = nanopb_pb2.FT_CALLBACK
 
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
-            raise Exception("Field '%s' is defined as static, but max_size or "
-                            "max_count is not given." % self.name)
+            raise Exception("Field '%s' is defined as static, but max_size/max_size_symbol or "
+                            "max_count/max_count_symbol is not given." % self.name)
 
-        if field_options.fixed_count and self.max_count is None:
+        if field_options.fixed_count and self.max_count is None and self.max_count_symbol is None:
             raise Exception("Field '%s' is defined as fixed count, "
-                            "but max_count is not given." % self.name)
+                            "but max_count/max_count_symbol is not given." % self.name)
 
         if field_options.type == nanopb_pb2.FT_STATIC:
             self.allocation = 'STATIC'
@@ -589,27 +605,39 @@ class Field:
             self.ctype = 'char'
             if self.allocation == 'STATIC':
                 self.ctype = 'char'
-                self.array_decl += '[%d]' % self.max_size
-                # -1 because of null terminator. Both pb_encode and pb_decode
-                # check the presence of it.
-                self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
+                if self.max_size_symbol:
+                    self.array_decl += '[%s]' % self.max_size_symbol
+                    self.enc_size = None
+                else:
+                    self.array_decl += '[%d]' % self.max_size
+                    # -1 because of null terminator. Both pb_encode and pb_decode
+                    # check the presence of it.
+                    self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
                 self.pbtype = 'FIXED_LENGTH_BYTES'
 
-                if self.max_size is None:
+                if self.max_size is None and self.max_size_symbol is None:
                     raise Exception("Field '%s' is defined as fixed length, "
-                                    "but max_size is not given." % self.name)
+                                    "but max_size/max_size_symbol is not given." % self.name)
+                if self.max_size_symbol:
+                    self.enc_size = None
+                    self.ctype = 'pb_byte_t'
+                    self.array_decl += '[%s]' % self.max_size_symbol
+                elif self.max_size:
+                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+                    self.ctype = 'pb_byte_t'
+                    self.array_decl += '[%d]' % self.max_size
 
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
-                self.ctype = 'pb_byte_t'
-                self.array_decl += '[%d]' % self.max_size
             else:
                 self.pbtype = 'BYTES'
                 self.ctype = 'pb_bytes_array_t'
                 if self.allocation == 'STATIC':
                     self.ctype = self.struct_name + self.name + 't'
-                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+                    if self.max_size_symbol:
+                        self.enc_size = None
+                    elif self.max_size:
+                        self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -661,7 +689,10 @@ class Field:
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
+            if self.max_size_symbol:
+                result = 'typedef PB_BYTES_ARRAY_T(%s) %s;\n' % (self.max_size_symbol, self.ctype)
+            elif self.max_size:
+                result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
         else:
             result = ''
         return result
@@ -739,9 +770,15 @@ class Field:
         outer_init = None
         if self.allocation == 'STATIC':
             if self.rules == 'REPEATED':
-                outer_init = '0, {' + ', '.join([inner_init] * self.max_count) + '}'
+                if self.max_count_symbol:
+                    outer_init = '0, {' + '0' + '}' # initialize all elements to zero
+                elif self.max_count:
+                    outer_init = '0, {' + ', '.join([inner_init] * self.max_count) + '}'
             elif self.rules == 'FIXARRAY':
-                outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
+                if self.max_count_symbol:
+                    outer_init = '{' + '0' + '}' # Initialize all elements to zero
+                elif self.max_count:
+                    outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
             elif self.rules == 'OPTIONAL':
                 if null_init or not self.default_has:
                     outer_init = 'false, ' + inner_init
@@ -815,8 +852,12 @@ class Field:
             if self.pbtype == 'MSG_W_CB':
                 size += 16
         elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
-            size = self.max_size
-            alignment = 4
+            if self.max_size_symbol:
+                size = 0
+                alignment = 4
+            elif self.max_size:
+                size = self.max_size
+                alignment = 4
         elif self.pbtype == 'BYTES':
             size = self.max_size + 4
             alignment = 4
@@ -829,7 +870,10 @@ class Field:
             raise Exception("Unhandled field type: %s" % self.pbtype)
 
         if self.rules in ['REPEATED', 'FIXARRAY'] and self.allocation == 'STATIC':
-            size *= self.max_count
+            if self.max_count_symbol:
+                size = 0
+            elif self.max_count:
+                size *= self.max_count
 
         if self.rules not in ('REQUIRED', 'SINGULAR'):
             size += 4
@@ -894,7 +938,13 @@ class Field:
                 encsize = 10
 
         elif self.enc_size is None:
-            raise RuntimeError("Could not determine encoded size for %s.%s"
+            encsize = EncodedSize(0)
+            if self.max_size:
+                encsize.addsymbol(self.max_size_symbol)
+            if self.max_count:
+                encsize.addsymbol("(%d) * (%s)" % (self.data_item_size, self.max_count_symbol))
+            else:
+                raise RuntimeError("Could not determine encoded size for %s.%s"
                                % (self.struct_name, self.name))
         else:
             encsize = EncodedSize(self.enc_size)
@@ -907,10 +957,13 @@ class Field:
             # we emit packed arrays ourselves. For length of 1, packed
             # arrays are larger however so we need to add allowance
             # for the length byte.
-            encsize *= self.max_count
+            if self.max_count_symbol:
+                encsize = None
+            elif self.max_count:
+                encsize *= self.max_count
 
-            if self.max_count == 1:
-                encsize += 1
+                if self.max_count == 1:
+                    encsize += 1
 
         return encsize
 
@@ -1403,6 +1456,8 @@ class Message(ProtoElement):
             fsize = field.encoded_size(dependencies)
             if fsize is None:
                 return None
+            if hasattr(field, "max_size_symbol") and field.max_size_symbol:
+                fsize.addsymbol(field.max_size_symbol)
             size += fsize
 
         return size

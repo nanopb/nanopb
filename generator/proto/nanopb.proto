@@ -147,6 +147,11 @@ message NanoPBOptions {
   // instead of the order in .proto. Set this to false to keep the .proto order.
   // The default value will probably change to false in nanopb-0.5.0.
   optional bool sort_by_tag = 28 [default = true];
+
+  // C symbol names that defines allocated sizes
+  optional string max_size_symbol = 30;
+  optional string max_length_symbol = 31;
+  optional string max_count_symbol = 32;
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
