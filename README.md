@@ -45,6 +45,9 @@ using a git checkout or a plain source distribution, you will need to install
 Python separately. Once you have Python, you can install the other dependencies
 with `pip install protobuf grpcio-tools`.
 
+On FreeBSD 13 the following dependencies need to be installed `pkg install cmake protoc python38 py38-protobuf`.
+And `python3` should be in the path (e.g `ln -s -f /usr/local/bin/python3.8 /usr/local/bin/python3`) for generating.
+
 You can further customize the header generation by creating an `.options` file.
 See [documentation](https://jpa.kapsi.fi/nanopb/docs/concepts.html#modifying-generator-behaviour) for details.
 
