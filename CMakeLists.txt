@@ -7,8 +7,8 @@ set(nanopb_SOVERSION 0)
 
 string(REPLACE "nanopb-" "" nanopb_VERSION ${nanopb_VERSION_STRING})
 
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-option(BUILD_STATIC_LIBS "Build static libraries" ON)
+option(NANOPB_BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(NANOPB_BUILD_STATIC_LIBS "Build static libraries" ON)
 
 option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" ON)
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
@@ -87,7 +87,7 @@ else()
 endif()
 
 if(nanopb_BUILD_RUNTIME)
-    if(BUILD_SHARED_LIBS)
+    if(NANOPB_BUILD_SHARED_LIBS)
         add_library(protobuf-nanopb SHARED
             pb.h
             pb_common.h
@@ -108,7 +108,7 @@ if(nanopb_BUILD_RUNTIME)
         )
     endif()
 
-    if(BUILD_STATIC_LIBS)
+    if(NANOPB_BUILD_STATIC_LIBS)
         add_library(protobuf-nanopb-static STATIC
             pb.h
             pb_common.h
