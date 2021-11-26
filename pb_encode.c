@@ -65,7 +65,11 @@ pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
 {
     pb_ostream_t stream;
 #ifdef PB_BUFFER_ONLY
-    stream.callback = (void*)1; /* Just a marker value */
+    /* In PB_BUFFER_ONLY configuration the callback pointer is just int*.
+     * NULL pointer marks a sizing field, so put a non-NULL value to mark a buffer stream.
+     */
+    static const int marker;
+    stream.callback = &marker;
 #else
     stream.callback = &buf_write;
 #endif

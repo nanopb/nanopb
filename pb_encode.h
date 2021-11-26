@@ -33,7 +33,7 @@ struct pb_ostream_s
      * Also, NULL pointer marks a 'sizing stream' that does not
      * write anything.
      */
-    int *callback;
+    const int *callback;
 #else
     bool (*callback)(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
 #endif
