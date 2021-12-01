@@ -28,7 +28,7 @@
     "extraScript": "generator/platformio_generator.py",
     "srcDir": "",
     "srcFilter": [
-      "*.c"
+      "+<*.c>"
     ]
   },
   "examples": [
