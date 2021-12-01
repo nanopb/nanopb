@@ -1,0 +1,47 @@
+name: platformio
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  platformio-example:
+    name: Build and run PlatformIO example
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v2
+
+      - name: Installing dependencies for local act
+        if: ${{ env.ACT }}
+        run: |
+          sudo apt update
+
+      - name: Installing common dependencies
+        run: |
+          sudo apt install -y python3-pip python3-protobuf protobuf-compiler
+
+      - name: Install and setup PlatformIO
+        run: |
+          pip3 install -U platformio
+          export PATH=~/.local/bin:$PATH
+
+      - name: Build PlatformIO package
+        run: pio package pack
+
+      - name: Extract PlatformIO package to example dir
+        run: |
+          mkdir -p examples/platformio/lib/nanopb
+          tar -xzf Nanopb-*.tar.gz -C examples/platformio/lib/nanopb
+          ls -l examples/platformio/lib/nanopb
+
+      - name: 🚀 Build
+        run: |
+          cd examples/platformio
+          pio run
+
+      - name: Run test without options
+        run: examples/platformio/.pio/build/pio_without_options/program
+
+      - name: Run test with options
+        run: examples/platformio/.pio/build/pio_with_options/program
