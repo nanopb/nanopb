@@ -25,7 +25,11 @@
     ]
   },
   "build": {
-    "extraScript": "generator/platformio_generator.py"
+    "extraScript": "generator/platformio_generator.py",
+    "srcDir": "",
+    "srcFilter": [
+      "*.c"
+    ]
   },
   "examples": [
     "examples/platformio/platformio.ini",
