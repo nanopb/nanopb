@@ -21,7 +21,8 @@
       "generator"
     ],
     "exclude": [
-      "generator/**/__pycache__"
+      "generator/**/__pycache__",
+      "examples/platformio/.gitignore"
     ]
   },
   "build": {
@@ -33,6 +34,7 @@
   },
   "examples": [
     "examples/platformio/platformio.ini",
+    "examples/platformio/src/*.c",
     "examples/*/*.c"
   ],
   "frameworks": "*",
