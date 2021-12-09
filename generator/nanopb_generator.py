@@ -2216,8 +2216,9 @@ def main_cli():
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
     # Load .pb files into memory and compile any .proto files.
-    fdescs = {}
     include_path = ['-I%s' % p for p in options.options_path]
+    all_fdescs = {}
+    out_fdescs = {}
     for filename in filenames:
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
@@ -2228,18 +2229,23 @@ def main_cli():
         else:
             data = open(filename, 'rb').read()
 
-        fdesc = descriptor.FileDescriptorSet.FromString(data).file[-1]
-        fdescs[fdesc.name] = fdesc
+        fdescs = descriptor.FileDescriptorSet.FromString(data).file
+        last_fdesc = fdescs[-1]
+
+        for fdesc in fdescs:
+          all_fdescs[fdesc.name] = fdesc
+
+        out_fdescs[last_fdesc.name] = last_fdesc
 
     # Process any include files first, in order to have them
     # available as dependencies
     other_files = {}
-    for fdesc in fdescs.values():
+    for fdesc in all_fdescs.values():
         other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
 
     # Then generate the headers / sources
     Globals.verbose_options = options.verbose
-    for fdesc in fdescs.values():
+    for fdesc in out_fdescs.values():
         results = process_file(fdesc.name, fdesc, options, other_files)
 
         base_dir = options.output_dir or ''
