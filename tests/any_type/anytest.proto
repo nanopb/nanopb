@@ -13,7 +13,7 @@
 // the type_url and value fields, and then call pb_decode() again on the value.
 //
 // This does result in unnecessarily copying the data around, so for larger
-// values it is preferrable to use callbacks on the fields instead.
+// values it is preferable to use callbacks on the fields instead.
 
 syntax = "proto3";
 import "google/protobuf/any.proto";

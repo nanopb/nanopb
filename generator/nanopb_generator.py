@@ -289,7 +289,7 @@ class ProtoElement(object):
         '''
         path is a predefined value for each element type in proto file.
             For example, message == 4, enum == 5, service == 6
-        index is the N-th occurance of the `path` in the proto file.
+        index is the N-th occurrence of the `path` in the proto file.
             For example, 4-th message in the proto file or 2-nd enum etc ...
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments).
@@ -1981,7 +1981,7 @@ def read_options_file(infile):
             text_format.Merge(parts[1], opts)
         except Exception as e:
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
-                             "Unparseable option line: '%s'. " % line +
+                             "Unparsable option line: '%s'. " % line +
                              "Error: %s\n" % str(e))
             sys.exit(1)
         results.append((parts[0], opts))

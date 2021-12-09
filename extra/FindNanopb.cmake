@@ -162,7 +162,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto)
 
-  # Treat the source diretory as immutable.
+  # Treat the source directory as immutable.
   #
   # Copy the generator directory to the build directory before
   # compiling python and proto files.  Fixes issues when using the
