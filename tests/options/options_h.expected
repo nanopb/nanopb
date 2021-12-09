@@ -18,7 +18,7 @@ Message5_EnumValue1
 #define Message5_msgid 105
 ! has_proto3field
 Enum1 normal
-uint32_t overriden
+uint32_t overridden
 #define TypeOverrideMessage_init_default[ ]*\{_Enum1_MIN, 0\}
 #define TypeOverrideMessage_init_zero[ ]*\{_Enum1_MIN, 0\}
 

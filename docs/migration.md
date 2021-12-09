@@ -15,7 +15,7 @@ Nanopb-0.4.6 (to come)
 
 **Required actions:** Most nanopb users probably never used that macro. If so,
 you certainly use the `#` preprocessor to convert it as string. You, now,
-only have to call it directly, like this for exemple:
+only have to call it directly, like this for example:
 `strcpy(myvar, NANOPB_VERSION);`
 
 Nanopb-0.4.4 (2020-11-25)
@@ -523,7 +523,7 @@ Nanopb-0.2.1 (2013-04-14)
 
 ### Callback function signature
 
-**Rationale:** Previously the auxilary data to field callbacks was
+**Rationale:** Previously the auxiliary data to field callbacks was
 passed as `void*`. This allowed passing of any data, but made it
 unnecessarily complex to return a pointer from callback.
 

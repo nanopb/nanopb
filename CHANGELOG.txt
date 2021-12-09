@@ -241,7 +241,7 @@ nanopb-0.3.8 (2017-03-05)
  Allow overriding proto3 mode (#228)
  Add optional enum->string mapping function (#223)
  Add transitional options.proto file (#241)
- Add better error message on Python library version imcompatibility (#240)
+ Add better error message on Python library version incompatibility (#240)
  Include version number in PlatformIO library.json (#222)
  CMake build script changes (#236, #237)
  Change download links to https

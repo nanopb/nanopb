@@ -121,7 +121,7 @@ extern "C" {
 #   define pb_packed
 #endif
 
-/* Detect endianess */
+/* Detect endianness */
 #ifndef PB_LITTLE_ENDIAN_8BIT
 #if ((defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
      (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \

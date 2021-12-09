@@ -119,9 +119,9 @@ message HasFieldMessage
     optional int32 normal = 3;
 }
 
-// Overriden type in generated C code
+// Overridden type in generated C code
 message TypeOverrideMessage
 {
     required Enum1 normal = 1;
-    required Enum1 overriden = 2 [(nanopb).type_override = TYPE_UINT32];
+    required Enum1 overridden = 2 [(nanopb).type_override = TYPE_UINT32];
 }
