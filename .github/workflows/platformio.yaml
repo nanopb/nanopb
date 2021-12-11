@@ -5,12 +5,14 @@ on:
   pull_request:
 
 jobs:
-  platformio-example:
+  platformio:
     name: Build and run PlatformIO example
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out code from GitHub
         uses: actions/checkout@v2
+        with:
+          path: nanopb
 
       - name: Installing dependencies for local act
         if: ${{ env.ACT }}
@@ -27,21 +29,23 @@ jobs:
           export PATH=~/.local/bin:$PATH
 
       - name: Build PlatformIO package
-        run: pio package pack
-
-      - name: Extract PlatformIO package to example dir
         run: |
-          mkdir -p examples/platformio/lib/nanopb
-          tar -xzf Nanopb-*.tar.gz -C examples/platformio/lib/nanopb
-          ls -l examples/platformio/lib/nanopb
+          cd nanopb
+          pio package pack
 
-      - name: 🚀 Build
+      - name: Example - Extract PlatformIO package to example dir
         run: |
-          cd examples/platformio
+          cp -R nanopb/examples/platformio example
+          mkdir -p example/lib/nanopb
+          tar -xzf nanopb/Nanopb-*.tar.gz -C example/lib/nanopb
+
+      - name: Example - Build
+        run: |
+          cd example
           pio run
 
-      - name: Run test without options
-        run: examples/platformio/.pio/build/pio_without_options/program
+      - name: Example - Run test without options
+        run: example/.pio/build/pio_without_options/program
 
-      - name: Run test with options
-        run: examples/platformio/.pio/build/pio_with_options/program
+      - name: Example - Run test with options
+        run: example/.pio/build/pio_with_options/program
