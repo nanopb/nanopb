@@ -18,7 +18,7 @@ nanopb_protos = env.GetProjectOption("nanopb_protos", "")
 nanopb_plugin_options = env.GetProjectOption("nanopb_options", "")
 
 if not nanopb_protos:
-    print("[nanopb] No `nanopb_protos` specified, exiting.")
+    print("[nanopb] No generation needed.")
     exit(0)
 
 if isinstance(nanopb_plugin_options, (list, tuple)):
