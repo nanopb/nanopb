@@ -49,3 +49,15 @@ jobs:
 
       - name: Example - Run test with options
         run: example/.pio/build/pio_with_options/program
+
+      - name: Build with default platformio.ini
+        run: |
+          mkdir -p test_default_pio_conf
+          cd test_default_pio_conf
+          pio project init
+          ln -s ../nanopb lib/nanopb
+          echo "[env:native]" >> platformio.ini
+          echo "platform = native" >> platformio.ini
+          echo "lib_deps = Nanopb" >> platformio.ini
+          echo "int main(int argc, char *argv[]){}" > src/main.cpp
+          pio run
