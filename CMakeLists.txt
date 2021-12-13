@@ -40,12 +40,6 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
 endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter)
-execute_process(
-    COMMAND ${Python_EXECUTABLE} -c
-        "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix=''))"
-    OUTPUT_VARIABLE PYTHON_INSTDIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
 
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
@@ -62,13 +56,13 @@ if(nanopb_BUILD_GENERATOR)
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
                   ${generator_proto_file}
-            DESTINATION ${PYTHON_INSTDIR}/proto/
+            DESTINATION ${Python_SITELIB}/proto/
         )
     endforeach()
 endif()
 
 install(FILES generator/proto/_utils.py
-        DESTINATION ${PYTHON_INSTDIR}/proto/)
+        DESTINATION ${Python_SITELIB}/proto/)
 
 if(WIN32)
     install(

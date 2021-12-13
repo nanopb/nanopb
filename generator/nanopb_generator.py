@@ -18,7 +18,7 @@ from functools import reduce
 
 try:
     # Add some dummy imports to keep packaging tools happy.
-    import google, distutils.util # bbfreeze seems to need these
+    import google # bbfreeze seems to need these
     import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
     import proto.nanopb_pb2 as nanopb_pb2 # pyinstaller seems to need this
     import pkg_resources.py2_warn
