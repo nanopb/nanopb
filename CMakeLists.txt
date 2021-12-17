@@ -40,6 +40,12 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
 endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND ${Python_EXECUTABLE} -c
+        "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
+    OUTPUT_VARIABLE PYTHON_INSTDIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
@@ -56,13 +62,13 @@ if(nanopb_BUILD_GENERATOR)
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
                   ${generator_proto_file}
-            DESTINATION ${Python_SITELIB}/proto/
+            DESTINATION ${PYTHON_INSTDIR}/proto/
         )
     endforeach()
 endif()
 
 install(FILES generator/proto/_utils.py
-        DESTINATION ${Python_SITELIB}/proto/)
+        DESTINATION ${PYTHON_INSTDIR}/proto/)
 
 if(WIN32)
     install(
@@ -73,7 +79,7 @@ if(WIN32)
     )
 else()
     install(
-        PROGRAMS 
+        PROGRAMS
             generator/nanopb_generator.py
             generator/protoc-gen-nanopb
         DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -94,7 +100,7 @@ if(nanopb_BUILD_RUNTIME)
             SOVERSION ${nanopb_SOVERSION})
         install(TARGETS protobuf-nanopb EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         target_include_directories(protobuf-nanopb INTERFACE
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
