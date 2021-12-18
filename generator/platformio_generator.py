@@ -5,6 +5,16 @@ from platformio import fs
 
 Import("env")
 
+try:
+    import protobuf
+except ImportError:
+    env.Execute(
+        env.VerboseAction(
+            '$PYTHONEXE -m pip install protobuf',
+            "Installing Protocol Buffers dependencies",
+        )
+    )
+
 nanopb_root = os.path.join(os.getcwd(), '..')
 
 project_dir = env.subst("$PROJECT_DIR")
