@@ -10,7 +10,7 @@ try:
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install grpcio-tools',
+            '$PYTHONEXE -m pip install grpcio-tools==1.41.1',
             "Installing GRPC dependencies",
         )
     )
@@ -19,7 +19,7 @@ try:
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install protobuf',
+            '$PYTHONEXE -m pip install protobuf==3.17.3',
             "Installing Protocol Buffers dependencies",
         )
     )
