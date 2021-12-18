@@ -5,13 +5,12 @@ from platformio import fs
 
 Import("env")
 
-# First install protobuf, because grpc_tools 1.43 install old protobuf 3.6.1
 try:
     import protobuf
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install protobuf',
+            '$PYTHONEXE -m pip install protobuf>=3.19.1',
             "Installing Protocol Buffers dependencies",
         )
     )
