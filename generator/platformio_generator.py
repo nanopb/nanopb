@@ -6,6 +6,15 @@ from platformio import fs
 Import("env")
 
 try:
+    import grpc_tools.protoc
+except ImportError:
+    env.Execute(
+        env.VerboseAction(
+            '$PYTHONEXE -m pip install grpcio-tools',
+            "Installing GRPC dependencies",
+        )
+    )
+try:
     import protobuf
 except ImportError:
     env.Execute(
@@ -14,6 +23,8 @@ except ImportError:
             "Installing Protocol Buffers dependencies",
         )
     )
+
+
 
 nanopb_root = os.path.join(os.getcwd(), '..')
 
