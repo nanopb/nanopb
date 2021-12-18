@@ -5,6 +5,28 @@ from platformio import fs
 
 Import("env")
 
+try:
+    import protobuf
+except ImportError:
+    env.Execute(
+        env.VerboseAction(
+            # We need to speicify protobuf version. In other case got next (on Ubuntu 20.04):
+            # Requirement already satisfied: protobuf in /usr/lib/python3/dist-packages (3.6.1)
+            '$PYTHONEXE -m pip install "protobuf>=3.19.1"',
+            "Installing Protocol Buffers dependencies",
+        )
+    )
+
+try:
+    import grpc_tools.protoc
+except ImportError:
+    env.Execute(
+        env.VerboseAction(
+            '$PYTHONEXE -m pip install "grpcio-tools>=1.43.0"',
+            "Installing GRPC dependencies",
+        )
+    )
+
 nanopb_root = os.path.join(os.getcwd(), '..')
 
 project_dir = env.subst("$PROJECT_DIR")
