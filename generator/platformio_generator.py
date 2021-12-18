@@ -22,7 +22,7 @@ try:
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install grpcio-tools',
+            '$PYTHONEXE -m pip install grpcio-tools==1.43.0',
             "Installing GRPC dependencies",
         )
     )
