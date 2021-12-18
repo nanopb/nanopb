@@ -19,7 +19,7 @@ try:
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install protobuf==3.17.3',
+            '$PYTHONEXE -m pip install protobuf',
             "Installing Protocol Buffers dependencies",
         )
     )
