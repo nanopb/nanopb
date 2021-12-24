@@ -36,8 +36,8 @@ generated_src_dir = os.path.join(build_dir, 'nanopb', 'generated-src')
 generated_build_dir = os.path.join(build_dir, 'nanopb', 'generated-build')
 md5_dir = os.path.join(build_dir, 'nanopb', 'md5')
 
-nanopb_protos = env.GetProjectOption("nanopb_protos", "")
-nanopb_plugin_options = env.GetProjectOption("nanopb_options", "")
+nanopb_protos = env.GetProjectOption("custom_nanopb_protos", "")
+nanopb_plugin_options = env.GetProjectOption("custom_nanopb_options", "")
 
 if not nanopb_protos:
     print("[nanopb] No generation needed.")
@@ -50,7 +50,7 @@ else:
     protos_files = fs.match_src_files(project_dir, nanopb_protos)
     if not len(protos_files):
         print("[nanopb] ERROR: No files matched pattern:")
-        print(f"nanopb_protos: {nanopb_protos}")
+        print(f"custom_nanopb_protos: {nanopb_protos}")
         exit(1)
 
     protoc_generator = os.path.join(nanopb_root, 'generator', 'protoc')
