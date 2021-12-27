@@ -152,6 +152,3 @@ else:
     if not global_env.get(already_called_env_name, False):
         env.BuildSources(generated_build_dir, generated_src_dir)
     global_env[already_called_env_name] = True
-
-    # print(env['PIOENV'])
-    # exit(1)
