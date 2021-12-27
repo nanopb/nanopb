@@ -1,5 +1,5 @@
 .pio/
 .idea/
 cmake-build-*/
-CMakeLists.txt
+/CMakeLists.txt
 CMakeListsPrivate.txt
