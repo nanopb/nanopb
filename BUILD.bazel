@@ -1,8 +1,15 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@nanopb_pypi//:requirements.bzl", "requirement")
+load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
+load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
+
+package(default_visibility = ["//visibility:public"])
+
 licenses(["notice"])
 
 exports_files(["LICENSE.txt"])
-
-package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "nanopb",
@@ -18,4 +25,57 @@ cc_library(
         "pb_encode.h",
     ],
     visibility = ["//visibility:public"],
+)
+
+copy_file(
+    name = "protoc-gen-nanopb.py",
+    src = "generator/protoc-gen-nanopb",
+    out = "generator/protoc-gen-nanopb.py",
+    allow_symlink = True,
+)
+
+py_binary(
+    name = "protoc-gen-nanopb",
+    srcs = [
+        ":protoc-gen-nanopb.py",
+        "generator/nanopb_generator.py",
+    ],
+    deps = [
+        requirement("grpcio-tools"),
+    ],
+)
+
+proto_plugin(
+    name = "nanopb_plugin",
+    options = [
+        "--library-include-format='#include\"%s\"'",
+    ],
+    outputs = [
+        "{protopath}.pb.h",
+        "{protopath}.pb.c",
+    ],
+    separate_options_flag = True,
+    tool = ":protoc-gen-nanopb",
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "descriptor",
+    srcs = [
+        "generator/proto/google/protobuf/descriptor.proto",
+    ],
+)
+
+cc_nanopb_proto_library(
+    name = "test_compilation",
+    protos = [":descriptor"],
+    visibility = ["//visibility:private"],
+)
+
+# Run `bazel run //:requirements.update` if you want to update the requirements.
+compile_pip_requirements(
+    name = "requirements",
+    extra_args = ["--allow-unsafe"],
+    requirements_in = "extra/requirements.txt",
+    requirements_txt = "extra/requirements_lock.txt",
 )
