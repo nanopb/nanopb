@@ -145,4 +145,10 @@ else:
     # Add generated includes and sources to build environment
     #
     env.Append(CPPPATH=[generated_src_dir])
-    env.BuildSources(generated_build_dir, generated_src_dir)
+
+    # Fix for ESP32 ESP-IDF https://github.com/nanopb/nanopb/issues/734#issuecomment-1001544447
+    global_env = DefaultEnvironment()
+    already_called_env_name = "_PROTOBUF_GENERATOR_ALREADY_CALLED_" + env['PIOENV'].replace("-", "_")
+    if not global_env.get(already_called_env_name, False):
+        env.BuildSources(generated_build_dir, generated_src_dir)
+    global_env[already_called_env_name] = True
