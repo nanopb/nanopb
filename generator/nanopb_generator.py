@@ -154,7 +154,6 @@ class Globals:
 try:
     strtypes = (unicode, str)
     openmode_unicode = 'rU'
-    str = unicode
 except NameError:
     strtypes = (str, )
     openmode_unicode = 'r'
@@ -2265,10 +2264,7 @@ def main_cli():
                 os.makedirs(dirname)
 
             with open(path, 'w') as f:
-                try:
-                    f.write(data)
-                except UnicodeEncodeError:
-                    f.write(data.encode('utf-8'))
+                f.write(data)
 
 def main_plugin():
     '''Main function when invoked as a protoc plugin.'''
