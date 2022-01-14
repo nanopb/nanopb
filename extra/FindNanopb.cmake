@@ -290,9 +290,18 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   endforeach()
 
   set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
-  set(${SRCS} ${${SRCS}} ${NANOPB_SRCS} PARENT_SCOPE)
-  set(${HDRS} ${${HDRS}} ${NANOPB_HDRS} PARENT_SCOPE)
 
+  if(NOT DEFINED NANOPB_GENERATE_CPP_STANDALONE)
+    set(NANOPB_GENERATE_CPP_STANDALONE TRUE)
+  endif()
+
+  if (NANOPB_GENERATE_CPP_STANDALONE)
+    set(${SRCS} ${${SRCS}} ${NANOPB_SRCS} PARENT_SCOPE)
+    set(${HDRS} ${${HDRS}} ${NANOPB_HDRS} PARENT_SCOPE)
+  else()
+    set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+    set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+  endif()
 endfunction()
 
 
