@@ -1,4 +1,4 @@
-name: spm
+name: Apple iOS swift
 
 on:
   push:
