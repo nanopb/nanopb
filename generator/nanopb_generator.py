@@ -153,10 +153,8 @@ class Globals:
 # String types (for python 2 / python 3 compatibility)
 try:
     strtypes = (unicode, str)
-    openmode_unicode = 'rU'
 except NameError:
     strtypes = (str, )
-    openmode_unicode = 'r'
 
 
 class Names:
@@ -2110,7 +2108,7 @@ def parse_file(filename, fdesc, options):
             optfilename = os.path.join(p, optfilename)
             if options.verbose:
                 sys.stderr.write('Reading options from ' + optfilename + '\n')
-            Globals.separate_options = read_options_file(open(optfilename, openmode_unicode))
+            Globals.separate_options = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
             break
     else:
         # If we are given a full filename and it does not exist, give an error.
