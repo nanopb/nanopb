@@ -1,6 +1,6 @@
 name: Test after any code changes
 on:
-  workflow-dispatch:
+  workflow_dispatch:
   push:
     paths:
       - '**.c'
