@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get install python3-protobuf protobuf-compiler splint valgrind
+          sudo apt-get install python3-protobuf protobuf-compiler scons splint valgrind
 
       - name: Run tests
         run: |
