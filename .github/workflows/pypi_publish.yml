@@ -18,7 +18,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          python3 -m pip install --user --upgrade pyinstaller
       
       - name: Build PyPI package
         run: |
@@ -35,3 +36,28 @@ jobs:
         run: |
           cd nanopb/extra/poetry/build
           poetry publish -n -u __token__ -p $PYPI_API_KEY
+
+  test_pypi:
+    name: Test pypi package
+    runs-on: ubuntu-20.04
+    needs: publish_pypi
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+
+      - name: Wait for package to become visible
+        run: |
+          sleep 60
+
+      - name: Install PyPI package
+        run: |
+          python3 -m pip install --user --upgrade protobuf grpcio-tools scons nanopb
+
+      - name: Test PyPI package
+        run: |
+          cd nanopb/tests/alltypes/
+          nanopb_generator alltypes.proto
+          gcc -Wall -I ../../ -c alltypes.pb.c
