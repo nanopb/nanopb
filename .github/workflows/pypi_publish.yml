@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install python3-protobuf protobuf-compiler scons
-          python3 -m pip install --user --upgrade pyinstaller
+          python3 -m pip install --user --upgrade pyinstaller poetry
       
       - name: Build PyPI package
         run: |
