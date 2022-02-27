@@ -1,0 +1,62 @@
+name: Run tests with various compilers
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test_linux:
+    name: Test with gcc & clang on Ubuntu
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          sudo apt-get install clang valgrind splint cmake
+          sudo apt-get install libstdc++6:i386 libgcc-s1:i386 lib32gcc-9-dev lib32stdc++-9-dev libncurses5:i386 libc6-dbg:i386 libc6-dev:i386 binutils-multiarch
+
+      - name: Test with 64-bit GCC
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-O3"
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-Os -flto"
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-O1 -DPB_FIELD_32BIT=1"
+      
+      - name: Test with 32-bit GCC
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32"
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-Os -flto -m32" LINKFLAGS="-m32"
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-O1 -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32"
+      
+      - name: Test with 64-bit clang
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons CC=clang CXX=clang++ CCFLAGS="-O3"
+          rm -rf build
+          scons CC=clang CXX=clang++ CCFLAGS="-Os -DPB_FIELD_32BIT=1"
+      
+      - name: Test with 32-bit clang
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons CC=clang CXX=clang++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32"
+          rm -rf build
+          scons CC=clang CXX=clang++ CCFLAGS="-Os -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32"
+

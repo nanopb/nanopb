@@ -1,0 +1,89 @@
+name: Run tests in simulator
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test_avr:
+    name: Test in simavr for ATMega1284
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          sudo apt-get install libelf-dev gcc-avr gdb-avr avr-libc
+
+      - name: Install simavr
+        run: |
+          git clone https://github.com/buserror/simavr.git
+          cd simavr
+          make build-simavr
+          sudo make install-simavr
+          sudo ldconfig
+
+      - name: Run tests in AVR simulator
+        run: |
+          cd nanopb/tests
+          scons PLATFORM=AVR
+
+  test_mips:
+    name: Test in qemu for MIPS
+    runs-on: ubuntu-20.04
+    
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          sudo apt-get install gcc-mipsel-linux-gnu g++-mipsel-linux-gnu gcc-mips-linux-gnu g++-mips-linux-gnu qemu-user
+
+      - name: Run tests for big-endian MIPS
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons PLATFORM=MIPS
+      
+      - name: Run tests for little-endian MIPS
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons PLATFORM=MIPSEL
+
+  test_riscv:
+    name: Test in qemu for RISCV64
+    runs-on: ubuntu-20.04
+    
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          sudo apt-get install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu qemu-user
+
+      - name: Run tests for RISCV64
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons PLATFORM=RISCV64
+

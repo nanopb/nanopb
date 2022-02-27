@@ -22,13 +22,18 @@ try:
 except ImportError:
     pass
 
+# UTF-8 support on Python 2
+if sys.version_info.major == 2:
+    import codecs
+    open = codecs.open
+
 def add_nanopb_builders(env):
     '''Add the necessary builder commands for nanopb tests.'''
 
     # Build command that runs a test program and saves the output
     def run_test(target, source, env):
         if len(source) > 1:
-            infile = open(str(source[1]))
+            infile = open(str(source[1]), 'rb')
         else:
             infile = None
         
@@ -98,8 +103,8 @@ def add_nanopb_builders(env):
 
     # Build command that checks that each pattern in source2 is found in source1.
     def match_files(target, source, env):
-        data = open(str(source[0]), 'rU').read()
-        patterns = open(str(source[1]))
+        data = open(str(source[0]), 'r', encoding = 'utf-8').read()
+        patterns = open(str(source[1]), 'r', encoding = 'utf-8')
         for pattern in patterns:
             if pattern.strip():
                 invert = False

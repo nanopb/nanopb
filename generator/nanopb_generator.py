@@ -150,13 +150,19 @@ class Globals:
     matched_namemasks = set()
     protoc_insertion_points = False
 
-# String types (for python 2 / python 3 compatibility)
-try:
+# String types and file encoding for Python2 UTF-8 support
+if sys.version_info.major == 2:
+    import codecs
+    open = codecs.open
     strtypes = (unicode, str)
-    openmode_unicode = 'rU'
-except NameError:
+
+    def str(x):
+        try:
+            return strtypes[1](x)
+        except UnicodeEncodeError:
+            return strtypes[0](x)
+else:
     strtypes = (str, )
-    openmode_unicode = 'r'
 
 
 class Names:
@@ -2110,7 +2116,7 @@ def parse_file(filename, fdesc, options):
             optfilename = os.path.join(p, optfilename)
             if options.verbose:
                 sys.stderr.write('Reading options from ' + optfilename + '\n')
-            Globals.separate_options = read_options_file(open(optfilename, openmode_unicode))
+            Globals.separate_options = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
             break
     else:
         # If we are given a full filename and it does not exist, give an error.
