@@ -1,4 +1,4 @@
-name: Test after any code changes
+name: Test after code changes
 on:
   workflow_dispatch:
   push:

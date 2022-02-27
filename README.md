@@ -1,8 +1,8 @@
 Nanopb - Protocol Buffers for Embedded Systems
 ==============================================
 
-![Latest change](https://github.com/nanopb/nanopb/actions/workflows/trigger_on_code_change/badge.svg)
-![Weekly build](https://github.com/nanopb/nanopb/actions/workflows/trigger_on_schedule/badge.svg)
+![Latest change](https://github.com/nanopb/nanopb/actions/workflows/trigger_on_code_change.yml/badge.svg)
+![Weekly build](https://github.com/nanopb/nanopb/actions/workflows/trigger_on_schedule.yml/badge.svg)
 
 Nanopb is a small code-size Protocol Buffers implementation in ansi C. It is
 especially suitable for use in microcontrollers, but fits any memory
