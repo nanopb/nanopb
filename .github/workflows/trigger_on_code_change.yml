@@ -6,11 +6,21 @@ on:
       - '**.c'
       - '**.h'
       - '**.py'
+      - '**.sh'
+      - '**.yml'
+      - '**.proto'
+      - '**.mk'
+      - '**.cmake'
   pull_request:
     paths:
       - '**.c'
       - '**.h'
       - '**.py'
+      - '**.sh'
+      - '**.yml'
+      - '**.proto'
+      - '**.mk'
+      - '**.cmake'
 
 jobs:
   smoke_test:
