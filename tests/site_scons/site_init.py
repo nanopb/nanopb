@@ -22,6 +22,11 @@ try:
 except ImportError:
     pass
 
+# UTF-8 support on Python 2
+if sys.version_info.major == 2:
+    import codecs
+    open = codecs.open
+
 def add_nanopb_builders(env):
     '''Add the necessary builder commands for nanopb tests.'''
 

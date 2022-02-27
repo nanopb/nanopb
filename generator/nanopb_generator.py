@@ -150,10 +150,18 @@ class Globals:
     matched_namemasks = set()
     protoc_insertion_points = False
 
-# String types (for python 2 / python 3 compatibility)
-try:
+# String types and file encoding for Python2 UTF-8 support
+if sys.version_info.major == 2:
+    import codecs
+    open = codecs.open
     strtypes = (unicode, str)
-except NameError:
+
+    def str(x):
+        try:
+            return strtypes[1](x)
+        except UnicodeEncodeError:
+            return strtypes[0](x)
+else:
     strtypes = (str, )
 
 
