@@ -1,15 +1,15 @@
-name: platformio
+name: Build and test using platformio
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   platformio:
     name: Build and run PlatformIO example
     runs-on: ubuntu-latest
     steps:
-      - name: ⤵️ Check out code from GitHub
+      - name: Check out code from GitHub
         uses: actions/checkout@v2
         with:
           path: nanopb

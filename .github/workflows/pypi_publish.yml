@@ -1,0 +1,37 @@
+name: Publish generator package to PyPI / pip
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  publish_pypi:
+    name: Build and publish pypi package on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+      
+      - name: Build PyPI package
+        run: |
+          cd nanopb/extra/poetry
+          ./poetry_build.sh
+
+      - name: Fingerprint package
+        run: |
+          openssl sha256 nanopb/extra/poetry/dist/*.whl
+      
+      - name: Publish PyPI package
+        env:
+          PYPI_API_KEY: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          cd nanopb/extra/poetry/build
+          poetry publish -n -u __token__ -p $PYPI_API_KEY

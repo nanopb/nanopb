@@ -2,7 +2,7 @@ name: Run tests on Python 2
 
 on:
   workflow_dispatch:
-  push:
+  workflow_call:
 
 jobs:
   test_python2:

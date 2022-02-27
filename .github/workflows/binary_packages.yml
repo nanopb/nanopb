@@ -2,7 +2,7 @@ name: Build binary packages
 
 on:
   workflow_dispatch:
-  push:
+  workflow_call:
 
 jobs:
   build_linux:
@@ -26,6 +26,10 @@ jobs:
           cd nanopb
           git clean -dxf
           tools/make_linux_package.sh
+
+      - name: Fingerprint binary
+        run: |
+          openssl sha256 nanopb/dist/*.tar.gz
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
@@ -72,6 +76,10 @@ jobs:
           git clean -dxf
           tools/make_windows_package.sh
 
+      - name: Fingerprint binary
+        run: |
+          openssl sha256 nanopb/dist/*.zip
+
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -107,6 +115,10 @@ jobs:
           cd nanopb
           git clean -dxf
           tools/make_mac_package.sh
+
+      - name: Fingerprint binary
+        run: |
+          openssl sha256 nanopb/dist/*.tar.gz
 
       - name: Upload binary
         uses: actions/upload-artifact@v2
