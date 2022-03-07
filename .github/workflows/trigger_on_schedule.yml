@@ -30,4 +30,6 @@ jobs:
   pypi_publish:
     needs: binary_packages
     uses: ./.github/workflows/pypi_publish.yml
+    secrets:
+      PYPI_API_KEY: ${{ secrets.PYPI_API_KEY }}
 

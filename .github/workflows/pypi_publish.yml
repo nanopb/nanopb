@@ -3,6 +3,9 @@ name: Publish generator package to PyPI / pip
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      PYPI_API_KEY:
+        required: true
 
 jobs:
   publish_pypi:
@@ -18,6 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install python3-protobuf protobuf-compiler scons
           python3 -m pip install --user --upgrade pyinstaller poetry
       
@@ -32,11 +36,12 @@ jobs:
       
       - name: Publish PyPI package
         env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_KEY }}
           POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
           POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_API_KEY }}
         run: |
           cd nanopb/extra/poetry/build
-          poetry publish -n
+          poetry publish -n -v -u __token__ -p "$POETRY_PYPI_TOKEN_PYPI"
 
   test_pypi:
     name: Test pypi package
@@ -55,7 +60,8 @@ jobs:
 
       - name: Install PyPI package
         run: |
-          python3 -m pip install --user --upgrade protobuf grpcio-tools scons nanopb
+          python3 -m pip install --user --upgrade protobuf grpcio-tools scons
+          python3 -m pip install --user --upgrade --pre nanopb
 
       - name: Test PyPI package
         run: |
