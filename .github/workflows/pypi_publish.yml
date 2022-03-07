@@ -32,10 +32,11 @@ jobs:
       
       - name: Publish PyPI package
         env:
-          PYPI_API_KEY: ${{ secrets.PYPI_API_KEY }}
+          POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
+          POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_API_KEY }}
         run: |
           cd nanopb/extra/poetry/build
-          poetry publish -n -u __token__ -p $PYPI_API_KEY
+          poetry publish -n
 
   test_pypi:
     name: Test pypi package
