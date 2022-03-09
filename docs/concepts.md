@@ -577,3 +577,45 @@ error. The most common error conditions are:
 7) Errors that happen in your callback functions.
 8) Running out of memory, i.e. stack overflow.
 9) Invalid field descriptors (would usually mean a bug in the generator).
+
+## Static assertions
+
+Nanopb code uses static assertions to check size of structures at the compile
+time. The `PB_STATIC_ASSERT` macro is defined in `pb.h`. If ISO C11 standard
+is available, the C standard `_Static_assert` keyword is used, otherwise a
+negative sized array definition trick is used.
+
+Common reasons for static assertion errors are:
+
+1. `FIELDINFO_DOES_NOT_FIT_width2` with `width1` or `width2`:
+    Message that is larger than 256 bytes, but nanopb generator does not detect
+    it for some reason. Often resolved by giving all `.proto` files as argument
+    to `nanopb_generator.py` at the same time, to ensure submessage definitions
+    are found. Alternatively `(nanopb).descriptorsize = DS_4` option can be
+    given manually.
+
+2. `FIELDINFO_DOES_NOT_FIT_width4` with `width4`:
+    Message that is larger than 64 kilobytes. There will be a better error
+    message for this in a future nanopb version, but currently it asserts here.
+    The compile time option `PB_FIELD_32BIT` should be specified either on
+    C compiler command line or by editing `pb.h`. This will increase the sizes
+    of integer types used internally in nanopb code.
+
+3. `DOUBLE_MUST_BE_8_BYTES`:
+    Some platforms, most notably AVR, do not support the 64-bit `double` type,
+    only 32-bit `float`. The compile time option `PB_CONVERT_DOUBLE_FLOAT` can
+    be defined to convert between the types automatically. The conversion
+    results in small rounding errors and takes unnecessary space in transmission,
+    so changing the `.proto` to use `float` type is often better.
+
+4.  `INT64_T_WRONG_SIZE`:
+    The `stdint.h` system header is incorrect for the C compiler being used.
+    This can result from erroneous compiler include path.
+    If the compiler actually does not support 64-bit types, the compile time
+    option `PB_WITHOUT_64BIT` can be used.
+
+5.  `variably modified array size`:
+    The compiler used has problems resolving the array-based static assert at
+    compile time. Try setting the compiler to C11 standard mode if possible.
+    If static assertions cannot be made to work on the compiler used, the
+    compile-time option `PB_NO_STATIC_ASSERT` can be specified to turn them off.
