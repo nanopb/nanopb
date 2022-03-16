@@ -3,7 +3,7 @@ Type 'scons' to build and run all the available test cases.
 It will automatically detect your platform and C compiler and
 build appropriately.
 
-You can modify the behavious using following options:
+You can modify the behaviour using following options:
 BUILDDIR    Directory to build into (default "build")
 CC          Name of C compiler
 CXX         Name of C++ compiler

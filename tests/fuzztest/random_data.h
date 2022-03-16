@@ -23,7 +23,7 @@ bool rand_bool();
 uint8_t rand_byte();
 
 /* Get a random length, with skewed distribution.
- * Favors the shorter lengths, but always atleast 1. */
+ * Favors the shorter lengths, but always at least 1. */
 size_t rand_len(size_t max);
 
 /* Fills a buffer with random bytes with skewed distribution. */

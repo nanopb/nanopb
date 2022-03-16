@@ -1,3 +1,4 @@
+import sys
 import subprocess
 import os.path
 
@@ -41,3 +42,25 @@ def invoke_protoc(argv):
         return protoc.main(argv)
     else:
         return subprocess.call(argv)
+
+def print_versions():
+    try:
+        if has_grpcio_protoc():
+            import grpc_tools.protoc
+            sys.stderr.write("Using grpcio-tools protoc from " + grpc_tools.protoc.__file__ + "\n")
+        else:
+            sys.stderr.write("Using protoc from system path\n")
+
+        invoke_protoc(['protoc', '--version'])
+    except Exception as e:
+        sys.stderr.write("Failed to determine protoc version: " + str(e) + "\n")
+
+    try:
+        import google.protobuf
+        sys.stderr.write("Using python-protobuf from " + google.protobuf.__file__ + "\n")
+        sys.stderr.write("Python-protobuf version: " + google.protobuf.__version__ + "\n")
+    except Exception as e:
+        sys.stderr.write("Failed to determine python-protobuf version: " + str(e) + "\n")
+
+if __name__ == '__main__':
+    print_versions()

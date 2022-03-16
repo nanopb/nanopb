@@ -14,7 +14,8 @@
 /* #define PB_ENABLE_MALLOC 1 */
 
 /* Define this if your CPU / compiler combination does not support
- * unaligned memory access to packed structures. */
+ * unaligned memory access to packed structures. Note that packed
+ * structures are only used when requested in .proto options. */
 /* #define PB_NO_PACKED_STRUCTS 1 */
 
 /* Increase the number of required fields that are tracked.
@@ -47,6 +48,10 @@
  * the string processing slightly and slightly increases code size. */
 /* #define PB_VALIDATE_UTF8 1 */
 
+/* This can be defined if the platform is little-endian and has 8-bit bytes.
+ * Normally it is automatically detected based on __BYTE_ORDER__ macro. */
+/* #define PB_LITTLE_ENDIAN_8BIT 1 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
@@ -55,7 +60,7 @@
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */
-#define NANOPB_VERSION nanopb-0.4.5
+#define NANOPB_VERSION "nanopb-0.4.6-dev"
 
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
@@ -116,6 +121,18 @@ extern "C" {
 #   define pb_packed
 #endif
 
+/* Detect endianness */
+#ifndef PB_LITTLE_ENDIAN_8BIT
+#if ((defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
+     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
+      defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || \
+      defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || \
+      defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM)) \
+     && CHAR_BIT == 8
+#define PB_LITTLE_ENDIAN_8BIT 1
+#endif
+#endif
+
 /* Handly macro for suppressing unreferenced-parameter compiler warnings. */
 #ifndef PB_UNUSED
 #define PB_UNUSED(x) (void)(x)
@@ -145,7 +162,10 @@ extern "C" {
  */
 #ifndef PB_NO_STATIC_ASSERT
 #  ifndef PB_STATIC_ASSERT
-#    if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#    if defined(__ICCARM__)
+       /* IAR has static_assert keyword but no _Static_assert */
+#      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
+#    elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
        /* C11 standard _Static_assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
 #    else
@@ -238,7 +258,7 @@ typedef uint_least8_t pb_type_t;
 #define PB_HTYPE_MASK     0x30U
 
 /**** Field allocation types ****/
- 
+
 #define PB_ATYPE_STATIC   0x00U
 #define PB_ATYPE_POINTER  0x80U
 #define PB_ATYPE_CALLBACK 0x40U
@@ -365,7 +385,7 @@ struct pb_callback_s {
         bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
         bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
     } funcs;
-    
+
     /* Free arg for use by callback */
     void *arg;
 };
@@ -377,7 +397,8 @@ typedef enum {
     PB_WT_VARINT = 0,
     PB_WT_64BIT  = 1,
     PB_WT_STRING = 2,
-    PB_WT_32BIT  = 5
+    PB_WT_32BIT  = 5,
+    PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
 } pb_wire_type_t;
 
 /* Structure for defining the handling of unknown/extension fields.
@@ -397,7 +418,7 @@ struct pb_extension_type_s {
      */
     bool (*decode)(pb_istream_t *stream, pb_extension_t *extension,
                    uint32_t tag, pb_wire_type_t wire_type);
-    
+
     /* Called once after all regular fields have been encoded.
      * If you have something to write, do so and return true.
      * If you do not have anything to write, just return true.
@@ -405,7 +426,7 @@ struct pb_extension_type_s {
      * Set to NULL for default handler.
      */
     bool (*encode)(pb_ostream_t *stream, const pb_extension_t *extension);
-    
+
     /* Free field for use by the callback. */
     const void *arg;
 };
@@ -414,11 +435,11 @@ struct pb_extension_s {
     /* Type describing the extension field. Usually you'll initialize
      * this to a pointer to the automatically generated structure. */
     const pb_extension_type_t *type;
-    
+
     /* Destination for the decoded data. This must match the datatype
      * of the extension field. */
     void *dest;
-    
+
     /* Pointer to the next extension handler, or NULL.
      * If this extension does not match a field, the next handler is
      * automatically called. */
@@ -872,4 +893,3 @@ template <typename GenMessageT> struct MessageDescriptor;
 #endif  /* __cplusplus */
 
 #endif
-

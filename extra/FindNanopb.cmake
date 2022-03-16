@@ -162,7 +162,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto)
 
-  # Treat the source diretory as immutable.
+  # Treat the source directory as immutable.
   #
   # Copy the generator directory to the build directory before
   # compiling python and proto files.  Fixes issues when using the
@@ -196,7 +196,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   endif()
   foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-    get_filename_component(FIL_WE ${FIL} NAME_WE)
+    get_filename_component(FIL_WE ${FIL} NAME_WLE)
     get_filename_component(FIL_DIR ${FIL} PATH)
     set(FIL_PATH_REL)
     if(ABS_ROOT)
@@ -290,9 +290,18 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   endforeach()
 
   set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
-  set(${SRCS} ${${SRCS}} ${NANOPB_SRCS} PARENT_SCOPE)
-  set(${HDRS} ${${HDRS}} ${NANOPB_HDRS} PARENT_SCOPE)
 
+  if(NOT DEFINED NANOPB_GENERATE_CPP_STANDALONE)
+    set(NANOPB_GENERATE_CPP_STANDALONE TRUE)
+  endif()
+
+  if (NANOPB_GENERATE_CPP_STANDALONE)
+    set(${SRCS} ${${SRCS}} ${NANOPB_SRCS} PARENT_SCOPE)
+    set(${HDRS} ${${HDRS}} ${NANOPB_HDRS} PARENT_SCOPE)
+  else()
+    set(${SRCS} ${${SRCS}} PARENT_SCOPE)
+    set(${HDRS} ${${HDRS}} PARENT_SCOPE)
+  endif()
 endfunction()
 
 

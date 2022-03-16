@@ -1,0 +1,30 @@
+name: Run tests on Python 2
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test_python2:
+    name: Test with Python 2 on Ubuntu 18.04
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python-protobuf protobuf-compiler scons
+
+      - name: Run tests with Python 2
+        run: |
+          cd nanopb
+          export GENPATH=$(bash -c 'printf %q "$(pwd)/generator/protoc-gen-nanopb-py2"')
+          cd tests
+          scons PYTHON="/usr/bin/python2" PROTOC="/usr/bin/protoc" PROTOCFLAGS="--plugin=protoc-gen-nanopb=$GENPATH"
+

@@ -1,0 +1,70 @@
+name: Publish generator package to PyPI / pip
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      PYPI_API_KEY:
+        required: true
+
+jobs:
+  publish_pypi:
+    name: Build and publish pypi package on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons
+          python3 -m pip install --user --upgrade pyinstaller poetry
+      
+      - name: Build PyPI package
+        run: |
+          cd nanopb/extra/poetry
+          ./poetry_build.sh
+
+      - name: Fingerprint package
+        run: |
+          openssl sha256 nanopb/extra/poetry/dist/*.whl
+      
+      - name: Publish PyPI package
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_KEY }}
+          POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
+          POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_API_KEY }}
+        run: |
+          cd nanopb/extra/poetry/build
+          poetry publish -n -v -u __token__ -p "$POETRY_PYPI_TOKEN_PYPI"
+
+  test_pypi:
+    name: Test pypi package
+    runs-on: ubuntu-20.04
+    needs: publish_pypi
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+
+      - name: Wait for package to become visible
+        run: |
+          sleep 60
+
+      - name: Install PyPI package
+        run: |
+          python3 -m pip install --user --upgrade protobuf grpcio-tools scons
+          python3 -m pip install --user --upgrade --pre nanopb
+
+      - name: Test PyPI package
+        run: |
+          cd nanopb/tests/alltypes/
+          nanopb_generator alltypes.proto
+          gcc -Wall -I ../../ -c alltypes.pb.c

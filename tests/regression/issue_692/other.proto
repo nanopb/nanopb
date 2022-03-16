@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message SecondOneof {
+    repeated int32 foo = 1;
+}
+
+message AnotherList {
+    repeated int32 bar = 1;
+}

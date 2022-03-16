@@ -1,0 +1,53 @@
+name: Test after code changes
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**.c'
+      - '**.h'
+      - '**.py'
+      - '**.sh'
+      - '**.yml'
+      - '**.proto'
+      - '**.mk'
+      - '**.cmake'
+  pull_request:
+    paths:
+      - '**.c'
+      - '**.h'
+      - '**.py'
+      - '**.sh'
+      - '**.yml'
+      - '**.proto'
+      - '**.mk'
+      - '**.cmake'
+
+jobs:
+  smoke_test:
+    name: Run test suite on Ubuntu 20.04
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons splint valgrind
+
+      - name: Run tests
+        run: |
+          cd nanopb/tests
+          scons
+  
+  fuzz_tests:
+    needs: smoke_test
+    uses: ./.github/workflows/cifuzz.yml
+  
+  binary_builds:
+    needs: smoke_test
+    uses: ./.github/workflows/binary_packages.yml
+

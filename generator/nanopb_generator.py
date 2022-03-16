@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.4.5"
+nanopb_version = "nanopb-0.4.6-dev"
 
 import sys
 import re
@@ -18,7 +18,7 @@ from functools import reduce
 
 try:
     # Add some dummy imports to keep packaging tools happy.
-    import google, distutils.util # bbfreeze seems to need these
+    import google # bbfreeze seems to need these
     import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
     import proto.nanopb_pb2 as nanopb_pb2 # pyinstaller seems to need this
     import pkg_resources.py2_warn
@@ -150,13 +150,19 @@ class Globals:
     matched_namemasks = set()
     protoc_insertion_points = False
 
-# String types (for python 2 / python 3 compatibility)
-try:
+# String types and file encoding for Python2 UTF-8 support
+if sys.version_info.major == 2:
+    import codecs
+    open = codecs.open
     strtypes = (unicode, str)
-    openmode_unicode = 'rU'
-except NameError:
+
+    def str(x):
+        try:
+            return strtypes[1](x)
+        except UnicodeEncodeError:
+            return strtypes[0](x)
+else:
     strtypes = (str, )
-    openmode_unicode = 'r'
 
 
 class Names:
@@ -289,7 +295,7 @@ class ProtoElement(object):
         '''
         path is a predefined value for each element type in proto file.
             For example, message == 4, enum == 5, service == 6
-        index is the N-th occurance of the `path` in the proto file.
+        index is the N-th occurrence of the `path` in the proto file.
             For example, 4-th message in the proto file or 2-nd enum etc ...
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments).
@@ -1804,14 +1810,29 @@ class ProtoFile:
             # If we require a symbol from another file, put a preprocessor if statement
             # around it to prevent compilation errors if the symbol is not actually available.
             local_defines = [identifier for identifier, msize in messagesizes if msize is not None]
+
+            # emit size_unions, if any
+            oneof_sizes = []
+            for msg in self.messages:
+                for f in msg.fields:
+                    if isinstance(f, OneOf):
+                        msize = f.encoded_size(self.dependencies)
+                        if msize is not None:
+                            oneof_sizes.append(msize)
+            for msize in oneof_sizes:
+                guard = msize.get_cpp_guard(local_defines)
+                if guard:
+                    yield guard
+                yield msize.get_declarations()
+                if guard:
+                    yield '#endif\n'
+
             guards = {}
             for identifier, msize in messagesizes:
                 if msize is not None:
                     cpp_guard = msize.get_cpp_guard(local_defines)
                     if cpp_guard not in guards:
                         guards[cpp_guard] = set()
-                    for decl in msize.get_declarations().splitlines():
-                        guards[cpp_guard].add(decl)
                     guards[cpp_guard].add('#define %-40s %s' % (identifier, msize))
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
@@ -1966,7 +1987,7 @@ def read_options_file(infile):
             text_format.Merge(parts[1], opts)
         except Exception as e:
             sys.stderr.write("%s:%d: " % (infile.name, i + 1) +
-                             "Unparseable option line: '%s'. " % line +
+                             "Unparsable option line: '%s'. " % line +
                              "Error: %s\n" % str(e))
             sys.exit(1)
         results.append((parts[0], opts))
@@ -2095,7 +2116,7 @@ def parse_file(filename, fdesc, options):
             optfilename = os.path.join(p, optfilename)
             if options.verbose:
                 sys.stderr.write('Reading options from ' + optfilename + '\n')
-            Globals.separate_options = read_options_file(open(optfilename, openmode_unicode))
+            Globals.separate_options = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
             break
     else:
         # If we are given a full filename and it does not exist, give an error.
@@ -2201,8 +2222,9 @@ def main_cli():
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
     # Load .pb files into memory and compile any .proto files.
-    fdescs = {}
     include_path = ['-I%s' % p for p in options.options_path]
+    all_fdescs = {}
+    out_fdescs = {}
     for filename in filenames:
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
@@ -2213,18 +2235,23 @@ def main_cli():
         else:
             data = open(filename, 'rb').read()
 
-        fdesc = descriptor.FileDescriptorSet.FromString(data).file[-1]
-        fdescs[fdesc.name] = fdesc
+        fdescs = descriptor.FileDescriptorSet.FromString(data).file
+        last_fdesc = fdescs[-1]
+
+        for fdesc in fdescs:
+          all_fdescs[fdesc.name] = fdesc
+
+        out_fdescs[last_fdesc.name] = last_fdesc
 
     # Process any include files first, in order to have them
     # available as dependencies
     other_files = {}
-    for fdesc in fdescs.values():
+    for fdesc in all_fdescs.values():
         other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
 
     # Then generate the headers / sources
     Globals.verbose_options = options.verbose
-    for fdesc in fdescs.values():
+    for fdesc in out_fdescs.values():
         results = process_file(fdesc.name, fdesc, options, other_files)
 
         base_dir = options.output_dir or ''

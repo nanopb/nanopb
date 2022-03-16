@@ -1,0 +1,63 @@
+name: Build and test using platformio
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  platformio:
+    name: Build and run PlatformIO example
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v2
+        with:
+          path: nanopb
+
+      - name: Installing dependencies for local act
+        if: ${{ env.ACT }}
+        run: |
+          sudo apt update
+
+      - name: Installing common dependencies
+        run: |
+          sudo apt install -y python3-pip
+
+      - name: Install and setup PlatformIO
+        run: |
+          pip3 install -U platformio
+          export PATH=~/.local/bin:$PATH
+
+      - name: Build PlatformIO package
+        run: |
+          cd nanopb
+          pio package pack
+
+      - name: Example - Extract PlatformIO package to example dir
+        run: |
+          cp -R nanopb/examples/platformio example
+          mkdir -p example/lib/nanopb
+          tar -xzf nanopb/Nanopb-*.tar.gz -C example/lib/nanopb
+
+      - name: Example - Build
+        run: |
+          cd example
+          pio run
+
+      - name: Example - Run test without options
+        run: example/.pio/build/pio_without_options/program
+
+      - name: Example - Run test with options
+        run: example/.pio/build/pio_with_options/program
+
+      - name: Build with default platformio.ini
+        run: |
+          mkdir -p test_default_pio_conf
+          cd test_default_pio_conf
+          pio project init
+          ln -s ../nanopb lib/nanopb
+          echo "[env:native]" >> platformio.ini
+          echo "platform = native" >> platformio.ini
+          echo "lib_deps = Nanopb" >> platformio.ini
+          echo "int main(int argc, char *argv[]){}" > src/main.cpp
+          pio run

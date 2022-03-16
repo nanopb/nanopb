@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.12)
 
 project(nanopb C)
 
-set(nanopb_VERSION_STRING nanopb-0.4.5)
+set(nanopb_VERSION_STRING nanopb-0.4.6-dev)
 set(nanopb_SOVERSION 0)
 
 string(REPLACE "nanopb-" "" nanopb_VERSION ${nanopb_VERSION_STRING})
@@ -14,8 +14,9 @@ option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" 
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
 option(nanopb_MSVC_STATIC_RUNTIME "Link static runtime libraries" ON)
 
-if(NOT DEFINED nanopb_PROTOC_PATH)
-    set(nanopb_PROTOC_PATH "protoc")
+find_program(nanopb_PROTOC_PATH protoc)
+if(NOT EXISTS ${nanopb_PROTOC_PATH})
+    message(FATAL_ERROR "protoc compiler not found")
 endif()
 
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
@@ -38,16 +39,16 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
+find_package(Python REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND ${Python_EXECUTABLE} -c
+        "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
+    OUTPUT_VARIABLE PYTHON_INSTDIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
-
-    find_package(Python REQUIRED)
-    execute_process(
-        COMMAND ${Python_EXECUTABLE} -c
-            "from distutils import sysconfig; print(sysconfig.get_python_lib(prefix=''))"
-        OUTPUT_VARIABLE PYTHON_INSTDIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
 
     foreach(generator_proto IN LISTS generator_protos)
         string(REGEX REPLACE "([^;]+)" "${PROJECT_SOURCE_DIR}/generator/proto/\\1.proto" generator_proto_file "${generator_proto}")
@@ -69,18 +70,20 @@ if(nanopb_BUILD_GENERATOR)
              DESTINATION ${PYTHON_INSTDIR}/proto/ )
 endif()
 
-if( WIN32 )
-        install(
-            PROGRAMS generator/nanopb_generator.py
-                     generator/protoc-gen-nanopb.bat
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
+if(WIN32)
+    install(
+        PROGRAMS
+            generator/nanopb_generator.py
+            generator/protoc-gen-nanopb.bat
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 else()
-        install(
-            PROGRAMS generator/nanopb_generator.py
-                     generator/protoc-gen-nanopb
-            DESTINATION ${CMAKE_INSTALL_BINDIR}
-        )
+    install(
+        PROGRAMS
+            generator/nanopb_generator.py
+            generator/protoc-gen-nanopb
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif()
 
 if(nanopb_BUILD_RUNTIME)
@@ -97,10 +100,11 @@ if(nanopb_BUILD_RUNTIME)
             SOVERSION ${nanopb_SOVERSION})
         install(TARGETS protobuf-nanopb EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         target_include_directories(protobuf-nanopb INTERFACE
-          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         )
     endif()
 
@@ -118,7 +122,8 @@ if(nanopb_BUILD_RUNTIME)
         install(TARGETS protobuf-nanopb-static EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         target_include_directories(protobuf-nanopb-static INTERFACE
-          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+	        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         )
     endif()
 

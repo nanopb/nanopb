@@ -57,8 +57,6 @@ static void pb_release_single_field(pb_field_iter_t *field);
 #define pb_uint64_t uint64_t
 #endif
 
-#define PB_WT_PACKED ((pb_wire_type_t)0xFF)
-
 typedef struct {
     uint32_t bitfield[(PB_MAX_REQUIRED_FIELDS + 31) / 32];
 } pb_fields_seen_t;
@@ -69,14 +67,12 @@ typedef struct {
 
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count)
 {
-    size_t i;
     const pb_byte_t *source = (const pb_byte_t*)stream->state;
     stream->state = (pb_byte_t*)stream->state + count;
     
     if (buf != NULL)
     {
-        for (i = 0; i < count; i++)
-            buf[i] = source[i];
+        memcpy(buf, source, count * sizeof(pb_byte_t));
     }
     
     return true;
@@ -213,18 +209,20 @@ static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *d
                     PB_RETURN_ERROR(stream, "varint overflow");
                 }
             }
+            else if (bitpos == 28)
+            {
+                if ((byte & 0x70) != 0 && (byte & 0x78) != 0x78)
+                {
+                    PB_RETURN_ERROR(stream, "varint overflow");
+                }
+                result |= (uint32_t)(byte & 0x0F) << bitpos;
+            }
             else
             {
                 result |= (uint32_t)(byte & 0x7F) << bitpos;
             }
             bitpos = (uint_fast8_t)(bitpos + 7);
         } while (byte & 0x80);
-        
-        if (bitpos == 35 && (byte & 0x70) != 0)
-        {
-            /* The last byte was at bitpos=28, so only bottom 4 bits fit. */
-            PB_RETURN_ERROR(stream, "varint overflow");
-        }
    }
    
    *dest = result;
@@ -245,11 +243,11 @@ bool checkreturn pb_decode_varint(pb_istream_t *stream, uint64_t *dest)
     
     do
     {
-        if (bitpos >= 64)
-            PB_RETURN_ERROR(stream, "varint overflow");
-        
         if (!pb_readbyte(stream, &byte))
             return false;
+
+        if (bitpos >= 63 && (byte & 0xFE) != 0)
+            PB_RETURN_ERROR(stream, "varint overflow");
 
         result |= (uint64_t)(byte & 0x7F) << bitpos;
         bitpos = (uint_fast8_t)(bitpos + 7);
@@ -703,6 +701,12 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
                     /* Decode the array entry */
                     field->pData = *(char**)field->pField + field->data_size * (*size);
+                    if (field->pData == NULL)
+                    {
+                        /* Shouldn't happen, but satisfies static analyzers */
+                        status = false;
+                        break;
+                    }
                     initialize_pointer_field(field->pData, field);
                     if (!decode_basic_field(&substream, PB_WT_PACKED, field))
                     {
@@ -1358,7 +1362,7 @@ bool pb_decode_fixed32(pb_istream_t *stream, void *dest)
     if (!pb_read(stream, u.bytes, 4))
         return false;
 
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN && CHAR_BIT == 8
+#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint32_t*)dest = u.fixed32;
 #else
@@ -1381,7 +1385,7 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
     if (!pb_read(stream, u.bytes, 8))
         return false;
 
-#if defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN && CHAR_BIT == 8
+#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint64_t*)dest = u.fixed64;
 #else

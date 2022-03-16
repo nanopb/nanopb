@@ -1,8 +1,10 @@
 syntax="proto2";
 
+// Unicode comment эмйÅÄÖ
 message WorkingMessage {
         required int32 b = 1;
         required int32 Z = 2;
+        repeated int32 x = 3;
 }
 
 message FailingMessageBecauseMembersAreMacroParameter {
@@ -19,3 +21,5 @@ message TestMacroParametersAndUnderscores {
         required int32 X___  = 6;
         required int32 X____ = 7;
 }
+
+

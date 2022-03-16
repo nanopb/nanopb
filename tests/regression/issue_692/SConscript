@@ -1,0 +1,9 @@
+# Regression test for #693:
+# Duplicate declarations of size_unions with repeated fields inside a oneof
+
+Import("env")
+
+env.NanopbProto("other.proto")
+env.NanopbProto(["oneof.proto", "other.proto"])
+env.Object("oneof.pb.c")
+env.Object("test.c")

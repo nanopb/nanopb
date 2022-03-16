@@ -80,12 +80,12 @@ def run_against_corpus(target, source, env):
     count = 0
     args = [str(source[0])]
 
-    if env.has_key("TEST_RUNNER"):
+    if "TEST_RUNNER" in env:
         args = [env["TEST_RUNNER"]] + args
 
-    if env.has_key("FUZZTEST_CORPUS_SAMPLESIZE"):
+    if "FUZZTEST_CORPUS_SAMPLESIZE" in env:
         samplesize = int(env["FUZZTEST_CORPUS_SAMPLESIZE"])
-    elif env.has_key("EMBEDDED"):
+    elif env.get('EMBEDDED'):
         samplesize = 100
     else:
         samplesize = 4096

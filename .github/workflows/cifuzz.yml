@@ -1,17 +1,7 @@
-name: CIFuzz
+name: Run CIFuzz fuzz test for 10 minutes
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - '**.c'
-      - '**.h'
-  pull_request:
-    branches:
-      - master
-    paths:
-      - '**.c'
-      - '**.h'
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   Fuzzing:

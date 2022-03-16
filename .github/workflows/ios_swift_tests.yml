@@ -1,8 +1,8 @@
-name: spm
+name: Build and test for Apple iOS swift
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  workflow_call:
 
 jobs:
   swift-build-run:
