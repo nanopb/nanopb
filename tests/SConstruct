@@ -192,6 +192,9 @@ if not env.get('NODEFARGS'):
         # More strict checks on the nanopb core
         env.Append(CORECFLAGS = '/W4')
 
+        # Enable C11 standard
+        env.Append(CFLAGS = ' /std:c11 ')
+
         # Disable warning about sizeof(union{}) construct that is used in
         # message size macros, in e.g. multiple_files testcase. The C construct
         # itself is valid, but quite rare, which causes Visual C++ to give a warning

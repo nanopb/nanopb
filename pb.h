@@ -183,6 +183,9 @@ extern "C" {
 #  define PB_STATIC_ASSERT(COND,MSG)
 #endif
 
+/* Test that PB_STATIC_ASSERT works */
+PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
+
 /* Number of required fields to keep track of. */
 #ifndef PB_MAX_REQUIRED_FIELDS
 #define PB_MAX_REQUIRED_FIELDS 64
