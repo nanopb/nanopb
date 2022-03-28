@@ -1,0 +1,25 @@
+syntax = "proto2";  // must be "proto2", proto3 requires enums starting with 0.
+
+enum Enum
+{
+	enumerand = 1;  // must be non-zero
+}
+
+message Outer1
+{
+	message Inner
+	{
+		optional Enum enum1 = 1;  // can also be "required"
+	}
+}
+
+message Outer2
+{
+	message Inner
+	{
+		// further trouble of this is also named "enum1"
+		optional Enum enum2 = 1;  // can also be "required"
+
+	}
+}
+

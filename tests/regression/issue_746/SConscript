@@ -1,0 +1,8 @@
+# Regression test for #746:
+# Name conflict when generating default values for message
+
+Import("env")
+
+env.NanopbProto("test.proto")
+env.Object("test.pb.c")
+
