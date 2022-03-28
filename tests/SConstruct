@@ -162,12 +162,13 @@ if not env.get('NODEFARGS'):
         
         # Debug info, warnings as errors
         env.Append(CFLAGS = '-g -Wall -Werror ')
-        env.Append(CORECFLAGS = '-Wextra')
+        env.Append(CORECFLAGS = '-Wextra ')
 
         # Pedantic ANSI C. On AVR this doesn't work because we use large
         # enums in some of the tests.
         if env.get("EMBEDDED") != "AVR":
-            env.Append(CFLAGS = '-ansi -pedantic')
+            env.Append(CFLAGS = '-ansi ')
+            env.Append(CORECFLAGS = '-pedantic ')
 
         # Profiling and coverage
         if not env.get("EMBEDDED"):

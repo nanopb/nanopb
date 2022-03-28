@@ -165,14 +165,17 @@ extern "C" {
 #    if defined(__ICCARM__)
        /* IAR has static_assert keyword but no _Static_assert */
 #      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
-#    elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-       /* C11 standard _Static_assert mechanism */
-#      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
-#    else
+#    elif defined(PB_C99_STATIC_ASSERT)
        /* Classic negative-size-array static assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
 #      define PB_STATIC_ASSERT_MSG(MSG, LINE, COUNTER) PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
 #      define PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER) pb_static_assertion_##MSG##_##LINE##_##COUNTER
+#    elif defined(__cplusplus)
+       /* C++11 standard static_assert mechanism */
+#      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
+#    else
+       /* C11 standard _Static_assert mechanism */
+#      define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
 #    endif
 #  endif
 #else

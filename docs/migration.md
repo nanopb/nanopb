@@ -31,6 +31,25 @@ as `:`.
 
 **Error indications:** "`protoc: Unknown flag: --nanopb_opt`"
 
+### `pb.h` uses C11 `_Static_assert` keyword by default
+
+**Rationale:** The nanopb generated headers use static assertions to catch
+errors at compile time. There are several mechanisms to implement this.
+The most widely supported is C11 `_Static_assert` keyword.
+Previously the code used negative size array definition trick, which is
+supported already in C99 but does not work with every compiler and can
+produce confusing error messages.
+
+**Changes:** Now `_Static_assert` is used by default. If preferred, the
+old default behavior can be restored by defining `PB_C99_STATIC_ASSERT`
+in `pb.h` or on compiler command line.
+
+**Required actions:** If the keyword is not recognized, set the compiler to
+C11 standard mode if available. If it is not available, define either `PB_C99_STATIC_ASSERT`
+or `PB_NO_STATIC_ASSERT`.
+
+**Error indications:** "`Undefined identifier _Static_assert`
+
 Nanopb-0.4.4 (2020-11-25)
 -------------------------
 
