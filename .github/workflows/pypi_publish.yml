@@ -34,7 +34,15 @@ jobs:
         run: |
           openssl sha256 nanopb/extra/poetry/dist/*.whl
       
+      - name: Run only if new changes
+        id: check_changes
+        uses: actions/cache@v1
+        with:
+          path: nanopb/extra/poetry/build
+          key: check-changes-${{ github.sha }}
+
       - name: Publish PyPI package
+        if: steps.check_changes.outputs.cache-hit != 'true'
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_KEY }}
           POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
