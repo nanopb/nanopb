@@ -258,17 +258,9 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     # We need to pass the path to the option files to the nanopb plugin. There are two ways to do it.
     # - An older hacky one using ':' as option separator in protoc args preventing the ':' to be used in path.
     # - Or a newer one, using --nanopb_opt which requires a version of protoc >= 3.6
-    # So we will determine which version of protoc we have available and choose accordingly.
-    execute_process(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --version OUTPUT_VARIABLE PROTOC_VERSION_STRING OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REGEX MATCH "[(0-9)].*.[(0-9)].*.[(0-9)].*" PROTOC_VERSION ${PROTOC_VERSION_STRING})
-
-    if(PROTOC_VERSION VERSION_LESS "3.6.0")
-        #try to use the older way
-        string(REGEX MATCH ":" HAS_COLON_IN_PATH ${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OUT})
-        if(HAS_COLON_IN_PATH)
-          message(FATAL_ERROR "Your path includes a ':' character used as an option separator for nanopb. Upgrade to protoc version >= 3.6.0 or use a different path.")
-        endif()
-        set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
+    # Since nanopb 0.4.6, --nanopb_opt is the default.
+    if(DEFINED NANOPB_PROTOC_OLDER_THAN_3_6_0)
+      set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
     else()
       set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${NANOPB_OUT}")
     endif()

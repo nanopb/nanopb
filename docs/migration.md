@@ -18,6 +18,19 @@ you certainly use the `#` preprocessor to convert it as string. You, now,
 only have to call it directly, like this for example:
 `strcpy(myvar, NANOPB_VERSION);`
 
+### FindNanopb.cmake now requires protoc 3.6.0 or newer by default
+
+**Changes:** The default options passing method now uses `--plugin-opt` which
+is supported by protoc 3.6.0 and newer (released in 2018).
+
+**Required actions:** Update `protoc` if needed, or alternatively install
+`grpcio-tools` package from `pip`. If neither is possible, the
+`NANOPB_PROTOC_OLDER_THAN_3_6_0` cmake option can be used to restore the old
+style option passing. Note that it has problems with special characters such
+as `:`.
+
+**Error indications:** "`protoc: Unknown flag: --nanopb_opt`"
+
 Nanopb-0.4.4 (2020-11-25)
 -------------------------
 
