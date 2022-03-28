@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# This file acts as a drop-in replacement of binary protoc.exe.
+# It will use either Python-based protoc from grpcio-tools package,
+# or if it is not available, protoc.exe from path if found.
 
 import sys
 import os
@@ -6,12 +9,20 @@ import os.path
 from nanopb_generator import invoke_protoc
 
 if __name__ == '__main__':
-    # Add argument so that protoc-gen-nanopb gets found
+    # Get path of the directory where this script is stored.
     if getattr(sys, 'frozen', False):
         mypath = os.path.dirname(sys.executable) # For pyInstaller
     else:
         mypath = os.path.dirname(__file__)
 
+    # Avoid recursive calls to self
+    env_paths = os.environ["PATH"].split(os.pathsep)
+    if mypath in env_paths:
+        env_paths.remove(mypath)
+        os.environ["PATH"] = os.pathsep.join(env_paths)
+
+    # Add argument for finding the nanopb generator when using --nanopb_out=
+    # argument to protoc.
     if os.path.isfile(os.path.join(mypath, "protoc-gen-nanopb.exe")):
         protoc_gen_nanopb = os.path.join(mypath, "protoc-gen-nanopb.exe")
     elif os.name == 'nt':
