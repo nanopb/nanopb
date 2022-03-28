@@ -1447,6 +1447,9 @@ class Message(ProtoElement):
                     raise Exception("Could not find enum type %s while generating default values for %s.\n" % (enumname, self.name)
                                     + "Try passing all source files to generator at once, or use -I option.")
 
+                if not isinstance(enumtype, Enum):
+                    raise Exception("Expected enum type as %s, got %s" % (enumname, repr(enumtype)))
+
                 if field.HasField('default_value'):
                     defvals = [v for n,v in enumtype.values if n.parts[-1] == field.default_value]
                 else:
@@ -1561,6 +1564,81 @@ def make_identifier(headername):
             result += '_'
     return result
 
+class MangleNames:
+    '''Handles conversion of type names according to mangle_names option:
+    M_NONE = 0; // Default, no typename mangling
+    M_STRIP_PACKAGE = 1; // Strip current package name
+    M_FLATTEN = 2; // Only use last path component
+    M_PACKAGE_INITIALS = 3; // Replace the package name by the initials
+    '''
+    def __init__(self, fdesc, file_options):
+        self.file_options = file_options
+        self.mangle_names = file_options.mangle_names
+        self.flatten = (self.mangle_names == nanopb_pb2.M_FLATTEN)
+        self.strip_prefix = None
+        self.replacement_prefix = None
+        self.name_mapping = {}
+        self.reverse_name_mapping = {}
+
+        if self.mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+            self.strip_prefix = "." + fdesc.package
+        elif self.mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
+            self.strip_prefix = "." + fdesc.package
+            self.replacement_prefix = ""
+            for part in fdesc.package.split("."):
+                self.replacement_prefix += part[0]
+        elif file_options.package:
+            self.strip_prefix = "." + fdesc.package
+            self.replacement_prefix = file_options.package
+
+        if self.replacement_prefix is not None:
+            self.base_name = Names(self.replacement_prefix.split('.'))
+        elif fdesc.package:
+            self.base_name = Names(fdesc.package.split('.'))
+        else:
+            self.base_name = Names()
+
+    def create_name(self, names):
+        '''Create name for a new message / enum.
+        Argument can be either string or Names instance.
+        '''
+        if str(names) not in self.name_mapping:
+            if self.mangle_names in (nanopb_pb2.M_NONE, nanopb_pb2.M_PACKAGE_INITIALS):
+                new_name = self.base_name + names
+            elif self.mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
+                new_name = Names(names)
+            elif isinstance(names, Names):
+                new_name = Names(names.parts[-1])
+            else:
+                new_name = Names(names)
+
+            if str(new_name) in self.reverse_name_mapping:
+                sys.stderr.write("Warning: Duplicate name with mangle_names=%s: %s and %s map to %s\n" %
+                    (self.mangle_names, self.reverse_name_mapping[str(new_name)], names, new_name))
+
+            self.name_mapping[str(names)] = new_name
+            self.reverse_name_mapping[str(new_name)] = names
+
+        return self.name_mapping[str(names)]
+
+    def mangle_field_typename(self, typename):
+        '''Mangle type name for a submessage / enum crossreference.
+        Argument is a string.
+        '''
+        if self.mangle_names == nanopb_pb2.M_FLATTEN:
+            return "." + typename.split(".")[-1]
+
+        if self.strip_prefix is not None and typename.startswith(self.strip_prefix):
+            if self.replacement_prefix is not None:
+                return "." + self.replacement_prefix + typename[len(self.strip_prefix):]
+            else:
+                return typename[len(self.strip_prefix):]
+
+        if self.file_options.package:
+            return "." + self.replacement_prefix + typename
+
+        return typename
+
 class ProtoFile:
     def __init__(self, fdesc, file_options):
         '''Takes a FileDescriptorProto and parses it.'''
@@ -1582,51 +1660,7 @@ class ProtoFile:
         self.enums = []
         self.messages = []
         self.extensions = []
-
-        mangle_names = self.file_options.mangle_names
-        flatten = mangle_names == nanopb_pb2.M_FLATTEN
-        strip_prefix = None
-        replacement_prefix = None
-        if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
-            strip_prefix = "." + self.fdesc.package
-        elif mangle_names == nanopb_pb2.M_PACKAGE_INITIALS:
-            strip_prefix = "." + self.fdesc.package
-            replacement_prefix = ""
-            for part in self.fdesc.package.split("."):
-                replacement_prefix += part[0]
-        elif self.file_options.package:
-            strip_prefix = "." + self.fdesc.package
-            replacement_prefix = self.file_options.package
-
-
-        def create_name(names):
-            if mangle_names in (nanopb_pb2.M_NONE, nanopb_pb2.M_PACKAGE_INITIALS):
-                return base_name + names
-            if mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
-                return Names(names)
-            single_name = names
-            if isinstance(names, Names):
-                single_name = names.parts[-1]
-            return Names(single_name)
-
-        def mangle_field_typename(typename):
-            if mangle_names == nanopb_pb2.M_FLATTEN:
-                return "." + typename.split(".")[-1]
-            if strip_prefix is not None and typename.startswith(strip_prefix):
-                if replacement_prefix is not None:
-                    return "." + replacement_prefix + typename[len(strip_prefix):]
-                else:
-                    return typename[len(strip_prefix):]
-            if self.file_options.package:
-                return "." + replacement_prefix + typename
-            return typename
-
-        if replacement_prefix is not None:
-            base_name = Names(replacement_prefix.split('.'))
-        elif self.fdesc.package:
-            base_name = Names(self.fdesc.package.split('.'))
-        else:
-            base_name = Names()
+        self.manglenames = MangleNames(self.fdesc, self.file_options)
 
         # process source code comment locations
         # ignores any locations that do not contain any comment information
@@ -1637,12 +1671,12 @@ class ProtoFile:
         }
 
         for index, enum in enumerate(self.fdesc.enum_type):
-            name = create_name(enum.name)
+            name = self.manglenames.create_name(enum.name)
             enum_options = get_nanopb_suboptions(enum, self.file_options, name)
             self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
 
-        for index, (names, message) in enumerate(iterate_messages(self.fdesc, flatten)):
-            name = create_name(names)
+        for index, (names, message) in enumerate(iterate_messages(self.fdesc, self.manglenames.flatten)):
+            name = self.manglenames.create_name(names)
             message_options = get_nanopb_suboptions(message, self.file_options, name)
 
             if message_options.skip_message:
@@ -1651,21 +1685,21 @@ class ProtoFile:
             message = copy.deepcopy(message)
             for field in message.field:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
-                    field.type_name = mangle_field_typename(field.type_name)
+                    field.type_name = self.manglenames.mangle_field_typename(field.type_name)
 
             self.messages.append(Message(name, message, message_options, index, self.comment_locations))
             for index, enum in enumerate(message.enum_type):
-                name = create_name(names + enum.name)
+                name = self.manglenames.create_name(names + enum.name)
                 enum_options = get_nanopb_suboptions(enum, message_options, name)
                 self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
 
-        for names, extension in iterate_extensions(self.fdesc, flatten):
-            name = create_name(names + extension.name)
+        for names, extension in iterate_extensions(self.fdesc, self.manglenames.flatten):
+            name = self.manglenames.create_name(names + extension.name)
             field_options = get_nanopb_suboptions(extension, self.file_options, name)
 
             extension = copy.deepcopy(extension)
             if extension.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
-                extension.type_name = mangle_field_typename(extension.type_name)
+                extension.type_name = self.manglenames.mangle_field_typename(extension.type_name)
 
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.extensions.append(ExtensionField(name, extension, field_options))
