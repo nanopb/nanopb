@@ -2056,9 +2056,9 @@ optparser.add_option("-S", "--source-extension", dest="source_extension", metava
     help="Set extension to use for generated source files. [default: %default]")
 optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
     help="Set name of a separate generator options file.")
-optparser.add_option("-I", "--options-path", dest="options_path", metavar="DIR",
+optparser.add_option("-I", "--options-path", "--proto-path", dest="options_path", metavar="DIR",
     action="append", default = [],
-    help="Search for .options files additionally in this path")
+    help="Search path for .options and .proto files. Also determines relative paths for output directory structure.")
 optparser.add_option("--error-on-unmatched", dest="error_on_unmatched", action="store_true", default=False,
                      help ="Stop generation if there are unmatched fields in options file")
 optparser.add_option("--no-error-on-unmatched", dest="error_on_unmatched", action="store_false", default=False,
