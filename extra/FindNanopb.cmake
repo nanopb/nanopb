@@ -273,6 +273,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
            -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
            ${NANOPB_OPT_STRING}
+           ${PROTOC_OPTIONS}
            ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
            ${ABS_OPT_FIL} ${NANOPB_DEPENDS}
