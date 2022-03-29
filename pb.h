@@ -52,6 +52,11 @@
  * Normally it is automatically detected based on __BYTE_ORDER__ macro. */
 /* #define PB_LITTLE_ENDIAN_8BIT 1 */
 
+/* Configure static assert mechanism. Instead of changing these, set your
+ * compiler to C11 standard mode if possible. */
+/* #define PB_C99_STATIC_ASSERT 1 */
+/* #define PB_NO_STATIC_ASSERT 1 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
@@ -183,7 +188,12 @@ extern "C" {
 #  define PB_STATIC_ASSERT(COND,MSG)
 #endif
 
-/* Test that PB_STATIC_ASSERT works */
+/* Test that PB_STATIC_ASSERT works
+ * If you get errors here, you may need to do one of these:
+ * - Enable C11 standard support in your compiler
+ * - Define PB_C99_STATIC_ASSERT to enable C99 standard support
+ * - Define PB_NO_STATIC_ASSERT to disable static asserts altogether
+ */
 PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 
 /* Number of required fields to keep track of. */
