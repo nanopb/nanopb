@@ -25,6 +25,7 @@
 #                                     under build directory, instead of mirroring
 #                                     relative paths of source directories.
 #                                     Set to FALSE if you want to disable this behaviour.
+#   PROTOC_OPTIONS           - Pass options to protoc executable 
 #
 # Defines the following variables:
 #
