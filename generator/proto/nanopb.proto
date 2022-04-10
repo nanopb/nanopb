@@ -152,7 +152,7 @@ message NanoPBOptions {
   // that can become a static member of a c struct (e.g. int, bool, etc) will be a
   // a static field. Fields with dynamic length are converted, to either a pointer or a callback.
   // this defines wether it becomes a pointer or a callback.
-  optional FieldType fallback_type = 29; 
+  optional FieldType fallback_type = 29 [default = FT_CALLBACK]; 
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options
