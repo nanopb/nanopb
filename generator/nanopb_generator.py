@@ -554,7 +554,7 @@ class Field:
             if can_be_static:
                 field_options.type = nanopb_pb2.FT_STATIC
             else:
-                field_options.type = nanopb_pb2.FT_CALLBACK
+                field_options.type = field_options.fallback_type
 
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
