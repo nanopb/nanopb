@@ -198,7 +198,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     get_filename_component(FIL_WE ${FIL} NAME_WLE)
-    get_filename_component(FIL_DIR ${FIL} PATH)
+    get_filename_component(FIL_DIR ${ABS_FIL} PATH)
     set(FIL_PATH_REL)
     if(ABS_ROOT)
       # Check that the file is under the given "RELPATH"
