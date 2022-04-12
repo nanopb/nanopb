@@ -1,0 +1,7 @@
+# Test comment inclusion from .proto to .pb.h
+
+Import("env")
+
+env.NanopbProto("fallback_type")
+env.Object("fallback_type.pb.c")
+env.Match(['fallback_type.pb.h', 'fallback_type.expected'])
