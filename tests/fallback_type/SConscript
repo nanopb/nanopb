@@ -1,6 +1,8 @@
-# Test comment inclusion from .proto to .pb.h
+# Test fallback type
 
 Import("env")
+env['NANOPB_GENERATOR'] = env['NANOPB_GENERATOR'] + "-Xsfallback_type:FT_POINTER"
+env.SetDefault(PROTOCFLAGS = "--plugin=protoc-gen-nanopb=foo")
 
 env.NanopbProto("fallback_type")
 env.Object("fallback_type.pb.c")
