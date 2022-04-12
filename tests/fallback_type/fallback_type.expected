@@ -1,2 +1,2 @@
 int32_t member1;
-pb_callback_t member2;
+char \*member2

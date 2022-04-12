@@ -4,6 +4,6 @@ Import("env")
 env['NANOPB_GENERATOR'] = env['NANOPB_GENERATOR'] + "-Xsfallback_type:FT_POINTER"
 env.SetDefault(PROTOCFLAGS = "--plugin=protoc-gen-nanopb=foo")
 
-env.NanopbProto("fallback_type")
+env.NanopbProto(["fallback_type","fallback_type.options"])
 env.Object("fallback_type.pb.c")
 env.Match(['fallback_type.pb.h', 'fallback_type.expected'])
