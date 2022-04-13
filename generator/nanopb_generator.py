@@ -488,7 +488,7 @@ class Field:
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
-
+        
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
             # by setting type to FT_INLINE. But to handle pointer typed fields,
@@ -554,7 +554,7 @@ class Field:
             if can_be_static:
                 field_options.type = nanopb_pb2.FT_STATIC
             else:
-                field_options.type = nanopb_pb2.FT_CALLBACK
+                field_options.type = field_options.fallback_type
 
         if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "

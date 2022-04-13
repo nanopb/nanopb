@@ -1,0 +1,8 @@
+syntax = "proto2";
+
+message Message1
+{
+  required int32 member1 = 1; // must remain as int
+  required string member2 = 2; // must become a pointer
+}
+

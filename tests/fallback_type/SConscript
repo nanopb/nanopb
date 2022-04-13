@@ -1,0 +1,11 @@
+# Test fallback type
+
+Import("env")
+# the scons version on ubuntu honours this env - debians version does not
+# env['NANOPB_GENERATOR'] = env['NANOPB_GENERATOR'] + "-sfallback_type:FT_POINTER"
+# env.SetDefault(PROTOCFLAGS = "--plugin=protoc-gen-nanopb=foo")
+
+# so we also use an options file:
+env.NanopbProto(["fallback_type","fallback_type.options"])
+env.Object("fallback_type.pb.c")
+env.Match(['fallback_type.pb.h', 'fallback_type.expected'])
