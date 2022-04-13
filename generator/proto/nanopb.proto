@@ -148,10 +148,10 @@ message NanoPBOptions {
   // The default value will probably change to false in nanopb-0.5.0.
   optional bool sort_by_tag = 28 [default = true];
 
-  // this affects the FT_DEFAULT (the default) field conversion strategy. A field
-  // that can become a static member of a c struct (e.g. int, bool, etc) will be a
-  // a static field. Fields with dynamic length are converted, to either a pointer or a callback.
-  // this defines wether it becomes a pointer or a callback.
+  // Set the FT_DEFAULT field conversion strategy.
+  // A field that can become a static member of a c struct (e.g. int, bool, etc)
+  // will be a a static field.
+  // Fields with dynamic length are converted to either a pointer or a callback.
   optional FieldType fallback_type = 29 [default = FT_CALLBACK]; 
 }
 
