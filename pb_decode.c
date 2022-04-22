@@ -1222,7 +1222,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
         
         if (pItem)
         {
-            while (count--)
+            for (; count > 0; count--)
             {
                 pb_release((const pb_field_t*)iter->pos->ptr, pItem);
                 pItem = (char*)pItem + iter->pos->data_size;
@@ -1239,7 +1239,7 @@ static void pb_release_single_field(const pb_field_iter_t *iter)
             /* Release entries in repeated string or bytes array */
             void **pItem = *(void***)iter->pData;
             pb_size_t count = *(pb_size_t*)iter->pSize;
-            while (count--)
+            for (; count > 0; count--)
             {
                 pb_free(*pItem);
                 *pItem++ = NULL;
