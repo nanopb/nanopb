@@ -1,3 +1,10 @@
+nanopb-0.3.9.9 (2022-04-23)
+ Fix Xcode analyzer warnings (#667, #674)
+ Fix clang sanitizer warnings
+
+Note: there are no known functional differences between 0.3.9.8 and 0.3.9.9.
+The changes are merely to fix warnings introduced by new compiler versions.
+
 nanopb-0.3.9.8 (2021-03-22)
  Fix invalid free() with oneof (#647, GHSA-7mv5-5mxh-qg88)
  Don't generate lines with trailing spaces (#622)
