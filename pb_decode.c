@@ -761,7 +761,10 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
         {
             prev_bytes_left = substream.bytes_left;
             if (!field->descriptor->field_callback(&substream, NULL, field))
-                PB_RETURN_ERROR(stream, "callback failed");
+            {
+                PB_SET_ERROR(stream, substream.errmsg ? substream.errmsg : "callback failed");
+                return false;
+            }
         } while (substream.bytes_left > 0 && substream.bytes_left < prev_bytes_left);
         
         if (!pb_close_string_substream(stream, &substream))
