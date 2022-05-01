@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
         filename = argv[2];
     }
     
-    elf_firmware_t firmware;
+    elf_firmware_t firmware = {};
     elf_read_firmware(filename, &firmware);
     avr_init(g_avr);
 	avr_load_firmware(g_avr, &firmware);
