@@ -15,3 +15,15 @@ enum Enum1
     ENUMVAL1 = 1;
     ENUMVAL2 = 2; // TrailingEnumComment
 }
+
+message Message2
+{
+    required string m2member1 = 1; // m2comment1
+    required string m2member50 = 50; // m2comment50
+    required string m2member4 = 4; // m2comment4
+
+    oneof m2oneof {
+        int32 m2oneof10 = 10; // m2oneof10_comment
+        int32 m2oneof5 = 5; // m2oneof5_comment
+    }
+}

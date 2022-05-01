@@ -278,56 +278,42 @@ class EncodedSize:
         else:
             return 2**32 - 1
 
-
-'''
-Constants regarding path of proto elements in file descriptor.
-They are used to connect proto elements with source code information (comments)
-These values come from:
-    https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto
-'''
-MESSAGE_PATH = 4
-ENUM_PATH = 5
-FIELD_PATH = 2
-
-
 class ProtoElement(object):
-    def __init__(self, path, index, comments):
+    # Constants regarding path of proto elements in file descriptor.
+    # They are used to connect proto elements with source code information (comments)
+    # These values come from:
+    # https://github.com/google/protobuf/blob/master/src/google/protobuf/descriptor.proto
+    FIELD = 2
+    MESSAGE = 4
+    ENUM = 5
+
+    def __init__(self, element_type, index, comments = None, parent = ()):
         '''
-        path is a predefined value for each element type in proto file.
+        element_type is a predefined value for each element type in proto file.
             For example, message == 4, enum == 5, service == 6
         index is the N-th occurrence of the `path` in the proto file.
             For example, 4-th message in the proto file or 2-nd enum etc ...
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments).
         '''
-        self.path = path
-        self.index = index
-        self.comments = comments
+        self.element_path = parent + (element_type, index)
+        self.comments = comments or {}
 
-    def element_path(self):
-        '''Get path to proto element.'''
-        return [self.path, self.index]
+    def get_member_comments(self, index):
+        '''Get comments for a member of enum or message.'''
+        return self.get_comments((ProtoElement.FIELD, index), leading_indent = True)
 
-    def member_path(self, member_index):
-        '''Get path to member of proto element.
-        Example paths:
-        [4, m] - message comments, m: msgIdx in proto from 0
-        [4, m, 2, f] - field comments in message, f: fieldIdx in message from 0
-        [6, s] - service comments, s: svcIdx in proto from 0
-        [6, s, 2, r] - rpc comments in service, r: rpc method def in service from 0
-        '''
-        return self.element_path() + [FIELD_PATH, member_index]
+    def get_comments(self, member_path = (), leading_indent = False):
+        '''Get leading & trailing comments for a protobuf element.
 
-    def get_comments(self, path, leading_indent=True):
-        '''Get leading & trailing comments for enum member based on path.
-
-        path is the proto path of an element or member (ex. [5 0] or [4 1 2 0])
+        member_path is the proto path of an element or member (ex. [5 0] or [4 1 2 0])
         leading_indent is a flag that indicates if leading comments should be indented
         '''
 
         # Obtain SourceCodeInfo.Location object containing comment
         # information (based on the member path)
-        comment = self.comments.get(str(path))
+        path = self.element_path + member_path
+        comment = self.comments.get(path)
 
         leading_comment = ""
         trailing_comment = ""
@@ -353,7 +339,7 @@ class Enum(ProtoElement):
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments)
         '''
-        super(Enum, self).__init__(ENUM_PATH, index, comments)
+        super(Enum, self).__init__(ProtoElement.ENUM, index, comments)
 
         self.options = enum_options
         self.names = names
@@ -379,8 +365,7 @@ class Enum(ProtoElement):
         return max([varint_max_size(v) for n,v in self.values])
 
     def __str__(self):
-        enum_path = self.element_path()
-        leading_comment, trailing_comment = self.get_comments(enum_path, leading_indent=False)
+        leading_comment, trailing_comment = self.get_comments()
 
         result = ''
         if leading_comment:
@@ -391,8 +376,7 @@ class Enum(ProtoElement):
         enum_length = len(self.values)
         enum_values = []
         for index, (name, value) in enumerate(self.values):
-            member_path = self.member_path(index)
-            leading_comment, trailing_comment = self.get_comments(member_path)
+            leading_comment, trailing_comment = self.get_member_comments(index)
 
             if leading_comment:
                 enum_values.append(leading_comment)
@@ -467,12 +451,13 @@ class FieldMaxSize:
 
         self.checks.extend(extend.checks)
 
-class Field:
+class Field(ProtoElement):
     macro_x_param = 'X'
     macro_a_param = 'a'
 
-    def __init__(self, struct_name, desc, field_options):
+    def __init__(self, struct_name, desc, field_options, parent_path = (), index = None, comments = None):
         '''desc is FieldDescriptorProto'''
+        ProtoElement.__init__(self, ProtoElement.FIELD, index, comments, parent_path)
         self.tag = desc.number
         self.struct_name = struct_name
         self.union_name = None
@@ -485,6 +470,7 @@ class Field:
         self.data_item_size = None
         self.ctype = None
         self.fixed_count = False
+        self.index = index
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
@@ -662,6 +648,11 @@ class Field:
             elif self.rules == 'REPEATED':
                 result += '    pb_size_t ' + self.name + '_count;\n'
             result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
+
+        leading_comment, trailing_comment = self.get_comments(leading_indent = True)
+        if leading_comment: result = leading_comment + "\n" + result
+        if trailing_comment: result = result + " " + trailing_comment
+
         return result
 
     def types(self):
@@ -1029,6 +1020,7 @@ class OneOf(Field):
         self.allocation = 'ONEOF'
         self.default = None
         self.rules = 'ONEOF'
+        self.index = None
         self.anonymous = oneof_options.anonymous_oneof
         self.sort_by_tag = oneof_options.sort_by_tag
         self.has_msg_cb = False
@@ -1132,7 +1124,7 @@ class OneOf(Field):
 
 class Message(ProtoElement):
     def __init__(self, names, desc, message_options, index, comments):
-        super(Message, self).__init__(MESSAGE_PATH, index, comments)
+        super(Message, self).__init__(ProtoElement.MESSAGE, index, comments)
         self.name = names
         self.fields = []
         self.oneofs = {}
@@ -1174,7 +1166,7 @@ class Message(ProtoElement):
         else:
             sys.stderr.write('Note: This Python protobuf library has no OneOf support\n')
 
-        for f in desc.field:
+        for index, f in enumerate(desc.field):
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
             if field_options.type == nanopb_pb2.FT_IGNORE:
                 continue
@@ -1182,7 +1174,7 @@ class Message(ProtoElement):
             if field_options.descriptorsize > self.descriptorsize:
                 self.descriptorsize = field_options.descriptorsize
 
-            field = Field(self.name, f, field_options)
+            field = Field(self.name, f, field_options, self.element_path, index, self.comments)
             if hasattr(f, 'oneof_index') and f.HasField('oneof_index'):
                 if hasattr(f, 'proto3_optional') and f.proto3_optional:
                     no_unions.append(f.oneof_index)
@@ -1217,8 +1209,7 @@ class Message(ProtoElement):
         return deps
 
     def __str__(self):
-        message_path = self.element_path()
-        leading_comment, trailing_comment = self.get_comments(message_path, leading_indent=False)
+        leading_comment, trailing_comment = self.get_comments()
 
         result = ''
         if leading_comment:
@@ -1231,17 +1222,7 @@ class Message(ProtoElement):
             # Therefore add a dummy field if an empty message occurs.
             result += '    char dummy_field;'
 
-        msg_fields = []
-        for index, field in enumerate(self.fields):
-            member_path = self.member_path(index)
-            leading_comment, trailing_comment = self.get_comments(member_path)
-
-            if leading_comment:
-                msg_fields.append(leading_comment)
-
-            msg_fields.append("%s %s" % (str(field), trailing_comment))
-
-        result += '\n'.join(msg_fields)
+        result += '\n'.join([str(f) for f in self.fields])
 
         if Globals.protoc_insertion_points:
             result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
@@ -1665,7 +1646,7 @@ class ProtoFile:
         # process source code comment locations
         # ignores any locations that do not contain any comment information
         self.comment_locations = {
-            str(list(location.path)): location
+            tuple(location.path): location
             for location in self.fdesc.source_code_info.location
             if location.leading_comments or location.leading_detached_comments or location.trailing_comments
         }

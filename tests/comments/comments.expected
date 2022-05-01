@@ -3,4 +3,8 @@ LeadingEnumComment
 ENUMVAL2.*TrailingEnumComment
 Message1Comment
 member2.*TrailingMemberComment
-
+m2member1.*m2comment1
+m2member50.*m2comment50
+m2member4.*m2comment4
+m2oneof10.*m2oneof10_comment
+m2oneof5.*m2oneof5_comment
