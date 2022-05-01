@@ -32,6 +32,9 @@ else
 endif
 
 # Rule for building .pb.c and .pb.h
-%.pb.c %.pb.h: %.proto $(wildcard %.options)
+%.pb.c %.pb.h: %.proto %.options
+	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $<
+
+%.pb.c %.pb.h: %.proto
 	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $<
 
