@@ -46,3 +46,13 @@ malloc_env.Depends("$NANOPB/pb.h", ["malloc_wrappers_syshdr.h", "malloc_wrappers
 
 Export("malloc_env")
 
+custom_malloc_env = malloc_env.Clone()
+# custom_malloc_env.Append(CFLAGS = malloc_env['CORECFLAGS'])
+custom_malloc_env.Object("pb_decode_with_custom_malloc.o", "$NANOPB/pb_decode.c")
+custom_malloc_env.Object("pb_encode_with_custom_malloc.o", "$NANOPB/pb_encode.c")
+custom_malloc_env.Object("pb_common_with_custom_malloc.o", "$NANOPB/pb_common.c")
+custom_malloc_env.Append(CPPDEFINES = {'PB_ENABLE_MALLOC_CONTEXT': 1,
+                                'MALLOC_DEBUG': 1,
+				})
+
+Export("custom_malloc_env")

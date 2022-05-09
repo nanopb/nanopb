@@ -11,6 +11,7 @@ The following options can be specified in one of two ways:
 includes nanopb headers.
 
 * `PB_ENABLE_MALLOC`: Enable dynamic allocation support in the decoder.
+* `PB_ENABLE_MALLOC_CONTEXT`: Enable dynamic allocation support in the decoder using a function pointer in istream instead of library function realloc()
 * `PB_MAX_REQUIRED_FIELDS`: Maximum number of proto2 `required` fields to check for presence. Default value is 64. Compiler warning will tell if you need this.
 * `PB_FIELD_32BIT`: Add support for field tag numbers over 65535, fields larger than 64 kiB and arrays larger than 65535 entries. Compiler warning will tell if you need this.
 * `PB_NO_ERRMSG`: Disable error message support to save code size. Only error information is the `true`/`false` return value.

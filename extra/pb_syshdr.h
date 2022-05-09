@@ -62,7 +62,7 @@ typedef int bool;
 #endif
 
 /* stdlib.h subset */
-#ifdef PB_ENABLE_MALLOC
+#if defined(PB_ENABLE_MALLOC) || defined(PB_ENABLE_MALLOC_CONTEXT)
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #else

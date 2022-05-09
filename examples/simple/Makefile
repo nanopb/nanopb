@@ -12,9 +12,11 @@ CSRC += $(NANOPB_DIR)/pb_encode.c  # The nanopb encoder
 CSRC += $(NANOPB_DIR)/pb_decode.c  # The nanopb decoder
 CSRC += $(NANOPB_DIR)/pb_common.c  # The nanopb common parts
 
+# this is an example - rebuild it every time
+.PHONY: simple
 # Build rule for the main program
 simple: $(CSRC)
-	$(CC) $(CFLAGS) -osimple $(CSRC)
+	$(CC) -DDEBUG_MALLOC -DPB_ENABLE_MALLOC_CONTEXT $(CFLAGS) -osimple $(CSRC)
 
 # Build rule for the protocol
 simple.pb.c: simple.proto

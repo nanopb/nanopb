@@ -87,7 +87,7 @@
 #include <string.h>
 #include <limits.h>
 
-#ifdef PB_ENABLE_MALLOC
+#if defined(PB_ENABLE_MALLOC) || defined(PB_ENABLE_MALLOC_CONTEXT)
 #include <stdlib.h>
 #endif
 #endif
@@ -470,7 +470,7 @@ struct pb_extension_s {
 
 /* Memory allocation functions to use. You can define pb_realloc and
  * pb_free to custom functions if you want. */
-#ifdef PB_ENABLE_MALLOC
+#if defined(PB_ENABLE_MALLOC) || defined(PB_ENABLE_MALLOC_CONTEXT)
 #   ifndef pb_realloc
 #       define pb_realloc(ptr, size) realloc(ptr, size)
 #   endif

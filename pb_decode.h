@@ -43,6 +43,10 @@ struct pb_istream_s
 #ifndef PB_NO_ERRMSG
     const char *errmsg;
 #endif
+  #ifdef PB_ENABLE_MALLOC_CONTEXT
+  /* Note: we do not need a corresponding free() here, because we can (and do) call realloc with size==0 to free memory. */
+  void *(*realloc)(pb_istream_t *stream,void *ptr, size_t size);
+  #endif
 };
 
 #ifndef PB_NO_ERRMSG
@@ -107,7 +111,7 @@ bool pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_s
 #define pb_decode_delimited_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED | PB_DECODE_NOINIT)
 #define pb_decode_nullterminated(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NULLTERMINATED)
 
-#ifdef PB_ENABLE_MALLOC
+#if defined(PB_ENABLE_MALLOC) || defined(PB_ENABLE_MALLOC_CONTEXT)
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If
  * pb_decode() returns with an error, the message is already released.
