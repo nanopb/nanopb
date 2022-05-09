@@ -601,7 +601,7 @@ static bool checkreturn allocate_field(pb_istream_t *stream, void *pData, size_t
       ptr = stream->realloc(stream,ptr, array_size * data_size);
     }
     #else
-    ptr = pb_realloc(ptr, array_size * data_size);
+      ptr = pb_realloc(ptr, array_size * data_size);
     #endif
     if (ptr == NULL)
         PB_RETURN_ERROR(stream, "realloc failed");
