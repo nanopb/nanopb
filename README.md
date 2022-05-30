@@ -11,9 +11,9 @@ restricted system.
 * **Homepage:** https://jpa.kapsi.fi/nanopb/
 * **Git repository:** https://github.com/nanopb/nanopb/
 * **Documentation:** https://jpa.kapsi.fi/nanopb/docs/
-* **Downloads:** https://jpa.kapsi.fi/nanopb/download/
 * **Forum:** https://groups.google.com/forum/#!forum/nanopb
-* **Latest binary packages:** https://github.com/nanopb/nanopb/actions/workflows/trigger_on_code_change.yml
+* **Stable version downloads:** https://jpa.kapsi.fi/nanopb/download/
+* **Pre-release binary packages:** https://github.com/nanopb/nanopb/actions/workflows/binary_packages.yml
 
 
 Using the nanopb library

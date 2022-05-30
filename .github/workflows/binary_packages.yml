@@ -3,6 +3,11 @@ name: Build binary packages
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    branches:
+        - 'master'
+    tags:
+        - '*'
 
 jobs:
   build_linux:
