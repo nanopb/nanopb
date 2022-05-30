@@ -98,3 +98,19 @@ leabut <leabut@users.noreply.github.com>
 Angel ILIEV <a.v.iliev13@gmail.com>
 Jakub Tymejczyk <jakub@tymejczyk.pl>
 Matthew Simmons <simmonmt@acm.org>
+Anthony Pesch <inolen@gmail.com>
+Avik De <avikde@gmail.com>
+ConradWood <github@conradwood.net>
+David Sabatie <david.sabatie@notrenet.com>
+Sebastian Stockhammer <sebastian.stockhammer@rosenberger.de>
+Gil Shapira <gil.shapira@intusurg.com>
+Ian Frosst <ianjfrosst@gmail.com>
+Ingo Kresse <ingo.kresse@kuka.com>
+Ivan Zrno <ivan.zrno2@gmail.com>
+Jonathan Seilkopf <j.seilkopf@isatech.de>
+Karl Ljungkvist <k.ljungkvist@gmail.com>
+Mathis Logemann <mathisloge@gmail.com>
+Oleg Dolgy <60554929+odolgy@users.noreply.github.com>
+Pavel Sokolov <pavel@sokolov.me>
+Slavey Karadzhov <slav@attachix.com>
+Tobias Nießen <tniessen@tnie.de>

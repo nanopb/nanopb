@@ -1,3 +1,44 @@
+nanopb-0.4.6 (2022-05-30)
+ Fix passing of error message from substream callback (#703)
+ Fix comments going to wrong member variables (#701)
+ Fix regression in 0.4.3 where generator did not find all dependencies (#720)
+ Fix FindNanopb.cmake not finding options file (#659)
+ Fix double-definition errors with size_union (#692)
+ Fix generator error with same inner message name (#746)
+ Fix infinite recursion in generator/protoc script (#762)
+ Fix unicode comment handling for Python 2 (#740)
+ Fix compiler warnings with PB_BUFFER_ONLY (#717)
+ Fix options dependency in nanopb.mk (#666)
+ Fix handling of filenames with dot in them in FindNanopb.cmake (#756)
+ Add fallback_type option (#772, #773)
+ Use C11 static assert mechanism by default (#761, #766)
+ Use 'static_assert'  keyword for iar (#679)
+ Explicitly check for pItem == NULL to satisfy Xcode analyzer (#667, #674)
+ Support --proto-path as alias to -I (#749)
+ Refactor name mangling to separate class, improve error messages (#735)
+ Move PB_WT_PACKED definition to the header to fix compiler warnings (#671)
+ FindNanopb.cmake: use --nanopb_opt for option passing by default (#752)
+ FindNanopb.cmake: Add option NANOPB_GENERATE_CPP_STANDALONE (#741)
+ FindNanopb.cmake: Add PROTOC_OPTIONS variable (#768, #771)
+ CMakeLists: add build interface for using as a submodule (#669)
+ CMakeLists: fix error with nanopb_BUILD_GENERATOR=OFF (#764)
+ CMakeLists: make more uniform (#676)
+ CMakeLists: Fix uninitialized PYTHON_INSTDIR (#652)
+ Clean up CMake examples (#741)
+ Rebuild nanopb_pb2.py and print version numbers on import failure (#733, #742)
+ Use memcpy instead of iterating on buf_read/write (#751)
+ Add generator support for PlatformIO (#718)
+ Add clean target to generator/proto/Makefile (#681)
+ Windows .bats: use standard python invocation instead of py.exe launcher (#657)
+ Fix problems running tests with newer SCons version
+ Improve handling of varint overflows
+ Improve optimization for little-endian platforms
+
+NOTE: During development, prereleases were published on platform.io registry
+as versions 0.4.6 - 0.4.6.3. The version 0.4.6.4 on platform.io corresponds
+to the real final 0.4.6 release.
+
+
 nanopb-0.4.5 (2021-03-22)
  Fix invalid free() with oneof (#647, GHSA-7mv5-5mxh-qg88)
  Fix unordered field numbers inside oneof causing fields to be ignored (#617)

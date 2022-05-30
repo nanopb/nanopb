@@ -6,10 +6,10 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
-Nanopb-0.4.6 (to come)
+Nanopb-0.4.6 (2022-05-30)
 -------------------------
 
-### `NANOPB_VERSION` define is now a string
+### NANOPB_VERSION define is now a string
 
 **Changes:** To ease `NANOPB_VERSION` macro usage, the value is directly a string.
 
@@ -31,7 +31,7 @@ as `:`.
 
 **Error indications:** "`protoc: Unknown flag: --nanopb_opt`"
 
-### `pb.h` uses C11 `_Static_assert` keyword by default
+### pb.h uses C11 _Static_assert keyword by default
 
 **Rationale:** The nanopb generated headers use static assertions to catch
 errors at compile time. There are several mechanisms to implement this.
@@ -46,7 +46,7 @@ produce confusing error messages.
 C11 standard mode if available. If it is not available, define either `PB_C99_STATIC_ASSERT`
 or `PB_NO_STATIC_ASSERT` in `pb.h` or on compiler command line.
 
-**Error indications:** "`Undefined identifier _Static_assert`
+**Error indications:** `Undefined identifier _Static_assert`
 
 Nanopb-0.4.4 (2020-11-25)
 -------------------------
