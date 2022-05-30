@@ -1,4 +1,4 @@
-PROTOC?=protoc
+PROTOC?=../protoc
 
 all: nanopb_pb2.py
 
