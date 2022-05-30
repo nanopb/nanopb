@@ -38,9 +38,9 @@ jobs:
         run: |
           VERSION=$(grep "^version =" nanopb/extra/poetry/build/pyproject.toml | cut -d '"' -f 2)
           if curl --head --silent --fail https://pypi.org/project/nanopb/$VERSION/; then
-            echo "::set-env pypi_exists::true"
+            echo "pypi_exists=true" >> $GITHUB_ENV
           else
-            echo "::set-env pypi_exists::false"
+            echo "pypi_exists=false" >> $GITHUB_ENV
           fi
 
       - name: Publish PyPI package
