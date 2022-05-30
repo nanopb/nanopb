@@ -34,15 +34,17 @@ jobs:
         run: |
           openssl sha256 nanopb/extra/poetry/dist/*.whl
       
-      - name: Run only if new changes
-        id: check_changes
-        uses: actions/cache@v1
-        with:
-          path: nanopb/extra/poetry/build
-          key: check-changes-${{ github.sha }}
+      - name: Check for existence of PyPI package
+        run: |
+          VERSION=$(grep "^version =" nanopb/extra/poetry/build/pyproject.toml | cut -d '"' -f 2)
+          if curl --head --silent --fail https://pypi.org/project/nanopb/$VERSION/; then
+            echo "::set-env pypi_exists::true"
+          else
+            echo "::set-env pypi_exists::false"
+          fi
 
       - name: Publish PyPI package
-        if: steps.check_changes.outputs.cache-hit != 'true'
+        if: env.pypi_exists == 'false'
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_KEY }}
           POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
