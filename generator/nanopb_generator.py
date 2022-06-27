@@ -286,17 +286,17 @@ class ProtoElement(object):
     FIELD = 2
     MESSAGE = 4
     ENUM = 5
+    NESTED_TYPE = 3
+    NESTED_ENUM = 4
 
-    def __init__(self, element_type, index, comments = None, parent = ()):
+    def __init__(self, path, comments = None):
         '''
-        element_type is a predefined value for each element type in proto file.
-            For example, message == 4, enum == 5, service == 6
-        index is the N-th occurrence of the `path` in the proto file.
-            For example, 4-th message in the proto file or 2-nd enum etc ...
+        path is a tuple containing integers (type, index, ...)
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments).
         '''
-        self.element_path = parent + (element_type, index)
+        assert(isinstance(path, tuple))
+        self.element_path = path
         self.comments = comments or {}
 
     def get_member_comments(self, index):
@@ -332,14 +332,14 @@ class ProtoElement(object):
 
 
 class Enum(ProtoElement):
-    def __init__(self, names, desc, enum_options, index, comments):
+    def __init__(self, names, desc, enum_options, element_path, comments):
         '''
         desc is EnumDescriptorProto
         index is the index of this enum element inside the file
         comments is a dictionary mapping between element path & SourceCodeInfo.Location
             (contains information about source comments)
         '''
-        super(Enum, self).__init__(ProtoElement.ENUM, index, comments)
+        super(Enum, self).__init__(element_path, comments)
 
         self.options = enum_options
         self.names = names
@@ -455,9 +455,9 @@ class Field(ProtoElement):
     macro_x_param = 'X'
     macro_a_param = 'a'
 
-    def __init__(self, struct_name, desc, field_options, parent_path = (), index = None, comments = None):
+    def __init__(self, struct_name, desc, field_options, element_path = (), comments = None):
         '''desc is FieldDescriptorProto'''
-        ProtoElement.__init__(self, ProtoElement.FIELD, index, comments, parent_path)
+        ProtoElement.__init__(self, element_path, comments)
         self.tag = desc.number
         self.struct_name = struct_name
         self.union_name = None
@@ -470,7 +470,6 @@ class Field(ProtoElement):
         self.data_item_size = None
         self.ctype = None
         self.fixed_count = False
-        self.index = index
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
@@ -968,8 +967,8 @@ class ExtensionField(Field):
         else:
             self.skip = False
             self.rules = 'REQUIRED' # We don't really want the has_field for extensions
-            # currently no support for comments for extension fields => provide 0, {}
-            self.msg = Message(self.fullname + "extmsg", None, field_options, 0, {})
+            # currently no support for comments for extension fields => provide (), {}
+            self.msg = Message(self.fullname + "extmsg", None, field_options, (), {})
             self.msg.fields.append(self)
 
     def tags(self):
@@ -1020,7 +1019,6 @@ class OneOf(Field):
         self.allocation = 'ONEOF'
         self.default = None
         self.rules = 'ONEOF'
-        self.index = None
         self.anonymous = oneof_options.anonymous_oneof
         self.sort_by_tag = oneof_options.sort_by_tag
         self.has_msg_cb = False
@@ -1123,8 +1121,8 @@ class OneOf(Field):
 
 
 class Message(ProtoElement):
-    def __init__(self, names, desc, message_options, index, comments):
-        super(Message, self).__init__(ProtoElement.MESSAGE, index, comments)
+    def __init__(self, names, desc, message_options, element_path, comments):
+        super(Message, self).__init__(element_path, comments)
         self.name = names
         self.fields = []
         self.oneofs = {}
@@ -1174,7 +1172,7 @@ class Message(ProtoElement):
             if field_options.descriptorsize > self.descriptorsize:
                 self.descriptorsize = field_options.descriptorsize
 
-            field = Field(self.name, f, field_options, self.element_path, index, self.comments)
+            field = Field(self.name, f, field_options, self.element_path + (ProtoElement.FIELD, index), self.comments)
             if hasattr(f, 'oneof_index') and f.HasField('oneof_index'):
                 if hasattr(f, 'proto3_optional') and f.proto3_optional:
                     no_unions.append(f.oneof_index)
@@ -1476,21 +1474,24 @@ class Message(ProtoElement):
 #                    Processing of entire .proto files
 # ---------------------------------------------------------------------------
 
-def iterate_messages(desc, flatten = False, names = Names()):
-    '''Recursively find all messages. For each, yield name, DescriptorProto.'''
+def iterate_messages(desc, flatten = False, names = Names(), comment_path = ()):
+    '''Recursively find all messages. For each, yield name, DescriptorProto, comment_path.'''
     if hasattr(desc, 'message_type'):
         submsgs = desc.message_type
+        comment_path += (ProtoElement.MESSAGE,)
     else:
         submsgs = desc.nested_type
+        comment_path += (ProtoElement.NESTED_TYPE,)
 
-    for submsg in submsgs:
+    for idx, submsg in enumerate(submsgs):
         sub_names = names + submsg.name
+        sub_path = comment_path + (idx,)
         if flatten:
-            yield Names(submsg.name), submsg
+            yield Names(submsg.name), submsg, sub_path
         else:
-            yield sub_names, submsg
+            yield sub_names, submsg, sub_path
 
-        for x in iterate_messages(submsg, flatten, sub_names):
+        for x in iterate_messages(submsg, flatten, sub_names, sub_path):
             yield x
 
 def iterate_extensions(desc, flatten = False, names = Names()):
@@ -1500,7 +1501,7 @@ def iterate_extensions(desc, flatten = False, names = Names()):
     for extension in desc.extension:
         yield names, extension
 
-    for subname, subdesc in iterate_messages(desc, flatten, names):
+    for subname, subdesc, comment_path in iterate_messages(desc, flatten, names):
         for extension in subdesc.extension:
             yield subname, extension
 
@@ -1654,9 +1655,10 @@ class ProtoFile:
         for index, enum in enumerate(self.fdesc.enum_type):
             name = self.manglenames.create_name(enum.name)
             enum_options = get_nanopb_suboptions(enum, self.file_options, name)
-            self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
+            enum_path = (ProtoElement.ENUM, index)
+            self.enums.append(Enum(name, enum, enum_options, enum_path, self.comment_locations))
 
-        for index, (names, message) in enumerate(iterate_messages(self.fdesc, self.manglenames.flatten)):
+        for names, message, comment_path in iterate_messages(self.fdesc, self.manglenames.flatten):
             name = self.manglenames.create_name(names)
             message_options = get_nanopb_suboptions(message, self.file_options, name)
 
@@ -1668,11 +1670,12 @@ class ProtoFile:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
                     field.type_name = self.manglenames.mangle_field_typename(field.type_name)
 
-            self.messages.append(Message(name, message, message_options, index, self.comment_locations))
+            self.messages.append(Message(name, message, message_options, comment_path, self.comment_locations))
             for index, enum in enumerate(message.enum_type):
                 name = self.manglenames.create_name(names + enum.name)
                 enum_options = get_nanopb_suboptions(enum, message_options, name)
-                self.enums.append(Enum(name, enum, enum_options, index, self.comment_locations))
+                enum_path = comment_path + (ProtoElement.NESTED_ENUM, index)
+                self.enums.append(Enum(name, enum, enum_options, enum_path, self.comment_locations))
 
         for names, extension in iterate_extensions(self.fdesc, self.manglenames.flatten):
             name = self.manglenames.create_name(names + extension.name)
