@@ -143,12 +143,70 @@ datatypes = {
     (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8),
 }
 
+class NamingStyle:
+    def enum_name(self, name):
+        return "_%s" % (name)
+
+    def struct_name(self, name):
+        return "_%s" % (name)
+
+    def type_name(self, name):
+        return "%s" % (name)
+
+    def define_name(self, name):
+        return "%s" % (name)
+
+    def var_name(self, name):
+        return "%s" % (name)
+
+    def enum_entry(self, name):
+        return "%s" % (name)
+
+    def func_name(self, name):
+        return "%s" % (name)
+
+    def bytes_type(self, struct_name, name):
+        return "%s_%s_t" % (struct_name, name)
+
+class NamingStyleC(NamingStyle):
+    def enum_name(self, name):
+        return self.underscore(name)
+
+    def struct_name(self, name):
+        return self.underscore(name)
+
+    def type_name(self, name):
+        return "%s_t" % self.underscore(name)
+
+    def define_name(self, name):
+        return self.underscore(name).upper()
+
+    def var_name(self, name):
+        return self.underscore(name)
+
+    def enum_entry(self, name):
+        return self.underscore(name).upper()
+
+    def func_name(self, name):
+        return self.underscore(name)
+
+    def bytes_type(self, struct_name, name):
+        return "%s_%s_t" % (self.underscore(struct_name), self.underscore(name))
+
+    def underscore(self, word):
+        word = str(word)
+        word = re.sub(r"([A-Z]+)([A-Z][a-z])", r'\1_\2', word)
+        word = re.sub(r"([a-z\d])([A-Z])", r'\1_\2', word)
+        word = word.replace("-", "_")
+        return word.lower()
+
 class Globals:
     '''Ugly global variables, should find a good way to pass these.'''
     verbose_options = False
     separate_options = []
     matched_namemasks = set()
     protoc_insertion_points = False
+    naming_style = NamingStyle()
 
 # String types and file encoding for Python2 UTF-8 support
 if sys.version_info.major == 2:
@@ -371,7 +429,11 @@ class Enum(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef enum _%s { %s\n' % (self.names, trailing_comment)
+        result += 'typedef enum %s {' % Globals.naming_style.enum_name(self.names)
+        if trailing_comment:
+            result += " " + trailing_comment
+
+        result += "\n"
 
         enum_length = len(self.values)
         enum_values = []
@@ -386,7 +448,11 @@ class Enum(ProtoElement):
                 # last enum member should not end with a comma
                 comma = ""
 
-            enum_values.append("    %s = %d%s %s" % (name, value, comma, trailing_comment))
+            enum_value = "    %s = %d%s" % (Globals.naming_style.enum_entry(name), value, comma)
+            if trailing_comment:
+                enum_value += " " + trailing_comment
+
+            enum_values.append(enum_value)
 
         result += '\n'.join(enum_values)
         result += '\n}'
@@ -394,15 +460,22 @@ class Enum(ProtoElement):
         if self.packed:
             result += ' pb_packed'
 
-        result += ' %s;' % self.names
+        result += ' %s;' % Globals.naming_style.type_name(self.names)
         return result
 
     def auxiliary_defines(self):
         # sort the enum by value
         sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
-        result  = '#define _%s_MIN %s\n' % (self.names, sorted_values[0][0])
-        result += '#define _%s_MAX %s\n' % (self.names, sorted_values[-1][0])
-        result += '#define _%s_ARRAYSIZE ((%s)(%s+1))\n' % (self.names, self.names, sorted_values[-1][0])
+        result  = '#define %s %s\n' % (
+            Globals.naming_style.define_name('_%s_MIN' % self.names),
+            Globals.naming_style.enum_entry(sorted_values[0][0]))
+        result += '#define %s %s\n' % (
+            Globals.naming_style.define_name('_%s_MAX' % self.names),
+            Globals.naming_style.enum_entry(sorted_values[-1][0]))
+        result += '#define %s ((%s)(%s+1))\n' % (
+            Globals.naming_style.define_name('_%s_ARRAYSIZE' % self.names),
+            Globals.naming_style.type_name(self.names),
+            Globals.naming_style.enum_entry(sorted_values[-1][0]))
 
         if not self.options.long_names:
             # Define the long names always so that enum value references
@@ -411,7 +484,9 @@ class Enum(ProtoElement):
                 result += '#define %s %s\n' % (self.value_longnames[i], x[0])
 
         if self.options.enum_to_string:
-            result += 'const char *%s_name(%s v);\n' % (self.names, self.names)
+            result += 'const char *%s(%s v);\n' % (
+                Globals.naming_style.func_name('%s_name' % self.names),
+                Globals.naming_style.type_name(self.names))
 
         return result
 
@@ -419,13 +494,18 @@ class Enum(ProtoElement):
         if not self.options.enum_to_string:
             return ""
 
-        result = 'const char *%s_name(%s v) {\n' % (self.names, self.names)
+        result = 'const char *%s(%s v) {\n' % (
+            Globals.naming_style.func_name('%s_name' % self.names),
+            Globals.naming_style.type_name(self.names))
+
         result += '    switch (v) {\n'
 
         for ((enumname, _), strname) in zip(self.values, self.value_longnames):
             # Strip off the leading type name from the string value.
             strval = str(strname)[len(str(self.names)) + 1:]
-            result += '        case %s: return "%s";\n' % (enumname, strval)
+            result += '        case %s: return "%s";\n' % (
+                Globals.naming_style.enum_entry(enumname),
+                Globals.naming_style.enum_entry(strval))
 
         result += '    }\n'
         result += '    return "unknown";\n'
@@ -599,7 +679,7 @@ class Field(ProtoElement):
                 self.pbtype = 'BYTES'
                 self.ctype = 'pb_bytes_array_t'
                 if self.allocation == 'STATIC':
-                    self.ctype = self.struct_name + self.name + 't'
+                    self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
                     self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
@@ -619,34 +699,39 @@ class Field(ProtoElement):
 
     def __str__(self):
         result = ''
+
+        var_name = Globals.naming_style.var_name(self.name)
+        type_name = Globals.naming_style.type_name(self.ctype) if isinstance(self.ctype, Names) else self.ctype
+
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 if self.pbtype == 'MSG_W_CB':
-                    result += '    pb_callback_t cb_' + self.name + ';\n'
-                result += '    pb_size_t ' + self.name + '_count;\n'
+                    result += '    pb_callback_t cb_' + var_name + ';\n'
+                result += '    pb_size_t ' + var_name + '_count;\n'
 
             if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
-                result += '    struct _%s *%s;' % (self.ctype, self.name)
+                result += '    struct %s *%s;' % (Globals.naming_style.struct_name(self.ctype), var_name)
             elif self.pbtype == 'FIXED_LENGTH_BYTES' or self.rules == 'FIXARRAY':
                 # Pointer to fixed size array
-                result += '    %s (*%s)%s;' % (self.ctype, self.name, self.array_decl)
+                result += '    %s (*%s)%s;' % (type_name, var_name, self.array_decl)
             elif self.rules in ['REPEATED', 'FIXARRAY'] and self.pbtype in ['STRING', 'BYTES']:
                 # String/bytes arrays need to be defined as pointers to pointers
-                result += '    %s **%s;' % (self.ctype, self.name)
+                result += '    %s **%s;' % (type_name, var_name)
             else:
-                result += '    %s *%s;' % (self.ctype, self.name)
+                result += '    %s *%s;' % (type_name, var_name)
         elif self.allocation == 'CALLBACK':
-            result += '    %s %s;' % (self.callback_datatype, self.name)
+            result += '    %s %s;' % (self.callback_datatype, var_name)
         else:
             if self.pbtype == 'MSG_W_CB' and self.rules in ['OPTIONAL', 'REPEATED']:
-                result += '    pb_callback_t cb_' + self.name + ';\n'
+                result += '    pb_callback_t cb_' + var_name + ';\n'
 
             if self.rules == 'OPTIONAL':
-                result += '    bool has_' + self.name + ';\n'
+                result += '    bool has_' + var_name + ';\n'
             elif self.rules == 'REPEATED':
-                result += '    pb_size_t ' + self.name + '_count;\n'
-            result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
+                result += '    pb_size_t ' + var_name + '_count;\n'
+
+            result += '    %s %s%s;' % (type_name, var_name, self.array_decl)
 
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
         if leading_comment: result = leading_comment + "\n" + result
@@ -657,7 +742,7 @@ class Field(ProtoElement):
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
+            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, Globals.naming_style.var_name(self.ctype))
         else:
             result = ''
         return result
@@ -678,9 +763,9 @@ class Field(ProtoElement):
         inner_init = None
         if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if null_init:
-                inner_init = '%s_init_zero' % self.ctype
+                inner_init = Globals.naming_style.define_name('%s_init_zero' % self.ctype)
             else:
-                inner_init = '%s_init_default' % self.ctype
+                inner_init =  Globals.naming_style.define_name('%s_init_default' % self.ctype)
         elif self.default is None or null_init:
             if self.pbtype == 'STRING':
                 inner_init = '""'
@@ -689,7 +774,7 @@ class Field(ProtoElement):
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
                 inner_init = '{0}'
             elif self.pbtype in ('ENUM', 'UENUM'):
-                inner_init = '_%s_MIN' % self.ctype
+                inner_init = '_%s_MIN' % Globals.naming_style.define_name(self.ctype)
             else:
                 inner_init = '0'
         else:
@@ -763,22 +848,29 @@ class Field(ProtoElement):
 
     def tags(self):
         '''Return the #define for the tag number of this field.'''
-        identifier = '%s_%s_tag' % (self.struct_name, self.name)
+        identifier = Globals.naming_style.define_name('%s_%s_tag' % (self.struct_name, self.name))
         return '#define %-40s %d\n' % (identifier, self.tag)
 
     def fieldlist(self):
         '''Return the FIELDLIST macro entry for this field.
         Format is: X(a, ATYPE, HTYPE, LTYPE, field_name, tag)
         '''
-        name = self.name
+        name = Globals.naming_style.var_name(self.name)
 
         if self.rules == "ONEOF":
           # For oneofs, make a tuple of the union name, union member name,
           # and the name inside the parent struct.
           if not self.anonymous:
-            name = '(%s,%s,%s)' % (self.union_name, self.name, self.union_name + '.' + self.name)
+            name = '(%s,%s,%s)' % (
+                Globals.naming_style.var_name(self.union_name),
+                Globals.naming_style.var_name(self.name),
+                Globals.naming_style.var_name(self.union_name) + '.' +
+                Globals.naming_style.var_name(self.name))
           else:
-            name = '(%s,%s,%s)' % (self.union_name, self.name, self.name)
+            name = '(%s,%s,%s)' % (
+                Globals.naming_style.var_name(self.union_name),
+                Globals.naming_style.var_name(self.name),
+                Globals.naming_style.var_name(self.name))
 
         return '%s(%s, %-9s %-9s %-9s %-16s %3d)' % (self.macro_x_param,
                                                      self.macro_a_param,
@@ -973,7 +1065,7 @@ class ExtensionField(Field):
 
     def tags(self):
         '''Return the #define for the tag number of this field.'''
-        identifier = '%s_tag' % self.fullname
+        identifier = Globals.naming_style.define_name('%s_tag' % (self.fullname))
         return '#define %-40s %d\n' % (identifier, self.tag)
 
     def extension_decl(self):
@@ -984,7 +1076,7 @@ class ExtensionField(Field):
             return msg
 
         return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
-            (self.fullname, str(self).strip()))
+            (Globals.naming_style.var_name(self.fullname), str(self).strip()))
 
     def extension_def(self, dependencies):
         '''Definition of the extension type in the .pb.c file'''
@@ -997,10 +1089,10 @@ class ExtensionField(Field):
         result += self.msg.fields_declaration(dependencies)
         result += 'pb_byte_t %s_default[] = {0x00};\n' % self.msg.name
         result += self.msg.fields_definition(dependencies)
-        result += 'const pb_extension_type_t %s = {\n' % self.fullname
+        result += 'const pb_extension_type_t %s = {\n' % Globals.naming_style.var_name(self.fullname)
         result += '    NULL,\n'
         result += '    NULL,\n'
-        result += '    &%s_msg\n' % self.msg.name
+        result += '    &%s_msg\n' % Globals.naming_style.type_name(self.msg.name)
         result += '};\n'
         return result
 
@@ -1042,16 +1134,16 @@ class OneOf(Field):
         result = ''
         if self.fields:
             if self.has_msg_cb:
-                result += '    pb_callback_t cb_' + self.name + ';\n'
+                result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
-            result += '    pb_size_t which_' + self.name + ";\n"
+            result += '    pb_size_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
             result += '    union {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
             if self.anonymous:
                 result += '    };'
             else:
-                result += '    } ' + self.name + ';'
+                result += '    } ' + Globals.naming_style.var_name(self.name) + ';'
         return result
 
     def types(self):
@@ -1213,7 +1305,11 @@ class Message(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef struct _%s { %s\n' % (self.name, trailing_comment)
+        result += 'typedef struct %s {' % Globals.naming_style.struct_name(self.name)
+        if trailing_comment:
+            result += " " + trailing_comment
+
+        result += '\n'
 
         if not self.fields:
             # Empty structs are not allowed in C standard.
@@ -1230,7 +1326,7 @@ class Message(ProtoElement):
         if self.packed:
             result += ' pb_packed'
 
-        result += ' %s;' % self.name
+        result += ' %s;' % Globals.naming_style.type_name(self.name)
 
         if self.packed:
             result = 'PB_PACKED_STRUCT_START\n' + result
@@ -1299,9 +1395,10 @@ class Message(ProtoElement):
         sorted_fields = list(self.all_fields())
         sorted_fields.sort(key = lambda x: x.tag)
 
-        result = '#define %s_FIELDLIST(%s, %s) \\\n' % (self.name,
-                                                        Field.macro_x_param,
-                                                        Field.macro_a_param)
+        result = '#define %s_FIELDLIST(%s, %s) \\\n' % (
+            Globals.naming_style.define_name(self.name),
+            Field.macro_x_param,
+            Field.macro_a_param)
         result += ' \\\n'.join(x.fieldlist() for x in sorted_fields)
         result += '\n'
 
@@ -1309,23 +1406,36 @@ class Message(ProtoElement):
         if has_callbacks:
             if self.callback_function != 'pb_default_field_callback':
                 result += "extern bool %s(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);\n" % self.callback_function
-            result += "#define %s_CALLBACK %s\n" % (self.name, self.callback_function)
+            result += "#define %s_CALLBACK %s\n" % (
+                Globals.naming_style.define_name(self.name),
+                self.callback_function)
         else:
-            result += "#define %s_CALLBACK NULL\n" % self.name
+            result += "#define %s_CALLBACK NULL\n" % Globals.naming_style.define_name(self.name)
 
         defval = self.default_value(dependencies)
         if defval:
             hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
-            result += '#define %s_DEFAULT (const pb_byte_t*)"%s\\x00"\n' % (self.name, hexcoded)
+            result += '#define %s_DEFAULT (const pb_byte_t*)"%s\\x00"\n' % (
+                Globals.naming_style.define_name(self.name),
+                hexcoded)
         else:
-            result += '#define %s_DEFAULT NULL\n' % self.name
+            result += '#define %s_DEFAULT NULL\n' % Globals.naming_style.define_name(self.name)
 
         for field in sorted_fields:
             if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 if field.rules == 'ONEOF':
-                    result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, field.union_name, field.name, field.ctype)
+                    result += "#define %s_%s_%s_MSGTYPE %s\n" % (
+                        Globals.naming_style.type_name(self.name),
+                        Globals.naming_style.var_name(field.union_name),
+                        Globals.naming_style.var_name(field.name),
+                        Globals.naming_style.type_name(field.ctype)
+                    )
                 else:
-                    result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
+                    result += "#define %s_%s_MSGTYPE %s\n" % (
+                        Globals.naming_style.type_name(self.name),
+                        Globals.naming_style.var_name(field.name),
+                        Globals.naming_style.type_name(field.ctype)
+                    )
 
         return result
 
@@ -1345,7 +1455,10 @@ class Message(ProtoElement):
         if width == 1:
           width = 'AUTO'
 
-        result = 'PB_BIND(%s, %s, %s)\n' % (self.name, self.name, width)
+        result = 'PB_BIND(%s, %s, %s)\n' % (
+            Globals.naming_style.define_name(self.name),
+            Globals.naming_style.type_name(self.name),
+            width)
         return result
 
     def required_descriptor_width(self, dependencies):
@@ -1794,10 +1907,10 @@ class ProtoFile:
         if self.messages:
             yield '/* Initializer values for message structs */\n'
             for msg in self.messages:
-                identifier = '%s_init_default' % msg.name
+                identifier = Globals.naming_style.define_name('%s_init_default' % msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
             for msg in self.messages:
-                identifier = '%s_init_zero' % msg.name
+                identifier = Globals.naming_style.define_name('%s_init_zero' % msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
             yield '\n'
 
@@ -1813,12 +1926,14 @@ class ProtoFile:
             for msg in self.messages:
                 yield msg.fields_declaration(self.dependencies) + '\n'
             for msg in self.messages:
-                yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
+                yield 'extern const pb_msgdesc_t %s_msg;\n' % Globals.naming_style.type_name(msg.name)
             yield '\n'
 
             yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */\n'
             for msg in self.messages:
-              yield '#define %s_fields &%s_msg\n' % (msg.name, msg.name)
+              yield '#define %s &%s_msg\n' % (
+                Globals.naming_style.define_name('%s_fields' % msg.name),
+                Globals.naming_style.type_name(msg.name))
             yield '\n'
 
             yield '/* Maximum encoded size of messages (where known) */\n'
@@ -1853,7 +1968,8 @@ class ProtoFile:
                     cpp_guard = msize.get_cpp_guard(local_defines)
                     if cpp_guard not in guards:
                         guards[cpp_guard] = set()
-                    guards[cpp_guard].add('#define %-40s %s' % (identifier, msize))
+                    guards[cpp_guard].add('#define %-40s %s' % (
+                        Globals.naming_style.define_name(identifier), msize))
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
             for guard, values in guards.items():
@@ -2109,7 +2225,9 @@ optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", def
 optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
     help="Set generator option (max_size, max_count etc.).")
 optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points", action="store_true", default=False,
-                     help="Include insertion point comments in output for use by custom protoc plugins")
+    help="Include insertion point comments in output for use by custom protoc plugins")
+optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
+    help="Use C naming convention.")
 
 def parse_file(filename, fdesc, options):
     '''Parse a single file. Returns a ProtoFile instance.'''
@@ -2241,6 +2359,9 @@ def main_cli():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
+    if options.c_style:
+        Globals.naming_style = NamingStyleC()
+
     # Load .pb files into memory and compile any .proto files.
     include_path = ['-I%s' % p for p in options.options_path]
     all_fdescs = {}
@@ -2341,6 +2462,9 @@ def main_plugin():
         sys.exit(0)
 
     Globals.verbose_options = options.verbose
+
+    if options.c_style:
+        Globals.naming_style = NamingStyleC()
 
     if options.verbose:
         sys.stderr.write("Nanopb version %s\n" % nanopb_version)

@@ -1,0 +1,11 @@
+# Test namingstyle option
+
+Import('env')
+
+env = env.Clone()
+env.Replace(NANOPBFLAGS = "-C")
+
+env.NanopbProto(["naming_style", "naming_style.options"])
+
+test = env.Program(["test_naming_style_c.c", "naming_style.pb.c", '$COMMON/pb_common.o'])
+env.RunTest(test)
