@@ -25,6 +25,7 @@ examples/using_double_on_avr/encode_double
 examples/using_double_on_avr/test_conversions
 examples/using_union_messages/decode
 examples/using_union_messages/encode
+examples/c_style/c_style
 generator/nanopb_pb2.pyc
 !generator-bin/**/*
 bazel-*

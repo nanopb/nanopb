@@ -1,0 +1,20 @@
+// A very simple protocol definition, consisting of only
+// one message.
+
+syntax = "proto2";
+
+import "nanopb.proto";
+
+option (nanopb_fileopt).packed_enum = false;
+option (nanopb_fileopt).long_names = true;
+option (nanopb_fileopt).enum_to_string = true;
+
+enum SimpleEnum {
+    ENUM_FIRST = 1;
+    ENUM_SECOND = 2;
+}
+
+message SimpleMessage {
+    required int32 lucky_number = 1;
+}
+
