@@ -143,12 +143,96 @@ datatypes = {
     (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8),
 }
 
+class StyleDefault:
+    def init_zero(self, name):
+        return '%s_init_zero' % name
+
+    def init_default(self, name):
+        return '%s_init_default' % name
+
+    def enum_name(self, name):
+        return name
+
+    def enum_type(self, name):
+        return name
+
+    def enum_entry(self, name):
+        return name
+
+    def enum_min_define(self, name, min):
+        return '#define _%s_MIN %s\n' % (name, min)
+
+    def enum_max_define(self, name, max):
+        return '#define _%s_MAX %s\n' % (name, max)
+
+    def enum_arraysize_define(self, name, max):
+        return '#define _%s_ARRAYSIZE ((%s)(%s+1))\n' % (name, name, max)
+
+    def enum_to_string_func(self, name):
+        return 'const char *%s_name(%s v)' % (name, name)
+
+    def struct_name(self, name):
+        return name
+
+    def struct_type(self, name):
+        return name
+
+    def define_name(self, name):
+        return name
+
+class StyleC:
+    def init_zero(self, name):
+        return '%s_INIT_ZERO' % self.underscore(name).upper()
+
+    def init_default(self, name):
+        return '%s_INIT_DEFAULT' % self.underscore(name).upper()
+
+    def enum_name(self, name):
+        return self.underscore(name)
+
+    def enum_type(self, name):
+        return "%s_t" % self.underscore(name)
+
+    def enum_entry(self, name):
+        return self.underscore(name).upper()
+
+    def enum_min_define(self, name, min):
+        return '#define _%s_MIN %s\n' % (self.underscore(name).upper(), self.enum_entry(min))
+
+    def enum_max_define(self, name, max):
+        return '#define _%s_MAX %s\n' % (self.underscore(name).upper(), self.enum_entry(max))
+
+    def enum_arraysize_define(self, name, max):
+        return '#define _%s_ARRAYSIZE ((%s)(%s+1))\n' % (
+            self.underscore(name).upper(), self.enum_type(name), self.enum_entry(max))
+
+    def enum_to_string_func(self, name):
+        name = self.underscore(name)
+        return 'const char *%s_name(%s v)' % (name, self.enum_type(name))
+
+    def struct_name(self, name):
+        return self.underscore(name)
+
+    def struct_type(self, name):
+        return "%s_t" % self.underscore(name)
+
+    def define_name(self, name):
+        return self.underscore(name).upper()
+
+    def underscore(self, word):
+        word = str(word)
+        word = re.sub(r"([A-Z]+)([A-Z][a-z])", r'\1_\2', word)
+        word = re.sub(r"([a-z\d])([A-Z])", r'\1_\2', word)
+        word = word.replace("-", "_")
+        return word.lower()
+
 class Globals:
     '''Ugly global variables, should find a good way to pass these.'''
     verbose_options = False
     separate_options = []
     matched_namemasks = set()
     protoc_insertion_points = False
+    naming_style = StyleDefault()
 
 # String types and file encoding for Python2 UTF-8 support
 if sys.version_info.major == 2:
@@ -371,7 +455,7 @@ class Enum(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef enum _%s {' % (self.names)
+        result += 'typedef enum _%s {' % Globals.naming_style.enum_name(self.names)
         if trailing_comment:
             result += " " + trailing_comment
 
@@ -390,7 +474,7 @@ class Enum(ProtoElement):
                 # last enum member should not end with a comma
                 comma = ""
 
-            enum_value = "    %s = %d%s" % (name, value, comma)
+            enum_value = "    %s = %d%s" % (Globals.naming_style.enum_entry(name), value, comma)
             if trailing_comment:
                 enum_value += " " + trailing_comment
 
@@ -402,15 +486,15 @@ class Enum(ProtoElement):
         if self.packed:
             result += ' pb_packed'
 
-        result += ' %s;' % self.names
+        result += ' %s;' % Globals.naming_style.enum_type(self.names)
         return result
 
     def auxiliary_defines(self):
         # sort the enum by value
         sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
-        result  = '#define _%s_MIN %s\n' % (self.names, sorted_values[0][0])
-        result += '#define _%s_MAX %s\n' % (self.names, sorted_values[-1][0])
-        result += '#define _%s_ARRAYSIZE ((%s)(%s+1))\n' % (self.names, self.names, sorted_values[-1][0])
+        result  = Globals.naming_style.enum_min_define(self.names, sorted_values[0][0])
+        result += Globals.naming_style.enum_max_define(self.names, sorted_values[-1][0])
+        result += Globals.naming_style.enum_arraysize_define(self.names, sorted_values[-1][0])
 
         if not self.options.long_names:
             # Define the long names always so that enum value references
@@ -419,7 +503,7 @@ class Enum(ProtoElement):
                 result += '#define %s %s\n' % (self.value_longnames[i], x[0])
 
         if self.options.enum_to_string:
-            result += 'const char *%s_name(%s v);\n' % (self.names, self.names)
+            result += '%s;\n' % Globals.naming_style.enum_to_string_func(self.names)
 
         return result
 
@@ -427,13 +511,13 @@ class Enum(ProtoElement):
         if not self.options.enum_to_string:
             return ""
 
-        result = 'const char *%s_name(%s v) {\n' % (self.names, self.names)
+        result = '%s {\n' % Globals.naming_style.enum_to_string_func(self.names)
         result += '    switch (v) {\n'
 
         for ((enumname, _), strname) in zip(self.values, self.value_longnames):
             # Strip off the leading type name from the string value.
             strval = str(strname)[len(str(self.names)) + 1:]
-            result += '        case %s: return "%s";\n' % (enumname, strval)
+            result += '        case %s: return "%s";\n' % (Globals.naming_style.enum_entry(enumname), strval)
 
         result += '    }\n'
         result += '    return "unknown";\n'
@@ -686,9 +770,9 @@ class Field(ProtoElement):
         inner_init = None
         if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if null_init:
-                inner_init = '%s_init_zero' % self.ctype
+                inner_init = Globals.naming_style.init_zero(self.ctype)
             else:
-                inner_init = '%s_init_default' % self.ctype
+                inner_init = Globals.naming_style.init_default(self.ctype)
         elif self.default is None or null_init:
             if self.pbtype == 'STRING':
                 inner_init = '""'
@@ -771,7 +855,7 @@ class Field(ProtoElement):
 
     def tags(self):
         '''Return the #define for the tag number of this field.'''
-        identifier = '%s_%s_tag' % (self.struct_name, self.name)
+        identifier = Globals.naming_style.define_name('%s_%s_tag' % (self.struct_name, self.name))
         return '#define %-40s %d\n' % (identifier, self.tag)
 
     def fieldlist(self):
@@ -1221,7 +1305,7 @@ class Message(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef struct _%s {' % (self.name)
+        result += 'typedef struct _%s {' % Globals.naming_style.struct_name(self.name)
         if trailing_comment:
             result += " " + trailing_comment
 
@@ -1242,7 +1326,7 @@ class Message(ProtoElement):
         if self.packed:
             result += ' pb_packed'
 
-        result += ' %s;' % self.name
+        result += ' %s;' % Globals.naming_style.struct_type(self.name)
 
         if self.packed:
             result = 'PB_PACKED_STRUCT_START\n' + result
@@ -1311,9 +1395,10 @@ class Message(ProtoElement):
         sorted_fields = list(self.all_fields())
         sorted_fields.sort(key = lambda x: x.tag)
 
-        result = '#define %s_FIELDLIST(%s, %s) \\\n' % (self.name,
-                                                        Field.macro_x_param,
-                                                        Field.macro_a_param)
+        result = '#define %s_FIELDLIST(%s, %s) \\\n' % (
+            Globals.naming_style.define_name(self.name),
+            Field.macro_x_param,
+            Field.macro_a_param)
         result += ' \\\n'.join(x.fieldlist() for x in sorted_fields)
         result += '\n'
 
@@ -1321,16 +1406,20 @@ class Message(ProtoElement):
         if has_callbacks:
             if self.callback_function != 'pb_default_field_callback':
                 result += "extern bool %s(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);\n" % self.callback_function
-            result += "#define %s_CALLBACK %s\n" % (self.name, self.callback_function)
+            result += "#define %s_CALLBACK %s\n" % (
+                Globals.naming_style.define_name(self.name),
+                self.callback_function)
         else:
-            result += "#define %s_CALLBACK NULL\n" % self.name
+            result += "#define %s_CALLBACK NULL\n" % Globals.naming_style.define_name(self.name)
 
         defval = self.default_value(dependencies)
         if defval:
             hexcoded = ''.join("\\x%02x" % ord(defval[i:i+1]) for i in range(len(defval)))
-            result += '#define %s_DEFAULT (const pb_byte_t*)"%s\\x00"\n' % (self.name, hexcoded)
+            result += '#define %s_DEFAULT (const pb_byte_t*)"%s\\x00"\n' % (
+                Globals.naming_style.define_name(self.name),
+                hexcoded)
         else:
-            result += '#define %s_DEFAULT NULL\n' % self.name
+            result += '#define %s_DEFAULT NULL\n' % Globals.naming_style.define_name(self.name)
 
         for field in sorted_fields:
             if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
@@ -1357,7 +1446,10 @@ class Message(ProtoElement):
         if width == 1:
           width = 'AUTO'
 
-        result = 'PB_BIND(%s, %s, %s)\n' % (self.name, self.name, width)
+        result = 'PB_BIND(%s, %s, %s)\n' % (
+            Globals.naming_style.define_name(self.name),
+            Globals.naming_style.struct_type(self.name),
+            width)
         return result
 
     def required_descriptor_width(self, dependencies):
@@ -1806,10 +1898,10 @@ class ProtoFile:
         if self.messages:
             yield '/* Initializer values for message structs */\n'
             for msg in self.messages:
-                identifier = '%s_init_default' % msg.name
+                identifier = Globals.naming_style.init_default(msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
             for msg in self.messages:
-                identifier = '%s_init_zero' % msg.name
+                identifier = Globals.naming_style.init_zero(msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
             yield '\n'
 
@@ -1825,12 +1917,14 @@ class ProtoFile:
             for msg in self.messages:
                 yield msg.fields_declaration(self.dependencies) + '\n'
             for msg in self.messages:
-                yield 'extern const pb_msgdesc_t %s_msg;\n' % msg.name
+                yield 'extern const pb_msgdesc_t %s_msg;\n' % Globals.naming_style.struct_type(msg.name)
             yield '\n'
 
             yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */\n'
             for msg in self.messages:
-              yield '#define %s_fields &%s_msg\n' % (msg.name, msg.name)
+              yield '#define %s &%s_msg\n' % (
+                Globals.naming_style.define_name('%s_fields' % msg.name),
+                Globals.naming_style.struct_type(msg.name))
             yield '\n'
 
             yield '/* Maximum encoded size of messages (where known) */\n'
@@ -1865,7 +1959,8 @@ class ProtoFile:
                     cpp_guard = msize.get_cpp_guard(local_defines)
                     if cpp_guard not in guards:
                         guards[cpp_guard] = set()
-                    guards[cpp_guard].add('#define %-40s %s' % (identifier, msize))
+                    guards[cpp_guard].add('#define %-40s %s' % (
+                        Globals.naming_style.define_name(identifier), msize))
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
             for guard, values in guards.items():
@@ -2121,7 +2216,9 @@ optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", def
 optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
     help="Set generator option (max_size, max_count etc.).")
 optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points", action="store_true", default=False,
-                     help="Include insertion point comments in output for use by custom protoc plugins")
+    help="Include insertion point comments in output for use by custom protoc plugins")
+optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
+    help="Use C naming convention.")
 
 def parse_file(filename, fdesc, options):
     '''Parse a single file. Returns a ProtoFile instance.'''
@@ -2253,6 +2350,9 @@ def main_cli():
         sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
+    if options.c_style:
+        Globals.naming_style = StyleC()
+
     # Load .pb files into memory and compile any .proto files.
     include_path = ['-I%s' % p for p in options.options_path]
     all_fdescs = {}
@@ -2353,6 +2453,9 @@ def main_plugin():
         sys.exit(0)
 
     Globals.verbose_options = options.verbose
+
+    if options.c_style:
+        Globals.naming_style = StyleC()
 
     if options.verbose:
         sys.stderr.write("Nanopb version %s\n" % nanopb_version)
