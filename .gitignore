@@ -29,3 +29,4 @@ generator/nanopb_pb2.pyc
 !generator-bin/**/*
 bazel-*
 extra/poetry/build
+*.dSYM

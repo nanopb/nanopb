@@ -371,7 +371,11 @@ class Enum(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef enum _%s { %s\n' % (self.names, trailing_comment)
+        result += 'typedef enum _%s {' % (self.names)
+        if trailing_comment:
+            result += " " + trailing_comment
+
+        result += "\n"
 
         enum_length = len(self.values)
         enum_values = []
@@ -386,7 +390,11 @@ class Enum(ProtoElement):
                 # last enum member should not end with a comma
                 comma = ""
 
-            enum_values.append("    %s = %d%s %s" % (name, value, comma, trailing_comment))
+            enum_value = "    %s = %d%s" % (name, value, comma)
+            if trailing_comment:
+                enum_value += " " + trailing_comment
+
+            enum_values.append(enum_value)
 
         result += '\n'.join(enum_values)
         result += '\n}'
@@ -1213,7 +1221,11 @@ class Message(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef struct _%s { %s\n' % (self.name, trailing_comment)
+        result += 'typedef struct _%s {' % (self.name)
+        if trailing_comment:
+            result += " " + trailing_comment
+
+        result += '\n'
 
         if not self.fields:
             # Empty structs are not allowed in C standard.
