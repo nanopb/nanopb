@@ -1433,12 +1433,18 @@ class Message(ProtoElement):
         for field in sorted_fields:
             if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 if field.rules == 'ONEOF':
-                    result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, field.union_name, field.name, field.ctype)
+                    result += "#define %s_%s_%s_MSGTYPE %s\n" % (
+                        Globals.naming_style.struct_type(self.name),
+                        field.union_name,
+                        field.name,
+                        Globals.naming_style.struct_type(field.ctype)
+                    )
                 else:
                     result += "#define %s_%s_MSGTYPE %s\n" % (
                         Globals.naming_style.struct_type(self.name),
                         field.name,
-                        Globals.naming_style.struct_type(field.ctype))
+                        Globals.naming_style.struct_type(field.ctype)
+                    )
 
         return result
 

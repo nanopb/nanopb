@@ -14,12 +14,24 @@ enum SimpleEnum {
   ENUM_SECOND = 1;
 }
 
-message TestMessage {
+message TestMessage1 {
+  int32 test_value = 1;
+}
+
+message TestMessage2 {
   int32 test_value = 1;
 }
 
 message SimpleMessage {
-  int32 lucky_number = 1;
-  optional SimpleEnum simple_enum = 2;
-  TestMessage test_message = 3;
+           int32        lucky_number = 1;
+  optional SimpleEnum   simple_enum  = 2;
+           TestMessage1 test_message = 3;
+  optional bytes        bytes        = 4;
+  repeated fixed64      values       = 5 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
+
+  oneof oneof
+  {
+    TestMessage1 msg1 = 6;
+    TestMessage2 msg2 = 7;
+  }
 }
