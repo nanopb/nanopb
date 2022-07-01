@@ -34,4 +34,10 @@ message SimpleMessage {
     TestMessage1 msg1 = 6;
     TestMessage2 msg2 = 7;
   }
+
+  message TestMessage3 {
+    int32 v = 8;
+  }
+
+  TestMessage3 tm3 = 9;
 }
