@@ -180,6 +180,9 @@ class StyleDefault:
     def define_name(self, name):
         return name
 
+    def var_name(self, name):
+        return name
+
 class StyleC:
     def init_zero(self, name):
         return '%s_INIT_ZERO' % self.underscore(name).upper()
@@ -218,6 +221,9 @@ class StyleC:
 
     def define_name(self, name):
         return self.underscore(name).upper()
+
+    def var_name(self, name):
+        return self.underscore(name)
 
     def underscore(self, word):
         word = str(word)
@@ -716,8 +722,8 @@ class Field(ProtoElement):
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 if self.pbtype == 'MSG_W_CB':
-                    result += '    pb_callback_t cb_' + self.name + ';\n'
-                result += '    pb_size_t ' + self.name + '_count;\n'
+                    result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
+                result += '    pb_size_t ' + Globals.naming_style.var_name(self.name) + '_count;\n'
 
             if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
@@ -734,20 +740,22 @@ class Field(ProtoElement):
             result += '    %s %s;' % (self.callback_datatype, self.name)
         else:
             if self.pbtype == 'MSG_W_CB' and self.rules in ['OPTIONAL', 'REPEATED']:
-                result += '    pb_callback_t cb_' + self.name + ';\n'
+                result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
             if self.rules == 'OPTIONAL':
-                result += '    bool has_' + self.name + ';\n'
+                result += '    bool has_' + Globals.naming_style.var_name(self.name) + ';\n'
             elif self.rules == 'REPEATED':
-                result += '    pb_size_t ' + self.name + '_count;\n'
+                result += '    pb_size_t ' + Globals.naming_style.var_name(self.name) + '_count;\n'
 
             result += '    '
             if isinstance(self.ctype, Names):
-                result += Globals.naming_style.enum_type(self.ctype)
+                result += Globals.naming_style.struct_type(self.ctype)
             else:
                 result += self.ctype
 
-            result += ' %s%s;' % (self.name, self.array_decl)
+            result += ' %s%s;' % (
+                Globals.naming_style.var_name(self.name),
+                self.array_decl)
 
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
         if leading_comment: result = leading_comment + "\n" + result
@@ -871,15 +879,22 @@ class Field(ProtoElement):
         '''Return the FIELDLIST macro entry for this field.
         Format is: X(a, ATYPE, HTYPE, LTYPE, field_name, tag)
         '''
-        name = self.name
+        name = Globals.naming_style.var_name(self.name)
 
         if self.rules == "ONEOF":
           # For oneofs, make a tuple of the union name, union member name,
           # and the name inside the parent struct.
           if not self.anonymous:
-            name = '(%s,%s,%s)' % (self.union_name, self.name, self.union_name + '.' + self.name)
+            name = '(%s,%s,%s)' % (
+                self.union_name,
+                self.name,
+                self.union_name + '.' +
+                Globals.naming_style.var_name(self.name))
           else:
-            name = '(%s,%s,%s)' % (self.union_name, self.name, self.name)
+            name = '(%s,%s,%s)' % (
+                self.union_name,
+                self.name,
+                Globals.naming_style.var_name(self.name))
 
         return '%s(%s, %-9s %-9s %-9s %-16s %3d)' % (self.macro_x_param,
                                                      self.macro_a_param,
