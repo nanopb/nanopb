@@ -1,7 +1,7 @@
 // A very simple protocol definition, consisting of only
 // one message.
 
-syntax = "proto2";
+syntax = "proto3";
 
 import "nanopb.proto";
 
@@ -10,11 +10,16 @@ option (nanopb_fileopt).long_names = true;
 option (nanopb_fileopt).enum_to_string = true;
 
 enum SimpleEnum {
-    ENUM_FIRST = 1;
-    ENUM_SECOND = 2;
+  ENUM_FIRST = 0;
+  ENUM_SECOND = 1;
+}
+
+message TestMessage {
+  int32 test_value = 1;
 }
 
 message SimpleMessage {
-    required int32 lucky_number = 1;
+  int32 lucky_number = 1;
+  optional SimpleEnum simple_enum = 2;
+  TestMessage test_message = 3;
 }
-

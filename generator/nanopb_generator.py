@@ -738,7 +738,14 @@ class Field(ProtoElement):
                 result += '    bool has_' + self.name + ';\n'
             elif self.rules == 'REPEATED':
                 result += '    pb_size_t ' + self.name + '_count;\n'
-            result += '    %s %s%s;' % (self.ctype, self.name, self.array_decl)
+
+            result += '    '
+            if isinstance(self.ctype, Names):
+                result += Globals.naming_style.enum_type(self.ctype)
+            else:
+                result += self.ctype
+
+            result += ' %s%s;' % (self.name, self.array_decl)
 
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
         if leading_comment: result = leading_comment + "\n" + result
@@ -781,7 +788,7 @@ class Field(ProtoElement):
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
                 inner_init = '{0}'
             elif self.pbtype in ('ENUM', 'UENUM'):
-                inner_init = '_%s_MIN' % self.ctype
+                inner_init = '_%s_MIN' % Globals.naming_style.define_name(self.ctype)
             else:
                 inner_init = '0'
         else:
@@ -1426,7 +1433,10 @@ class Message(ProtoElement):
                 if field.rules == 'ONEOF':
                     result += "#define %s_%s_%s_MSGTYPE %s\n" % (self.name, field.union_name, field.name, field.ctype)
                 else:
-                    result += "#define %s_%s_MSGTYPE %s\n" % (self.name, field.name, field.ctype)
+                    result += "#define %s_%s_MSGTYPE %s\n" % (
+                        Globals.naming_style.struct_type(self.name),
+                        field.name,
+                        Globals.naming_style.struct_type(field.ctype))
 
         return result
 
