@@ -151,7 +151,7 @@ class StyleDefault:
         return '%s_init_default' % name
 
     def enum_name(self, name):
-        return name
+        return "_%s" % (name)
 
     def enum_type(self, name):
         return name
@@ -172,7 +172,7 @@ class StyleDefault:
         return 'const char *%s_name(%s v)' % (name, name)
 
     def struct_name(self, name):
-        return name
+        return "_%s" % (name)
 
     def struct_type(self, name):
         return name
@@ -455,7 +455,7 @@ class Enum(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef enum _%s {' % Globals.naming_style.enum_name(self.names)
+        result += 'typedef enum %s {' % Globals.naming_style.enum_name(self.names)
         if trailing_comment:
             result += " " + trailing_comment
 
@@ -1314,7 +1314,7 @@ class Message(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef struct _%s {' % Globals.naming_style.struct_name(self.name)
+        result += 'typedef struct %s {' % Globals.naming_style.struct_name(self.name)
         if trailing_comment:
             result += " " + trailing_comment
 
