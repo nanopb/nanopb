@@ -143,7 +143,7 @@ datatypes = {
     (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8),
 }
 
-class StyleDefault:
+class NamingStyle:
     def init_zero(self, name):
         return '%s_init_zero' % name
 
@@ -154,10 +154,10 @@ class StyleDefault:
         return "_%s" % (name)
 
     def enum_type(self, name):
-        return name
+        return "%s" % (name)
 
     def enum_entry(self, name):
-        return name
+        return "%s" % (name)
 
     def enum_min_define(self, name, min):
         return '#define _%s_MIN %s\n' % (name, min)
@@ -175,15 +175,15 @@ class StyleDefault:
         return "_%s" % (name)
 
     def struct_type(self, name):
-        return name
+        return "%s" % (name)
 
     def define_name(self, name):
-        return name
+        return "%s" % (name)
 
     def var_name(self, name):
-        return name
+        return "%s" % (name)
 
-class StyleC:
+class NamingStyleC(NamingStyle):
     def init_zero(self, name):
         return '%s_INIT_ZERO' % self.underscore(name).upper()
 
@@ -238,7 +238,7 @@ class Globals:
     separate_options = []
     matched_namemasks = set()
     protoc_insertion_points = False
-    naming_style = StyleDefault()
+    naming_style = NamingStyle()
 
 # String types and file encoding for Python2 UTF-8 support
 if sys.version_info.major == 2:
@@ -2384,7 +2384,7 @@ def main_cli():
                          % (google.protobuf.__file__, google.protobuf.__version__))
 
     if options.c_style:
-        Globals.naming_style = StyleC()
+        Globals.naming_style = NamingStyleC()
 
     # Load .pb files into memory and compile any .proto files.
     include_path = ['-I%s' % p for p in options.options_path]
@@ -2488,7 +2488,7 @@ def main_plugin():
     Globals.verbose_options = options.verbose
 
     if options.c_style:
-        Globals.naming_style = StyleC()
+        Globals.naming_style = NamingStyleC()
 
     if options.verbose:
         sys.stderr.write("Nanopb version %s\n" % nanopb_version)
