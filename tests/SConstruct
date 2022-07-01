@@ -86,7 +86,7 @@ if not env.GetOption('clean'):
         context.env.Replace(LINKFLAGS = oldlinkflags)
         context.Result(result)
         return result
-    
+
     def check_protocversion(context):
         context.Display("Checking protoc version... ")
         status, output = context.TryAction('$PROTOC --version > $TARGET')

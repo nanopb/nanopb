@@ -123,7 +123,7 @@ if(nanopb_BUILD_RUNTIME)
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         target_include_directories(protobuf-nanopb-static INTERFACE
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-	        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         )
     endif()
 
