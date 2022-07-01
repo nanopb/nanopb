@@ -1,4 +1,4 @@
-syntax = "proto3";
+syntax = "proto2";
 
 import "nanopb.proto";
 
@@ -12,17 +12,17 @@ enum SimpleEnum {
 }
 
 message TestMessage1 {
-  int32 test_value = 1;
+  optional int32 test_value = 1;
 }
 
 message TestMessage2 {
-  int32 test_value = 1;
+ optional int32 test_value = 1;
 }
 
 message SimpleMessage {
-           int32        LUCKY_number = 1;
+  optional int32        LUCKY_number = 1;
   optional SimpleEnum   MySimpleEnum = 2;
-           TestMessage1 test_message = 3;
+  optional TestMessage1 test_message = 3;
   optional bytes        bytes        = 4;
   repeated fixed64      values       = 5 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
 
@@ -33,8 +33,8 @@ message SimpleMessage {
   }
 
   message TestMessage3 {
-    int32 v = 8;
+    optional int32 v = 8;
   }
 
-  TestMessage3 tm3 = 9;
+  optional TestMessage3 tm3 = 9;
 }
