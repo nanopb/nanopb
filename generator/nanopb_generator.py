@@ -886,14 +886,14 @@ class Field(ProtoElement):
           # and the name inside the parent struct.
           if not self.anonymous:
             name = '(%s,%s,%s)' % (
-                self.union_name,
-                self.name,
-                self.union_name + '.' +
+                Globals.naming_style.var_name(self.union_name),
+                Globals.naming_style.var_name(self.name),
+                Globals.naming_style.var_name(self.union_name) + '.' +
                 Globals.naming_style.var_name(self.name))
           else:
             name = '(%s,%s,%s)' % (
-                self.union_name,
-                self.name,
+                Globals.naming_style.var_name(self.union_name),
+                Globals.naming_style.var_name(self.name),
                 Globals.naming_style.var_name(self.name))
 
         return '%s(%s, %-9s %-9s %-9s %-16s %3d)' % (self.macro_x_param,
@@ -1158,16 +1158,16 @@ class OneOf(Field):
         result = ''
         if self.fields:
             if self.has_msg_cb:
-                result += '    pb_callback_t cb_' + self.name + ';\n'
+                result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
-            result += '    pb_size_t which_' + self.name + ";\n"
+            result += '    pb_size_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
             result += '    union {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
             if self.anonymous:
                 result += '    };'
             else:
-                result += '    } ' + self.name + ';'
+                result += '    } ' + Globals.naming_style.var_name(self.name) + ';'
         return result
 
     def types(self):
@@ -1450,14 +1450,14 @@ class Message(ProtoElement):
                 if field.rules == 'ONEOF':
                     result += "#define %s_%s_%s_MSGTYPE %s\n" % (
                         Globals.naming_style.struct_type(self.name),
-                        field.union_name,
-                        field.name,
+                        Globals.naming_style.var_name(field.union_name),
+                        Globals.naming_style.var_name(field.name),
                         Globals.naming_style.struct_type(field.ctype)
                     )
                 else:
                     result += "#define %s_%s_MSGTYPE %s\n" % (
                         Globals.naming_style.struct_type(self.name),
-                        field.name,
+                        Globals.naming_style.var_name(field.name),
                         Globals.naming_style.struct_type(field.ctype)
                     )
 

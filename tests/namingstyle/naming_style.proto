@@ -2,39 +2,40 @@ syntax = "proto2";
 
 import "nanopb.proto";
 
-option (nanopb_fileopt).packed_enum = false;
-option (nanopb_fileopt).long_names = true;
-option (nanopb_fileopt).enum_to_string = true;
-
-enum SimpleEnum {
-  ENUM_FIRST = 0;
-  ENUM_SECOND = 1;
+enum MyEnum1 {
+  ENTRY_FIRST   = 0;
+  ENTRY_Second  = 1;
+  EnumThird     = 3;
 }
 
-message TestMessage1 {
+enum MY_ENUM2 {
+  ENUM2_ENTRY = 0;
+}
+
+message Message1 {
   optional int32 test_value = 1;
 }
 
-message TestMessage2 {
- optional int32 test_value = 1;
+message Message2 {
+  optional int32 test_value = 1;
 }
 
-message SimpleMessage {
-  optional int32        LUCKY_number = 1;
-  optional SimpleEnum   MySimpleEnum = 2;
-  optional TestMessage1 test_message = 3;
-  optional bytes        bytes        = 4;
-  repeated fixed64      values       = 5 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
+message MainMessage {
+  optional int32    LUCKY_number  = 1;
+  optional MyEnum1  MyEnum        = 2;
+  optional MY_ENUM2 MyEnum2       = 3;
+  optional Message1 test_message  = 4;
+  optional bytes    bytes         = 5;
+  repeated fixed64  values        = 6 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
 
-  oneof oneof
-  {
-    TestMessage1 msg1 = 6;
-    TestMessage2 msg2 = 7;
+  oneof oneOfName {
+    Message1 msg1 = 7;
+    Message2 testMessage2 = 8;
   }
 
-  message TestMessage3 {
-    optional int32 v = 8;
+  message Message3 {
+    optional int32 v = 9;
   }
 
-  optional TestMessage3 tm3 = 9;
+  optional Message3 testMessage3 = 10;
 }
