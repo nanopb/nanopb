@@ -17,6 +17,7 @@ int main()
     message.which_one_of_name = 1;
     message.has_test_message3 = true;
     message.test_message3.has_v = true;
+    message.fixed_values[0] = 1;
 
     assert(strcmp("ENTRY_FIRST", my_enum1_name(MY_ENUM1_ENTRY_FIRST)) == 0);
 

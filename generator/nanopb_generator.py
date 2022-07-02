@@ -719,43 +719,39 @@ class Field(ProtoElement):
 
     def __str__(self):
         result = ''
+
+        var_name = Globals.naming_style.var_name(self.name)
+        type_name = Globals.naming_style.struct_type(self.ctype) if isinstance(self.ctype, Names) else self.ctype
+
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 if self.pbtype == 'MSG_W_CB':
-                    result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
-                result += '    pb_size_t ' + Globals.naming_style.var_name(self.name) + '_count;\n'
+                    result += '    pb_callback_t cb_' + var_name + ';\n'
+                result += '    pb_size_t ' + var_name + '_count;\n'
 
             if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
-                result += '    struct _%s *%s;' % (self.ctype, self.name)
+                result += '    struct %s *%s;' % (Globals.naming_style.struct_name(self.ctype), var_name)
             elif self.pbtype == 'FIXED_LENGTH_BYTES' or self.rules == 'FIXARRAY':
                 # Pointer to fixed size array
-                result += '    %s (*%s)%s;' % (self.ctype, self.name, self.array_decl)
+                result += '    %s (*%s)%s;' % (type_name, var_name, self.array_decl)
             elif self.rules in ['REPEATED', 'FIXARRAY'] and self.pbtype in ['STRING', 'BYTES']:
                 # String/bytes arrays need to be defined as pointers to pointers
-                result += '    %s **%s;' % (self.ctype, self.name)
+                result += '    %s **%s;' % (type_name, var_name)
             else:
-                result += '    %s *%s;' % (self.ctype, self.name)
+                result += '    %s *%s;' % (type_name, var_name)
         elif self.allocation == 'CALLBACK':
-            result += '    %s %s;' % (self.callback_datatype, self.name)
+            result += '    %s %s;' % (self.callback_datatype, var_name)
         else:
             if self.pbtype == 'MSG_W_CB' and self.rules in ['OPTIONAL', 'REPEATED']:
-                result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
+                result += '    pb_callback_t cb_' + var_name + ';\n'
 
             if self.rules == 'OPTIONAL':
-                result += '    bool has_' + Globals.naming_style.var_name(self.name) + ';\n'
+                result += '    bool has_' + var_name + ';\n'
             elif self.rules == 'REPEATED':
-                result += '    pb_size_t ' + Globals.naming_style.var_name(self.name) + '_count;\n'
+                result += '    pb_size_t ' + var_name + '_count;\n'
 
-            result += '    '
-            if isinstance(self.ctype, Names):
-                result += Globals.naming_style.struct_type(self.ctype)
-            else:
-                result += self.ctype
-
-            result += ' %s%s;' % (
-                Globals.naming_style.var_name(self.name),
-                self.array_decl)
+            result += '    %s %s%s;' % (type_name, var_name, self.array_decl)
 
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
         if leading_comment: result = leading_comment + "\n" + result
@@ -1089,7 +1085,7 @@ class ExtensionField(Field):
 
     def tags(self):
         '''Return the #define for the tag number of this field.'''
-        identifier = '%s_tag' % self.fullname
+        identifier = Globals.naming_style.define_name('%s_tag' % (self.fullname))
         return '#define %-40s %d\n' % (identifier, self.tag)
 
     def extension_decl(self):
@@ -1100,7 +1096,7 @@ class ExtensionField(Field):
             return msg
 
         return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
-            (self.fullname, str(self).strip()))
+            (Globals.naming_style.var_name(self.fullname), str(self).strip()))
 
     def extension_def(self, dependencies):
         '''Definition of the extension type in the .pb.c file'''
@@ -1113,10 +1109,10 @@ class ExtensionField(Field):
         result += self.msg.fields_declaration(dependencies)
         result += 'pb_byte_t %s_default[] = {0x00};\n' % self.msg.name
         result += self.msg.fields_definition(dependencies)
-        result += 'const pb_extension_type_t %s = {\n' % self.fullname
+        result += 'const pb_extension_type_t %s = {\n' % Globals.naming_style.var_name(self.fullname)
         result += '    NULL,\n'
         result += '    NULL,\n'
-        result += '    &%s_msg\n' % self.msg.name
+        result += '    &%s_msg\n' % Globals.naming_style.struct_type(self.msg.name)
         result += '};\n'
         return result
 

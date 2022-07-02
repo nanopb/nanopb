@@ -5,7 +5,7 @@ import "nanopb.proto";
 enum MyEnum1 {
   ENTRY_FIRST   = 0;
   ENTRY_Second  = 1;
-  EnumThird     = 3;
+  EnumThird     = 2;
 }
 
 enum MY_ENUM2 {
@@ -21,21 +21,39 @@ message Message2 {
 }
 
 message MainMessage {
-  optional int32    LUCKY_number  = 1;
-  optional MyEnum1  MyEnum        = 2;
-  optional MY_ENUM2 MyEnum2       = 3;
-  optional Message1 test_message  = 4;
-  optional bytes    bytes         = 5;
-  repeated fixed64  values        = 6 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
+  optional int32    LUCKY_number      = 1;
+  optional MyEnum1  MyEnum            = 2;
+  optional MY_ENUM2 MyEnum2           = 3;
+  optional Message1 testMessage       = 4;
+  repeated fixed64  fixedValues       = 5 [(nanopb).max_count = 4, (nanopb).fixed_count = true];
+  repeated string   stringValues      = 6 [(nanopb).max_length = 40, (nanopb).max_count = 5];
+  optional string   optionalString2   = 7;
+  optional string   requiredString    = 8;
+  required int32    REQUIRED_NUM      = 9;
+  optional bytes    cbByteValues      = 10 [(nanopb).type = FT_CALLBACK];
+  repeated bytes    PtrRepeatedBytes  = 11 [(nanopb).type = FT_POINTER];
+  repeated int32    PtrRepeatedInt    = 12 [(nanopb).type = FT_POINTER];
+  repeated bytes    PtrRepeatedBytes2 = 13 [(nanopb).type = FT_POINTER, (nanopb).fixed_count = true, (nanopb).max_count = 5];
+  optional Message1 ptrTestMessage    = 14 [(nanopb).type = FT_POINTER];
+  repeated Message1 ptrTestMessage2   = 15 [(nanopb).type = FT_POINTER];
 
   oneof oneOfName {
-    Message1 msg1 = 7;
-    Message2 testMessage2 = 8;
+    Message1 testMessage1 = 111;
+    Message2 testMessage2 = 112;
   }
 
   message Message3 {
-    optional int32 v = 9;
+    optional int32 v = 113;
   }
 
-  optional Message3 testMessage3 = 10;
+  optional Message3 testMessage3 = 114;
+
+  extensions 200 to 255;
+}
+
+message TestExtension {
+  extend MainMessage {
+      optional TestExtension testExtension = 250;
+  }
+  optional string stringValue = 1;
 }
