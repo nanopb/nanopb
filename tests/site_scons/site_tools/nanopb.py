@@ -34,6 +34,7 @@ import SCons.Util
 from SCons.Script import Dir, File
 import os.path
 import platform
+import sys
 
 try:
     warningbase = SCons.Warnings.SConsWarning
