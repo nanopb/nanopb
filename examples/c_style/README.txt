@@ -20,7 +20,7 @@ run it with the command: ./c_style
 On other platforms, you first have to compile the protocol definition using
 the following command::
 
-  ../../generator-bin/protoc --nanopb_out=. c_style.proto
+  ../../generator-bin/protoc --nanopb_out=-C:. c_style.proto
 
 After that, add the following five files to your project and compile:
 
