@@ -2,12 +2,13 @@
 
 ## Compilation options
 
-The following options can be specified in one of two ways:
+Compilation options affect the functionality included in the nanopb core C code.
+The options can be specified in one of two ways:
 
 1.  Using the -D switch on the C compiler command line.
 2.  Using a `#define` at the top of pb.h.
 
-> **NOTE:** You must have the same settings for the nanopb library and all code that
+> **NOTE:** You must have the same compilation options for the nanopb library and all code that
 includes nanopb headers.
 
 * `PB_ENABLE_MALLOC`: Enable dynamic allocation support in the decoder.
@@ -29,10 +30,12 @@ recognized automatically by C-preprocessor `#if`-directives in the
 generated `.pb.c` files. The default setting is to use the smallest
 datatypes (least resources used).
 
-## Proto file options
+## Generator options
 
-The generator behaviour can be adjusted using several options, defined
-in the [nanopb.proto](https://github.com/nanopb/nanopb/blob/master/generator/proto/nanopb.proto) file in the generator folder. Here is a list of the most common options, but see the file for a full list:
+Generator options affect how the `.proto` files get converted to `.pb.c` and `.pb.h.` files.
+
+Most options are related to specific message or field in `.proto` file.
+The full set of available options is defined in [nanopb.proto](https://github.com/nanopb/nanopb/blob/master/generator/proto/nanopb.proto). Here is a list of the most common options, but see the file for a full list:
 
 * `max_size`: Allocated maximum size for `bytes` and `string` fields. For strings, this includes the terminating zero.
 * `max_length`: Maximum length for `string` fields. Setting this is equivalent to setting `max_size` to a value of length + 1.
@@ -50,7 +53,7 @@ in the [nanopb.proto](https://github.com/nanopb/nanopb/blob/master/generator/pro
 * `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure.
 
 These options can be defined for the .proto files before they are
-converted using the nanopb-generatory.py. There are three ways to define
+converted using the nanopb-generator.py. There are three ways to define
 the options:
 
 1.  Using a separate .options file. This allows using wildcards for
@@ -122,11 +125,6 @@ separately to the nanopb plugin, like:
 If preferred, the name of the options file can be set using generator
 argument `-f`.
 
-### Defining the options on command line
-
-The nanopb_generator.py has a simple command line option `-s OPTION:VALUE`.
-The setting applies to the whole file that is being processed.
-
 ### Defining the options in the .proto file
 
 The .proto file format allows defining custom options for the fields.
@@ -158,6 +156,19 @@ message Message
     required string fieldsize = 1 [(nanopb).max_size = 40]; // Field scope
 }
 ~~~~
+
+### Defining the options on command line
+
+The nanopb_generator.py has a simple command line option `-s OPTION:VALUE`.
+The setting applies to the whole file that is being processed.
+
+There are also a few command line options that cannot be applied using the
+other mechanisms, as they affect the whole generation:
+
+* `--c-style`: Modify symbol names to better match C naming conventions.
+* `--no-timestamp`: Do not add timestamp to generated files.
+* `--strip-path`: Remove relative path from generated `#include` directives.
+* `--cpp-descriptors`: Generate extra convenience definitions for use from C++
 
 ## pb.h
 
