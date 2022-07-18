@@ -731,7 +731,7 @@ memory buffer.
 |                      |                                                        |
 |----------------------|--------------------------------------------------------|
 | buf                  | Pointer to byte array to read from.
-| bufsize              | Size of the byte array.
+| bufsize              | Size of the byte array. Typically length of the message to be decoded.
 | returns              | An input stream ready to use.
 
 ### pb_read
