@@ -62,7 +62,7 @@ Features and limitations
 1)  Some speed has been sacrificed for code size.
 2)  Encoding is focused on writing to streams. For memory buffers only it could be made more efficient.
 3)  The deprecated Protocol Buffers feature called "groups" is not supported.
-4)  Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file.
+4)  Fields in the generated structs are ordered by the tag number, instead of the natural ordering in .proto file. (Since nanopb-0.4.2 this can be configured with `sort_by_tag` setting.)
 5)  Unknown fields are not preserved when decoding and re-encoding a message.
 6)  Reflection (runtime introspection) is not supported. E.g. you can't request a field by giving its name in a string.
 7)  Numeric arrays are always encoded as packed, even if not marked as packed in .proto.
