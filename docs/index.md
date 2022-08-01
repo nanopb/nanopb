@@ -46,8 +46,8 @@ Features and limitations
 **Features**
 
 1)  Pure C runtime
-2)  Small code size (5--10 kB depending on processor and compilation options, plus any message definitions)
-3)  Small ram usage (typically \~300 bytes stack, plus any message structs)
+2)  Small code size (5--20 kB depending on processor and compilation options, plus any message definitions)
+3)  Small ram usage (typically \~1 kB stack, plus any message structs)
 4)  Allows specifying maximum size for strings and arrays, so that they can be allocated statically.
 5)  No malloc needed: everything can be allocated statically or on the stack. Optional malloc support available.
 6)  You can use either encoder or decoder alone to cut the code size in half.
