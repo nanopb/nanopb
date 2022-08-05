@@ -1422,7 +1422,7 @@ class Message(ProtoElement):
             result += '#define %s_DEFAULT NULL\n' % Globals.naming_style.define_name(self.name)
 
         for field in sorted_fields:
-            if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
+            if field.pbtype in ['MESSAGE', 'MSG_W_CB', "UENUM"]:
                 if field.rules == 'ONEOF':
                     result += "#define %s_%s_%s_MSGTYPE %s\n" % (
                         Globals.naming_style.type_name(self.name),
