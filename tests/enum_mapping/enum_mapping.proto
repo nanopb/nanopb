@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+enum TestEnum1
+{
+    A = 0;
+    B = 2;
+    C = -3;
+}
+
+enum TestEnum2
+{
+    X = 0;
+    Y = 5;
+}
+
+message TestMsg
+{
+    TestEnum1 test1 = 1;
+    
+    oneof oneof1
+    {
+        TestEnum2 test2 = 2;
+    }
+}
+
+

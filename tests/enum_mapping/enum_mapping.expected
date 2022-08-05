@@ -1,0 +1,3 @@
+define TestMsg_test1_ENUMTYPE TestEnum1
+define TestMsg_oneof1_test2_ENUMTYPE TestEnum2
+

@@ -1,0 +1,8 @@
+# Test generated ENUMTYPE defines
+
+Import('env')
+
+env.NanopbProto('enum_mapping')
+env.Object("enum_mapping.pb.c")
+env.Match(["enum_mapping.pb.h", "enum_mapping.expected"])
+

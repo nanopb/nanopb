@@ -1437,6 +1437,12 @@ class Message(ProtoElement):
                         Globals.naming_style.type_name(field.ctype)
                     )
 
+        return result
+
+    def enumtype_defines(self):
+        '''Defines to allow user code to refer to enum type of a specific field'''
+        result = ''
+        for field in self.all_fields():
             if field.pbtype in ['ENUM', "UENUM"]:
                 if field.rules == 'ONEOF':
                     result += "#define %s_%s_%s_ENUMTYPE %s\n" % (
@@ -1913,6 +1919,9 @@ class ProtoFile:
                 yield '/* Helper constants for enums */\n'
                 for enum in self.enums:
                     yield enum.auxiliary_defines() + '\n'
+
+                for msg in self.messages:
+                    yield msg.enumtype_defines() + '\n'
                 yield '\n'
 
         yield '#ifdef __cplusplus\n'
