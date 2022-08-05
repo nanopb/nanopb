@@ -1437,6 +1437,21 @@ class Message(ProtoElement):
                         Globals.naming_style.type_name(field.ctype)
                     )
 
+            if field.pbtype in ['ENUM', "UENUM"]:
+                if field.rules == 'ONEOF':
+                    result += "#define %s_%s_%s_ENUMTYPE %s\n" % (
+                        Globals.naming_style.type_name(self.name),
+                        Globals.naming_style.var_name(field.union_name),
+                        Globals.naming_style.var_name(field.name),
+                        Globals.naming_style.type_name(field.ctype)
+                    )
+                else:
+                    result += "#define %s_%s_ENUMTYPE %s\n" % (
+                        Globals.naming_style.type_name(self.name),
+                        Globals.naming_style.var_name(field.name),
+                        Globals.naming_style.type_name(field.ctype)
+                    )
+
         return result
 
     def fields_declaration_cpp_lookup(self):
