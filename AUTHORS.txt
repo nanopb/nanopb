@@ -20,6 +20,7 @@ isotes <isotes@gmail.com>
 Maxim Khitrov <max@mxcrypt.com>
 Yaniv Mordekhay <yanivmo@users.noreply.github.com>
 Ming Zhao <mzhao@luminatewireless.com>
+Randy Zhang <randyzhg95@gmail.com>
 Google, Inc.
 Tom Roeder <tmroeder@google.com>
 Piotr Sikora <piotrsikora@google.com>
