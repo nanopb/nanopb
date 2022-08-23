@@ -53,12 +53,12 @@ else:
         print(f"custom_nanopb_protos: {nanopb_protos}")
         exit(1)
 
-    protoc_generator = os.path.join(nanopb_root, 'generator', 'protoc')
+    protoc_generator = '"' + os.path.join(nanopb_root, 'generator', 'protoc') + '"'
 
     nanopb_options = ""
-    nanopb_options += f" --nanopb_out={generated_src_dir}"
+    nanopb_options += f' --nanopb_out="{generated_src_dir}"'
     for opt in nanopb_plugin_options:
-        nanopb_options += (" --nanopb_opt=" + opt)
+        nanopb_options += (f' --nanopb_opt="{opt}"')
 
     try:
         os.makedirs(generated_src_dir)
@@ -78,8 +78,8 @@ else:
         proto_include_dirs.add(proto_dir)
 
     for proto_include_dir in proto_include_dirs:
-        nanopb_options += (" --proto_path=" + proto_include_dir)
-        nanopb_options += (" --nanopb_opt=-I" + proto_include_dir)
+        nanopb_options += (f' --proto_path="{proto_include_dir}"')
+        nanopb_options += (f' --nanopb_opt="-I:{proto_include_dir}"')
 
     for proto_file in protos_files:
         proto_file_abs = os.path.join(project_dir, proto_file)
