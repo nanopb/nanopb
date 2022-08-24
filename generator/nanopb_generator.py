@@ -2503,6 +2503,12 @@ def main_plugin():
     import os.path
     options.options_path.append(os.path.dirname(request.file_to_generate[0]))
 
+    # FIXME: Hack for https://github.com/nanopb/nanopb/pull/808
+    new_options_path = []
+    for p in options.options_path:
+        new_options_path.append(p.strip('"\''))
+    options.options_path = new_options_path
+
     # Process any include files first, in order to have them
     # available as dependencies
     other_files = {}
