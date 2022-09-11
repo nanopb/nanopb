@@ -230,9 +230,15 @@ bytes there. For the `string` field type, the length limit is exact.
 
 ## Field callbacks
 
-When a field has dynamic length, nanopb cannot statically allocate
-storage for it. Instead, it allows you to handle the field in whatever
-way you want, using a callback function.
+The easiest way to handle repeated fields is to specify a maximum size for
+them, as shown in the previous section. However, sometimes you need to be
+able to handle arrays with unlimited length, possibly larger than available
+RAM memory.
+
+For these cases, nanopb provides a callback interface. Nanopb core invokes
+the callback function when it gets to the specific field in the message.
+Your code can then handle the field in custom ways, for example decode
+the data piece-by-piece and store to filesystem.
 
 The [pb_callback_t](reference.html#pb-callback-t) structure contains a
 function pointer and a `void` pointer called `arg` you can use for
@@ -335,14 +341,9 @@ alternative, the generator options `callback_function` and
 `callback_datatype` can be used to bind a callback function
 based on its name.
 
-Typically this feature is used by setting
-`callback_datatype` to e.g. `void\*` or other
-data type used for callback state. Then the generator will automatically
-set `callback_function` to
-`MessageName_callback` and produce a prototype for it in
-generated `.pb.h`. By implementing this function in your own
-code, you will receive callbacks for fields without having to separately
-set function pointers.
+Typically this feature is used by setting `callback_datatype` to e.g. `void\*` or even a struct type used to store encoded or decoded data.
+The generator will automatically set `callback_function` to `MessageName_callback` and produce a prototype for it in generated `.pb.h`.
+By implementing this function in your own code, you will receive callbacks for fields without having to separately set function pointers.
 
 If you want to use function name bound callbacks for some fields and
 `pb_callback_t` for other fields, you can call
