@@ -902,10 +902,13 @@ struct pb_extension_s {
 #define PB_INLINE_CONSTEXPR PB_CONSTEXPR
 #endif  // __cplusplus >= 201703L
 
+extern "C++"
+{
 namespace nanopb {
 // Each type will be partially specialized by the generator.
 template <typename GenMessageT> struct MessageDescriptor;
 }  // namespace nanopb
+}
 #endif  /* __cplusplus */
 
 #endif
