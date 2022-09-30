@@ -27,6 +27,7 @@
   },
   "build": {
     "extraScript": "generator/platformio_generator.py",
+    "includeDir": "",
     "srcDir": "",
     "srcFilter": [
       "+<*.c>"
