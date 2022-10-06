@@ -16,6 +16,13 @@ import shutil
 import os
 from functools import reduce
 
+# Python-protobuf breaks easily with protoc version differences if
+# using the cpp or upb implementation. Force it to use pure Python
+# implementation. Performance is not very important in the generator.
+if not os.getenv("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"):
+    os.putenv("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+    os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 try:
     # Add some dummy imports to keep packaging tools happy.
     import google # bbfreeze seems to need these
