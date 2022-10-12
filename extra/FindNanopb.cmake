@@ -125,6 +125,11 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   if(NOT NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS)
     return()
   endif()
+  set(NANOPB_OPTIONS_DIRS)
+
+  if(NANOPB_GENERATE_CPP_RELPATH)
+	  list(APPEND _nanopb_include_path "-I${NANOPB_GENERATE_CPP_RELPATH}")
+  endif()
 
   if(NANOPB_GENERATE_CPP_APPEND_PATH)
     # Create an include path for each file specified
@@ -135,10 +140,6 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     endforeach()
   else()
     set(_nanopb_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
-  endif()
-
-  if(NANOPB_GENERATE_CPP_RELPATH)
-    list(APPEND _nanopb_include_path "-I${NANOPB_GENERATE_CPP_RELPATH}")
   endif()
 
   if(DEFINED NANOPB_IMPORT_DIRS)
@@ -216,9 +217,6 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
     list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
 
-    set(NANOPB_PLUGIN_OPTIONS)
-    set(NANOPB_OPTIONS_DIRS)
-
     # If there an options file in the same working directory, set it as a dependency
     get_filename_component(ABS_OPT_FIL ${FIL_DIR}/${FIL_WE}.options ABSOLUTE)
     if(EXISTS ${ABS_OPT_FIL})
@@ -245,6 +243,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
         list(REMOVE_DUPLICATES NANOPB_OPTIONS_DIRS)
     endif()
 
+    set(NANOPB_PLUGIN_OPTIONS)
     foreach(options_path ${NANOPB_OPTIONS_DIRS})
         set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} -I${options_path}")
     endforeach()
@@ -270,8 +269,8 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS -I${GENERATOR_PATH} -I${GENERATOR_CORE_DIR}
-           -I${CMAKE_CURRENT_BINARY_DIR} ${_nanopb_include_path}
+      ARGS ${_nanopb_include_path} -I${GENERATOR_PATH}
+           -I${GENERATOR_CORE_DIR} -I${CMAKE_CURRENT_BINARY_DIR}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
            ${NANOPB_OPT_STRING}
            ${PROTOC_OPTIONS}
