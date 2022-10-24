@@ -906,6 +906,7 @@ class Field(ProtoElement):
                 size = dependencies[str(self.submsgname)].data_size(other_dependencies)
             else:
                 size = 256 # Message is in other file, this is reasonable guess for most cases
+                sys.stderr.write('Could not determine size for submessage %s, using default %d' % (self.submsgname, size))
 
             if self.pbtype == 'MSG_W_CB':
                 size += 16
@@ -2078,12 +2079,29 @@ class ProtoFile:
         yield '#endif\n'
         yield '\n'
 
+        # Check if any messages exceed the 64 kB limit of 16-bit pb_size_t
+        exceeds_64kB = []
+        for msg in self.messages:
+            size = msg.data_size(self.dependencies)
+            if size >= 65536:
+                exceeds_64kB.append(str(msg.name))
+
+        if exceeds_64kB:
+            yield '\n/* The following messages exceed 64kB in size: ' + ', '.join(exceeds_64kB) + ' */\n'
+            yield '\n/* The PB_FIELD_32BIT compilation option must be defined to support messages that exceed 64 kB in size. */\n'
+            yield '#ifndef PB_FIELD_32BIT\n'
+            yield '#error Enable PB_FIELD_32BIT to support messages exceeding 64kB in size: ' + ', '.join(exceeds_64kB) + '\n'
+            yield '#endif\n'
+
+        # Generate the message field definitions (PB_BIND() call)
         for msg in self.messages:
             yield msg.fields_definition(self.dependencies) + '\n\n'
 
+        # Generate pb_extension_type_t definitions if extensions are used in proto file
         for ext in self.extensions:
             yield ext.extension_def(self.dependencies) + '\n'
 
+        # Generate enum_name function if enum_to_string option is defined
         for enum in self.enums:
             yield enum.enum_to_string_definition() + '\n'
 
