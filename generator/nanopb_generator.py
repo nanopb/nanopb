@@ -2376,8 +2376,8 @@ def process_file(filename, fdesc, options, other_files = {}):
             sys.stderr.write("Following patterns in " + f.optfilename + " did not match any fields: "
                             + ', '.join(unmatched) + "\n")
 
-        if not Globals.verbose_options:
-            sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
+            if not Globals.verbose_options:
+                sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
 
     return {'headername': headername, 'headerdata': headerdata,
             'sourcename': sourcename, 'sourcedata': sourcedata}
