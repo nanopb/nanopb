@@ -12,7 +12,7 @@ except ImportError:
         env.VerboseAction(
             # We need to speicify protobuf version. In other case got next (on Ubuntu 20.04):
             # Requirement already satisfied: protobuf in /usr/lib/python3/dist-packages (3.6.1)
-            '$PYTHONEXE -m pip install "protobuf>=3.19.1"',
+            '"$PYTHONEXE" -m pip install "protobuf>=3.19.1"',
             "Installing Protocol Buffers dependencies",
         )
     )
@@ -22,7 +22,7 @@ try:
 except ImportError:
     env.Execute(
         env.VerboseAction(
-            '$PYTHONEXE -m pip install "grpcio-tools>=1.43.0"',
+            '"$PYTHONEXE" -m pip install "grpcio-tools>=1.43.0"',
             "Installing GRPC dependencies",
         )
     )
