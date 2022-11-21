@@ -3,7 +3,7 @@ from os import path
 
 class NanoPbConan(ConanFile):
     name = "nanopb"
-    version = "0.4.7-dev"
+    version = "0.4.7"
     license = "zlib"
     url = "https://jpa.kapsi.fi/nanopb/"
     description = "Protocol Buffers with small code size"
@@ -26,6 +26,11 @@ class NanoPbConan(ConanFile):
         cmake.configure(source_folder=path.join(self.source_folder, "conan-wrapper"))
         cmake.build()
         cmake.install()
+
+    def package(self):
+        self.copy("pb_common.c", dst="src", keep_path=False)
+        self.copy("pb_decode.c", dst="src", keep_path=False)
+        self.copy("pb_encode.c", dst="src", keep_path=False)
 
     def package_info(self):
         self.cpp_info.includedirs = ["include"]
