@@ -11,6 +11,7 @@ import re
 import codecs
 import copy
 import itertools
+import functools
 import tempfile
 import shutil
 import os
@@ -1653,36 +1654,41 @@ def iterate_extensions(desc, flatten = False, names = Names()):
         for extension in subdesc.extension:
             yield subname, extension
 
-def toposort2(data):
-    '''Topological sort.
-    From http://code.activestate.com/recipes/577413-topological-sort/
-    This function is under the MIT license.
-    '''
-    for k, v in list(data.items()):
-        v.discard(k) # Ignore self dependencies
-    extra_items_in_deps = reduce(set.union, list(data.values()), set()) - set(data.keys())
-    data.update(dict([(item, set()) for item in extra_items_in_deps]))
-    while True:
-        ordered = set(item for item,dep in list(data.items()) if not dep)
-        if not ordered:
-            break
-        for item in sorted(ordered):
-            yield item
-        data = dict([(item, (dep - ordered)) for item,dep in list(data.items())
-                if item not in ordered])
-    assert not data, "A cyclic dependency exists amongst %r" % data
-
 def sort_dependencies(messages):
     '''Sort a list of Messages based on dependencies.'''
+
+    # Construct first level list of depedencies
     dependencies = {}
     message_by_name = {}
     for message in messages:
         dependencies[str(message.name)] = set(message.get_dependencies())
         message_by_name[str(message.name)] = message
 
-    for msgname in toposort2(dependencies):
-        if msgname in message_by_name:
-            yield message_by_name[msgname]
+    # Expand recursively
+    added = True
+    while added:
+        added = False
+        for msgname, depset in dependencies.items():
+            for depname in list(depset):
+                if depname in dependencies:
+                    for depname2 in dependencies[depname]:
+                        if depname2 not in depset:
+                            depset.add(depname2)
+                            added = True
+
+    # Sort based on dependencies
+    def depcompare(a, b):
+        aname = str(a.name)
+        bname = str(b.name)
+        if aname in dependencies[bname]:
+            return -1
+        elif bname in dependencies[aname]:
+            return 1
+        else:
+            return 0
+
+    messages.sort(key = functools.cmp_to_key(depcompare))
+    return messages
 
 def make_identifier(headername):
     '''Make #ifndef identifier that contains uppercase A-Z and digits 0-9'''
