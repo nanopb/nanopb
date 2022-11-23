@@ -368,6 +368,13 @@ class ProtoElement(object):
         '''Get comments for a member of enum or message.'''
         return self.get_comments((ProtoElement.FIELD, index), leading_indent = True)
 
+    def format_comment(self, comment):
+        '''Put comment inside /* */ and sanitize comment contents'''
+        comment = comment.strip()
+        comment = comment.replace('/*', '/ *')
+        comment = comment.replace('*/', '* /')
+        return "/* %s */" % comment
+
     def get_comments(self, member_path = (), leading_indent = False):
         '''Get leading & trailing comments for a protobuf element.
 
@@ -388,10 +395,10 @@ class ProtoElement(object):
 
         if comment.leading_comments:
             leading_comment = "    " if leading_indent else ""
-            leading_comment += "/* %s */" % comment.leading_comments.strip()
+            leading_comment += self.format_comment(comment.leading_comments)
 
         if comment.trailing_comments:
-            trailing_comment = "/* %s */" % comment.trailing_comments.strip()
+            trailing_comment = self.format_comment(comment.trailing_comments)
 
         return leading_comment, trailing_comment
 
