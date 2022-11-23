@@ -19,3 +19,12 @@ message Message3
     repeated Message2 data1 = 1 [(nanopb).max_count = 2, (nanopb).fixed_count = true];
     repeated Message2 data2 = 2 [(nanopb).max_count = 2, (nanopb).fixed_count = true];
 }
+
+message SubMessage {
+  required int32 a = 1;
+}
+
+message Message4 {
+  repeated SubMessage submsgs = 1 [(nanopb).type = FT_POINTER, (nanopb).max_count = 5, (nanopb).fixed_count = true];
+  repeated string strings = 2 [(nanopb).type = FT_POINTER, (nanopb).max_count = 4, (nanopb).fixed_count = true];
+}

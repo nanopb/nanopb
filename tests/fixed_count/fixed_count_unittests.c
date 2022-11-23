@@ -2,6 +2,7 @@
 #include <string.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <malloc_wrappers.h>
 #include "unittests.h"
 #include "fixed_count.pb.h"
 
@@ -132,6 +133,54 @@ int main()
 
       TEST(istream.bytes_left == 0);
       TEST(memcmp(&msg_b, &msg_a, sizeof(msg_a)) == 0);
+    }
+
+    {
+      pb_byte_t buffer[256];
+      Message4 msg_a = Message4_init_zero;
+      Message4 msg_b = Message4_init_zero;
+
+      pb_ostream_t ostream;
+      pb_istream_t istream;
+      size_t message_length;
+
+      COMMENT("Test encode and decode with pointer type fixarray");
+
+      SubMessage submsgs[pb_arraysize(Message4, submsgs[0])] = {SubMessage_init_zero};
+      submsgs[0].a = 1;
+      submsgs[1].a = 5;
+      submsgs[2].a = 999;
+
+      char a[5] = "a";
+      char b[5] = "b";
+      char abc[5] = "abc";
+      char *strings[pb_arraysize(Message4, strings[0])] = {a, b, abc};
+
+      msg_a.submsgs = &submsgs;
+      msg_a.strings = &strings;
+
+      ostream = pb_ostream_from_buffer(buffer, Message3_size);
+      TEST(pb_encode(&ostream, Message4_fields, &msg_a));
+      message_length = ostream.bytes_written;
+
+      TEST(get_alloc_count() == 0);
+
+      istream = pb_istream_from_buffer(buffer, message_length);
+      TEST(pb_decode(&istream, Message4_fields, &msg_b));
+
+      TEST(istream.bytes_left == 0);
+
+      TEST((*msg_b.submsgs)[0].a == 1);
+      TEST((*msg_b.submsgs)[1].a == 5);
+      TEST((*msg_b.submsgs)[2].a == 999);
+
+      TEST(strcmp((*msg_b.strings)[0], "a") == 0);
+      TEST(strcmp((*msg_b.strings)[1], "b") == 0);
+      TEST(strcmp((*msg_b.strings)[2], "abc") == 0);
+
+      pb_release(Message4_fields, &msg_b);
+
+      TEST(get_alloc_count() == 0);
     }
 
     if (status != 0)

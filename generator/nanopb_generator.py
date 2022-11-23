@@ -716,16 +716,20 @@ class Field(ProtoElement):
                     result += '    pb_callback_t cb_' + var_name + ';\n'
                 result += '    pb_size_t ' + var_name + '_count;\n'
 
-            if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
-                # Use struct definition, so recursive submessages are possible
-                result += '    struct %s *%s;' % (Globals.naming_style.struct_name(self.ctype), var_name)
+            if self.rules == 'FIXARRAY' and self.pbtype in ['STRING', 'BYTES']:
+                # Pointer to fixed size array of pointers
+                result += '    %s* (*%s)%s;' % (type_name, var_name, self.array_decl)
             elif self.pbtype == 'FIXED_LENGTH_BYTES' or self.rules == 'FIXARRAY':
-                # Pointer to fixed size array
+                # Pointer to fixed size array of items
                 result += '    %s (*%s)%s;' % (type_name, var_name, self.array_decl)
-            elif self.rules in ['REPEATED', 'FIXARRAY'] and self.pbtype in ['STRING', 'BYTES']:
+            elif self.rules == 'REPEATED' and self.pbtype in ['STRING', 'BYTES']:
                 # String/bytes arrays need to be defined as pointers to pointers
                 result += '    %s **%s;' % (type_name, var_name)
+            elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
+                # Use struct definition, so recursive submessages are possible
+                result += '    struct %s *%s;' % (Globals.naming_style.struct_name(self.ctype), var_name)
             else:
+                # Normal case, just a pointer to single item
                 result += '    %s *%s;' % (type_name, var_name)
         elif self.allocation == 'CALLBACK':
             result += '    %s %s;' % (self.callback_datatype, var_name)
@@ -757,6 +761,8 @@ class Field(ProtoElement):
     def get_dependencies(self):
         '''Get list of type names used by this field.'''
         if self.allocation == 'STATIC':
+            return [str(self.ctype)]
+        elif self.allocation == 'POINTER' and self.rules == 'FIXARRAY':
             return [str(self.ctype)]
         else:
             return []

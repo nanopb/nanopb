@@ -1,14 +1,15 @@
 # Test that fixed count option works.
 
-Import("env")
+Import("malloc_env")
 
-env.NanopbProto("fixed_count")
-env.Object("fixed_count.pb.c")
+malloc_env.NanopbProto("fixed_count")
+malloc_env.Object("fixed_count.pb.c")
 
-p = env.Program(["fixed_count_unittests.c",
+p = malloc_env.Program(["fixed_count_unittests.c",
                  "fixed_count.pb.c",
-                 "$COMMON/pb_encode.o",
-                 "$COMMON/pb_decode.o",
-                 "$COMMON/pb_common.o"])
+                 "$COMMON/pb_encode_with_malloc.o",
+                 "$COMMON/pb_decode_with_malloc.o",
+                 "$COMMON/pb_common_with_malloc.o",
+                 "$COMMON/malloc_wrappers.o"])
 
-env.RunTest(p)
+malloc_env.RunTest(p)
