@@ -11,7 +11,6 @@ import re
 import codecs
 import copy
 import itertools
-import functools
 import tempfile
 import shutil
 import os
@@ -913,7 +912,7 @@ class Field(ProtoElement):
                 size = dependencies[str(self.submsgname)].data_size(other_dependencies)
             else:
                 size = 256 # Message is in other file, this is reasonable guess for most cases
-                sys.stderr.write('Could not determine size for submessage %s, using default %d' % (self.submsgname, size))
+                sys.stderr.write('Could not determine size for submessage %s, using default %d\n' % (self.submsgname, size))
 
             if self.pbtype == 'MSG_W_CB':
                 size += 16
@@ -1657,38 +1656,26 @@ def iterate_extensions(desc, flatten = False, names = Names()):
 def sort_dependencies(messages):
     '''Sort a list of Messages based on dependencies.'''
 
-    # Construct first level list of depedencies
+    # Construct first level list of dependencies
     dependencies = {}
-    message_by_name = {}
     for message in messages:
         dependencies[str(message.name)] = set(message.get_dependencies())
-        message_by_name[str(message.name)] = message
 
-    # Expand recursively
-    added = True
-    while added:
-        added = False
-        for msgname, depset in dependencies.items():
-            for depname in list(depset):
-                if depname in dependencies:
-                    for depname2 in dependencies[depname]:
-                        if depname2 not in depset:
-                            depset.add(depname2)
-                            added = True
-
-    # Sort based on dependencies
-    def depcompare(a, b):
-        aname = str(a.name)
-        bname = str(b.name)
-        if aname in dependencies[bname]:
-            return -1
-        elif bname in dependencies[aname]:
-            return 1
+    # Emit messages after all their dependencies have been processed
+    remaining = list(messages)
+    remainset = set(str(m.name) for m in remaining)
+    while remaining:
+        for candidate in remaining:
+            if not remainset.intersection(dependencies[str(candidate.name)]):
+                remaining.remove(candidate)
+                remainset.remove(str(candidate.name))
+                yield candidate
+                break
         else:
-            return 0
-
-    messages.sort(key = functools.cmp_to_key(depcompare))
-    return messages
+            sys.stderr.write("Circular dependency in messages: " + ', '.join(remainset) + " (consider changing to FT_POINTER or FT_CALLBACK)\n")
+            candidate = remaining.pop(0)
+            remainset.remove(str(candidate.name))
+            yield candidate
 
 def make_identifier(headername):
     '''Make #ifndef identifier that contains uppercase A-Z and digits 0-9'''
