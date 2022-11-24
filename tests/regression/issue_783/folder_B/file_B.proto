@@ -1,6 +1,10 @@
 syntax = "proto2";
 package folder_B;
+
 import "folder_A/file_A.proto";
+import "folder_C/file_C.proto";
+
 message dummy  {
     required folder_A.my_enum value  = 1;
+    required folder_C.messageC msg   = 2;
 }

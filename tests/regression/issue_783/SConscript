@@ -1,13 +1,19 @@
-# Regression test for issue #783:
+# Regression test for issues #783 and #820:
 # Could not find enum type when using mangle_names:M_STRIP_PACKAGE
-# when using multiple packages.
+# when using multiple packages. Same when overriding package name
+# with "(nanopb_fileopt).package".
 
 Import('env')
 
 incpath = env.Clone()
 incpath.Append(CPPPATH="$BUILD/regression/issue_783")
-incpath.NanopbProto(['folder_A/file_A', 'folder_A/file_A.options'])
-incpath.NanopbProto(['folder_B/file_B'])
+
+a = incpath.NanopbProto(['folder_A/file_A', 'folder_A/file_A.options'])
+b = incpath.NanopbProto(['folder_C/file_C'])
+c = incpath.NanopbProto(['folder_B/file_B'])
+
+incpath.Depends(c, [a, b])
 
 incpath.Object('folder_A/file_A.pb.c')
 incpath.Object('folder_B/file_B.pb.c')
+incpath.Object('folder_C/file_C.pb.c')

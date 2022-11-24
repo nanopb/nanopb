@@ -239,6 +239,9 @@ class Names:
             parts = (parts,)
         self.parts = tuple(parts)
 
+        if self.parts == ('',):
+            self.parts = ()
+
     def __str__(self):
         return '_'.join(self.parts)
 
@@ -2065,14 +2068,13 @@ class ProtoFile:
                       yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
               yield '\n'
 
-        if self.manglenames.mangle_names != nanopb_pb2.M_NONE:
-            pairs = [x for x in self.manglenames.reverse_name_mapping.items() if str(x[0]) != str(x[1])]
-            if pairs:
-                modename = nanopb_pb2.TypenameMangling.Name(self.manglenames.mangle_names)
-                yield '/* Mapping from canonical names for the mangle_names=%s option */\n' % modename
-                for shortname, longname in pairs:
-                    yield '#define %s %s\n' % (longname, shortname)
-                yield '\n'
+        # Check if there is any name mangling active
+        pairs = [x for x in self.manglenames.reverse_name_mapping.items() if str(x[0]) != str(x[1])]
+        if pairs:
+            yield '/* Mapping from canonical names (mangle_names or overridden package name) */\n'
+            for shortname, longname in pairs:
+                yield '#define %s %s\n' % (longname, shortname)
+            yield '\n'
 
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'

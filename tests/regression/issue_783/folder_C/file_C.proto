@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+
+package folder_C;
+option (nanopb_fileopt).package = "dir_C";
+
+message messageC {
+    required uint32 a = 1;
+}
+
