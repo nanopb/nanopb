@@ -1,0 +1,7 @@
+syntax = "proto2";
+package folder_A;
+enum my_enum {
+    ENUM_0 = 0;
+    ENUM_1 = 1;
+    ENUM_2 = 2;
+}

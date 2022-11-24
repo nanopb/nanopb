@@ -1709,6 +1709,7 @@ class MangleNames:
         self.replacement_prefix = None
         self.name_mapping = {}
         self.reverse_name_mapping = {}
+        self.canonical_base = Names(fdesc.package.split('.'))
 
         if self.mangle_names == nanopb_pb2.M_STRIP_PACKAGE:
             self.strip_prefix = "." + fdesc.package
@@ -1747,7 +1748,7 @@ class MangleNames:
                     (self.mangle_names, self.reverse_name_mapping[str(new_name)], names, new_name))
 
             self.name_mapping[str(names)] = new_name
-            self.reverse_name_mapping[str(new_name)] = names
+            self.reverse_name_mapping[str(new_name)] = self.canonical_base + names
 
         return self.name_mapping[str(names)]
 
@@ -1768,6 +1769,9 @@ class MangleNames:
             return "." + self.replacement_prefix + typename
 
         return typename
+
+    def unmangle(self, names):
+        return self.reverse_name_mapping.get(str(names), names)
 
 class ProtoFile:
     def __init__(self, fdesc, file_options):
@@ -1839,10 +1843,12 @@ class ProtoFile:
     def add_dependency(self, other):
         for enum in other.enums:
             self.dependencies[str(enum.names)] = enum
+            self.dependencies[str(other.manglenames.unmangle(enum.names))] = enum
             enum.protofile = other
 
         for msg in other.messages:
             self.dependencies[str(msg.name)] = msg
+            self.dependencies[str(other.manglenames.unmangle(msg.name))] = msg
             msg.protofile = other
 
         # Fix field default values where enum short names are used.
@@ -2043,6 +2049,15 @@ class ProtoFile:
                   if hasattr(msg,'msgid'):
                       yield '#define %s_msgid %d\n' % (msg.name, msg.msgid)
               yield '\n'
+
+        if self.manglenames.mangle_names != nanopb_pb2.M_NONE:
+            pairs = [x for x in self.manglenames.reverse_name_mapping.items() if str(x[0]) != str(x[1])]
+            if pairs:
+                modename = nanopb_pb2.TypenameMangling.Name(self.manglenames.mangle_names)
+                yield '/* Mapping from canonical names for the mangle_names=%s option */\n' % modename
+                for shortname, longname in pairs:
+                    yield '#define %s %s\n' % (longname, shortname)
+                yield '\n'
 
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'

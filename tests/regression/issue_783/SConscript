@@ -1,0 +1,13 @@
+# Regression test for issue #783:
+# Could not find enum type when using mangle_names:M_STRIP_PACKAGE
+# when using multiple packages.
+
+Import('env')
+
+incpath = env.Clone()
+incpath.Append(CPPPATH="$BUILD/regression/issue_783")
+incpath.NanopbProto(['folder_A/file_A', 'folder_A/file_A.options'])
+incpath.NanopbProto(['folder_B/file_B'])
+
+incpath.Object('folder_A/file_A.pb.c')
+incpath.Object('folder_B/file_B.pb.c')
