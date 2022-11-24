@@ -242,6 +242,9 @@ class Names:
     def __str__(self):
         return '_'.join(self.parts)
 
+    def __repr__(self):
+        return 'Names(%s)' % ','.join("'%s'" % x for x in self.parts)
+
     def __add__(self, other):
         if isinstance(other, strtypes):
             return Names(self.parts + (other,))
@@ -323,6 +326,9 @@ class EncodedSize:
             return str(self.value)
         else:
             return '(' + str(self.value) + ' + ' + ' + '.join(self.symbols) + ')'
+
+    def __repr__(self):
+        return 'EncodedSize(%s, %s, %s, %s)' % (self.value, self.symbols, self.declarations, self.required_defines)
 
     def get_declarations(self):
         '''Get any declarations that must appear alongside this encoded size definition,
@@ -435,6 +441,9 @@ class Enum(ProtoElement):
 
     def encoded_size(self):
         return max([varint_max_size(v) for n,v in self.values])
+
+    def __repr__(self):
+        return 'Enum(%s)' % self.names
 
     def __str__(self):
         leading_comment, trailing_comment = self.get_comments()
@@ -710,6 +719,9 @@ class Field(ProtoElement):
 
     def __lt__(self, other):
         return self.tag < other.tag
+
+    def __repr__(self):
+        return 'Field(%s)' % self.name
 
     def __str__(self):
         result = ''
@@ -1318,6 +1330,9 @@ class Message(ProtoElement):
         for f in self.fields:
             deps += f.get_dependencies()
         return deps
+
+    def __repr__(self):
+        return 'Message(%s)' % self.name
 
     def __str__(self):
         leading_comment, trailing_comment = self.get_comments()
