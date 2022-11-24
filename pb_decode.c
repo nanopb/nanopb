@@ -111,7 +111,11 @@ bool checkreturn pb_read(pb_istream_t *stream, pb_byte_t *buf, size_t count)
         return false;
 #endif
     
-    stream->bytes_left -= count;
+    if (stream->bytes_left < count)
+        stream->bytes_left = 0;
+    else
+        stream->bytes_left -= count;
+
     return true;
 }
 
