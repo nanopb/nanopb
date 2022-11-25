@@ -144,12 +144,15 @@ def _nanopb_proto_actions(source, target, env, for_signature):
         include_dirs += ' -I' + esc(d)
 
     # when generating .pb.cpp sources, instead of pb.h generate .pb.hpp headers
-    nanopb_flags = env['NANOPBFLAGS']
     source_extension = os.path.splitext(str(target[0]))[1]
-    if source_extension == '.cpp':
-        nanopb_flags += ',--source-extension=.cpp,--header-extension=.hpp'
+    header_extension = '.h' + source_extension[2:]
+    nanopb_flags = env['NANOPBFLAGS']
+    if nanopb_flags:
+      nanopb_flags = '--source-extension=%s,--header-extension=%s,%s:.' % (source_extension, header_extension, nanopb_flags)
+    else:
+      nanopb_flags = '--source-extension=%s,--header-extension=%s:.' % (source_extension, header_extension)
 
-    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s --nanopb_out=. "--nanopb_opt=%s" %s' % (include_dirs, nanopb_flags, srcfile),
+    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s --nanopb_out=%s %s' % (include_dirs, nanopb_flags, srcfile),
                                       chdir = prefix)
 
 def _nanopb_proto_emitter(target, source, env):
