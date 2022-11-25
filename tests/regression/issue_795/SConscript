@@ -6,7 +6,7 @@ Import('env')
 
 opts = env.Clone()
 
-opts.Append(NANOPBFLAGS = "-s mangle_names:M_STRIP_PACKAGE")
+opts.Append(NANOPBFLAGS = "-s mangle_names=M_STRIP_PACKAGE")
 
 opts.NanopbProto("test.proto")
 opts.NanopbProto("test2.proto")

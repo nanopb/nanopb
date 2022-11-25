@@ -2362,6 +2362,8 @@ def parse_file(filename, fdesc, options):
     '''Parse a single file. Returns a ProtoFile instance.'''
     toplevel_options = nanopb_pb2.NanoPBOptions()
     for s in options.settings:
+        if ':' not in s and '=' in s:
+            s = s.replace('=', ':')
         text_format.Merge(s, toplevel_options)
 
     if not fdesc:

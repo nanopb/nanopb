@@ -152,7 +152,7 @@ def _nanopb_proto_actions(source, target, env, for_signature):
     else:
       nanopb_flags = '--source-extension=%s,--header-extension=%s:.' % (source_extension, header_extension)
 
-    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s --nanopb_out=%s %s' % (include_dirs, nanopb_flags, srcfile),
+    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s "--nanopb_out=%s" %s' % (include_dirs, nanopb_flags, srcfile),
                                       chdir = prefix)
 
 def _nanopb_proto_emitter(target, source, env):
