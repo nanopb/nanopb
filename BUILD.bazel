@@ -49,7 +49,7 @@ py_binary(
 proto_plugin(
     name = "nanopb_plugin",
     options = [
-        "--library-include-format='#include\"%s\"'",
+        '--library-include-format=quote',
     ],
     outputs = [
         "{protopath}.pb.h",

@@ -2292,10 +2292,10 @@ optparser.add_option("-D", "--output-dir", dest="output_dir",
                      help="Output directory of .pb.h and .pb.c files")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"',
-    help="Set format string to use for including other .pb.h files. [default: %default]")
+    help="Set format string to use for including other .pb.h files. Value can be 'quote', 'bracket' or a format string. [default: %default]")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>',
-    help="Set format string to use for including the nanopb pb.h header. [default: %default]")
+    help="Set format string to use for including the nanopb pb.h header. Value can be 'quote', 'bracket' or a format string. [default: %default]")
 optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=False,
     help="Strip directory path from #included .pb.h file name")
 optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
@@ -2316,6 +2316,42 @@ optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points"
     help="Include insertion point comments in output for use by custom protoc plugins")
 optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
     help="Use C naming convention.")
+
+def process_cmdline(args, is_plugin):
+    '''Process command line options. Returns list of options, filenames.'''
+
+    options, filenames = optparser.parse_args(args)
+
+    if options.version:
+        if is_plugin:
+            sys.stderr.write('%s\n' % (nanopb_version))
+        else:
+            print(nanopb_version)
+        sys.exit(0)
+
+    if not filenames and not is_plugin:
+        optparser.print_help()
+        sys.exit(1)
+
+    if options.quiet:
+        options.verbose = False
+
+    include_formats = {'quote': '#include "%s"', 'bracket': '#include <%s>'}
+    options.libformat = include_formats.get(options.libformat, options.libformat)
+    options.genformat = include_formats.get(options.genformat, options.genformat)
+
+    if options.c_style:
+        Globals.naming_style = NamingStyleC()
+
+    Globals.verbose_options = options.verbose
+
+    if options.verbose:
+        sys.stderr.write("Nanopb version %s\n" % nanopb_version)
+        sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
+                         % (google.protobuf.__file__, google.protobuf.__version__))
+
+    return options, filenames
+
 
 def parse_file(filename, fdesc, options):
     '''Parse a single file. Returns a ProtoFile instance.'''
@@ -2424,31 +2460,12 @@ def process_file(filename, fdesc, options, other_files = {}):
 def main_cli():
     '''Main function when invoked directly from the command line.'''
 
-    options, filenames = optparser.parse_args()
-
-    if options.version:
-        print(nanopb_version)
-        sys.exit(0)
-
-    if not filenames:
-        optparser.print_help()
-        sys.exit(1)
-
-    if options.quiet:
-        options.verbose = False
+    options, filenames = process_cmdline(sys.argv[1:], is_plugin = False)
 
     if options.output_dir and not os.path.exists(options.output_dir):
         optparser.print_help()
         sys.stderr.write("\noutput_dir does not exist: %s\n" % options.output_dir)
         sys.exit(1)
-
-    if options.verbose:
-        sys.stderr.write("Nanopb version %s\n" % nanopb_version)
-        sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
-                         % (google.protobuf.__file__, google.protobuf.__version__))
-
-    if options.c_style:
-        Globals.naming_style = NamingStyleC()
 
     # Load .pb files into memory and compile any .proto files.
     include_path = ['-I%s' % p for p in options.options_path]
@@ -2479,7 +2496,6 @@ def main_cli():
         other_files[fdesc.name] = parse_file(fdesc.name, fdesc, options)
 
     # Then generate the headers / sources
-    Globals.verbose_options = options.verbose
     for fdesc in out_fdescs.values():
         results = process_file(fdesc.name, fdesc, options, other_files)
 
@@ -2543,21 +2559,7 @@ def main_plugin():
         optparser.print_help(sys.stderr)
         sys.exit(1)
 
-    options, dummy = optparser.parse_args(args)
-
-    if options.version:
-        sys.stderr.write('%s\n' % (nanopb_version))
-        sys.exit(0)
-
-    Globals.verbose_options = options.verbose
-
-    if options.c_style:
-        Globals.naming_style = NamingStyleC()
-
-    if options.verbose:
-        sys.stderr.write("Nanopb version %s\n" % nanopb_version)
-        sys.stderr.write('Google Python protobuf library imported from %s, version %s\n'
-                         % (google.protobuf.__file__, google.protobuf.__version__))
+    options, dummy = process_cmdline(args, is_plugin = True)
 
     response = plugin_pb2.CodeGeneratorResponse()
 
