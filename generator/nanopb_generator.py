@@ -2312,6 +2312,8 @@ optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", def
     help="Print more information.")
 optparser.add_option("-s", dest="settings", metavar="OPTION:VALUE", action="append", default=[],
     help="Set generator option (max_size, max_count etc.).")
+optparser.add_option("--protoc-opt", dest="protoc_opts", action="append", default = [], metavar="OPTION",
+    help="Pass an option to protoc when compiling .proto files")
 optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points", action="store_true", default=False,
     help="Include insertion point comments in output for use by custom protoc plugins")
 optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
@@ -2475,7 +2477,10 @@ def main_cli():
         if filename.endswith(".proto"):
             with TemporaryDirectory() as tmpdir:
                 tmpname = os.path.join(tmpdir, os.path.basename(filename) + ".pb")
-                status = invoke_protoc(["protoc"] + include_path + ['--include_imports', '--include_source_info', '-o' + tmpname, filename])
+                args = ["protoc"] + include_path
+                args += options.protoc_opts
+                args += ['--include_imports', '--include_source_info', '-o' + tmpname, filename]
+                status = invoke_protoc(args)
                 if status != 0: sys.exit(status)
                 data = open(tmpname, 'rb').read()
         else:
