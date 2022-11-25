@@ -76,7 +76,7 @@ env.Append(PROTOCPATH = '#../generator')
 if not env.GetOption('clean'):
     def check_ccflags(context, flags, linkflags = ''):
         '''Check if given CCFLAGS are supported'''
-        context.Message('Checking support for CCFLAGS="%s"... ' % flags)
+        context.Message('Checking support for CCFLAGS="%s" LINKFLAGS="%s"... ' % (flags, linkflags))
         oldflags = context.env['CCFLAGS']
         oldlinkflags = context.env['LINKFLAGS']
         context.env.Append(CCFLAGS = flags)
@@ -122,6 +122,10 @@ if not env.GetOption('clean'):
         if stdlib: conf.env.Append(CPPDEFINES = {'HAVE_STDLIB_H': 1})
         if limits: conf.env.Append(CPPDEFINES = {'HAVE_LIMITS_H': 1})
     
+    # Some platforms need libm for isnan()
+    if conf.CheckCCFLAGS('', linkflags = '-lm'):
+        conf.env.Append(LINKFLAGS = '-lm')
+
     # Check protoc version
     conf.env['PROTOC_VERSION'] = conf.CheckProtocVersion()
 
