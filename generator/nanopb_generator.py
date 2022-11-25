@@ -13,6 +13,7 @@ import copy
 import itertools
 import tempfile
 import shutil
+import shlex
 import os
 from functools import reduce
 
@@ -2521,19 +2522,19 @@ def main_plugin():
     except UnicodeEncodeError:
         params = request.parameter
 
-    import shlex
-    args = shlex.split(params)
-
-    if len(args) == 1 and ',' in args[0]:
-        # For compatibility with other protoc plugins, support options
-        # separated by comma.
+    if ',' not in params and ' -' in params:
+        # Nanopb has traditionally supported space as separator in options
+        args = shlex.split(params)
+    else:
+        # Protoc separates options passed to plugins by comma
+        # This allows also giving --nanopb_opt option multiple times.
         lex = shlex.shlex(params)
         lex.whitespace_split = True
         lex.whitespace = ','
         lex.commenters = ''
         args = list(lex)
 
-    optparser.usage = "Usage: protoc --nanopb_out=[options][,more_options]:outdir file.proto"
+    optparser.usage = "protoc --nanopb_out=outdir [--nanopb_opt=option] ['--nanopb_opt=option with spaces'] file.proto"
     optparser.epilog = "Output will be written to file.pb.h and file.pb.c."
 
     if '-h' in args or '--help' in args:
