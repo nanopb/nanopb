@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+import "test2.proto";
+
+package test3.package;
+
+message TestMessage {
+    TestEnum a = 1;
+}

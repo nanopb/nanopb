@@ -1,0 +1,16 @@
+# Regression test for issue #795:
+# "Lookup of non-absolute type names is not supported" when using
+# mangle_names:M_STRIP_PACKAGE
+
+Import('env')
+
+opts = env.Clone()
+
+opts.Append(NANOPBFLAGS = "-s mangle_names:M_STRIP_PACKAGE")
+
+opts.NanopbProto("test.proto")
+opts.NanopbProto("test2.proto")
+opts.NanopbProto("test3.proto")
+opts.Object("test.pb.c")
+opts.Object("test2.pb.c")
+opts.Object("test3.pb.c")

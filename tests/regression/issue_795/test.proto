@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "nanopb.proto";
+
+package test.package;
+
+message GenericResponse
+{
+    bool success = 1;
+    string detail = 2  [(nanopb).max_length = 127];
+    int32 int_code = 3;
+}
+
+message TrippleInt {
+    int32 v1 = 1;
+    int32 v2 = 2;
+    int32 v3 = 3;
+}
+
+message TrippleDouble {
+    double v1 = 1;
+    double v2 = 2;
+    double v3 = 3;
+}
+
+enum CircuitID {
+    CIRCUIT_ID_DRIVE_MOTORS = 0;
+    CIRCUIT_ID_GENERATOR = 1;
+    CIRCUIT_ID_PAYLOAD = 2;
+    CIRCUIT_ID_MID = 3;
+    CIRCUIT_ID_SPARE = 4;
+}

@@ -1741,6 +1741,9 @@ class MangleNames:
             self.strip_prefix = "." + fdesc.package
             self.replacement_prefix = file_options.package
 
+        if self.strip_prefix == '.':
+            self.strip_prefix = ''
+
         if self.replacement_prefix is not None:
             self.base_name = Names(self.replacement_prefix.split('.'))
         elif fdesc.package:
