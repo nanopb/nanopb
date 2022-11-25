@@ -1331,6 +1331,13 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
         pb_release_single_field(&iter);
     } while (pb_field_iter_next(&iter));
 }
+#else
+void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
+{
+    /* Nothing to release without PB_ENABLE_MALLOC. */
+    PB_UNUSED(fields);
+    PB_UNUSED(dest_struct);
+}
 #endif
 
 /* Field decoders */
