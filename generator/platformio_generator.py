@@ -1,6 +1,8 @@
 import os
 import hashlib
 import pathlib
+import shlex
+import SCons.Action
 from platformio import fs
 
 Import("env")
@@ -45,7 +47,7 @@ else:
     if isinstance(nanopb_plugin_options, (list, tuple)):
         nanopb_plugin_options = " ".join(nanopb_plugin_options)
 
-    nanopb_plugin_options = nanopb_plugin_options.split()
+    nanopb_plugin_options = shlex.split(nanopb_plugin_options)
 
     protos_files = fs.match_src_files(project_dir, nanopb_protos)
     if not len(protos_files):
@@ -53,12 +55,12 @@ else:
         print(f"custom_nanopb_protos: {nanopb_protos}")
         exit(1)
 
-    protoc_generator = os.path.join(nanopb_root, 'generator', 'protoc')
+    nanopb_generator = os.path.join(nanopb_root, 'generator', 'nanopb_generator.py')
 
-    nanopb_options = ""
-    nanopb_options += f" --nanopb_out={generated_src_dir}"
+    nanopb_options = []
+    nanopb_options.append(f"--output-dir={generated_src_dir}")
     for opt in nanopb_plugin_options:
-        nanopb_options += (" --nanopb_opt=" + opt)
+        nanopb_options.append(opt)
 
     try:
         os.makedirs(generated_src_dir)
@@ -78,8 +80,7 @@ else:
         proto_include_dirs.add(proto_dir)
 
     for proto_include_dir in proto_include_dirs:
-        nanopb_options += (" --proto_path=" + proto_include_dir)
-        nanopb_options += (" --nanopb_opt=-I" + proto_include_dir)
+        nanopb_options.append("--proto-path=" + proto_include_dir)
 
     for proto_file in protos_files:
         proto_file_abs = os.path.join(project_dir, proto_file)
@@ -132,8 +133,9 @@ else:
             print(f"[nanopb] Skipping '{proto_file}' ({options_info})")
         else:
             print(f"[nanopb] Processing '{proto_file}' ({options_info})")
-            cmd = protoc_generator + " " + nanopb_options + " " + proto_file_basename
-            result = env.Execute(cmd)
+            cmd = ["$PYTHONEXE", nanopb_generator] + nanopb_options + [proto_file_basename]
+            action = SCons.Action.CommandAction(cmd)
+            result = env.Execute(action)
             if result != 0:
                 print(f"[nanopb] ERROR: ({result}) processing cmd: '{cmd}'")
                 exit(1)

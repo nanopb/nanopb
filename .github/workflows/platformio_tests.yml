@@ -3,6 +3,12 @@ name: Build and test using platformio
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    paths:
+      - '*platformio*'
+  pull_request:
+    paths:
+      - '*platformio*'
 
 jobs:
   platformio:
@@ -49,6 +55,14 @@ jobs:
 
       - name: Example - Run test with options
         run: example/.pio/build/pio_with_options/program
+
+      - name: Build in subdirectory with space characters
+        run: |
+          cp -R nanopb/examples/platformio "example with spaces"
+          mkdir -p "example with spaces/lib/nanopb"
+          tar -xzf nanopb/Nanopb-*.tar.gz -C "example with spaces/lib/nanopb"
+          cd "example with spaces"
+          pio run -e pio_with_options # ESP32 platform doesn't support spaces currently
 
       - name: Build with default platformio.ini
         run: |
