@@ -3,6 +3,14 @@ name: Build and test for Apple iOS swift
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    paths:
+      - '**spm**'
+      - '**swift**'
+  pull_request:
+    paths:
+      - '**spm**'
+      - '**swift**'
 
 jobs:
   swift-build-run:

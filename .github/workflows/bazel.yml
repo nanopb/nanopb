@@ -1,10 +1,14 @@
 name: Bazel 
 
 on:
+  workflow_dispatch:
+  workflow_call:
   push:
+    paths:
+      - '**bazel**'
   pull_request:
-    branches:
-      - master
+    paths:
+      - '**bazel**'
 
 jobs:
   build_embedded:

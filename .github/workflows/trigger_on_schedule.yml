@@ -20,6 +20,9 @@ jobs:
   platformio_tests:
     uses: ./.github/workflows/platformio_tests.yml
   
+  bazel_tests:
+    uses: ./.github/workflows/bazel.yml
+
   cifuzz:
     uses: ./.github/workflows/cifuzz.yml
   

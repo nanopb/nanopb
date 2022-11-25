@@ -5,10 +5,10 @@ on:
   workflow_call:
   push:
     paths:
-      - '*platformio*'
+      - '**platformio**'
   pull_request:
     paths:
-      - '*platformio*'
+      - '**platformio**'
 
 jobs:
   platformio:
