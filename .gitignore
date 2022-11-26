@@ -9,6 +9,7 @@
 *_pb2.py
 *~
 *.tar.gz
+*.swp
 .sconsign.dblite
 config.log
 .sconf_temp
@@ -29,3 +30,4 @@ generator/nanopb_pb2.pyc
 !generator-bin/**/*
 bazel-*
 extra/poetry/build
+build/
