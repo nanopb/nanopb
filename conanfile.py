@@ -27,11 +27,6 @@ class NanoPbConan(ConanFile):
         cmake.build()
         cmake.install()
 
-    def package(self):
-        self.copy("pb_common.c", dst="src", keep_path=False)
-        self.copy("pb_decode.c", dst="src", keep_path=False)
-        self.copy("pb_encode.c", dst="src", keep_path=False)
-
     def package_info(self):
         self.cpp_info.includedirs = ["include"]
         self.cpp_info.libdirs = ["lib"]
