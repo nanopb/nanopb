@@ -1,0 +1,8 @@
+# Regression test for issue #838:
+# Test enum to string functionality with C++ main program
+
+Import('env')
+env.NanopbProto("enum.proto")
+p = env.Program(["enum_to_string.cxx", "enum.pb.c"])
+env.RunTest(p)
+
