@@ -2,7 +2,7 @@
 #include "unittests.h"
 #include "enum.pb.h"
 
-int main()
+extern "C" int main()
 {
     int status = 0;
     TEST(strcmp(MyEnum_name(MyEnum_VALUE1), "VALUE1") == 0);
