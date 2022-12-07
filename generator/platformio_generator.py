@@ -133,7 +133,7 @@ else:
             print(f"[nanopb] Skipping '{proto_file}' ({options_info})")
         else:
             print(f"[nanopb] Processing '{proto_file}' ({options_info})")
-            cmd = ["$PYTHONEXE", nanopb_generator] + nanopb_options + [proto_file_basename]
+            cmd = [env['PYTHONEXE'], nanopb_generator] + nanopb_options + [proto_file_basename]
             action = SCons.Action.CommandAction(cmd)
             result = env.Execute(action)
             if result != 0:
