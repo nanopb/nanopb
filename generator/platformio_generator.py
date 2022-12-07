@@ -2,32 +2,33 @@ import os
 import hashlib
 import pathlib
 import shlex
+import subprocess
+
 import SCons.Action
 from platformio import fs
 
 Import("env")
 
+# We don't use `env.Execute` because it does not handle spaces in path
+# See https://github.com/nanopb/nanopb/pull/834
+# So, we resolve the path to the executable and then use `subprocess.run`
+python_exe = env.subst("$PYTHONEXE")
+
 try:
     import protobuf
 except ImportError:
-    env.Execute(
-        env.VerboseAction(
-            # We need to speicify protobuf version. In other case got next (on Ubuntu 20.04):
-            # Requirement already satisfied: protobuf in /usr/lib/python3/dist-packages (3.6.1)
-            '"$PYTHONEXE" -m pip install "protobuf>=3.19.1"',
-            "Installing Protocol Buffers dependencies",
-        )
-    )
+    print("[nanopb] Installing Protocol Buffers dependencies");
+
+    # We need to speicify protobuf version. In other case got next (on Ubuntu 20.04):
+    # Requirement already satisfied: protobuf in /usr/lib/python3/dist-packages (3.6.1)
+    subprocess.run([python_exe, '-m', 'pip', 'install', "protobuf>=3.19.1"])
 
 try:
     import grpc_tools.protoc
 except ImportError:
-    env.Execute(
-        env.VerboseAction(
-            '"$PYTHONEXE" -m pip install "grpcio-tools>=1.43.0"',
-            "Installing GRPC dependencies",
-        )
-    )
+    print("[nanopb] Installing gRPC dependencies");
+    subprocess.run([python_exe, '-m', 'pip', 'install', "grpcio-tools>=1.43.0"])
+
 
 nanopb_root = os.path.join(os.getcwd(), '..')
 
