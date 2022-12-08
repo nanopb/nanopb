@@ -19,7 +19,7 @@ try:
 except ImportError:
     print("[nanopb] Installing Protocol Buffers dependencies");
 
-    # We need to speicify protobuf version. In other case got next (on Ubuntu 20.04):
+    # We need to specify protobuf version. In other case got next (on Ubuntu 20.04):
     # Requirement already satisfied: protobuf in /usr/lib/python3/dist-packages (3.6.1)
     subprocess.run([python_exe, '-m', 'pip', 'install', "protobuf>=3.19.1"])
 
@@ -59,7 +59,7 @@ else:
     nanopb_generator = os.path.join(nanopb_root, 'generator', 'nanopb_generator.py')
 
     nanopb_options = []
-    nanopb_options.append(f"--output-dir={generated_src_dir}")
+    nanopb_options.extend(["--output-dir", generated_src_dir])
     for opt in nanopb_plugin_options:
         nanopb_options.append(opt)
 
@@ -81,7 +81,7 @@ else:
         proto_include_dirs.add(proto_dir)
 
     for proto_include_dir in proto_include_dirs:
-        nanopb_options.append("--proto-path=" + proto_include_dir)
+        nanopb_options.extend(["--proto-path", proto_include_dir])
 
     for proto_file in protos_files:
         proto_file_abs = os.path.join(project_dir, proto_file)
@@ -134,7 +134,7 @@ else:
             print(f"[nanopb] Skipping '{proto_file}' ({options_info})")
         else:
             print(f"[nanopb] Processing '{proto_file}' ({options_info})")
-            cmd = [env['PYTHONEXE'], nanopb_generator] + nanopb_options + [proto_file_basename]
+            cmd = [python_exe, nanopb_generator] + nanopb_options + [proto_file_basename]
             action = SCons.Action.CommandAction(cmd)
             result = env.Execute(action)
             if result != 0:
