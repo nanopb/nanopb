@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.4.7"
+nanopb_version = "nanopb-0.4.8-dev"
 
 import sys
 import re
