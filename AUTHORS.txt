@@ -63,9 +63,7 @@ Joshua Salzedo <thHunkn0WNd@gmail.com>
 Adam Klama <klama.adam@gmail.com>
 Anton Matosov <amatosov@roblox.com>
 berni155 <bdkrae@gmail.com>
-bolind <bolind@users.noreply.github.com>
 David Lin <dtwlin@google.com>
-dch <david.hotham@blueyonder.co.uk>
 devjoa <devjoa@gmail.com>
 Evan Fisher <schleb@gmail.com>
 Fay <fay2003hiend@gmail.com>
@@ -100,7 +98,7 @@ Jakub Tymejczyk <jakub@tymejczyk.pl>
 Matthew Simmons <simmonmt@acm.org>
 Anthony Pesch <inolen@gmail.com>
 Avik De <avikde@gmail.com>
-ConradWood <github@conradwood.net>
+Conrad Wood <github@conradwood.net>
 David Sabatie <david.sabatie@notrenet.com>
 Sebastian Stockhammer <sebastian.stockhammer@rosenberger.de>
 Gil Shapira <gil.shapira@intusurg.com>
@@ -114,3 +112,12 @@ Oleg Dolgy <60554929+odolgy@users.noreply.github.com>
 Pavel Sokolov <pavel@sokolov.me>
 Slavey Karadzhov <slav@attachix.com>
 Tobias Nießen <tniessen@tnie.de>
+Christian Balcom <robot.inventor@gmail.com>
+Christopher Hughes <67643395+chughes-pika@users.noreply.github.com>
+Greg Balke <gbalke@berkeley.edu>
+Jussi Keränen <jussike@gmail.com>
+Krzysztof Rosinski <krzysiek@jrdltd.co.uk>
+Nathaniel Brough <nathaniel.brough@gmail.com>
+Sean Kahler <itsbattledash@gmail.com>
+Valerii Koval <valeros@users.noreply.github.com>
+Gediminas Žukaitis <gediminas.zukaitis@protonmail.com>
