@@ -67,6 +67,7 @@ if(nanopb_BUILD_GENERATOR)
     endforeach()
 
     install( FILES generator/proto/_utils.py
+                   generator/proto/__init__.py
              DESTINATION ${PYTHON_INSTDIR}/proto/ )
 endif()
 
