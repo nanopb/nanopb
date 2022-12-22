@@ -170,6 +170,9 @@ extern "C" {
 #    if defined(__ICCARM__)
        /* IAR has static_assert keyword but no _Static_assert */
 #      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
+#    elif defined(_MSC_VER) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112)
+       /* MSVC in C89 mode supports static_assert() keyword anyway */
+#      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
 #    elif defined(PB_C99_STATIC_ASSERT)
        /* Classic negative-size-array static assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
