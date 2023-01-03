@@ -172,10 +172,13 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
   # same build directory with different python/protobuf versions
   # as the binary build directory is discarded across builds.
   #
+  # Notice: copy_directory does not copy the content if the directory already exists.
+  # We therefore append '/' to specify that we want to copy the content of the folder. See #847
+  #
   add_custom_command(
       OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
       COMMAND ${CMAKE_COMMAND} -E copy_directory
-      ARGS ${NANOPB_GENERATOR_SOURCE_DIR} ${GENERATOR_PATH}
+      ARGS ${NANOPB_GENERATOR_SOURCE_DIR}/ ${GENERATOR_PATH}
       VERBATIM)
 
   set(GENERATOR_CORE_PYTHON_SRC)
