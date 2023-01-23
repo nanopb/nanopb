@@ -29,6 +29,4 @@ void app_main() {
     TEST(pb_decode(&istream, &TestMessageWithoutOptions_msg, &decoded));
 
     TEST(decoded.number == 45);
-
-    return status;
 }
