@@ -50,9 +50,9 @@ except:
 # Depending on how this script is run, we may or may not have PEP366 package name
 # available for relative imports.
 if not __package__:
-    import proto
-    from proto._utils import invoke_protoc
-    from proto import TemporaryDirectory
+    import nanopb_proto
+    from nanopb_proto._utils import invoke_protoc
+    from nanopb_proto import TemporaryDirectory
 else:
     from . import proto
     from .proto._utils import invoke_protoc
@@ -60,16 +60,16 @@ else:
 
 if getattr(sys, 'frozen', False):
     # Binary package, just import the file
-    from proto import nanopb_pb2
+    from nanopb_proto import nanopb_pb2
 else:
     # Try to rebuild nanopb_pb2.py if necessary
-    nanopb_pb2 = proto.load_nanopb_pb2()
+    nanopb_pb2 = nanopb_proto.load_nanopb_pb2()
 
 try:
     # Add some dummy imports to keep packaging tools happy.
     import google # bbfreeze seems to need these
     import pkg_resources # pyinstaller / protobuf 2.5 seem to need these
-    from proto import nanopb_pb2 # pyinstaller seems to need this
+    from nanopb_proto import nanopb_pb2 # pyinstaller seems to need this
     import pkg_resources.py2_warn
 except:
     # Don't care, we will error out later if it is actually important.

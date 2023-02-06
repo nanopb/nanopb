@@ -51,24 +51,24 @@ if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
 
     foreach(generator_proto IN LISTS generator_protos)
-        string(REGEX REPLACE "([^;]+)" "${PROJECT_SOURCE_DIR}/generator/proto/\\1.proto" generator_proto_file "${generator_proto}")
+        string(REGEX REPLACE "([^;]+)" "${PROJECT_SOURCE_DIR}/generator/nanopb_proto/\\1.proto" generator_proto_file "${generator_proto}")
         string(REGEX REPLACE "([^;]+)" "\\1_pb2.py" generator_proto_py_file "${generator_proto}")
         add_custom_command(
             OUTPUT ${generator_proto_py_file}
-            COMMAND ${nanopb_PROTOC_PATH} --python_out=${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/generator/proto ${generator_proto_file}
+            COMMAND ${nanopb_PROTOC_PATH} --python_out=${PROJECT_BINARY_DIR} -I${PROJECT_SOURCE_DIR}/generator/nanopb_proto ${generator_proto_file}
             DEPENDS ${generator_proto_file}
         )
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
                   ${generator_proto_file}
-            DESTINATION ${PYTHON_INSTDIR}/proto/
+            DESTINATION ${PYTHON_INSTDIR}/nanopb_proto/
         )
     endforeach()
 
-    install( FILES generator/proto/_utils.py
-                   generator/proto/__init__.py
-             DESTINATION ${PYTHON_INSTDIR}/proto/ )
+    install( FILES generator/nanopb_proto/_utils.py
+                   generator/nanopb_proto/__init__.py
+             DESTINATION ${PYTHON_INSTDIR}/nanopb_proto/ )
 endif()
 
 if(WIN32)
