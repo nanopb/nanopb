@@ -201,10 +201,10 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 
 /* Number of required fields to keep track of. */
 #ifndef PB_MAX_REQUIRED_FIELDS
-#define PB_MAX_REQUIRED_FIELDS 64
+#define PB_MAX_REQUIRED_FIELDS 64u
 #endif
 
-#if PB_MAX_REQUIRED_FIELDS < 64
+#if PB_MAX_REQUIRED_FIELDS < 64u
 #error You should not lower PB_MAX_REQUIRED_FIELDS from the default value (64).
 #endif
 
