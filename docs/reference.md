@@ -50,7 +50,7 @@ The full set of available options is defined in [nanopb.proto](https://github.co
 * `fixed_length`: Generate `bytes` fields with a constant length defined by `max_size`. A separate `.size` field will then not be generated.
 * `fixed_count`: Generate arrays with constant length defined by `max_count`.
 * `package`: Package name that applies only for nanopb generator. Defaults to name defined by `package` keyword in .proto file, which applies for all languages.
-* `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure.
+* `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure. When used with enum types, the size of the generated enum can be specified (C++ only)
 
 These options can be defined for the .proto files before they are
 converted using the nanopb-generator.py. There are three ways to define
