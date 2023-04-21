@@ -99,7 +99,11 @@ datatypes = {
     FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  4),
     FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  8),
 
-    # Integer size override options
+    # Integer size override option
+    (FieldD.TYPE_ENUM,    nanopb_pb2.IS_8):   ('uint8_t', 'ENUM',  4,  1),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_16):   ('uint16_t', 'ENUM',  4,  2),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_32):   ('uint32_t', 'ENUM',  4,  4),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_64):   ('uint64_t', 'ENUM',  4,  8),
     (FieldD.TYPE_INT32,   nanopb_pb2.IS_8):   ('int8_t',   'INT32', 10,  1),
     (FieldD.TYPE_INT32,  nanopb_pb2.IS_16):   ('int16_t',  'INT32', 10,  2),
     (FieldD.TYPE_INT32,  nanopb_pb2.IS_32):   ('int32_t',  'INT32', 10,  4),
@@ -431,7 +435,18 @@ class Enum(ProtoElement):
         if leading_comment:
             result = '%s\n' % leading_comment
 
-        result += 'typedef enum %s {' % Globals.naming_style.enum_name(self.names)
+        result += 'typedef enum %s' % Globals.naming_style.enum_name(self.names)
+
+        # Override the enum size if user wants to use smaller integers
+        if (FieldD.TYPE_ENUM, self.options.int_size) in datatypes:
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
+            result += '\n#ifdef __cplusplus\n'
+            result += ' : ' + self.ctype + '\n'
+            result += '#endif\n'
+            result += '{'
+        else:
+            result += ' {'
+
         if trailing_comment:
             result += " " + trailing_comment
 
