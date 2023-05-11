@@ -42,7 +42,7 @@ endif()
 find_package(Python REQUIRED COMPONENTS Interpreter)
 execute_process(
     COMMAND ${Python_EXECUTABLE} -c
-        "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
+        "import os.path, sys, sysconfig; from pathlib import Path;  print(Path(sysconfig.get_path('purelib')).resolve())"
     OUTPUT_VARIABLE PYTHON_INSTDIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
