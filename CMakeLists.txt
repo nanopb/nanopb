@@ -14,6 +14,8 @@ option(nanopb_BUILD_RUNTIME "Build the headers and libraries needed at runtime" 
 option(nanopb_BUILD_GENERATOR "Build the protoc plugin for code generation" ON)
 option(nanopb_MSVC_STATIC_RUNTIME "Link static runtime libraries" ON)
 
+set(nanopb_PYTHON_INSTDIR_OVERRIDE "" CACHE PATH "Override the default python installation directory with the given path")
+
 find_program(nanopb_PROTOC_PATH protoc HINTS generator-bin generator)
 if(NOT EXISTS ${nanopb_PROTOC_PATH})
     message(FATAL_ERROR "protoc compiler not found")
@@ -39,13 +41,18 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
-find_package(Python REQUIRED COMPONENTS Interpreter)
-execute_process(
-    COMMAND ${Python_EXECUTABLE} -c
-        "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
-    OUTPUT_VARIABLE PYTHON_INSTDIR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
+    find_package(Python REQUIRED COMPONENTS Interpreter)
+    execute_process(
+        COMMAND ${Python_EXECUTABLE} -c
+            "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
+        OUTPUT_VARIABLE PYTHON_INSTDIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+else()
+    set(PYTHON_INSTDIR ${nanopb_PYTHON_INSTDIR_OVERRIDE})
+endif()
+message(STATUS "Python install dir: ${PYTHON_INSTDIR}")
 
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
