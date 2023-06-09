@@ -9,6 +9,16 @@ document.
 Nanopb-0.4.7 (2022-xx-xx)
 -------------------------
 
+### Add int_size option to enum fields
+
+**Rationale:** The `packed_enum` option does not work with MSVC due to `#pragma pack` not supporting enums with MSVC. To workaround this, enum sizes can be specified with the new `int_size` option. Note that this is only supported when generating C++.
+
+**Changes:** The `int_size` option can be specified for enums.
+
+**Required actions:** Any users concerned about the size of the generated C++ enums and are setting the int_size of enums via a wildcard (e.g. `MyMessage.*  int_size=IS_8`) will need to instead set the `int_size` option for individual fields.
+
+**Error indications:** The size of generated C++ enums has changed.
+
 ### Updated include path order in FindNanopb.cmake
 
 **Changes:** The include path passed to `protoc` by the CMake rules was updated.
