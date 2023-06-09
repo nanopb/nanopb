@@ -4,6 +4,7 @@
 #include <pb_encode.h>
 #include "unittests.h"
 #include "enumsizes.pb.h"
+#include "enumsizes_intsize_unittests.h"
 
 int main()
 {
@@ -64,6 +65,8 @@ int main()
         TEST(msg1.i16_min == (int)msg2.i16_min);
         TEST(msg1.i16_max == (int)msg2.i16_max);
     }
+
+    status |= TestIntSize();
 
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");

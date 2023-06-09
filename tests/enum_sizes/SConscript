@@ -5,8 +5,10 @@ Import('env')
 env.NanopbProto('enumsizes')
 
 p = env.Program(["enumsizes_unittests.c",
+                 "enumsizes_intsize_unittests.cc",
                  "enumsizes.pb.c",
                  "$COMMON/pb_encode.o",
                  "$COMMON/pb_decode.o",
                  "$COMMON/pb_common.o"])
 env.RunTest(p)
+
