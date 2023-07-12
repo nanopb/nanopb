@@ -39,7 +39,7 @@ generated_src_dir = os.path.join(build_dir, 'nanopb', 'generated-src')
 generated_build_dir = os.path.join(build_dir, 'nanopb', 'generated-build')
 md5_dir = os.path.join(build_dir, 'nanopb', 'md5')
 
-nanopb_protos = env.GetProjectOption("custom_nanopb_protos", "")
+nanopb_protos =  env.subst(env.GetProjectOption("custom_nanopb_protos", ""))
 nanopb_plugin_options = env.GetProjectOption("custom_nanopb_options", "")
 
 if not nanopb_protos:
