@@ -144,7 +144,7 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
       list(APPEND _nanopb_include_path "-I${ABS_PATH}")
     endforeach()
   else()
-    set(_nanopb_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
+    list(APPEND _nanopb_include_path "-I${CMAKE_CURRENT_SOURCE_DIR}")
   endif()
 
   if(DEFINED NANOPB_IMPORT_DIRS)
