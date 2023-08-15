@@ -37,9 +37,16 @@ copy_file(
 
 py_binary(
     name = "protoc-gen-nanopb",
-    srcs = [
-        "generator/nanopb_generator.py",
+    srcs = glob([
+        "generator/**/*.py",
+    ]) + [
         ":protoc-gen-nanopb.py",
+    ],
+    data = glob([
+        "generator/**/*.proto",
+    ]),
+    imports = [
+        "generator",
     ],
     deps = [
         requirement("grpcio-tools"),
