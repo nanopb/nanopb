@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package package.a;
+
+enum EnumA {
+  VALUE_A_0 = 0;
+  VALUE_A_1 = 1;
+  VALUE_A_2 = 2;
+}
+
+message MessageA {
+  EnumA enum_a_field = 1;
+}

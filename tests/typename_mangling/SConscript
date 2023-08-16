@@ -14,6 +14,14 @@ env.Command("strip_package.proto", "with_package.proto", Copy("$TARGET", "$SOURC
 env.NanopbProto(["strip_package", "strip_package.options"])
 env.Program(["test_strip_package.c", "strip_package.pb.c", '$COMMON/pb_common.o'])
 
+env.Command("strip_package_a.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
+env.Command("strip_package_b.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
+env.Command("strip_package_a.proto", "with_package_a.proto", Copy("$TARGET", "$SOURCE"))
+env.Command("strip_package_b.proto", "with_package_b.proto", Copy("$TARGET", "$SOURCE"))
+env.NanopbProto(["strip_package_a", "strip_package_a.options"])
+env.NanopbProto(["strip_package_b", "strip_package_b.options"])
+env.Program(["test_strip_package_dependencies.c", "strip_package_a.pb.c", "strip_package_b.pb.c", '$COMMON/pb_common.o'])
+
 env.Command("flatten.options", "with_package.options", set_mangling("M_FLATTEN"))
 env.Command("flatten.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["flatten", "flatten.options"])

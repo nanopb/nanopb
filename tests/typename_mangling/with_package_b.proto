@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "strip_package_a.proto";
+
+package package.b;
+
+message MessageB {
+  package.a.EnumA nested_enum = 1;
+  package.a.MessageA nested_message = 2;
+}
