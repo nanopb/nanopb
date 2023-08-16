@@ -67,7 +67,7 @@ end in an error, the test cases were successful.
 
 Note: Mac OS X by default aliases 'clang' as 'gcc', while not actually
 supporting the same command line options as gcc does. To run tests on
-Mac OS X, use: `scons CC=clang CXX=clang`. Same way can be used to run
+Mac OS X, use: `scons CC=clang CXX=clang++`. Same way can be used to run
 tests with different compilers on any platform.
 
 For embedded platforms, there is currently support for running the tests
