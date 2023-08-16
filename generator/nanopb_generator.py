@@ -512,7 +512,7 @@ class Enum(ProtoElement):
             # Define the long names always so that enum value references
             # from other files work properly.
             for i, x in enumerate(self.values):
-                result += '#define %s %s\n' % (self.value_longnames[i], x[0])
+                result += '#define %s %s\n' % (Globals.naming_style.define_name(self.value_longnames[i]), Globals.naming_style.enum_entry(x[0]))
 
         if self.options.enum_to_string:
             result += 'const char *%s(%s v);\n' % (
