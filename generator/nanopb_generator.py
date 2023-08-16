@@ -1963,9 +1963,17 @@ class ProtoFile:
             for msg in self.messages:
                 identifier = Globals.naming_style.define_name('%s_init_default' % msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(False))
+                unmangledName = self.manglenames.unmangle(msg.name)
+                if unmangledName:
+                    unmangledIdentifier = Globals.naming_style.define_name('%s_init_default' % unmangledName)
+                    self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
             for msg in self.messages:
                 identifier = Globals.naming_style.define_name('%s_init_zero' % msg.name)
                 yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True))
+                unmangledName = self.manglenames.unmangle(msg.name)
+                if unmangledName:
+                    unmangledIdentifier = Globals.naming_style.define_name('%s_init_zero' % unmangledName)
+                    self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
             yield '\n'
 
             yield '/* Field tags (for use in manual encoding/decoding) */\n'
