@@ -481,16 +481,32 @@ class Enum(ProtoElement):
     def auxiliary_defines(self):
         # sort the enum by value
         sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
-        result  = '#define %s %s\n' % (
-            Globals.naming_style.define_name('_%s_MIN' % self.names),
+
+        unmangledName = self.protofile.manglenames.unmangle(self.names)
+        identifier = Globals.naming_style.define_name('_%s_MIN' % self.names)
+        result = '#define %s %s\n' % (
+            identifier,
             Globals.naming_style.enum_entry(sorted_values[0][0]))
+        if unmangledName:
+            unmangledIdentifier = Globals.naming_style.define_name('_%s_MIN' % unmangledName)
+            self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
+
+        identifier = Globals.naming_style.define_name('_%s_MAX' % self.names)
         result += '#define %s %s\n' % (
-            Globals.naming_style.define_name('_%s_MAX' % self.names),
+            identifier,
             Globals.naming_style.enum_entry(sorted_values[-1][0]))
+        if unmangledName:
+            unmangledIdentifier = Globals.naming_style.define_name('_%s_MAX' % unmangledName)
+            self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
+
+        identifier = Globals.naming_style.define_name('_%s_ARRAYSIZE' % self.names)
         result += '#define %s ((%s)(%s+1))\n' % (
-            Globals.naming_style.define_name('_%s_ARRAYSIZE' % self.names),
+            identifier,
             Globals.naming_style.type_name(self.names),
             Globals.naming_style.enum_entry(sorted_values[-1][0]))
+        if unmangledName:
+            unmangledIdentifier = Globals.naming_style.define_name('_%s_ARRAYSIZE' % unmangledName)
+            self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
 
         if not self.options.long_names:
             # Define the long names always so that enum value references
