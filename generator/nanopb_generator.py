@@ -2041,6 +2041,8 @@ class ProtoFile:
                     yield '#endif\n'
 
             guards = {}
+            # Provide a #define of the maximum message size, which faciliates setting the size of static arrays to be the largest possible encoded message size
+            max_messagesize = max(messagesizes, key=lambda messagesize: messagesize[1].value if messagesize[1] else 0)
             for identifier, msize in messagesizes:
                 if msize is not None:
                     cpp_guard = msize.get_cpp_guard(local_defines)
@@ -2048,6 +2050,11 @@ class ProtoFile:
                         guards[cpp_guard] = set()
                     guards[cpp_guard].add('#define %-40s %s' % (
                         Globals.naming_style.define_name(identifier), msize))
+
+                    if identifier == max_messagesize[0]:
+                        guards[cpp_guard].add('#define %-40s %s' % (
+                            Globals.naming_style.define_name(symbol + "_MAX_SIZE"), Globals.naming_style.define_name(identifier)))
+
                 else:
                     yield '/* %s depends on runtime parameters */\n' % identifier
             for guard, values in guards.items():
