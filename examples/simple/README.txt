@@ -20,7 +20,7 @@ run it with the command: ./simple
 On other platforms, you first have to compile the protocol definition using
 the following command::
 
-  ../../generator-bin/protoc --nanopb_out=. simple.proto
+  ../../generator/protoc --nanopb_out=. simple.proto
 
 After that, add the following five files to your project and compile:
 
