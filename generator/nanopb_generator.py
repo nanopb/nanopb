@@ -584,7 +584,7 @@ class Field(ProtoElement):
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
-        
+
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
             # by setting type to FT_INLINE. But to handle pointer typed fields,
@@ -1785,6 +1785,10 @@ class MangleNames:
         if self.mangle_names == nanopb_pb2.M_FLATTEN:
             return "." + typename.split(".")[-1]
 
+        canonical_mangled_typename = str(Names(typename.strip(".").split(".")))
+        if not canonical_mangled_typename.startswith(str(self.canonical_base) + "_"):
+            return typename
+
         if self.strip_prefix is not None and typename.startswith(self.strip_prefix):
             if self.replacement_prefix is not None:
                 return "." + self.replacement_prefix + typename[len(self.strip_prefix):]
@@ -1873,9 +1877,16 @@ class ProtoFile:
             enum.protofile = other
 
         for msg in other.messages:
+            canonical_mangled_typename = str(other.manglenames.unmangle(msg.name))
             self.dependencies[str(msg.name)] = msg
-            self.dependencies[str(other.manglenames.unmangle(msg.name))] = msg
+            self.dependencies[canonical_mangled_typename] = msg
             msg.protofile = other
+
+            # Fix references to submessages with different mangling rules
+            for message in self.messages:
+                for field in message.all_fields():
+                    if field.ctype == canonical_mangled_typename:
+                        field.ctype = msg.name
 
         # Fix field default values where enum short names are used.
         for enum in other.enums:
