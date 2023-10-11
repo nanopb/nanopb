@@ -1,0 +1,30 @@
+diff --git internal/compile.bzl internal/compile.bzl
+index 0f060f8..2e7f960 100644
+--- internal/compile.bzl
++++ internal/compile.bzl
+@@ -39,6 +39,11 @@ proto_compile_attrs = {
+         values = ["PREFIXED", "NO_PREFIX"],
+         doc = "The output mode for the target. PREFIXED (the default) will output to a directory named by the target within the current package root, NO_PREFIX will output directly to the current package. Using NO_PREFIX may lead to conflicting writes",
+     ),
++    "nanopb_options_file": attr.label(
++        doc = "Optional Nanopb options file for nanopb specfiically since options files couldn't be found by Bazel",
++        allow_single_file = True,
++        mandatory = False,
++    )
+ }
+
+ def proto_compile_impl(ctx):
+@@ -58,10 +63,13 @@ def proto_compile_impl(ctx):
+     # Load attrs that we pass as args
+     # This is done to allow writing rules that can call proto_compile with mutable attributes,
+     # such as in doc_template_compile
+     options = ctx.attr.options
+     extra_protoc_args = getattr(ctx.attr, "extra_protoc_args", [])
+     extra_protoc_files = ctx.files.extra_protoc_files
+
++    if ctx.file.nanopb_options_file:
++        extra_protoc_args = extra_protoc_args + ["--nanopb_plugin_opt=-f{}".format(ctx.file.nanopb_options_file.path)]
++        extra_protoc_files = ctx.files.extra_protoc_files + [ctx.file.nanopb_options_file]
+     # Execute with extracted attrs
+     return proto_compile(ctx, options, extra_protoc_args, extra_protoc_files)
+
