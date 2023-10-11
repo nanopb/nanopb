@@ -90,6 +90,24 @@ cc_nanopb_proto_library(
     visibility = ["//visibility:private"],
 )
 
+proto_library(
+    name = "all_types_proto",
+    srcs = ["tests/alltypes/alltypes.proto"],
+)
+
+cc_nanopb_proto_library(
+    name = "all_types_nanopb",
+    protos = [":all_types_proto"],
+    nanopb_options_file = "tests/alltypes/alltypes.options",
+    visibility = ["//visibility:private"],
+)
+
+cc_test(
+    name = "bazel_options_support",
+    srcs = ["tests/bazel_options_support/bazel_options_support.cc"],
+    deps = [":all_types_nanopb"],
+)
+
 # Run `bazel run //:requirements.update` if you want to update the requirements.
 compile_pip_requirements(
     name = "requirements",
