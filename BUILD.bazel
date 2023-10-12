@@ -98,7 +98,7 @@ proto_library(
 cc_nanopb_proto_library(
     name = "all_types_nanopb",
     protos = [":all_types_proto"],
-    nanopb_options_file = "tests/alltypes/alltypes.options",
+    nanopb_options_files = ["tests/alltypes/alltypes.options"],
     visibility = ["//visibility:private"],
 )
 

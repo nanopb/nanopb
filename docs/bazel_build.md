@@ -59,3 +59,13 @@ cc_library(
 )
 ```
 
+If you have a custom nanopb options file, use the `nanopb_options_files` argument shown below.
+```  py
+# Generated library with options.
+cc_nanopb_proto_library(
+    name = "descriptor_nanopb",
+    protos = [":descriptor"],
+    nanopb_options_files = ["descriptor.options"],
+    visibility = ["//visibility:private"],
+)
+```
