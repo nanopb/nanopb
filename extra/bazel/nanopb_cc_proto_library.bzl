@@ -7,14 +7,35 @@ load(
     "@rules_proto_grpc//:defs.bzl",
     "ProtoPluginInfo",
     "proto_compile_attrs",
-    "proto_compile_impl",
+    "proto_compile",
 )
+
+def cc_nanopb_proto_compile_impl(ctx):
+    """Nanopb proto compile implementation to add options files."""
+    extra_protoc_args = getattr(ctx.attr, "extra_protoc_args", [])
+    extra_protoc_files = getattr(ctx.files, "extra_protoc_files", [])
+    for options_target in ctx.attr.nanopb_options_files:
+        for options_file in options_target.files.to_list():
+            extra_protoc_args = extra_protoc_args + [
+                "--nanopb_plugin_opt=-f{}".format(options_file.path)]
+            extra_protoc_files = extra_protoc_files + [options_file]
+    return proto_compile(ctx, ctx.attr.options, extra_protoc_args, extra_protoc_files)
+
+
+nanopb_proto_compile_attrs = dict(
+    nanopb_options_files = attr.label_list(
+        allow_files = [".options"],
+        doc = "An optional list of additional nanopb options files to apply",
+    ),
+    **proto_compile_attrs,
+)
+
 
 # Create compile rule
 cc_nanopb_proto_compile = rule(
-    implementation = proto_compile_impl,
+    implementation = cc_nanopb_proto_compile_impl,
     attrs = dict(
-        proto_compile_attrs,
+        nanopb_proto_compile_attrs,
         _plugins = attr.label_list(
             providers = [ProtoPluginInfo],
             default = [
@@ -26,6 +47,7 @@ cc_nanopb_proto_compile = rule(
     toolchains = [str(Label("@rules_proto_grpc//protobuf:toolchain_type"))],
 )
 
+
 def cc_nanopb_proto_library(name, **kwargs):  # buildifier: disable=function-docstring
     # Compile protos
     name_pb = name + "_pb"
@@ -34,7 +56,7 @@ def cc_nanopb_proto_library(name, **kwargs):  # buildifier: disable=function-doc
         **{
             k: v
             for (k, v) in kwargs.items()
-            if k in proto_compile_attrs.keys()
+            if k in nanopb_proto_compile_attrs.keys()
         }  # Forward args
     )
 

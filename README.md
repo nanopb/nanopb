@@ -87,7 +87,7 @@ There exist build rules for several systems:
 * **Makefiles**: `extra/nanopb.mk`, see `examples/simple`
 * **CMake**: `extra/FindNanopb.cmake`, see `examples/cmake`
 * **SCons**: `tests/site_scons` (generator only)
-* **Bazel**: `BUILD` in source root
+* **Bazel**: `BUILD.bazel` in source root
 * **Conan**: `conanfile.py` in source root
 * **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
 * **PyPI/pip**: https://pypi.org/project/nanopb/
