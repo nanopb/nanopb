@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+# Allow calling nanopb_generator.py as simply nanopb_generator.
+# This provides consistency with packages installed through CMake or pip.
+
+from nanopb_generator import *
+if __name__ == '__main__':
+    main_cli()
