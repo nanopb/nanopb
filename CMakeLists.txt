@@ -62,15 +62,19 @@ if(nanopb_BUILD_GENERATOR)
         )
         add_custom_target("generate_${generator_proto_py_file}" ALL DEPENDS ${generator_proto_py_file})
         install(
-            FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
-                  ${generator_proto_file}
-            DESTINATION ${PYTHON_INSTDIR}/proto/
+            FILES
+                ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
+                ${generator_proto_file}
+            DESTINATION ${PYTHON_INSTDIR}/nanopb/generator/proto
         )
     endforeach()
 
-    install( FILES generator/proto/_utils.py
-                   generator/proto/__init__.py
-             DESTINATION ${PYTHON_INSTDIR}/proto/ )
+    install(
+        FILES
+            generator/proto/_utils.py
+            generator/proto/__init__.py
+        DESTINATION ${PYTHON_INSTDIR}/nanopb/generator/proto
+    )
 endif()
 
 if(WIN32)

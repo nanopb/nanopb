@@ -50,9 +50,9 @@ except:
 # Depending on how this script is run, we may or may not have PEP366 package name
 # available for relative imports.
 if not __package__:
-    import proto
-    from proto._utils import invoke_protoc
-    from proto import TemporaryDirectory
+    from nanopb.generator import proto
+    from nanopb.generator.proto._utils import invoke_protoc
+    from nanopb.generator.proto import TemporaryDirectory
 else:
     from . import proto
     from .proto._utils import invoke_protoc
