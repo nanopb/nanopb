@@ -153,6 +153,10 @@ message NanoPBOptions {
   // will be a a static field.
   // Fields with dynamic length are converted to either a pointer or a callback.
   optional FieldType fallback_type = 29 [default = FT_CALLBACK]; 
+
+  // Override initializer used in generated MyMessage_init_zero and MyMessage_init_default macros
+  // By default decided automatically based on field default value and datatype.
+  optional string initializer = 30;
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

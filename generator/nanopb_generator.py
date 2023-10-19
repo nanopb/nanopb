@@ -596,6 +596,11 @@ class Field(ProtoElement):
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
 
+        if field_options.HasField("initializer"):
+            self.initializer = field_options.initializer
+        else:
+            self.initializer = None
+
         self.default_has = field_options.default_has
 
         if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
@@ -801,7 +806,9 @@ class Field(ProtoElement):
         '''
 
         inner_init = None
-        if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
+        if self.initializer is not None:
+            inner_init = self.initializer
+        elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if null_init:
                 inner_init = Globals.naming_style.define_name('%s_init_zero' % self.ctype)
             else:
@@ -878,8 +885,14 @@ class Field(ProtoElement):
         elif self.allocation == 'CALLBACK':
             if self.pbtype == 'EXTENSION':
                 outer_init = 'NULL'
-            else:
+            elif self.callback_datatype == 'pb_callback_t':
                 outer_init = '{{NULL}, NULL}'
+            elif self.initializer is not None:
+                outer_init = inner_init
+            elif self.callback_datatype.strip().endswith('*'):
+                outer_init = 'NULL'
+            else:
+                outer_init = '{}'
 
         if self.pbtype == 'MSG_W_CB' and self.rules in ['REPEATED', 'OPTIONAL']:
             outer_init = '{{NULL}, NULL}, ' + outer_init
@@ -1070,6 +1083,7 @@ class ExtensionRange(Field):
         self.data_item_size = 0
         self.fixed_count = False
         self.callback_datatype = 'pb_extension_t*'
+        self.initializer = None
 
     def requires_custom_field_callback(self):
         return False
