@@ -1697,6 +1697,24 @@ def iterate_extensions(desc, flatten = False, names = Names()):
         for extension in subdesc.extension:
             yield subname, extension
 
+def check_recursive_dependencies(message, all_messages, root = None):
+    '''Returns True if message has a recursive dependency on root (or itself if root is None).'''
+
+    if not isinstance(all_messages, dict):
+        all_messages = dict((str(m.name), m) for m in all_messages)
+
+    if not root:
+        root = message
+
+    for dep in message.get_dependencies():
+        if dep == str(root.name):
+            return True
+        elif dep in all_messages:
+            if check_recursive_dependencies(all_messages[dep], all_messages, root):
+                return True
+
+    return False
+
 def sort_dependencies(messages):
     '''Sort a list of Messages based on dependencies.'''
 
@@ -1861,12 +1879,21 @@ class ProtoFile:
             if message_options.skip_message:
                 continue
 
+            # Apply any configured typename mangling options
             message = copy.deepcopy(message)
             for field in message.field:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
                     field.type_name = self.manglenames.mangle_field_typename(field.type_name)
 
-            self.messages.append(Message(name, message, message_options, comment_path, self.comment_locations))
+            # Check for circular dependencies
+            msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
+            if check_recursive_dependencies(msgobject, self.messages):
+                sys.stderr.write('Breaking circular dependency at message %s by converting to callback\n' % msgobject.name)
+                message_options.type = nanopb_pb2.FT_CALLBACK
+                msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
+            self.messages.append(msgobject)
+
+            # Process any nested enums
             for index, enum in enumerate(message.enum_type):
                 name = self.manglenames.create_name(names + enum.name)
                 enum_options = get_nanopb_suboptions(enum, message_options, name)

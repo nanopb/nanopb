@@ -1,0 +1,12 @@
+message SingleRecursion {
+  optional SingleRecursion msg = 1;
+}
+
+message Recurse1 {
+  optional Recurse2 msg = 1;
+}
+
+message Recurse2 {
+  optional Recurse1 msg = 1;
+  optional SingleRecursion msg2 = 2;
+}

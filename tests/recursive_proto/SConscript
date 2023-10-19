@@ -1,0 +1,6 @@
+# Test building of a recursive protobuf definition
+
+Import('env')
+
+env.NanopbProto("recursive.proto")
+env.Object("recursive.pb.c")
