@@ -86,6 +86,16 @@ if(nanopb_BUILD_GENERATOR)
     install( FILES generator/__init__.py
              DESTINATION ${PYTHON_INSTDIR}/nanopb/ )
 
+    # Include the full path to Python executable in Windows .bat scripts, in case it is not in PATH
+    if(WIN32)
+        file(READ generator/protoc-gen-nanopb.bat FILE_CONTENTS)
+        string(REPLACE "python" ${Python_EXECUTABLE} FILE_CONTENTS "${FILE_CONTENTS}")
+        file(WRITE ${PROJECT_BINARY_DIR}/protoc-gen-nanopb.bat "${FILE_CONTENTS}")
+
+        file(READ generator/nanopb_generator.bat FILE_CONTENTS)
+        string(REPLACE "python" ${Python_EXECUTABLE} FILE_CONTENTS "${FILE_CONTENTS}")
+        file(WRITE ${PROJECT_BINARY_DIR}/nanopb_generator.bat "${FILE_CONTENTS}")
+    endif()
 endif()
 
 # Install small script wrappers to invoke the generator from the installed module
@@ -93,8 +103,8 @@ if(WIN32)
     install(
         PROGRAMS
             extra/script_wrappers/nanopb_generator.py
-            generator/protoc-gen-nanopb.bat
-            generator/nanopb_generator.bat
+            ${PROJECT_BINARY_DIR}/protoc-gen-nanopb.bat
+            ${PROJECT_BINARY_DIR}/nanopb_generator.bat
         DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 else()
