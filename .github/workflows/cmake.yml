@@ -1,0 +1,71 @@
+name: Test CMake-based installation and compilation
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  push:
+    paths:
+      - '**CMakeLists**'
+      - '**cmake**'
+  pull_request:
+    paths:
+      - '**CMakeLists**'
+      - '**cmake**'
+
+jobs:
+  build_cmake_linux:
+    name: CMake on Ubuntu 22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install protobuf grpcio-tools
+
+      - name: Build with CMake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+          sudo cmake --install .
+      
+      - name: Compile example against installed library
+        run: |
+          cd examples/simple
+          nanopb_generator simple.proto
+          gcc -Wall -Werror -osimple simple.pb.c simple.c -lprotobuf-nanopb
+          ./simple
+
+  build_cmake_windows:
+    name: CMake on Windows 2022
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install protobuf grpcio-tools
+
+      - name: Build with CMake
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+          cmake --install . --config Release --prefix C:/nanopb-test
+      
+      - name: Compile example against installed library
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd examples/simple
+          C:\nanopb-test\bin\nanopb_generator simple.proto
+          cl /out:simple.exe simple.pb.c simple.c C:\nanopb-test\nanopb\lib\protobuf-nanopb.lib
+          simple.exe
+
