@@ -892,7 +892,7 @@ class Field(ProtoElement):
             elif self.callback_datatype.strip().endswith('*'):
                 outer_init = 'NULL'
             else:
-                outer_init = '{}'
+                outer_init = '{0}'
 
         if self.pbtype == 'MSG_W_CB' and self.rules in ['REPEATED', 'OPTIONAL']:
             outer_init = '{{NULL}, NULL}, ' + outer_init
