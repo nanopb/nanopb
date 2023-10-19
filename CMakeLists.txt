@@ -43,12 +43,7 @@ endif()
 
 if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
     find_package(Python REQUIRED COMPONENTS Interpreter)
-    execute_process(
-        COMMAND ${Python_EXECUTABLE} -c
-            "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
-        OUTPUT_VARIABLE PYTHON_INSTDIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+    set(PYTHON_INSTDIR ${Python_SITELIB})
 else()
     set(PYTHON_INSTDIR ${nanopb_PYTHON_INSTDIR_OVERRIDE})
 endif()
