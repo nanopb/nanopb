@@ -1,3 +1,4 @@
+# Test wrapping of a C++ class inside struct using callback_datatype option.
 Import('env')
 
 import os

@@ -1,0 +1,6 @@
+# Test initializers when overriding callback datatype
+
+Import('env')
+
+env.NanopbProto("initializertest.proto")
+env.Object("test_initializer.c")

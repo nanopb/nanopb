@@ -1,0 +1,10 @@
+syntax = "proto2";
+import "nanopb.proto";
+
+message TestMessage {
+    required int32 field1 = 1;
+    repeated string field2 = 2 [(nanopb).callback_datatype = "struct MyType*"];
+    repeated string field3 = 3 [(nanopb).callback_datatype = "struct { int a; int b; }"];
+    repeated string field4 = 4 [(nanopb).callback_datatype = "struct { struct { int x; } y; }",
+                                (nanopb).initializer = "{{5}}"];
+}

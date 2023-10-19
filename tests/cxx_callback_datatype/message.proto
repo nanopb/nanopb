@@ -10,5 +10,5 @@ message SubMessage {
 
 message TestMessage {
   // Instead of std::vector<SubMessage> callback handles wrapping/unwrapping of the int.
-  repeated SubMessage submessages = 1 [(nanopb).callback_datatype = "std::vector<int>"];
+  repeated SubMessage values = 1 [(nanopb).callback_datatype = "std::vector<int>"];
 }
