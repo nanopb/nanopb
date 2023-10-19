@@ -1,19 +1,26 @@
-# Test mangle_names option
+# Test mangle_names option in various configurations.
+# Each sub testcase makes a modified copy of the files in the build directory.
 
 Import('env')
 
-def set_mangling(type):
+def set_options(setting, value):
+    '''Create options file that sets a nanopb generator option'''
     def command(target, source, env):
         with open(str(source[0])) as src, open(str(target[0]), "w") as dst:
-            dst.write("* mangle_names:{}\n".format(type))
+            dst.write("* {}:{}\n".format(setting, value))
             dst.write(src.read())
     return command
 
+def set_mangling(type):
+    return set_options('mangle_names', type)
+
+# Test type names when M_STRIP_PACKAGE option is used in a single file
 env.Command("strip_package.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
 env.Command("strip_package.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["strip_package", "strip_package.options"])
 env.Program(["test_strip_package.c", "strip_package.pb.c", '$COMMON/pb_common.o'])
 
+# Test type names with M_STRIP_PACKAGE used in both files
 env.Command("strip_package_a.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
 env.Command("strip_package_b.options", "with_package.options", set_mangling("M_STRIP_PACKAGE"))
 env.Command("strip_package_a.proto", "with_package_a.proto", Copy("$TARGET", "$SOURCE"))
@@ -22,11 +29,19 @@ env.NanopbProto(["strip_package_a", "strip_package_a.options"])
 env.NanopbProto(["strip_package_b", "strip_package_b.options"])
 env.Program(["test_strip_package_dependencies.c", "strip_package_a.pb.c", "strip_package_b.pb.c", '$COMMON/pb_common.o'])
 
+# Test type names with M_STRIP_PACKAGE used in file A and (nanopb).package overrides package name in B
+env.Command("replace_package_b.options", "with_package.options", set_options("package", '"ReplacedName"'))
+env.Command("replace_package_b.proto", "with_package_b.proto", Copy("$TARGET", "$SOURCE"))
+env.NanopbProto(["replace_package_b", "replace_package_b.options", "strip_package_a.proto"])
+env.Program(["test_replace_package.c", "strip_package_a.pb.c", "replace_package_b.pb.c", '$COMMON/pb_common.o'])
+
+# Test M_FLATTEN with a single file
 env.Command("flatten.options", "with_package.options", set_mangling("M_FLATTEN"))
 env.Command("flatten.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["flatten", "flatten.options"])
 env.Program(["test_flatten.c", "flatten.pb.c", '$COMMON/pb_common.o'])
 
+# Test M_PACKAGE_INITIALS with a single file
 env.Command("package_initials.options", "with_package.options", set_mangling("M_PACKAGE_INITIALS"))
 env.Command("package_initials.proto", "with_package.proto", Copy("$TARGET", "$SOURCE"))
 env.NanopbProto(["package_initials", "package_initials.options"])
