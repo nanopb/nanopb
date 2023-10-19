@@ -41,11 +41,12 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
+# Determine Python module installation path
 if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
     find_package(Python REQUIRED COMPONENTS Interpreter)
     execute_process(
         COMMAND ${Python_EXECUTABLE} -c
-            "import os.path, sys, sysconfig; print(os.path.relpath(sysconfig.get_path('purelib'), start=sys.prefix))"
+            "import os.path, sys, sysconfig; print(sysconfig.get_path('purelib'))"
         OUTPUT_VARIABLE PYTHON_INSTDIR
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
@@ -54,6 +55,7 @@ else()
 endif()
 message(STATUS "Python install dir: ${PYTHON_INSTDIR}")
 
+# Install nanopb generator as Python module 'nanopb'
 if(nanopb_BUILD_GENERATOR)
     set(generator_protos nanopb)
 
@@ -69,27 +71,38 @@ if(nanopb_BUILD_GENERATOR)
         install(
             FILES ${PROJECT_BINARY_DIR}/${generator_proto_py_file}
                   ${generator_proto_file}
-            DESTINATION ${PYTHON_INSTDIR}/proto/
+            DESTINATION ${PYTHON_INSTDIR}/nanopb/generator/proto/
         )
     endforeach()
 
     install( FILES generator/proto/_utils.py
                    generator/proto/__init__.py
-             DESTINATION ${PYTHON_INSTDIR}/proto/ )
+             DESTINATION ${PYTHON_INSTDIR}/nanopb/generator/proto/ )
+
+    install( FILES generator/nanopb_generator.py
+                   generator/__init__.py
+             DESTINATION ${PYTHON_INSTDIR}/nanopb/generator/ )
+
+    install( FILES generator/__init__.py
+             DESTINATION ${PYTHON_INSTDIR}/nanopb/ )
+
 endif()
 
+# Install small script wrappers to invoke the generator from the installed module
 if(WIN32)
     install(
         PROGRAMS
-            generator/nanopb_generator.py
+            extra/script_wrappers/nanopb_generator.py
             generator/protoc-gen-nanopb.bat
+            generator/nanopb_generator.bat
         DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 else()
     install(
         PROGRAMS
-            generator/nanopb_generator.py
+            extra/script_wrappers/nanopb_generator.py
             generator/protoc-gen-nanopb
+            generator/nanopb_generator
         DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 endif()
