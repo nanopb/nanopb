@@ -86,8 +86,17 @@ if(nanopb_BUILD_GENERATOR)
     install( FILES generator/__init__.py
              DESTINATION ${PYTHON_INSTDIR}/nanopb/ )
 
-    # Include the full path to Python executable in Windows .bat scripts, in case it is not in PATH
+    # Install a script that calls nanopb.generator Python module when invoked
+    install(
+        PROGRAMS
+            extra/script_wrappers/nanopb_generator.py
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+
+    # Install shell/bat script wrappers for invoking nanopb_generator.py.
+    # protoc-gen-nanopb is automatically used by protoc when --nanopb_out= option is used.
     if(WIN32)
+        # Include the full path to Python executable in Windows .bat scripts, as it is not in PATH on all systems
         file(READ generator/protoc-gen-nanopb.bat FILE_CONTENTS)
         string(REPLACE "python" ${Python_EXECUTABLE} FILE_CONTENTS "${FILE_CONTENTS}")
         file(WRITE ${PROJECT_BINARY_DIR}/protoc-gen-nanopb.bat "${FILE_CONTENTS}")
@@ -95,26 +104,22 @@ if(nanopb_BUILD_GENERATOR)
         file(READ generator/nanopb_generator.bat FILE_CONTENTS)
         string(REPLACE "python" ${Python_EXECUTABLE} FILE_CONTENTS "${FILE_CONTENTS}")
         file(WRITE ${PROJECT_BINARY_DIR}/nanopb_generator.bat "${FILE_CONTENTS}")
-    endif()
-endif()
 
-# Install small script wrappers to invoke the generator from the installed module
-if(WIN32)
-    install(
-        PROGRAMS
-            extra/script_wrappers/nanopb_generator.py
-            ${PROJECT_BINARY_DIR}/protoc-gen-nanopb.bat
-            ${PROJECT_BINARY_DIR}/nanopb_generator.bat
-        DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
-else()
-    install(
-        PROGRAMS
-            extra/script_wrappers/nanopb_generator.py
-            generator/protoc-gen-nanopb
-            generator/nanopb_generator
-        DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
+        install(
+            PROGRAMS
+                ${PROJECT_BINARY_DIR}/protoc-gen-nanopb.bat
+                ${PROJECT_BINARY_DIR}/nanopb_generator.bat
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    else()
+        # Linux/Mac scripts currently use python3 from PATH
+        install(
+            PROGRAMS
+                generator/protoc-gen-nanopb
+                generator/nanopb_generator
+            DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
 endif()
 
 if(nanopb_BUILD_RUNTIME)
