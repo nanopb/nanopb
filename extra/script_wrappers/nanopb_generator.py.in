@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+# This script is a wrapper to invoke nanopb_generator from an installed Python module.
+import sys
+import os.path
+
+# CMakeLists.txt can provide this file the path to Python module installation
+# location. It is used as a relative path. By default only system path is used.
+python_instdir = r"@PYTHON_INSTDIR@"
+cmake_bindir = r"@CMAKE_INSTALL_BINDIR@"
+cmake_install_prefix = r"@CMAKE_INSTALL_PREFIX@"
+if python_instdir[0] != '@':
+    python_instdir = os.path.join(cmake_install_prefix, python_instdir)
+    cmake_bindir = os.path.join(cmake_install_prefix, cmake_bindir)
+    relpath = os.path.relpath(python_instdir, cmake_bindir)
+    bindir = os.path.dirname(os.path.realpath(__file__))
+    libdir = os.path.abspath(os.path.join(bindir, relpath))
+    if os.path.isdir(libdir):
+        sys.path.insert(0, libdir) # Path after make install
+    else:
+        sys.path.insert(0, bindir) # Path before make install
+
+from nanopb.generator.nanopb_generator import main_cli, main_plugin
+if __name__ == '__main__':
+    sys.exit(main_cli())
