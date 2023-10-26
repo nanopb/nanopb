@@ -35,7 +35,7 @@ jobs:
         run: |
           cd examples/simple
           nanopb_generator simple.proto
-          gcc -Wall -Werror -osimple simple.pb.c simple.c -lprotobuf-nanopb
+          gcc -Wall -Werror -osimple simple.pb.c simple.c -lprotobuf-nanopb -I/usr/local/include/nanopb
           ./simple
 
   build_cmake_windows:
@@ -65,7 +65,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd examples/simple
-          C:\nanopb-test\bin\nanopb_generator simple.proto
-          cl /out:simple.exe simple.pb.c simple.c C:\nanopb-test\nanopb\lib\protobuf-nanopb.lib
+          call C:\nanopb-test\bin\nanopb_generator simple.proto
+          cl simple.pb.c simple.c /IC:\nanopb-test\include\nanopb C:\nanopb-test\lib\protobuf-nanopb.lib /link /out:simple.exe
           simple.exe
 

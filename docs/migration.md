@@ -6,6 +6,22 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
+Nanopb-0.4.8 (2023-xx-xx)
+-------------------------
+
+### Fix naming conflicts with CMake installation
+
+**Rationale:** Previously `CMakeLists.txt` installed nanopb Python module under name `proto` and include file directly as `/usr/include/pb.h`. These names have potential to conflict with other libraries.
+
+**Changes:** Python module is installed as `nanopb` and include files under `/usr/include/nanopb`.
+
+**Required actions:** Only affects users who install nanopb using the `cmake` build system.
+Does not affect use of `FindNanopb.cmake`.
+Calling nanopb generator should work as before.
+Include path may need adjustment if not using `nanopb-targets.cmake` to determine it.
+
+**Error indications:** Include file `pb.h` not found when compiling against a system-wide installation done with CMake.
+
 Nanopb-0.4.7 (2022-xx-xx)
 -------------------------
 
