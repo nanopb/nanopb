@@ -6,6 +6,25 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
+Nanopb-0.4.9 (2024-xx-xx)
+-------------------------
+
+### Use uint8_t for pb_byte_t when UINT8_MAX is defined
+
+**Rationale:** Previously `pb_byte_t` was always defined as `uint8_least_t`.
+This could be annoying on some platforms without this define, or when some
+compiles might warn on conversion from `uint8_t`. However not all platforms
+support `uint8_t` sized access.
+
+**Changes:** The `stdint.h` header will define `UINT8_MAX` exactly if `uint8_t`
+is available. Use it to select which type to typedef.
+
+**Required actions:** Usually none. If any compiler warnings are generated,
+they can either be fixed or `PB_BYTE_T_OVERRIDE` can be defined to `uint_least8_t`
+to restore old behavior.
+
+**Error indications:** Implicit conversion from `uint_least8_t` to `uint8_t`.
+
 Nanopb-0.4.8 (2023-11-11)
 -------------------------
 
