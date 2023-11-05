@@ -52,6 +52,10 @@
  * Normally it is automatically detected based on __BYTE_ORDER__ macro. */
 /* #define PB_LITTLE_ENDIAN_8BIT 1 */
 
+/* This can be defined to force pb_byte_t to be uint8_t type, otherwise
+ * it is defined as uint_least8_t which is not guaranteed to be as low as 8-bits type */
+/* #define PB_BYTE_UINT8 */
+
 /* Configure static assert mechanism. Instead of changing these, set your
  * compiler to C11 standard mode if possible. */
 /* #define PB_C99_STATIC_ASSERT 1 */
@@ -220,7 +224,11 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
  * Most-significant 4 bits specify repeated/required/packed etc.
  */
 
+#ifdef PB_BYTE_UINT8
+typedef uint8_t pb_type_t;
+#else
 typedef uint_least8_t pb_type_t;
+#endif
 
 /**** Field data types ****/
 
