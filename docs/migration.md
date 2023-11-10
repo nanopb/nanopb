@@ -6,7 +6,7 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
-Nanopb-0.4.8 (2023-xx-xx)
+Nanopb-0.4.8 (2023-11-11)
 -------------------------
 
 ### Fix naming conflicts with CMake installation
@@ -22,7 +22,7 @@ Include path may need adjustment if not using `nanopb-targets.cmake` to determin
 
 **Error indications:** Include file `pb.h` not found when compiling against a system-wide installation done with CMake.
 
-Nanopb-0.4.7 (2022-xx-xx)
+Nanopb-0.4.7 (2022-12-11)
 -------------------------
 
 ### Add int_size option to enum fields

@@ -82,7 +82,7 @@ Vitali Lovich <vlovich@google.com>
 Vojtěch Boček <vbocek@gmail.com>
 Wael Nasreddine <wael.nasreddine@gmail.com>
 wangli28 <wangli28@beyondsoft.com>
-Zukaitis <gediminas.zukaitis@office.auriga.msk>
+Gediminas Žukaitis <gediminas.zukaitis@protonmail.com>
 Alex Pacini <alexpacini90@gmail.com>
 Cong <congusbongus@gmail.com>
 kurddt <kurddt@users.noreply.github.com>
@@ -120,4 +120,18 @@ Krzysztof Rosinski <krzysiek@jrdltd.co.uk>
 Nathaniel Brough <nathaniel.brough@gmail.com>
 Sean Kahler <itsbattledash@gmail.com>
 Valerii Koval <valeros@users.noreply.github.com>
-Gediminas Žukaitis <gediminas.zukaitis@protonmail.com>
+Armando Montanez <amontanez@google.com>
+Brian Yuan <bayuan@purdue.edu>
+Hans Binderup <habi@bang-olufsen.dk>
+Isaac Torres <isaac@isaactorz.dev>
+Jerry Chen <jerry.chen@touchgui.com>
+jheaff1 <jheaff1@outlook.com>
+Joseph Duchesne <joseph@avidbots.com>
+Josh Strohminger <joshstrohminger@users.noreply.github.com>
+Krishna Ersson <2743723+kersson@users.noreply.github.com>
+Mark <mark@astranis.com>
+Nick St.Pierre <120039901+nicholas-stpierre-simplisafe@users.noreply.github.com>
+philippe44 <philippe44@users.noreply.github.com>
+Richard Patel <ripatel@jumptrading.com>
+Tilen Majerle <tilen.majerle@gmail.com>
+Tobias Thiel <tobias011@gmail.com>
