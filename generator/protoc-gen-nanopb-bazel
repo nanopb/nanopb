@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# This file is used to invoke nanopb_generator.py as a plugin
+# to protoc on Linux and other *nix-style systems.
+# Use it like this:
+# protoc --plugin=protoc-gen-nanopb=..../protoc-gen-nanopb --nanopb_out=dir foo.proto
+import os
+
+from nanopb_generator import *
+
+if __name__ == '__main__':
+    os.environ['PATH'] = 'external/com_google_protobuf:' + os.environ.get(
+        'PATH', '')
+    # Assume we are running as a plugin under protoc.
+    main_plugin()
