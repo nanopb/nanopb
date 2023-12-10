@@ -54,7 +54,7 @@ def build_nanopb_proto(protosrc, dirname):
 
     return True
 
-def load_nanopb_pb2():
+def load_nanopb_pb2(inside_bazel: bool):
     # To work, the generator needs python-protobuf built version of nanopb.proto.
     # There are three methods to provide this:
     #
@@ -79,7 +79,12 @@ def load_nanopb_pb2():
     if tmpdir is not None and not os.path.isdir(tmpdir):
         tmpdir = None # Use system-wide temp dir
 
-    if os.path.isfile(protosrc):
+    if inside_bazel:
+        # Don't attempt to autogenerate this, the bazel rules should have
+        # created it for us.
+        import nanopb_pb2 as nanopb_pb2_mod
+        proto_ok = True
+    elif os.path.isfile(protosrc):
         src_date = os.path.getmtime(protosrc)
         if not os.path.isfile(protodst) or os.path.getmtime(protodst) < src_date:
             # Outdated, rebuild

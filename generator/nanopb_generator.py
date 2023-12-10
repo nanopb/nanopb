@@ -63,7 +63,11 @@ if getattr(sys, 'frozen', False):
     from proto import nanopb_pb2
 else:
     # Try to rebuild nanopb_pb2.py if necessary
-    nanopb_pb2 = proto.load_nanopb_pb2()
+    env_val = os.getenv("NANOPB_RUN_INSIDE_BAZEL")
+    inside_bazel = bool(int(env_val)) if env_val is not None else False
+    nanopb_pb2 = proto.load_nanopb_pb2(inside_bazel=inside_bazel)
+    del inside_bazel
+    del env_val
 
 try:
     # Add some dummy imports to keep packaging tools happy.
