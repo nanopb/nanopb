@@ -54,7 +54,7 @@ def build_nanopb_proto(protosrc, dirname):
 
     return True
 
-def load_nanopb_pb2(inside_bazel: bool):
+def load_nanopb_pb2(inside_bazel):
     # To work, the generator needs python-protobuf built version of nanopb.proto.
     # There are three methods to provide this:
     #
