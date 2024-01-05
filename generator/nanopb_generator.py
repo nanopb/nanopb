@@ -1528,7 +1528,7 @@ class Message(ProtoElement):
         result += '    static inline bool has_msgid() {\n'
         result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
         result += '    }\n'
-        result += '    static inline int32_t msgid() {\n'
+        result += '    static inline uint32_t msgid() {\n'
         result += '        return %d;\n' % (getattr(self, "msgid", 0), )
         result += '    }\n'
         result += '};'
