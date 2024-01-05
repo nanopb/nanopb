@@ -10,3 +10,13 @@ message MyEmptyMessage {
 message MyNonEmptyMessage {
     optional uint32 field = 1;
 }
+
+message MyMessageWithMsgid {
+    option (nanopb_msgopt).msgid = 42;
+    optional uint32 field = 1;
+}
+
+message MyMessageWithoutMsgid {
+    optional uint32 field = 1;
+}
+

@@ -1525,6 +1525,12 @@ class Message(ProtoElement):
         result += '    static inline const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
         result += '    }\n'
+        result += '    static inline bool has_msgid() {\n'
+        result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
+        result += '    }\n'
+        result += '    static inline int32_t msgid() {\n'
+        result += '        return %d;\n' % (getattr(self, "msgid", 0), )
+        result += '    }\n'
         result += '};'
         return result
 
