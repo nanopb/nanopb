@@ -1523,8 +1523,9 @@ class Message(ProtoElement):
         result += 'struct MessageDescriptor<%s> {\n' % (self.name)
         result += '    static PB_INLINE_CONSTEXPR const pb_size_t fields_array_length = %d;\n' % (self.count_all_fields())
 
-        if f"{self.name}_size" in local_defines:
-            result += '    static PB_INLINE_CONSTEXPR const pb_size_t max_size = %s_size;\n' % (self.name)
+        size_define = "%s_size" % (self.name)
+        if size_define in local_defines:
+            result += '    static PB_INLINE_CONSTEXPR const pb_size_t max_size = %s;\n' % (size_define)
 
         result += '    static inline const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
