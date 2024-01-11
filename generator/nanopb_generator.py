@@ -1518,10 +1518,14 @@ class Message(ProtoElement):
 
         return result
 
-    def fields_declaration_cpp_lookup(self):
+    def fields_declaration_cpp_lookup(self, local_defines):
         result = 'template <>\n'
         result += 'struct MessageDescriptor<%s> {\n' % (self.name)
         result += '    static PB_INLINE_CONSTEXPR const pb_size_t fields_array_length = %d;\n' % (self.count_all_fields())
+
+        if f"{self.name}_size" in local_defines:
+            result += '    static PB_INLINE_CONSTEXPR const pb_size_t max_size = %s_size;\n' % (self.name)
+
         result += '    static inline const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
         result += '    }\n'
@@ -2167,7 +2171,7 @@ class ProtoFile:
             yield '/* Message descriptors for nanopb */\n'
             yield 'namespace nanopb {\n'
             for msg in self.messages:
-                yield msg.fields_declaration_cpp_lookup() + '\n'
+                yield msg.fields_declaration_cpp_lookup(local_defines) + '\n'
             yield '}  // namespace nanopb\n'
             yield '\n'
             yield '#endif  /* __cplusplus */\n'
