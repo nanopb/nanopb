@@ -20,3 +20,15 @@ message MyMessageWithoutMsgid {
     optional uint32 field = 1;
 }
 
+// This message is not used in the tests but is rather a sentry message that
+// will trigger a build failure if the generator decides to create a size
+// variable for fields which are not size bound. Note that this only works as
+// long as the C++ interface for sizing wraps the C interface.
+message MyMessageWithoutSize {
+    repeated uint32 field = 1;
+}
+
+message MyMessageWithSizeBoundRepeatedFields {
+    option (nanopb_msgopt).max_count = 100;
+    repeated uint32 field = 1;
+}

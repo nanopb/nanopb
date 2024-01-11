@@ -21,6 +21,8 @@ extern "C" int main() {
 
   TEST(MessageDescriptor<MyNonEmptyMessage>::size ==
        MyNonEmptyMessage_size);
+  TEST(MessageDescriptor<MyMessageWithSizeBoundRepeatedFields>::size ==
+       MyMessageWithSizeBoundRepeatedFields_size);
 
   TEST(MessageDescriptor<MyEmptyMessage>::fields() == MyEmptyMessage_fields);
   TEST(MessageDescriptor<MyNonEmptyMessage>::fields() ==
