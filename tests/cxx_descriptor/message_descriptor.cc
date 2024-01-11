@@ -19,6 +19,9 @@ extern "C" int main() {
   TEST(MessageDescriptor<MyNonEmptyMessage>::fields_array_length ==
        MyNonEmptyMessage_msg.field_count);
 
+  TEST(MessageDescriptor<MyNonEmptyMessage>::max_size ==
+       MyNonEmptyMessage_size);
+
   TEST(MessageDescriptor<MyEmptyMessage>::fields() == MyEmptyMessage_fields);
   TEST(MessageDescriptor<MyNonEmptyMessage>::fields() ==
        MyNonEmptyMessage_fields);
