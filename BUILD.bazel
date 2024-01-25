@@ -66,7 +66,7 @@ proto_plugin(
     ],
     use_built_in_shell_environment = False,
     env = {
-        "NANOPB_RUN_INSIDE_BAZEL": "1",
+        "NANOPB_PB2_NO_REBUILD": "1",
     },
     separate_options_flag = True,
     tool = ":protoc-gen-nanopb",

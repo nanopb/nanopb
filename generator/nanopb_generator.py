@@ -62,12 +62,9 @@ if getattr(sys, 'frozen', False):
     # Binary package, just import the file
     from proto import nanopb_pb2
 else:
-    # Try to rebuild nanopb_pb2.py if necessary
-    env_val = os.getenv("NANOPB_RUN_INSIDE_BAZEL")
-    inside_bazel = bool(int(env_val)) if env_val is not None else False
-    nanopb_pb2 = proto.load_nanopb_pb2(inside_bazel=inside_bazel)
-    del inside_bazel
-    del env_val
+    # Import nanopb_pb2.py, rebuilds if necessary and not disabled
+    # by env variable NANOPB_PB2_NO_REBUILD
+    nanopb_pb2 = proto.load_nanopb_pb2()
 
 try:
     # Add some dummy imports to keep packaging tools happy.
