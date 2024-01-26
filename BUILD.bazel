@@ -58,7 +58,7 @@ py_binary(
 proto_plugin(
     name = "nanopb_plugin",
     env = {
-        "NANOPB_PB2_NO_REBUILD": "1",
+        # "NANOPB_PB2_NO_REBUILD": "1",
     },
     options = [
         "--library-include-format=quote",
