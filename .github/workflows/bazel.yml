@@ -31,9 +31,9 @@ jobs:
       - name: Uninstall system protoc
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get remove -y python3-protobuf protobuf-compiler
           echo "Remove below before merging"
           which protoc
+          sudo apt-get remove -y python3-protobuf protobuf-compiler
 
       - name: Test
         run: |
