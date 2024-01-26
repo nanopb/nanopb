@@ -26,15 +26,6 @@ jobs:
           path: "/home/runner/.cache/bazel"
           key: ${{ runner.os }}-bazel
 
-      # So that we ensure the bazel tests and builds are hermetic.
-      # See: https://github.com/nanopb/nanopb/pull/927
-      - name: Uninstall system protoc
-        if: ${{ runner.os == 'Linux' }}
-        run: |
-          echo "Remove below before merging"
-          which protoc
-          sudo apt-get remove -y python3-protobuf protobuf-compiler
-
       - name: Test
         run: |
           bazelisk test //...

@@ -57,6 +57,9 @@ py_binary(
 
 proto_plugin(
     name = "nanopb_plugin",
+    env = {
+        "NANOPB_PB2_NO_REBUILD": "1",
+    },
     options = [
         "--library-include-format=quote",
     ],
@@ -64,12 +67,9 @@ proto_plugin(
         "{protopath}.pb.h",
         "{protopath}.pb.c",
     ],
-    use_built_in_shell_environment = False,
-    env = {
-        "NANOPB_PB2_NO_REBUILD": "1",
-    },
     separate_options_flag = True,
     tool = ":protoc-gen-nanopb",
+    use_built_in_shell_environment = False,
     visibility = ["//visibility:public"],
 )
 
