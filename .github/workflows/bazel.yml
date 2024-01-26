@@ -29,7 +29,7 @@ jobs:
       # So that we ensure the bazel tests and builds are hermetic.
       # See: https://github.com/nanopb/nanopb/pull/927
       - name: Uninstall system protoc
-        if: ${{ matrix.os != "macos-11" }}
+        if: ${{ ! runner.os == "macos-11" }}
         run: |
           sudo apt-get remove -y python3-protobuf protobuf-compiler
 
