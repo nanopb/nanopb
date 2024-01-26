@@ -62,7 +62,8 @@ if getattr(sys, 'frozen', False):
     # Binary package, just import the file
     from proto import nanopb_pb2
 else:
-    # Try to rebuild nanopb_pb2.py if necessary
+    # Import nanopb_pb2.py, rebuilds if necessary and not disabled
+    # by env variable NANOPB_PB2_NO_REBUILD
     nanopb_pb2 = proto.load_nanopb_pb2()
 
 try:
