@@ -225,8 +225,15 @@ function(NANOPB_GENERATE_CPP SRCS HDRS)
     list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
     list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
 
+    get_filename_component(ABS_OPT_IN_FIL ${FIL_DIR}/${FIL_WE}.options.in ABSOLUTE)
+    if(EXISTS ${ABS_OPT_IN_FIL})
+      set(ABS_OPT_FIL "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.options")
+      configure_file(${ABS_OPT_IN_FIL} ${ABS_OPT_FIL})
+    else()
+      get_filename_component(ABS_OPT_FIL ${FIL_DIR}/${FIL_WE}.options ABSOLUTE)
+    endif()
+
     # If there an options file in the same working directory, set it as a dependency
-    get_filename_component(ABS_OPT_FIL ${FIL_DIR}/${FIL_WE}.options ABSOLUTE)
     if(EXISTS ${ABS_OPT_FIL})
         # Get directory as lookups for dependency options fail if an options
         # file is used. The options is still set as a dependency of the
