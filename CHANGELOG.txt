@@ -1,3 +1,10 @@
+nanopb-0.3.9.10 (2024-02-16)
+ Add Apple privacy manifest
+
+Note: there are no functional differences between 0.3.9.9 and 0.3.9.10.
+The changes are merely to address Apple requirements for library manifest
+used in Swift Package Manager.
+
 nanopb-0.3.9.9 (2022-04-23)
  Fix Xcode analyzer warnings (#667, #674)
  Fix clang sanitizer warnings
