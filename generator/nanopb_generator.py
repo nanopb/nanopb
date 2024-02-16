@@ -81,52 +81,52 @@ except:
 import time
 import os.path
 
-# Values are tuple (c type, pb type, encoded size, data_size)
+# Values are tuple (c type, pb type, encoded size, data_size, wire type)
 FieldD = descriptor.FieldDescriptorProto
 datatypes = {
-    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  4),
-    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  8),
-    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  4),
-    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  8),
-    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  4),
-    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  4),
-    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  8),
-    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  4),
-    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  8),
-    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  4),
-    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  8),
-    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  4),
-    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  8),
+    FieldD.TYPE_BOOL:       ('bool',     'BOOL',        1,  4, 'VARINT'),
+    FieldD.TYPE_DOUBLE:     ('double',   'DOUBLE',      8,  8, '64BIT'),
+    FieldD.TYPE_FIXED32:    ('uint32_t', 'FIXED32',     4,  4, '32BIT'),
+    FieldD.TYPE_FIXED64:    ('uint64_t', 'FIXED64',     8,  8, '64BIT'),
+    FieldD.TYPE_FLOAT:      ('float',    'FLOAT',       4,  4, '32BIT'),
+    FieldD.TYPE_INT32:      ('int32_t',  'INT32',      10,  4, 'VARINT'),
+    FieldD.TYPE_INT64:      ('int64_t',  'INT64',      10,  8, 'VARINT'),
+    FieldD.TYPE_SFIXED32:   ('int32_t',  'SFIXED32',    4,  4, '32BIT'),
+    FieldD.TYPE_SFIXED64:   ('int64_t',  'SFIXED64',    8,  8, '64BIT'),
+    FieldD.TYPE_SINT32:     ('int32_t',  'SINT32',      5,  4, 'VARINT'),
+    FieldD.TYPE_SINT64:     ('int64_t',  'SINT64',     10,  8, 'VARINT'),
+    FieldD.TYPE_UINT32:     ('uint32_t', 'UINT32',      5,  4, 'VARINT'),
+    FieldD.TYPE_UINT64:     ('uint64_t', 'UINT64',     10,  8, 'VARINT'),
 
     # Integer size override option
-    (FieldD.TYPE_ENUM,    nanopb_pb2.IS_8):   ('uint8_t', 'ENUM',  4,  1),
-    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_16):   ('uint16_t', 'ENUM',  4,  2),
-    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_32):   ('uint32_t', 'ENUM',  4,  4),
-    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_64):   ('uint64_t', 'ENUM',  4,  8),
-    (FieldD.TYPE_INT32,   nanopb_pb2.IS_8):   ('int8_t',   'INT32', 10,  1),
-    (FieldD.TYPE_INT32,  nanopb_pb2.IS_16):   ('int16_t',  'INT32', 10,  2),
-    (FieldD.TYPE_INT32,  nanopb_pb2.IS_32):   ('int32_t',  'INT32', 10,  4),
-    (FieldD.TYPE_INT32,  nanopb_pb2.IS_64):   ('int64_t',  'INT32', 10,  8),
-    (FieldD.TYPE_SINT32,  nanopb_pb2.IS_8):   ('int8_t',  'SINT32',  2,  1),
-    (FieldD.TYPE_SINT32, nanopb_pb2.IS_16):   ('int16_t', 'SINT32',  3,  2),
-    (FieldD.TYPE_SINT32, nanopb_pb2.IS_32):   ('int32_t', 'SINT32',  5,  4),
-    (FieldD.TYPE_SINT32, nanopb_pb2.IS_64):   ('int64_t', 'SINT32', 10,  8),
-    (FieldD.TYPE_UINT32,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT32',  2,  1),
-    (FieldD.TYPE_UINT32, nanopb_pb2.IS_16):   ('uint16_t','UINT32',  3,  2),
-    (FieldD.TYPE_UINT32, nanopb_pb2.IS_32):   ('uint32_t','UINT32',  5,  4),
-    (FieldD.TYPE_UINT32, nanopb_pb2.IS_64):   ('uint64_t','UINT32', 10,  8),
-    (FieldD.TYPE_INT64,   nanopb_pb2.IS_8):   ('int8_t',   'INT64', 10,  1),
-    (FieldD.TYPE_INT64,  nanopb_pb2.IS_16):   ('int16_t',  'INT64', 10,  2),
-    (FieldD.TYPE_INT64,  nanopb_pb2.IS_32):   ('int32_t',  'INT64', 10,  4),
-    (FieldD.TYPE_INT64,  nanopb_pb2.IS_64):   ('int64_t',  'INT64', 10,  8),
-    (FieldD.TYPE_SINT64,  nanopb_pb2.IS_8):   ('int8_t',  'SINT64',  2,  1),
-    (FieldD.TYPE_SINT64, nanopb_pb2.IS_16):   ('int16_t', 'SINT64',  3,  2),
-    (FieldD.TYPE_SINT64, nanopb_pb2.IS_32):   ('int32_t', 'SINT64',  5,  4),
-    (FieldD.TYPE_SINT64, nanopb_pb2.IS_64):   ('int64_t', 'SINT64', 10,  8),
-    (FieldD.TYPE_UINT64,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT64',  2,  1),
-    (FieldD.TYPE_UINT64, nanopb_pb2.IS_16):   ('uint16_t','UINT64',  3,  2),
-    (FieldD.TYPE_UINT64, nanopb_pb2.IS_32):   ('uint32_t','UINT64',  5,  4),
-    (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8),
+    (FieldD.TYPE_ENUM,    nanopb_pb2.IS_8):   ('uint8_t',  'ENUM',  4,   1, 'VARINT'),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_16):   ('uint16_t', 'ENUM',  4,   2, 'VARINT'),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_32):   ('uint32_t', 'ENUM',  4,   4, 'VARINT'),
+    (FieldD.TYPE_ENUM,   nanopb_pb2.IS_64):   ('uint64_t', 'ENUM',  4,   8, 'VARINT'),
+    (FieldD.TYPE_INT32,   nanopb_pb2.IS_8):   ('int8_t',   'INT32', 10,  1, 'VARINT'),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_16):   ('int16_t',  'INT32', 10,  2, 'VARINT'),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_32):   ('int32_t',  'INT32', 10,  4, 'VARINT'),
+    (FieldD.TYPE_INT32,  nanopb_pb2.IS_64):   ('int64_t',  'INT32', 10,  8, 'VARINT'),
+    (FieldD.TYPE_SINT32,  nanopb_pb2.IS_8):   ('int8_t',  'SINT32',  2,  1, 'VARINT'),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_16):   ('int16_t', 'SINT32',  3,  2, 'VARINT'),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_32):   ('int32_t', 'SINT32',  5,  4, 'VARINT'),
+    (FieldD.TYPE_SINT32, nanopb_pb2.IS_64):   ('int64_t', 'SINT32', 10,  8, 'VARINT'),
+    (FieldD.TYPE_UINT32,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT32',  2,  1, 'VARINT'),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_16):   ('uint16_t','UINT32',  3,  2, 'VARINT'),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_32):   ('uint32_t','UINT32',  5,  4, 'VARINT'),
+    (FieldD.TYPE_UINT32, nanopb_pb2.IS_64):   ('uint64_t','UINT32', 10,  8, 'VARINT'),
+    (FieldD.TYPE_INT64,   nanopb_pb2.IS_8):   ('int8_t',   'INT64', 10,  1, 'VARINT'),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_16):   ('int16_t',  'INT64', 10,  2, 'VARINT'),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_32):   ('int32_t',  'INT64', 10,  4, 'VARINT'),
+    (FieldD.TYPE_INT64,  nanopb_pb2.IS_64):   ('int64_t',  'INT64', 10,  8, 'VARINT'),
+    (FieldD.TYPE_SINT64,  nanopb_pb2.IS_8):   ('int8_t',  'SINT64',  2,  1, 'VARINT'),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_16):   ('int16_t', 'SINT64',  3,  2, 'VARINT'),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_32):   ('int32_t', 'SINT64',  5,  4, 'VARINT'),
+    (FieldD.TYPE_SINT64, nanopb_pb2.IS_64):   ('int64_t', 'SINT64', 10,  8, 'VARINT'),
+    (FieldD.TYPE_UINT64,  nanopb_pb2.IS_8):   ('uint8_t', 'UINT64',  2,  1, 'VARINT'),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_16):   ('uint16_t','UINT64',  3,  2, 'VARINT'),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_32):   ('uint32_t','UINT64',  5,  4, 'VARINT'),
+    (FieldD.TYPE_UINT64, nanopb_pb2.IS_64):   ('uint64_t','UINT64', 10,  8, 'VARINT'),
 }
 
 class NamingStyle:
@@ -438,7 +438,7 @@ class Enum(ProtoElement):
 
         # Override the enum size if user wants to use smaller integers
         if (FieldD.TYPE_ENUM, self.options.int_size) in datatypes:
-            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size, _ = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
             result += '\n#ifdef __cplusplus\n'
             result += ' : ' + self.ctype + '\n'
             result += '#endif\n'
@@ -585,6 +585,7 @@ class Field(ProtoElement):
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
+        self.wiretype = ""
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -680,11 +681,11 @@ class Field(ProtoElement):
 
         # Decide the C data type to use in the struct.
         if desc.type in datatypes:
-            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[desc.type]
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size, self.wiretype = datatypes[desc.type]
 
             # Override the field size if user wants to use smaller integers
             if (desc.type, field_options.int_size) in datatypes:
-                self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(desc.type, field_options.int_size)]
+                self.ctype, self.pbtype, self.enc_size, self.data_item_size, self.wiretype = datatypes[(desc.type, field_options.int_size)]
         elif desc.type == FieldD.TYPE_ENUM:
             self.pbtype = 'ENUM'
             self.data_item_size = 4
@@ -692,6 +693,7 @@ class Field(ProtoElement):
             if self.default is not None:
                 self.default = self.ctype + self.default
             self.enc_size = None # Needs to be filled in when enum values are known
+            self.wiretype = 'VARINT'
         elif desc.type == FieldD.TYPE_STRING:
             self.pbtype = 'STRING'
             self.ctype = 'char'
@@ -701,6 +703,7 @@ class Field(ProtoElement):
                 # -1 because of null terminator. Both pb_encode and pb_decode
                 # check the presence of it.
                 self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
+            self.wiretype = 'STRING'
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
                 self.pbtype = 'FIXED_LENGTH_BYTES'
@@ -718,12 +721,14 @@ class Field(ProtoElement):
                 if self.allocation == 'STATIC':
                     self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
                     self.enc_size = varint_max_size(self.max_size) + self.max_size
+            self.wiretype = 'STRING'
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
             self.enc_size = None # Needs to be filled in after the message type is available
             if field_options.submsg_callback and self.allocation == 'STATIC':
                 self.pbtype = 'MSG_W_CB'
+            self.wiretype = 'STRING'
         else:
             raise NotImplementedError(desc.type)
 
@@ -1063,6 +1068,91 @@ class Field(ProtoElement):
     def requires_custom_field_callback(self):
         return self.allocation == 'CALLBACK' and self.callback_datatype != 'pb_callback_t'
 
+    def encode_funcs(self, container):
+        yield 'static inline bool encode_tag_for_%s(pb_ostream_t &stream) {' % (self.name)
+        yield '    return pb_encode_tag(&stream, PB_WT_%s, %s_%s_tag);' % (self.wiretype, container, self.name)
+        yield '}'
+        if self.wiretype == 'STRING':
+            if self.pbtype == 'STRING':
+                type = 'const char *'
+            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+                type = 'const pb_byte_t *'
+            else:
+                type = 'const %s &' % (self.ctype)
+        else:
+            type = '%s ' % (self.ctype)
+        yield 'static inline bool encode_%s(pb_ostream_t &stream, %s%s) {' % (self.name, type, self.name)
+        yield '    if (!encode_tag_for_%s(stream)) {' % (self.name)
+        yield '        return false;'
+        yield '    }'
+        for line in self.encode_call('&stream', self.name):
+            if line[0] == '#':
+                yield line
+            else:
+                yield '    return %s;' % (line)
+        yield '}'
+        if self.rules in ['REPEATED', 'FIXARRAY'] and self.wiretype != 'STRING':
+            yield 'static inline bool encode_%s_pack(pb_ostream_t &stream, const %s *%ss, size_t count) {' % (self.name, self.ctype, self.name)
+            yield '    size_t size = 0;'
+            yield '    pb_ostream_t substream = PB_OSTREAM_SIZING;'
+            yield '    for (size_t i = 0; i < count; ++i) {'
+            for line in self.encode_call('&substream', '%ss[i]' % (self.name)):
+                if line[0] == '#':
+                    yield line
+                else:
+                    yield '        if (!%s) {' % (line)
+                    yield '            return false;'
+                    yield '        }'
+            yield '    }'
+            yield '    if (!pb_encode_tag(&stream, PB_WT_STRING, %s_%s_tag)) {' % (container, self.name)
+            yield '        return false;'
+            yield '    }'
+            yield '    if (!pb_encode_varint(&stream, substream.bytes_written)) {'
+            yield '        return false;'
+            yield '    }'
+            yield '    for (size_t i = 0; i < count; ++i) {'
+            for line in self.encode_call('&stream', '%ss[i]' % (self.name)):
+                if line[0] == '#':
+                    yield line
+                else:
+                    yield '        if (!%s) {' % (line)
+                    yield '            return false;'
+                    yield '        }'
+            yield '    }'
+            yield '    return true;'
+            yield '}'
+
+    def encode_call(self, stream, value):
+        if self.wiretype == 'VARINT':
+            if self.pbtype[0] == 'S':
+                yield 'pb_encode_svarint(%s, %s)' % (stream, value)
+            else:
+                yield 'pb_encode_varint(%s, %s)' % (stream, value)
+        elif self.wiretype == '32BIT':
+            yield 'pb_encode_fixed32(%s, &%s)' % (stream, value)
+        elif self.wiretype == '64BIT':
+            if self.pbtype == 'DOUBLE':
+                yield '#ifdef PB_CONVERT_DOUBLE_FLOAT'
+                yield 'pb_encode_float_as_double(%s, %s)' % (stream, value)
+                yield '#else'
+                yield 'pb_encode_fixed64(%s, &%s)' % (stream, value)
+                yield '#endif'
+            else:
+                yield 'pb_encode_fixed64(%s, &%s)' % (stream, value)
+        elif self.wiretype == 'STRING':
+            if self.pbtype == 'STRING':
+                yield 'pb_encode_string(%s, reinterpret_cast<const pb_byte_t *>(%s), strlen(%s))' % (stream, value, value)
+            elif self.pbtype == 'FIXED_LENGTH_BYTES':
+                yield 'pb_encode_string(%s, %s, %d)' % (stream, value, self.max_size)
+            elif self.pbtype == 'BYTES':
+                yield 'pb_encode_string(%s, %s.bytes, %s.size)' % (stream, value, value)
+            elif self.pbtype == 'MESSAGE':
+                yield 'pb_encode_submessage(%s, &%s_msg, &%s)' % (stream, self.submsgname, value)
+            else:
+                raise NotImplementedError(self.pbtype)
+        else:
+            raise NotImplementedError(self.wiretype)
+
 class ExtensionRange(Field):
     def __init__(self, struct_name, range_start, field_options):
         '''Implements a special pb_extension_t* field in an extensible message
@@ -1103,6 +1193,9 @@ class ExtensionRange(Field):
         # until runtime. Other option would be to return None here, but this
         # way the value remains useful if extensions are not used.
         return EncodedSize(0)
+
+    def encode_funcs(self, container):
+        return []
 
 class ExtensionField(Field):
     def __init__(self, fullname, desc, field_options):
@@ -1151,6 +1244,9 @@ class ExtensionField(Field):
         result += '    &%s_msg\n' % Globals.naming_style.type_name(self.msg.name)
         result += '};\n'
         return result
+
+    def encode_funcs(self, container):
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -1263,6 +1359,10 @@ class OneOf(Field):
     def requires_custom_field_callback(self):
         return bool([f for f in self.fields if f.requires_custom_field_callback()])
 
+    def encode_funcs(self, container):
+        for f in self.fields:
+            yield from f.encode_funcs(container)
+
 # ---------------------------------------------------------------------------
 #                   Generation of messages (structures)
 # ---------------------------------------------------------------------------
@@ -1358,6 +1458,9 @@ class Message(ProtoElement):
         return 'Message(%s)' % self.name
 
     def __str__(self):
+        return self.struct(False)
+
+    def struct(self, cpp_descriptors):
         leading_comment, trailing_comment = self.get_comments()
 
         result = ''
@@ -1377,7 +1480,39 @@ class Message(ProtoElement):
 
         result += '\n'.join([str(f) for f in self.fields])
 
+        if cpp_descriptors:
+            result += '\n'
+            result += '\n#ifdef __cplusplus'
+            result += '\n    /* C++ wrappers */'
+            result += '\n    inline bool field_iter_begin(pb_field_iter_t &iter) {'
+            result += '\n        return pb_field_iter_begin(&iter, &%s_msg, this);' % (self.name)
+            result += '\n    }'
+            result += '\n    inline bool field_iter_begin(pb_field_iter_t &iter) const {'
+            result += '\n        return pb_field_iter_begin_const(&iter, &%s_msg, this);' % (self.name)
+            result += '\n    }'
+            result += '\n    inline bool decode(pb_istream_t &stream, unsigned int flags = 0) {'
+            result += '\n        return pb_decode_ex(&stream, &%s_msg, this, flags);' % (self.name)
+            result += '\n    }'
+            result += '\n    inline void release() {'
+            result += '\n        pb_release(&%s_msg, this);' % (self.name)
+            result += '\n    }'
+            result += '\n    inline bool encode(pb_ostream_t &stream, unsigned int flags = 0) const {'
+            result += '\n        return pb_encode_ex(&stream, &%s_msg, this, flags);' % (self.name)
+            result += '\n    }'
+            result += '\n    inline bool get_encoded_size(size_t &size) const {'
+            result += '\n        return pb_get_encoded_size(&size, &%s_msg, this);' % (self.name)
+            result += '\n    }'
+            for f in self.fields:
+                for line in f.encode_funcs(self.name):
+                    if line[0] == '#':
+                        result += '\n%s' % (line)
+                    else:
+                        result += '\n    %s' % (line)
+            result += '\n#endif'
+
         if Globals.protoc_insertion_points:
+            if cpp_descriptors:
+                result += '\n'
             result += '\n/* @@protoc_insertion_point(struct:%s) */' % self.name
 
         result += '\n}'
@@ -1979,6 +2114,13 @@ class ProtoFile:
             yield '#include <math.h>\n'
         try:
             yield options.libformat % ('pb.h')
+            if options.cpp_descriptors:
+                yield '\n'
+                yield options.libformat % ('pb_common.h')
+                yield '\n'
+                yield options.libformat % ('pb_decode.h')
+                yield '\n'
+                yield options.libformat % ('pb_encode.h')
         except TypeError:
             # no %s specified - use whatever was passed in as options.libformat
             yield options.libformat
@@ -2011,19 +2153,6 @@ class ProtoFile:
             yield '/* Enum definitions */\n'
             for enum in self.enums:
                 yield str(enum) + '\n\n'
-
-        if self.messages:
-            yield '/* Struct definitions */\n'
-            for msg in sort_dependencies(self.messages):
-                yield msg.types()
-                yield str(msg) + '\n'
-            yield '\n'
-
-        if self.extensions:
-            yield '/* Extensions */\n'
-            for extension in self.extensions:
-                yield extension.extension_decl()
-            yield '\n'
 
         yield '#ifdef __cplusplus\n'
         yield 'extern "C" {\n'
@@ -2167,6 +2296,19 @@ class ProtoFile:
         yield '} /* extern "C" */\n'
         yield '#endif\n'
 
+        if self.messages:
+            yield '\n'
+            yield '/* Struct definitions */\n'
+            for msg in sort_dependencies(self.messages):
+                yield msg.types()
+                yield msg.struct(options.cpp_descriptors) + '\n'
+
+        if self.extensions:
+            yield '\n'
+            yield '/* Extensions */\n'
+            for extension in self.extensions:
+                yield extension.extension_decl()
+
         if options.cpp_descriptors:
             yield '\n'
             yield '#ifdef __cplusplus\n'
@@ -2176,6 +2318,16 @@ class ProtoFile:
                 yield msg.fields_declaration_cpp_lookup(local_defines) + '\n'
             yield '}  // namespace nanopb\n'
             yield '\n'
+            yield '/* C++ stream operators */\n'
+            for msg in sort_dependencies(self.messages):
+                yield 'static inline pb_istream_t &operator>>(pb_istream_t &stream, %s &message) {\n' % (msg.name)
+                yield '    message.decode(stream);\n'
+                yield '    return stream;\n'
+                yield '}\n'
+                yield 'static inline pb_ostream_t &operator<<(pb_ostream_t &stream, const %s &message) {\n' % (msg.name)
+                yield '    message.encode(stream);\n'
+                yield '    return stream;\n'
+                yield '}\n'
             yield '#endif  /* __cplusplus */\n'
             yield '\n'
 
