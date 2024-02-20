@@ -57,6 +57,12 @@ jobs:
           (cd cmake_simple; mkdir build; cd build; cmake ..; make)
           (cd cmake_relpath; mkdir build; cd build; cmake ..; make)
 
+      - name: Run build tests
+        run: |
+          cd nanopb-*/build-tests
+          (cd legacy_cmake_relpath; mkdir build; cd build; cmake ..; make)
+          (cd legacy_cmake_simple; mkdir build; cd build; cmake ..; make)
+
   build_windows:
     name: Build binary on Windows 2019
     runs-on: windows-2019
