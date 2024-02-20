@@ -323,7 +323,7 @@ function(NANOPB_GENERATE_CPP)
   set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
 
   if(NANOPB_GENERATE_CPP_TARGET)
-    add_library(${NANOPB_GENERATE_CPP_TARGET} STATIC ${${SRCS}} ${${HDRS}})
+    add_library(${NANOPB_GENERATE_CPP_TARGET} STATIC EXCLUDE_FROM_ALL ${${SRCS}} ${${HDRS}})
     target_include_directories(${NANOPB_GENERATE_CPP_TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(${NANOPB_GENERATE_CPP_TARGET} nanopb)
   endif()
@@ -392,7 +392,7 @@ foreach(FIL ${_nanopb_hdrs})
 endforeach()
 
 # Create the library target
-add_library(nanopb STATIC ${NANOPB_SRCS})
+add_library(nanopb STATIC EXCLUDE_FROM_ALL ${NANOPB_SRCS})
 target_include_directories(nanopb PUBLIC ${NANOPB_INCLUDE_DIRS})
 
 # Find the protoc Executable
