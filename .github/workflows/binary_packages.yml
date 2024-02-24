@@ -60,6 +60,7 @@ jobs:
       - name: Run build tests
         run: |
           cd nanopb-*/build-tests
+          (cd cmake_with_components; mkdir build; cd build; cmake ..; make)
           (cd legacy_cmake_relpath; mkdir build; cd build; cmake ..; make)
           (cd legacy_cmake_simple; mkdir build; cd build; cmake ..; make)
 

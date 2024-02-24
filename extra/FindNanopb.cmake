@@ -14,6 +14,12 @@
 #
 #   NANOPB_OPTIONS           - List of options passed to nanopb.
 #
+#   Nanopb_FIND_COMPONENTS   - List of options to append to NANOPB_OPTIONS without the
+#                              leading '--'.  This should not manually be set, but allows
+#                              passing options to nanopb via find_package.  For example,
+#                              'find_package(Nanopb REQUIRED COMPONENTS cpp-descriptors)'
+#                              is equivalent to setting NANOPB_OPTIONS to --cpp-descriptors.
+#
 #   NANOPB_DEPENDS           - List of files to be used as dependencies
 #                              for the generated source and header files. These
 #                              files are not directly passed as options to
@@ -364,6 +370,11 @@ if(NOT DEFINED NANOPB_SRC_ROOT_FOLDER)
   get_filename_component(NANOPB_SRC_ROOT_FOLDER
                          ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
 endif()
+
+# Parse any options given to find_package(... COMPONENTS ...)
+foreach(component ${Nanopb_FIND_COMPONENTS})
+  list(APPEND NANOPB_OPTIONS "--${component}")
+endforeach()
 
 # Find the include directory
 find_path(NANOPB_INCLUDE_DIRS
