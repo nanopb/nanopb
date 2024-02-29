@@ -15,7 +15,7 @@ Import("env")
 python_exe = env.subst("$PYTHONEXE")
 
 try:
-    import protobuf
+    import google.protobuf
 except ImportError:
     print("[nanopb] Installing Protocol Buffers dependencies");
 
