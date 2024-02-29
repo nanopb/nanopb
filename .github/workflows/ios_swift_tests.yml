@@ -17,6 +17,10 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Preparing Swift Build
+      run: |
+        mkdir -p spm_headers/nanopb
+        cp pb.h pb_common.h pb_decode.h pb_encode.h spm_headers/nanopb/
     - name: Build
       run: swift build
     - name: Run
