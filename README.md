@@ -96,4 +96,5 @@ There exist build rules for several systems:
 And also integration to platform interfaces:
 
 * **Arduino**: http://platformio.org/lib/show/1385/nanopb-arduino
+* **Zephyr**: https://docs.zephyrproject.org/latest/services/serialization/nanopb.html
 
