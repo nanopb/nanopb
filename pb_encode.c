@@ -267,7 +267,7 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
              * submessage fields. */
             return safe_read_bool(field->pSize) == false;
         }
-        else if (field->descriptor->default_value)
+        else if (PB_PROGMEM_READPTR(field->descriptor->default_value))
         {
             /* Proto3 messages do not have default values, but proto2 messages
              * can contain optional fields without has_fields (generator option 'proto3').
@@ -342,14 +342,14 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
             const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
             return extension == NULL;
         }
-        else if (field->descriptor->field_callback == pb_default_field_callback)
+        else if (PB_PROGMEM_READPTR(field->descriptor->field_callback) == pb_default_field_callback)
         {
             pb_callback_t *pCallback = (pb_callback_t*)field->pData;
             return pCallback->funcs.encode == NULL;
         }
         else
         {
-            return field->descriptor->field_callback == NULL;
+            return PB_PROGMEM_READPTR(field->descriptor->field_callback) == NULL;
         }
     }
 
@@ -405,9 +405,11 @@ static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_
  * called to provide and encode the actual data. */
 static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    if (field->descriptor->field_callback != NULL)
+    bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field) = PB_PROGMEM_READPTR(field->descriptor->field_callback);
+    
+    if (field_callback != NULL)
     {
-        if (!field->descriptor->field_callback(NULL, stream, field))
+        if (!field_callback(NULL, stream, field))
             PB_RETURN_ERROR(stream, "callback error");
     }
     return true;
@@ -485,6 +487,7 @@ static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb
  * to encode themselves. */
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
+    // TODO: Check this
     const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
 
     while (extension)
