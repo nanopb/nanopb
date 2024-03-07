@@ -150,9 +150,20 @@ extern "C" {
 #include <avr/pgmspace.h>
 #define PB_PROGMEM             PROGMEM
 #define PB_PROGMEM_READU32(x)  pgm_read_dword(&x)
+#if defined(PB_FIELD_32BIT)
+#define PB_PROGMEM_READSIZE(x) PB_PROGMEM_READU32(x)
+#else
+#define PB_PROGMEM_READSIZE(x) pgm_read_word(&x)
+#endif
+#define PB_PROGMEM_READPTR(x) pgm_read_ptr(&x)
+#define PB_PROGMEM_READBYTE(x) pgm_read_byte(&x)
 #else
 #define PB_PROGMEM
 #define PB_PROGMEM_READU32(x)  (x)
+#define PB_PROGMEM_READSIZE(x) (x)
+#define PB_PROGMEM_READPTR(x) (x)
+#define PB_PROGMEM_READBYTE(x) (x)
+
 #endif
 #endif
 
@@ -502,18 +513,19 @@ struct pb_extension_s {
 #define PB_EXPAND(x) x
 
 /* Binding of a message field set into a specific structure */
+// const pb_byte_t structname ## _defaults[] PB_PROGMEM = msgname ## _DEFAULT;`
 #define PB_BIND(msgname, structname, width) \
     const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \
     }; \
-    const pb_msgdesc_t* const structname ## _submsg_info[] = \
+    const pb_msgdesc_t* const structname ## _submsg_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
     }; \
-    const pb_msgdesc_t structname ## _msg = \
+    const pb_msgdesc_t structname ## _msg PB_PROGMEM = \
     { \
        structname ## _field_info, \
        structname ## _submsg_info, \
