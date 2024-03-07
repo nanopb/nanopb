@@ -967,12 +967,6 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
         // size_t default_len = strlen_P(default_values);
         // const pb_byte_t defaults[50]={0};
         // strcpy_P((char*)defaults, default_values);
-        // // for (uint8_t i = 0; i< 250; i++) {
-        // //     pb_byte_t byte = PB_PROGMEM_READBYTE(default_values[i]);
-        // //     if (byte == 0) {
-        // //         break;
-        // //     }
-        // // }
 
         defstream = pb_istream_from_buffer(default_values, (size_t)-1);
         if (!pb_decode_tag(&defstream, &wire_type, &tag, &eof))
