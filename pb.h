@@ -146,26 +146,25 @@ extern "C" {
 /* Harvard-architecture processors may need special attributes for storing
  * field information in program memory. */
 #ifndef PB_PROGMEM
-#ifdef __AVR__
-#include <avr/pgmspace.h>
-#define PB_PROGMEM             PROGMEM
-#define PB_PROGMEM_READU32(x)  pgm_read_dword(&x)
-#if defined(PB_FIELD_32BIT)
-#define PB_PROGMEM_READSIZE(x) PB_PROGMEM_READU32(x)
-#else
-#define PB_PROGMEM_READSIZE(x) pgm_read_word(&x)
-#endif
-#define PB_PROGMEM_READPTR(x) pgm_read_ptr(&x)
-#define PB_PROGMEM_READBYTE(x) pgm_read_byte(&x)
-#else
-#define PB_PROGMEM
-#define PB_PROGMEM_READU32(x)  (x)
-#define PB_PROGMEM_READSIZE(x) (x)
-#define PB_PROGMEM_READPTR(x) (x)
-#define PB_PROGMEM_READBYTE(x) (x)
-
-#endif
-#endif
+#   ifdef __AVR__
+#       include <avr/pgmspace.h>
+#       define PB_PROGMEM                 PROGMEM
+#       define PB_PROGMEM_READU32(x)      pgm_read_dword(&x)
+#       if defined(PB_FIELD_32BIT)
+#           define PB_PROGMEM_READSIZE(x) PB_PROGMEM_READU32(x)
+#       else /* !PB_FIELD_32BIT */
+#           define PB_PROGMEM_READSIZE(x) pgm_read_word(&x)
+#       endif /* !PB_FIELD_32BIT */
+#       define PB_PROGMEM_READPTR(x)      pgm_read_ptr(&x)
+#       define PB_PROGMEM_READBYTE(x)     pgm_read_byte(&x)
+#   else /* !__AVR__ */
+#       define PB_PROGMEM
+#       define PB_PROGMEM_READU32(x)      (x)
+#       define PB_PROGMEM_READSIZE(x)     (x)
+#       define PB_PROGMEM_READPTR(x)      (x)
+#       define PB_PROGMEM_READBYTE(x)     (x)
+#   endif /* !__AVR__ */
+#endif /* !PB_PROGMEM */
 
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
