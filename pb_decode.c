@@ -961,8 +961,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 
     if (default_values)
     {
-        // return false;
-        // // TODO: This kinda logic will be needed if we get these defaults into PROGMEM
+        // TODO: This kinda logic will be needed if we get these defaults into PROGMEM
 
         // size_t default_len = strlen_P(default_values);
         // const pb_byte_t defaults[50]={0};
