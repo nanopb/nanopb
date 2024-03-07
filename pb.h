@@ -513,7 +513,6 @@ struct pb_extension_s {
 #define PB_EXPAND(x) x
 
 /* Binding of a message field set into a specific structure */
-// const pb_byte_t structname ## _defaults[] PB_PROGMEM = msgname ## _DEFAULT;`
 #define PB_BIND(msgname, structname, width) \
     const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
