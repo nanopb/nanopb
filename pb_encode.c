@@ -488,7 +488,6 @@ static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb
  * to encode themselves. */
 static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
-    // TODO: Check this
     const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
 
     while (extension)

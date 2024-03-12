@@ -848,7 +848,6 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
 static bool checkreturn decode_extension(pb_istream_t *stream,
     uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension)
 {
-    // TODO: Check this for progmem
     size_t pos = stream->bytes_left;
     
     while (extension != NULL && pos == stream->bytes_left)
@@ -961,12 +960,6 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 
     if (default_values)
     {
-        // TODO: This kinda logic will be needed if we get these defaults into PROGMEM
-
-        // size_t default_len = strlen_P(default_values);
-        // const pb_byte_t defaults[50]={0};
-        // strcpy_P((char*)defaults, default_values);
-
         defstream = pb_istream_from_buffer(default_values, (size_t)-1);
         if (!pb_decode_tag(&defstream, &wire_type, &tag, &eof))
             return false;

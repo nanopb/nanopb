@@ -167,12 +167,10 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 
 bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension)
 {
-    return false;
-    // TODO: hjelp
     const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type->arg;
     bool status;
 
-    uint32_t word0 = PB_PROGMEM_READU32(msg->field_info[0]);
+    uint32_t word0 = PB_PROGMEM_READU32(((const uint32_t*)PB_PROGMEM_READPTR(msg->field_info))[0]);
     if (PB_ATYPE(word0 >> 8) == PB_ATYPE_POINTER)
     {
         /* For pointer extensions, the pointer is stored directly
@@ -264,7 +262,7 @@ bool pb_field_iter_find_extension(pb_field_iter_t *iter)
             advance_iterator(iter);
 
             /* Do fast check for field type */
-            fieldinfo = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
+            fieldinfo = PB_PROGMEM_READU32(((const uint32_t*)PB_PROGMEM_READPTR(iter->descriptor->field_info))[iter->field_info_index]);
 
             if (PB_LTYPE((fieldinfo >> 8) & 0xFF) == PB_LTYPE_EXTENSION)
             {
