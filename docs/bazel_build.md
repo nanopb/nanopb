@@ -7,7 +7,12 @@ into the build.
 Add the following to your WORKSPACE file.
 ``` py 
 # MODULE.bazel
-
+bazel_dep(name = "nanopb")
+git_override(
+    module_name = "nanopb",
+    remote = "https://github.com/nanopb/nanopb.git",
+    commit = "<commit>",
+)
 ```
 
 To use the Nanopb rules with in your build you can use the 
@@ -15,8 +20,7 @@ To use the Nanopb rules with in your build you can use the
 `cc_proto_library` rule.
 ```  py
 # BUILD.bazel
-load("@nanopb//extra/bazel:nanopb_cc_proto_library.bzl", 
-    "cc_nanopb_proto_library")
+load("@nanopb//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 
 # Your native proto_library.
 proto_library(
