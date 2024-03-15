@@ -1,4 +1,4 @@
-module(name = "com_github_nanopb_nanopb")
+module(name = "nanopb")
 
 bazel_dep(name = "bazel_skylib", version = "1.5.0")
 bazel_dep(name = "rules_cc", version = "0.0.9")
@@ -17,7 +17,7 @@ pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 use_repo(pip, "nanopb_pypi")
 pip.parse(
     hub_name = "nanopb_pypi",
-    requirements_lock = "@com_github_nanopb_nanopb//:extra/requirements_lock.txt",
+    requirements_lock = "@nanopb//:extra/requirements_lock.txt",
     python_version = "3.10",
 )
 

@@ -2,7 +2,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 def nanopb_deps():
     # Setup proto rules.
-    # Used by: com_github_nanopb_nanopb, rules_proto_grpc.
+    # Used by: nanopb, rules_proto_grpc.
     # Used in modules: root.
     if "rules_proto" not in native.existing_rules():
         http_archive(
@@ -15,7 +15,7 @@ def nanopb_deps():
         )
 
     # Setup grpc tools.
-    # Used by: com_github_nanopb_nanopb.
+    # Used by: nanopb.
     # Used in modules: generator/proto.
     if "rules_proto_grpc" not in native.existing_rules():
         http_archive(

@@ -6,26 +6,8 @@ into the build.
 ## Getting started
 Add the following to your WORKSPACE file.
 ``` py 
-# WORKSPACE
-git_repository(
-    name = "com_github_nanopb_nanopb",
-    remote = "https://github.com/nanopb/nanopb.git"
-    commit = "<TODO:Enter your desired commit>",
-)
+# MODULE.bazel
 
-load("@com_github_nanopb_nanopb//extra/bazel:nanopb_deps.bzl", "nanopb_deps")
-
-nanopb_deps()
-
-load("@com_github_nanopb_nanopb//extra/bazel:python_deps.bzl", 
-    "nanopb_python_deps")
-
-nanopb_python_deps()
-
-load("@com_github_nanopb_nanopb//extra/bazel:nanopb_workspace.bzl", 
-    "nanopb_workspace")
-
-nanopb_workspace()
 ```
 
 To use the Nanopb rules with in your build you can use the 
@@ -33,8 +15,8 @@ To use the Nanopb rules with in your build you can use the
 `cc_proto_library` rule.
 ```  py
 # BUILD.bazel
-load("@com_github_nanopb_nanopb//extra/bazel:nanopb_cc_proto_library.bzl", 
-    "nanopb_cc_proto_library")
+load("@nanopb//extra/bazel:nanopb_cc_proto_library.bzl", 
+    "cc_nanopb_proto_library")
 
 # Your native proto_library.
 proto_library(
