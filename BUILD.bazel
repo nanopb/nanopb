@@ -74,12 +74,28 @@ proto_plugin(
 )
 
 proto_library(
+    name = "descriptor_proto",
+    srcs = [
+        "generator/proto/google/protobuf/descriptor.proto",
+    ],
+    strip_import_prefix = "generator/proto/",
+)
+
+py_proto_library(
+    name = "descriptor_py_proto",
+    srcs = [
+        "generator/proto/google/protobuf/descriptor.proto",
+    ],
+    include = "generator/proto",
+)
+
+proto_library(
     name = "nanopb_proto",
     srcs = [
         "generator/proto/nanopb.proto",
     ],
     strip_import_prefix = "generator/proto/",
-    deps = ["@com_google_protobuf//:descriptor_proto"],
+    deps = [":descriptor_proto"],
 )
 
 py_proto_library(
@@ -88,11 +104,14 @@ py_proto_library(
         "generator/proto/nanopb.proto",
     ],
     include = "generator/proto",
+    deps = [
+        ":descriptor_py_proto",
+    ],
 )
 
 cc_nanopb_proto_library(
     name = "test_compilation",
-    protos = ["@com_google_protobuf//:descriptor_proto"],
+    protos = [":descriptor_proto"],
     visibility = ["//visibility:private"],
 )
 
