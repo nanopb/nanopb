@@ -28,3 +28,5 @@ http_archive(
     strip_prefix = "rules_proto_grpc-4.6.0",
     urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.6.0.tar.gz"],
 )
+
+register_toolchains("@rules_proto_grpc//protobuf:protoc_toolchain")
