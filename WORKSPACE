@@ -1,4 +1,3 @@
-load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos", "rules_proto_grpc_toolchains")
+load("@nanopb//extra/bazel:nanopb_workspace.bzl", "nanopb_workspace")
 
-rules_proto_grpc_repos()
-rules_proto_grpc_toolchains()
+nanopb_workspace()
