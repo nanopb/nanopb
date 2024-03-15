@@ -88,7 +88,6 @@ py_proto_library(
         "generator/proto/nanopb.proto",
     ],
     include = "generator/proto",
-    deps = ["@com_google_protobuf//:protobuf_python"],
 )
 
 cc_nanopb_proto_library(

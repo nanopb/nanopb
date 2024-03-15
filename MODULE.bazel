@@ -1,0 +1,30 @@
+module(name = "com_github_nanopb_nanopb")
+
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "rules_cc", version = "0.0.9")
+bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "rules_proto", version = "6.0.0-rc2")
+bazel_dep(name = "protobuf", version = "23.1", repo_name = "com_google_protobuf")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    configure_coverage_tool = True,
+    python_version = "3.10",
+    ignore_root_user_error = True,
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+use_repo(pip, "nanopb_pypi")
+pip.parse(
+    hub_name = "nanopb_pypi",
+    requirements_lock = "@com_github_nanopb_nanopb//:extra/requirements_lock.txt",
+    python_version = "3.10",
+)
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "rules_proto_grpc",
+    sha256 = "c0d718f4d892c524025504e67a5bfe83360b3a982e654bc71fed7514eb8ac8ad",
+    strip_prefix = "rules_proto_grpc-4.6.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.6.0.tar.gz"],
+)
