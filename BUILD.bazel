@@ -5,7 +5,7 @@ load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
-load("@protobuf//:protobuf.bzl", "py_proto_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -74,44 +74,25 @@ proto_plugin(
 )
 
 proto_library(
-    name = "descriptor_proto",
-    srcs = [
-        "generator/proto/google/protobuf/descriptor.proto",
-    ],
-    strip_import_prefix = "generator/proto/",
-)
-
-py_proto_library(
-    name = "descriptor_py_proto",
-    srcs = [
-        "generator/proto/google/protobuf/descriptor.proto",
-    ],
-    include = "generator/proto",
-)
-
-proto_library(
     name = "nanopb_proto",
     srcs = [
         "generator/proto/nanopb.proto",
     ],
     strip_import_prefix = "generator/proto/",
-    deps = [":descriptor_proto"],
+    deps = ["@protobuf//:descriptor_proto"],
 )
 
 py_proto_library(
     name = "nanopb_py_proto",
-    srcs = [
-        "generator/proto/nanopb.proto",
-    ],
-    include = "generator/proto",
     deps = [
-        ":descriptor_py_proto",
+        ":nanopb_proto",
+        "@protobuf//:descriptor_proto",
     ],
 )
 
 cc_nanopb_proto_library(
     name = "test_compilation",
-    protos = [":descriptor_proto"],
+    protos = ["@protobuf//:descriptor_proto"],
     visibility = ["//visibility:private"],
 )
 

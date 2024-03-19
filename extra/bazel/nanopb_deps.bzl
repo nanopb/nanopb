@@ -11,7 +11,7 @@ def nanopb_deps():
             strip_prefix = "rules_proto_grpc-5.0.0-alpha2",
             urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/releases/download/5.0.0-alpha2/rules_proto_grpc-5.0.0-alpha2.tar.gz"],
         )
-    
+
     # Required for plugin rules.
     # Used by: nanopb.
     # Used in modules: generator.

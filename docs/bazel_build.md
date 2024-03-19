@@ -7,7 +7,7 @@ into the build.
 Add the following to your WORKSPACE file.
 ``` py 
 # MODULE.bazel
-bazel_dep(name = "nanopb")
+bazel_dep(name = "nanopb", version = "0.4.9")
 git_override(
     module_name = "nanopb",
     remote = "https://github.com/nanopb/nanopb.git",

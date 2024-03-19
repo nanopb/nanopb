@@ -41,7 +41,7 @@ Therefore, nanopb has been migrated to use bzlmod to better support newer bazel 
 
 **Required actions:** Change the way to import nanopb module in your project
 ```py
-bazel_dep(name = "nanopb")
+bazel_dep(name = "nanopb", version = "0.4.9")
 git_override(
     module_name = "nanopb",
     remote = "https://github.com/nanopb/nanopb.git",
@@ -49,9 +49,9 @@ git_override(
 )
 ```
 noted that the name of the module has been changed to `nanopb`, to better fit the convention of bzlmod.
-If the old name `com_google_protobuf` is preferred, can add `repo_name` parameter to indicate the repo name.
+If the old name `com_github_nanopb_nanopb` is preferred, can add `repo_name` parameter to indicate the repo name.
 ```py
-bazel_dep(name = "nanopb", repo_name="com_google_protobuf")
+bazel_dep(name = "nanopb", version = "0.4.9", repo_name="com_github_nanopb_nanopb")
 ```
 
 Nanopb-0.4.8 (2023-11-11)
