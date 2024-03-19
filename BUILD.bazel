@@ -79,20 +79,20 @@ proto_library(
         "generator/proto/nanopb.proto",
     ],
     strip_import_prefix = "generator/proto/",
-    deps = ["@protobuf//:descriptor_proto"],
+    deps = ["@com_google_protobuf//:descriptor_proto"],
 )
 
 py_proto_library(
     name = "nanopb_py_proto",
     deps = [
         ":nanopb_proto",
-        "@protobuf//:descriptor_proto",
+        "@com_google_protobuf//:descriptor_proto",
     ],
 )
 
 cc_nanopb_proto_library(
     name = "test_compilation",
-    protos = ["@protobuf//:descriptor_proto"],
+    protos = ["@com_google_protobuf//:descriptor_proto"],
     visibility = ["//visibility:private"],
 )
 
