@@ -5,7 +5,7 @@ load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
-load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
+load("@protobuf//:protobuf.bzl", "py_proto_library")
 
 package(default_visibility = ["//visibility:public"])
 

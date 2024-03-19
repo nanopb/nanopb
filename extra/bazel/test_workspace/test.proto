@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+message TernaryFlag {
+    enum Enum {
+        OPTION_1 = 0;
+        OPTION_2 = 1;
+        OPTION_3 = 2;
+    }
+}
+
+message Test {
+    optional bool some_flag = 1;
+    optional uint32 some_value = 2;
+    optional string some_string = 3;
+    optional TernaryFlag.Enum some_enum = 4;
+}
