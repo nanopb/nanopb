@@ -33,13 +33,13 @@ Therefore, nanopb has been migrated to use bzlmod to better support newer bazel 
 
 **Changes**
 * upgrade bazel deps
-  * rules_python: 0.31.0
-  * rules_proto: 6.0.0-rc2
+  * rules_python: 0.24.0
+  * rules_proto: 5.3.0-21.7
   * protobuf: 23.1
   * rules_proto_grpc: 4.6.0
-* replace WORKSPACE by MODULE.bazel (bzlmod)
+* Start using bzlmod (MODULE.bazel)
 
-**Required actions:** Change the way to import nanopb module in your project
+**Required actions:** WORKSPACE is still supported, if you're interested in bzlmod, below adding below content to your MODULE.bazel should work
 ```py
 bazel_dep(name = "nanopb", version = "0.4.9")
 git_override(
