@@ -29,6 +29,5 @@ examples/using_union_messages/encode
 generator/nanopb_pb2.pyc
 !generator-bin/**/*
 bazel-*
-MODULE.bazel.lock
 extra/poetry/build
 build/

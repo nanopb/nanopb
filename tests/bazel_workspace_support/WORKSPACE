@@ -1,6 +1,6 @@
 local_repository(
     name = "nanopb",
-    path = "../../..",
+    path = "../..",
 )
 
 load("@nanopb//extra/bazel:nanopb_deps.bzl", "nanopb_deps")

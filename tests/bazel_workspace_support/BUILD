@@ -9,4 +9,5 @@ proto_library(
 cc_nanopb_proto_library(
     name = "test_proto_nanopb",
     protos = [":test_proto"],
+    nanopb_options_files = ["test.options"],
 )
