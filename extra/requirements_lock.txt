@@ -131,8 +131,6 @@ protobuf==4.22.0 \
     --hash=sha256:e474b63bab0a2ea32a7b26a4d8eec59e33e709321e5e16fb66e766b61b82a95e \
     --hash=sha256:e894e9ae603e963f0842498c4cd5d39c6a60f0d7e4c103df50ee939564298658
     # via grpcio-tools
-
-# The following packages are considered to be unsafe in a requirements file:
 setuptools==68.2.2 \
     --hash=sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87 \
     --hash=sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a
