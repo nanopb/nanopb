@@ -83,7 +83,7 @@ def load_nanopb_pb2():
     if bool(no_rebuild):
         # Don't attempt to autogenerate nanopb_pb2.py, external build rules
         # should have already done so.
-        import generator.proto.nanopb_pb2 as nanopb_pb2_mod
+        import nanopb_pb2 as nanopb_pb2_mod
         proto_ok = True
     elif os.path.isfile(protosrc):
         src_date = os.path.getmtime(protosrc)
@@ -119,7 +119,7 @@ def load_nanopb_pb2():
                 sys.path.insert(0, protodir)
 
             try:
-                import generator.proto.nanopb_pb2 as nanopb_pb2_mod
+                import nanopb_pb2 as nanopb_pb2_mod
             except:
                 sys.stderr.write("Failed to import %s/nanopb_pb2.py:\n" % protodir)
                 sys.stderr.write(traceback.format_exc() + "\n")

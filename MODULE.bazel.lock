@@ -1808,7 +1808,7 @@
       "general": {
         "bzlTransitiveDigest": "M6NYLTOLI6SSI1mN2KjqX5ZPXSWkPMvsM3eUylVFhws=",
         "recordedFileInputs": {
-          "@@//extra/requirements_lock.txt": "2e9d1d4c0e8e279ba0f6e76f0e844d0e3c89b32d7aa43cfe3ddc193702790d12"
+          "@@//extra/requirements_lock.txt": "80c00c6b4db321029f5da7fb78b30931758efd4b69549c61134a4fd2b835850a"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
