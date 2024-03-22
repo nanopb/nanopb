@@ -4,7 +4,7 @@ set of plugins for the Bazel build system allowing Nanopb to be integrated
 into the build.
 
 ## Getting started
-Add the following to your WORKSPACE file.
+Add the following to your MODULE.bazel file.
 ``` py 
 # MODULE.bazel
 bazel_dep(name = "nanopb", version = "0.4.9")
@@ -13,6 +13,27 @@ git_override(
     remote = "https://github.com/nanopb/nanopb.git",
     commit = "<commit>",
 )
+```
+
+Or if you would prefer using WORKSPACE file
+```py
+git_repository(
+    name = "com_github_nanopb_nanopb",
+    remote = "https://github.com/nanopb/nanopb.git"
+    commit = "<TODO:Enter your desired commit>",
+)
+
+load("@nanopb//extra/bazel:nanopb_deps.bzl", "nanopb_deps")
+
+nanopb_deps()
+
+load("@nanopb//extra/bazel:python_deps.bzl", "nanopb_python_deps")
+
+nanopb_python_deps()
+
+load("@nanopb//extra/bazel:nanopb_workspace.bzl", "nanopb_workspace")
+
+nanopb_workspace()
 ```
 
 To use the Nanopb rules with in your build you can use the 
