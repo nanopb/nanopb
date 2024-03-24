@@ -1886,7 +1886,7 @@
       "os:linux,arch:amd64": {
         "bzlTransitiveDigest": "Iiq2mQKa5+Ek9YlG+eQlY0N6eNgdpdb711ab5Z6RrNU=",
         "recordedFileInputs": {
-          "@@//extra/requirements_lock.txt": "2a114407dc8579fdbfa6724b249b9d893ff71692c347e39bdfaf7e11421c6918"
+          "@@//extra/requirements_lock.txt": "8a44f53e5c48123742970b4e9d6f8730eaa143134c08db0706ccd6d2c78c03ca"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
