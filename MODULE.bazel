@@ -7,13 +7,6 @@ bazel_dep(name = "rules_proto", version = "5.3.0-21.7")
 bazel_dep(name = "protobuf", version = "23.1", repo_name = "com_google_protobuf")
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
-python = use_extension("@rules_python//python/extensions:python.bzl", "python")
-python.toolchain(
-    configure_coverage_tool = True,
-    python_version = "3.11",
-    ignore_root_user_error = True,
-    is_default = True,
-)
 use_repo(pip, "nanopb_pypi")
 pip.parse(
     hub_name = "nanopb_pypi",
