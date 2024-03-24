@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "6309e3f5cbbd70e2cdace0083b08f7fde76a4418e7ef393d1969bb26eec951c4",
+  "moduleFileHash": "92006ca6aa54de016c9c158bc1e46a8a0a2d4041af8da491d61378c8362d52ef",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -27,43 +27,12 @@
       ],
       "extensionUsages": [
         {
-          "extensionBzlFile": "@rules_python//python/extensions:python.bzl",
-          "extensionName": "python",
-          "usingModule": "<root>",
-          "location": {
-            "file": "@@//:MODULE.bazel",
-            "line": 9,
-            "column": 23
-          },
-          "imports": {},
-          "devImports": [],
-          "tags": [
-            {
-              "tagName": "toolchain",
-              "attributeValues": {
-                "configure_coverage_tool": true,
-                "python_version": "3.10",
-                "ignore_root_user_error": true,
-                "is_default": true
-              },
-              "devDependency": false,
-              "location": {
-                "file": "@@//:MODULE.bazel",
-                "line": 10,
-                "column": 17
-              }
-            }
-          ],
-          "hasDevUseExtension": false,
-          "hasNonDevUseExtension": true
-        },
-        {
           "extensionBzlFile": "@rules_python//python/extensions:pip.bzl",
           "extensionName": "pip",
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 17,
+            "line": 9,
             "column": 20
           },
           "imports": {
@@ -75,13 +44,12 @@
               "tagName": "parse",
               "attributeValues": {
                 "hub_name": "nanopb_pypi",
-                "requirements_lock": "@nanopb//:extra/requirements_lock.txt",
-                "python_version": "3.10"
+                "requirements_lock": "@nanopb//:extra/requirements_lock.txt"
               },
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 19,
+                "line": 11,
                 "column": 10
               }
             }
@@ -116,7 +84,7 @@
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 26,
+                "line": 17,
                 "column": 13
               }
             }
@@ -1807,22 +1775,22 @@
     },
     "@@rules_python~//python/extensions:pip.bzl%pip": {
       "general": {
-        "bzlTransitiveDigest": "M6NYLTOLI6SSI1mN2KjqX5ZPXSWkPMvsM3eUylVFhws=",
+        "bzlTransitiveDigest": "CJF4NFPCVQl1UX2UDLVT5nGX5uG14Zk5Q5NGd58dQ3I=",
         "recordedFileInputs": {
-          "@@//extra/requirements_lock.txt": "80c00c6b4db321029f5da7fb78b30931758efd4b69549c61134a4fd2b835850a"
+          "@@//extra/requirements_lock.txt": "2a114407dc8579fdbfa6724b249b9d893ff71692c347e39bdfaf7e11421c6918"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "nanopb_pypi_310_setuptools": {
+          "nanopb_pypi_311_grpcio": {
             "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
             "ruleClassName": "whl_library",
             "attributes": {
-              "requirement": "setuptools==68.2.2     --hash=sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87     --hash=sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a",
-              "repo": "nanopb_pypi_310",
-              "repo_prefix": "nanopb_pypi_310_",
+              "requirement": "grpcio==1.59.3     --hash=sha256:00912ce19914d038851be5cd380d94a03f9d195643c28e3ad03d355cc02ce7e8     --hash=sha256:0511af8653fbda489ff11d542a08505d56023e63cafbda60e6e00d4e0bae86ea     --hash=sha256:0814942ba1bba269db4e760a34388640c601dece525c6a01f3b4ff030cc0db69     --hash=sha256:0d42048b8a3286ea4134faddf1f9a59cf98192b94aaa10d910a25613c5eb5bfb     --hash=sha256:0e735ed002f50d4f3cb9ecfe8ac82403f5d842d274c92d99db64cfc998515e07     --hash=sha256:16da0e40573962dab6cba16bec31f25a4f468e6d05b658e589090fe103b03e3d     --hash=sha256:1736496d74682e53dd0907fd515f2694d8e6a96c9a359b4080b2504bf2b2d91b     --hash=sha256:19ad26a7967f7999c8960d2b9fe382dae74c55b0c508c613a6c2ba21cddf2354     --hash=sha256:33b8fd65d4e97efa62baec6171ce51f9cf68f3a8ba9f866f4abc9d62b5c97b79     --hash=sha256:36636babfda14f9e9687f28d5b66d349cf88c1301154dc71c6513de2b6c88c59     --hash=sha256:3996aaa21231451161dc29df6a43fcaa8b332042b6150482c119a678d007dd86     --hash=sha256:45dddc5cb5227d30fa43652d8872dc87f086d81ab4b500be99413bad0ae198d7     --hash=sha256:4619fea15c64bcdd9d447cdbdde40e3d5f1da3a2e8ae84103d94a9c1df210d7e     --hash=sha256:52cc38a7241b5f7b4a91aaf9000fdd38e26bb00d5e8a71665ce40cfcee716281     --hash=sha256:575d61de1950b0b0699917b686b1ca108690702fcc2df127b8c9c9320f93e069     --hash=sha256:5f9b2e591da751ac7fdd316cc25afafb7a626dededa9b414f90faad7f3ccebdb     --hash=sha256:60cddafb70f9a2c81ba251b53b4007e07cca7389e704f86266e22c4bffd8bf1d     --hash=sha256:6a5c3a96405966c023e139c3bcccb2c7c776a6f256ac6d70f8558c9041bdccc3     --hash=sha256:6c75a1fa0e677c1d2b6d4196ad395a5c381dfb8385f07ed034ef667cdcdbcc25     --hash=sha256:72b71dad2a3d1650e69ad42a5c4edbc59ee017f08c32c95694172bc501def23c     --hash=sha256:73afbac602b8f1212a50088193601f869b5073efa9855b3e51aaaec97848fc8a     --hash=sha256:7800f99568a74a06ebdccd419dd1b6e639b477dcaf6da77ea702f8fb14ce5f80     --hash=sha256:8022ca303d6c694a0d7acfb2b472add920217618d3a99eb4b14edc7c6a7e8fcf     --hash=sha256:8239b853226e4824e769517e1b5232e7c4dda3815b200534500338960fcc6118     --hash=sha256:83113bcc393477b6f7342b9f48e8a054330c895205517edc66789ceea0796b53     --hash=sha256:8cd76057b5c9a4d68814610ef9226925f94c1231bbe533fdf96f6181f7d2ff9e     --hash=sha256:8d993399cc65e3a34f8fd48dd9ad7a376734564b822e0160dd18b3d00c1a33f9     --hash=sha256:95b5506e70284ac03b2005dd9ffcb6708c9ae660669376f0192a710687a22556     --hash=sha256:95d6fd804c81efe4879e38bfd84d2b26e339a0a9b797e7615e884ef4686eb47b     --hash=sha256:9e17660947660ccfce56c7869032910c179a5328a77b73b37305cd1ee9301c2e     --hash=sha256:a93a82876a4926bf451db82ceb725bd87f42292bacc94586045261f501a86994     --hash=sha256:aca028a6c7806e5b61e5f9f4232432c52856f7fcb98e330b20b6bc95d657bdcc     --hash=sha256:b1f00a3e6e0c3dccccffb5579fc76ebfe4eb40405ba308505b41ef92f747746a     --hash=sha256:b36683fad5664283755a7f4e2e804e243633634e93cd798a46247b8e54e3cb0d     --hash=sha256:b491e5bbcad3020a96842040421e508780cade35baba30f402df9d321d1c423e     --hash=sha256:c0bd141f4f41907eb90bda74d969c3cb21c1c62779419782a5b3f5e4b5835718     --hash=sha256:c0f0a11d82d0253656cc42e04b6a149521e02e755fe2e4edd21123de610fd1d4     --hash=sha256:c4b0076f0bf29ee62335b055a9599f52000b7941f577daa001c7ef961a1fbeab     --hash=sha256:c82ca1e4be24a98a253d6dbaa216542e4163f33f38163fc77964b0f0d255b552     --hash=sha256:cb4e9cbd9b7388fcb06412da9f188c7803742d06d6f626304eb838d1707ec7e3     --hash=sha256:cdbc6b32fadab9bebc6f49d3e7ec4c70983c71e965497adab7f87de218e84391     --hash=sha256:ce31fa0bfdd1f2bb15b657c16105c8652186eab304eb512e6ae3b99b2fdd7d13     --hash=sha256:d1d1a17372fd425addd5812049fa7374008ffe689585f27f802d0935522cf4b7     --hash=sha256:d787ecadea865bdf78f6679f6f5bf4b984f18f659257ba612979df97a298b3c3     --hash=sha256:ddbd1a16138e52e66229047624de364f88a948a4d92ba20e4e25ad7d22eef025     --hash=sha256:e1d8e01438d5964a11167eec1edb5f85ed8e475648f36c834ed5db4ffba24ac8     --hash=sha256:e58b3cadaa3c90f1efca26ba33e0d408b35b497307027d3d707e4bcd8de862a6     --hash=sha256:e78dc982bda74cef2ddfce1c91d29b96864c4c680c634e279ed204d51e227473     --hash=sha256:ea40ce4404e7cca0724c91a7404da410f0144148fdd58402a5942971e3469b94     --hash=sha256:eb8ba504c726befe40a356ecbe63c6c3c64c9a439b3164f5a718ec53c9874da0     --hash=sha256:ed26826ee423b11477297b187371cdf4fa1eca874eb1156422ef3c9a60590dd9     --hash=sha256:f2eb8f0c7c0c62f7a547ad7a91ba627a5aa32a5ae8d930783f7ee61680d7eb8d     --hash=sha256:fb111aa99d3180c361a35b5ae1e2c63750220c584a1344229abc139d5c891881     --hash=sha256:fcfa56f8d031ffda902c258c84c4b88707f3a4be4827b4e3ab8ec7c24676320d",
+              "repo": "nanopb_pypi_311",
+              "repo_prefix": "nanopb_pypi_311_",
               "python_interpreter": "",
-              "python_interpreter_target": "@@rules_python~~python~python_3_10_x86_64-unknown-linux-gnu//:bin/python3",
+              "python_interpreter_target": "@@rules_python~~python~python_3_11_x86_64-unknown-linux-gnu//:bin/python3",
               "quiet": true,
               "timeout": 600,
               "isolated": true,
@@ -1838,17 +1806,36 @@
             "ruleClassName": "whl_library_alias",
             "attributes": {
               "wheel_name": "grpcio",
-              "default_version": "3.10",
+              "default_version": "3.11",
               "version_map": {
-                "3.10": "nanopb_pypi_310_"
+                "3.11": "nanopb_pypi_311_"
               }
             }
           },
-          "nanopb_pypi_310": {
+          "nanopb_pypi_311_protobuf": {
+            "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
+            "ruleClassName": "whl_library",
+            "attributes": {
+              "requirement": "protobuf==4.22.0     --hash=sha256:1669cb7524221a8e2d9008d0842453dbefdd0fcdd64d67672f657244867635fb     --hash=sha256:29288813aacaa302afa2381db1d6e0482165737b0afdf2811df5fa99185c457b     --hash=sha256:47d31bdf58222dd296976aa1646c68c6ee80b96d22e0a3c336c9174e253fd35e     --hash=sha256:652d8dfece122a24d98eebfef30e31e455d300efa41999d1182e015984ac5930     --hash=sha256:7c535d126e7dcc714105ab20b418c4fedbd28f8b8afc42b7350b1e317bbbcc71     --hash=sha256:86c3d20428b007537ba6792b475c0853bba7f66b1f60e610d913b77d94b486e4     --hash=sha256:a33a273d21852f911b8bda47f39f4383fe7c061eb1814db2c76c9875c89c2491     --hash=sha256:ab4d043865dd04e6b09386981fe8f80b39a1e46139fb4a3c206229d6b9f36ff6     --hash=sha256:b2fea9dc8e3c0f32c38124790ef16cba2ee0628fe2022a52e435e1117bfef9b1     --hash=sha256:c27f371f0159feb70e6ea52ed7e768b3f3a4c5676c1900a7e51a24740381650e     --hash=sha256:c3325803095fb4c2a48649c321d2fbde59f8fbfcb9bfc7a86df27d112831c571     --hash=sha256:e474b63bab0a2ea32a7b26a4d8eec59e33e709321e5e16fb66e766b61b82a95e     --hash=sha256:e894e9ae603e963f0842498c4cd5d39c6a60f0d7e4c103df50ee939564298658",
+              "repo": "nanopb_pypi_311",
+              "repo_prefix": "nanopb_pypi_311_",
+              "python_interpreter": "",
+              "python_interpreter_target": "@@rules_python~~python~python_3_11_x86_64-unknown-linux-gnu//:bin/python3",
+              "quiet": true,
+              "timeout": 600,
+              "isolated": true,
+              "extra_pip_args": [],
+              "download_only": false,
+              "pip_data_exclude": [],
+              "enable_implicit_namespace_pkgs": false,
+              "environment": {}
+            }
+          },
+          "nanopb_pypi_311": {
             "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
             "ruleClassName": "pip_repository_bzlmod",
             "attributes": {
-              "repo_name": "nanopb_pypi_310",
+              "repo_name": "nanopb_pypi_311",
               "requirements_lock": "@@//:extra/requirements_lock.txt"
             }
           },
@@ -1857,21 +1844,21 @@
             "ruleClassName": "whl_library_alias",
             "attributes": {
               "wheel_name": "setuptools",
-              "default_version": "3.10",
+              "default_version": "3.11",
               "version_map": {
-                "3.10": "nanopb_pypi_310_"
+                "3.11": "nanopb_pypi_311_"
               }
             }
           },
-          "nanopb_pypi_310_grpcio": {
+          "nanopb_pypi_311_grpcio_tools": {
             "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
             "ruleClassName": "whl_library",
             "attributes": {
-              "requirement": "grpcio==1.59.3     --hash=sha256:00912ce19914d038851be5cd380d94a03f9d195643c28e3ad03d355cc02ce7e8     --hash=sha256:0511af8653fbda489ff11d542a08505d56023e63cafbda60e6e00d4e0bae86ea     --hash=sha256:0814942ba1bba269db4e760a34388640c601dece525c6a01f3b4ff030cc0db69     --hash=sha256:0d42048b8a3286ea4134faddf1f9a59cf98192b94aaa10d910a25613c5eb5bfb     --hash=sha256:0e735ed002f50d4f3cb9ecfe8ac82403f5d842d274c92d99db64cfc998515e07     --hash=sha256:16da0e40573962dab6cba16bec31f25a4f468e6d05b658e589090fe103b03e3d     --hash=sha256:1736496d74682e53dd0907fd515f2694d8e6a96c9a359b4080b2504bf2b2d91b     --hash=sha256:19ad26a7967f7999c8960d2b9fe382dae74c55b0c508c613a6c2ba21cddf2354     --hash=sha256:33b8fd65d4e97efa62baec6171ce51f9cf68f3a8ba9f866f4abc9d62b5c97b79     --hash=sha256:36636babfda14f9e9687f28d5b66d349cf88c1301154dc71c6513de2b6c88c59     --hash=sha256:3996aaa21231451161dc29df6a43fcaa8b332042b6150482c119a678d007dd86     --hash=sha256:45dddc5cb5227d30fa43652d8872dc87f086d81ab4b500be99413bad0ae198d7     --hash=sha256:4619fea15c64bcdd9d447cdbdde40e3d5f1da3a2e8ae84103d94a9c1df210d7e     --hash=sha256:52cc38a7241b5f7b4a91aaf9000fdd38e26bb00d5e8a71665ce40cfcee716281     --hash=sha256:575d61de1950b0b0699917b686b1ca108690702fcc2df127b8c9c9320f93e069     --hash=sha256:5f9b2e591da751ac7fdd316cc25afafb7a626dededa9b414f90faad7f3ccebdb     --hash=sha256:60cddafb70f9a2c81ba251b53b4007e07cca7389e704f86266e22c4bffd8bf1d     --hash=sha256:6a5c3a96405966c023e139c3bcccb2c7c776a6f256ac6d70f8558c9041bdccc3     --hash=sha256:6c75a1fa0e677c1d2b6d4196ad395a5c381dfb8385f07ed034ef667cdcdbcc25     --hash=sha256:72b71dad2a3d1650e69ad42a5c4edbc59ee017f08c32c95694172bc501def23c     --hash=sha256:73afbac602b8f1212a50088193601f869b5073efa9855b3e51aaaec97848fc8a     --hash=sha256:7800f99568a74a06ebdccd419dd1b6e639b477dcaf6da77ea702f8fb14ce5f80     --hash=sha256:8022ca303d6c694a0d7acfb2b472add920217618d3a99eb4b14edc7c6a7e8fcf     --hash=sha256:8239b853226e4824e769517e1b5232e7c4dda3815b200534500338960fcc6118     --hash=sha256:83113bcc393477b6f7342b9f48e8a054330c895205517edc66789ceea0796b53     --hash=sha256:8cd76057b5c9a4d68814610ef9226925f94c1231bbe533fdf96f6181f7d2ff9e     --hash=sha256:8d993399cc65e3a34f8fd48dd9ad7a376734564b822e0160dd18b3d00c1a33f9     --hash=sha256:95b5506e70284ac03b2005dd9ffcb6708c9ae660669376f0192a710687a22556     --hash=sha256:95d6fd804c81efe4879e38bfd84d2b26e339a0a9b797e7615e884ef4686eb47b     --hash=sha256:9e17660947660ccfce56c7869032910c179a5328a77b73b37305cd1ee9301c2e     --hash=sha256:a93a82876a4926bf451db82ceb725bd87f42292bacc94586045261f501a86994     --hash=sha256:aca028a6c7806e5b61e5f9f4232432c52856f7fcb98e330b20b6bc95d657bdcc     --hash=sha256:b1f00a3e6e0c3dccccffb5579fc76ebfe4eb40405ba308505b41ef92f747746a     --hash=sha256:b36683fad5664283755a7f4e2e804e243633634e93cd798a46247b8e54e3cb0d     --hash=sha256:b491e5bbcad3020a96842040421e508780cade35baba30f402df9d321d1c423e     --hash=sha256:c0bd141f4f41907eb90bda74d969c3cb21c1c62779419782a5b3f5e4b5835718     --hash=sha256:c0f0a11d82d0253656cc42e04b6a149521e02e755fe2e4edd21123de610fd1d4     --hash=sha256:c4b0076f0bf29ee62335b055a9599f52000b7941f577daa001c7ef961a1fbeab     --hash=sha256:c82ca1e4be24a98a253d6dbaa216542e4163f33f38163fc77964b0f0d255b552     --hash=sha256:cb4e9cbd9b7388fcb06412da9f188c7803742d06d6f626304eb838d1707ec7e3     --hash=sha256:cdbc6b32fadab9bebc6f49d3e7ec4c70983c71e965497adab7f87de218e84391     --hash=sha256:ce31fa0bfdd1f2bb15b657c16105c8652186eab304eb512e6ae3b99b2fdd7d13     --hash=sha256:d1d1a17372fd425addd5812049fa7374008ffe689585f27f802d0935522cf4b7     --hash=sha256:d787ecadea865bdf78f6679f6f5bf4b984f18f659257ba612979df97a298b3c3     --hash=sha256:ddbd1a16138e52e66229047624de364f88a948a4d92ba20e4e25ad7d22eef025     --hash=sha256:e1d8e01438d5964a11167eec1edb5f85ed8e475648f36c834ed5db4ffba24ac8     --hash=sha256:e58b3cadaa3c90f1efca26ba33e0d408b35b497307027d3d707e4bcd8de862a6     --hash=sha256:e78dc982bda74cef2ddfce1c91d29b96864c4c680c634e279ed204d51e227473     --hash=sha256:ea40ce4404e7cca0724c91a7404da410f0144148fdd58402a5942971e3469b94     --hash=sha256:eb8ba504c726befe40a356ecbe63c6c3c64c9a439b3164f5a718ec53c9874da0     --hash=sha256:ed26826ee423b11477297b187371cdf4fa1eca874eb1156422ef3c9a60590dd9     --hash=sha256:f2eb8f0c7c0c62f7a547ad7a91ba627a5aa32a5ae8d930783f7ee61680d7eb8d     --hash=sha256:fb111aa99d3180c361a35b5ae1e2c63750220c584a1344229abc139d5c891881     --hash=sha256:fcfa56f8d031ffda902c258c84c4b88707f3a4be4827b4e3ab8ec7c24676320d",
-              "repo": "nanopb_pypi_310",
-              "repo_prefix": "nanopb_pypi_310_",
+              "requirement": "grpcio-tools==1.59.3     --hash=sha256:007745bd3c5a788dcb73eeb6cd773613a834bd2442e7d062dcafe46dbd4bb5f6     --hash=sha256:019fdd986c80b13187574c291df5054f241bdbe87dbc86e4cee73ffa28328647     --hash=sha256:05ac0f6683759e5508081c09af26cb6cc949c2c54d75ff8b76344709f78dda53     --hash=sha256:05ec4ffe16b6eab12813476e6d7465a0027bee33999d4776ae1d9c0664d0fc54     --hash=sha256:0a5d760619305eb51a8719ce9c081398f145a46bc7c86a6e2cebe0648a21f40c     --hash=sha256:0b116a888580317e421358f26bfaeec47d6f73079e8a47bad60d1f9f7b30f2a5     --hash=sha256:102b5f14a500dbb766f24a96884d9572a3ea7a56d69695461100fb71ec922ef6     --hash=sha256:17017fe74734c158e0f93817f1ff17aeda37d0f105ed6e63b12c26b66743a7a8     --hash=sha256:1abe30ce770ac4fed966d017771fa7f8ced6a279de7ce68023e2c07f07911e76     --hash=sha256:21868aa510317d3f39e5de40208ffb8ab1beb1cbcab333317939b59a9b5db055     --hash=sha256:21d976419630f72a7cefebe7dcfc451b33d70c805a43ff5a60c43367813f0527     --hash=sha256:2861e4814ebc147854c2246092c433931f4c15f3c8105ae8716b1e282313a5ae     --hash=sha256:2b8a4aca0c11f2a8b3bfe103362984bdc427ab762428446ef2e12922fd48ee10     --hash=sha256:36524d97cc936767a69815b90be76a1420b3218a7724ce69cde6ece794e72a17     --hash=sha256:396106f92ea6ab2157535e1a009bac99aa15680ca8addbc8e7c1a4d3f5b1fb2c     --hash=sha256:3a560dcb176dd42c37af5d37299e318341a572547e32b942247daa834d2164c0     --hash=sha256:4384b29d8e126bc6e24a5efd9d60a2a2015867c7109fa67ff2ed274b3f4a05c5     --hash=sha256:46c384a0e30a8422a3e2c5530b3cd69b652dd659549907e2eaac7ca4e0ab614d     --hash=sha256:4b7883ce3d532c09f29c016fdac107f9a3dc43f9e6b60faf8b91fcba21824269     --hash=sha256:4dce57668e2aa8c3bb0b2a0bb766a2654ee0f4d8d31e02a6001e98af18569285     --hash=sha256:4f064483e0046a4a193d6c67b26ea0f61737e8232ff61636a7fa0bc5244458be     --hash=sha256:58de83ced4f86458f45288a5f76d9765dc245a9ce4e783a194decccc7e0674ea     --hash=sha256:592208a9a02df75993cc4dba111d2b81f0e6a3f3837856be239e1aceb6651f31     --hash=sha256:64fd1efb23da054f61aca2346c5139f317b7f4c545f6dbda5ec246f281af8e86     --hash=sha256:6747b1d82d08e0f5e1a6438532343a1c5504147d1a199c5756e702e5f916de4c     --hash=sha256:6bd4a72c27abda191e2360b2b720ada1880aba96a63604a6f9d7c37bb3bbf5c4     --hash=sha256:76542e1c11e3f2c22c19cff6b3233caab35924fad1f685ce63184d31b4050fa8     --hash=sha256:76b0cdcbcb38722840d3eaff6439ddb4b8f0210c6718553d7b7c911834b10e60     --hash=sha256:7cc7e8b893a6c37a8a28735fede1aa40275988a668d1e22c5f234938a77d811d     --hash=sha256:83453a13c2120238eb7fb993b03b370496e76071a7b45c816aa682d9226d29c1     --hash=sha256:84179e3a7c9067e993700b3255f2adc10e9b16e8dd28525d1dd1a02b9ca603ee     --hash=sha256:87111be05c1a159ce3fffbfad86ff69fd4bf1702cde127eb698d8e8c3a018ab6     --hash=sha256:8f69141ff370729ceaad0286b8c6e15352c9bb39aa8f18c0500ce3d0238c2981     --hash=sha256:917be645a71cf9592d2f5a3589c20c074a6539954017e8e2dca5e8ba13025625     --hash=sha256:a031e1ced828a00f1eb59db5f5d4dd39d3bd6a7df8187f84830d4a32a1bbc686     --hash=sha256:a048d4bde526f3c6e364abea2c3a481f3bbebc4bfa7fdcfcc3e5ee4f8ab9c4c5     --hash=sha256:a0cacf59513b100bfb3d8de51ba43db6140aa9bcb7bba872badb48acb430c002     --hash=sha256:a1394b7a65d738ee0ce4eac1fc95158dd9c97b5c3f690d259e6ee0bf131697de     --hash=sha256:a6dc6da8e3780df25095c1952f45c334e1554f25b991ffe75dbf0408795d27a0     --hash=sha256:ac1013e4f84ffd15c45ead6d19c9d188b76c14466a799aa9c338ce3b9ebf6dcc     --hash=sha256:acaefd3c362250a02cc93fc1b5440e3cb30ab8d7fd81594b2975ea19f123aae3     --hash=sha256:b4418b78408ff56ee70a0b14484c07f5e48c2e6f4fa7be390d486a686d0cd6e4     --hash=sha256:b4db59a62d31c98105af08b1bfb8878c239e4cf31088f2d9864756cdfec67746     --hash=sha256:ca286affe613beaf2d5a6b8bd83203dcf488917194b416da48aa849047b5f081     --hash=sha256:cd160ac4281cd1ae77a2c880377a7728349340b4c91e24285037b57c18e9f651     --hash=sha256:ce1372c9acde9d74c7e54858598ac0c5203dd3ec24b9085f7a8b2f33cc156736     --hash=sha256:d70cad744e92c7576c226a72998ae8dd59240c942f73798bbde40284eb9eb991     --hash=sha256:d93590a6a82469f3e58e39692230d99c43a39b215cb581e072dcd52286471152     --hash=sha256:de3d9649b7a3091ec785a67d5bf006584440f03896ee52259c6d9ff412d08afb     --hash=sha256:ea6454acde508c9a62dab3f59e98b32e32b26aa60df20080982503bb7db51304     --hash=sha256:ee013da4f5a4ef50fdeca372470733bc402677a4dc0023ee94bf42478b5a620d     --hash=sha256:f48b4409b306675b7673dad725c9cf3234bf05623bf8a193ad14af39d0368ba6     --hash=sha256:f8396183e6e0a16178773963dc21b58c0c532783476fda314198a9e42f57af7d     --hash=sha256:ff304b9d6c23d8e2ecc860bebac1ec6768a2d920985bcea9ce4a7aaeeea44f76",
+              "repo": "nanopb_pypi_311",
+              "repo_prefix": "nanopb_pypi_311_",
               "python_interpreter": "",
-              "python_interpreter_target": "@@rules_python~~python~python_3_10_x86_64-unknown-linux-gnu//:bin/python3",
+              "python_interpreter_target": "@@rules_python~~python~python_3_11_x86_64-unknown-linux-gnu//:bin/python3",
               "quiet": true,
               "timeout": 600,
               "isolated": true,
@@ -1887,29 +1874,10 @@
             "ruleClassName": "whl_library_alias",
             "attributes": {
               "wheel_name": "grpcio_tools",
-              "default_version": "3.10",
+              "default_version": "3.11",
               "version_map": {
-                "3.10": "nanopb_pypi_310_"
+                "3.11": "nanopb_pypi_311_"
               }
-            }
-          },
-          "nanopb_pypi_310_grpcio_tools": {
-            "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
-            "ruleClassName": "whl_library",
-            "attributes": {
-              "requirement": "grpcio-tools==1.59.3     --hash=sha256:007745bd3c5a788dcb73eeb6cd773613a834bd2442e7d062dcafe46dbd4bb5f6     --hash=sha256:019fdd986c80b13187574c291df5054f241bdbe87dbc86e4cee73ffa28328647     --hash=sha256:05ac0f6683759e5508081c09af26cb6cc949c2c54d75ff8b76344709f78dda53     --hash=sha256:05ec4ffe16b6eab12813476e6d7465a0027bee33999d4776ae1d9c0664d0fc54     --hash=sha256:0a5d760619305eb51a8719ce9c081398f145a46bc7c86a6e2cebe0648a21f40c     --hash=sha256:0b116a888580317e421358f26bfaeec47d6f73079e8a47bad60d1f9f7b30f2a5     --hash=sha256:102b5f14a500dbb766f24a96884d9572a3ea7a56d69695461100fb71ec922ef6     --hash=sha256:17017fe74734c158e0f93817f1ff17aeda37d0f105ed6e63b12c26b66743a7a8     --hash=sha256:1abe30ce770ac4fed966d017771fa7f8ced6a279de7ce68023e2c07f07911e76     --hash=sha256:21868aa510317d3f39e5de40208ffb8ab1beb1cbcab333317939b59a9b5db055     --hash=sha256:21d976419630f72a7cefebe7dcfc451b33d70c805a43ff5a60c43367813f0527     --hash=sha256:2861e4814ebc147854c2246092c433931f4c15f3c8105ae8716b1e282313a5ae     --hash=sha256:2b8a4aca0c11f2a8b3bfe103362984bdc427ab762428446ef2e12922fd48ee10     --hash=sha256:36524d97cc936767a69815b90be76a1420b3218a7724ce69cde6ece794e72a17     --hash=sha256:396106f92ea6ab2157535e1a009bac99aa15680ca8addbc8e7c1a4d3f5b1fb2c     --hash=sha256:3a560dcb176dd42c37af5d37299e318341a572547e32b942247daa834d2164c0     --hash=sha256:4384b29d8e126bc6e24a5efd9d60a2a2015867c7109fa67ff2ed274b3f4a05c5     --hash=sha256:46c384a0e30a8422a3e2c5530b3cd69b652dd659549907e2eaac7ca4e0ab614d     --hash=sha256:4b7883ce3d532c09f29c016fdac107f9a3dc43f9e6b60faf8b91fcba21824269     --hash=sha256:4dce57668e2aa8c3bb0b2a0bb766a2654ee0f4d8d31e02a6001e98af18569285     --hash=sha256:4f064483e0046a4a193d6c67b26ea0f61737e8232ff61636a7fa0bc5244458be     --hash=sha256:58de83ced4f86458f45288a5f76d9765dc245a9ce4e783a194decccc7e0674ea     --hash=sha256:592208a9a02df75993cc4dba111d2b81f0e6a3f3837856be239e1aceb6651f31     --hash=sha256:64fd1efb23da054f61aca2346c5139f317b7f4c545f6dbda5ec246f281af8e86     --hash=sha256:6747b1d82d08e0f5e1a6438532343a1c5504147d1a199c5756e702e5f916de4c     --hash=sha256:6bd4a72c27abda191e2360b2b720ada1880aba96a63604a6f9d7c37bb3bbf5c4     --hash=sha256:76542e1c11e3f2c22c19cff6b3233caab35924fad1f685ce63184d31b4050fa8     --hash=sha256:76b0cdcbcb38722840d3eaff6439ddb4b8f0210c6718553d7b7c911834b10e60     --hash=sha256:7cc7e8b893a6c37a8a28735fede1aa40275988a668d1e22c5f234938a77d811d     --hash=sha256:83453a13c2120238eb7fb993b03b370496e76071a7b45c816aa682d9226d29c1     --hash=sha256:84179e3a7c9067e993700b3255f2adc10e9b16e8dd28525d1dd1a02b9ca603ee     --hash=sha256:87111be05c1a159ce3fffbfad86ff69fd4bf1702cde127eb698d8e8c3a018ab6     --hash=sha256:8f69141ff370729ceaad0286b8c6e15352c9bb39aa8f18c0500ce3d0238c2981     --hash=sha256:917be645a71cf9592d2f5a3589c20c074a6539954017e8e2dca5e8ba13025625     --hash=sha256:a031e1ced828a00f1eb59db5f5d4dd39d3bd6a7df8187f84830d4a32a1bbc686     --hash=sha256:a048d4bde526f3c6e364abea2c3a481f3bbebc4bfa7fdcfcc3e5ee4f8ab9c4c5     --hash=sha256:a0cacf59513b100bfb3d8de51ba43db6140aa9bcb7bba872badb48acb430c002     --hash=sha256:a1394b7a65d738ee0ce4eac1fc95158dd9c97b5c3f690d259e6ee0bf131697de     --hash=sha256:a6dc6da8e3780df25095c1952f45c334e1554f25b991ffe75dbf0408795d27a0     --hash=sha256:ac1013e4f84ffd15c45ead6d19c9d188b76c14466a799aa9c338ce3b9ebf6dcc     --hash=sha256:acaefd3c362250a02cc93fc1b5440e3cb30ab8d7fd81594b2975ea19f123aae3     --hash=sha256:b4418b78408ff56ee70a0b14484c07f5e48c2e6f4fa7be390d486a686d0cd6e4     --hash=sha256:b4db59a62d31c98105af08b1bfb8878c239e4cf31088f2d9864756cdfec67746     --hash=sha256:ca286affe613beaf2d5a6b8bd83203dcf488917194b416da48aa849047b5f081     --hash=sha256:cd160ac4281cd1ae77a2c880377a7728349340b4c91e24285037b57c18e9f651     --hash=sha256:ce1372c9acde9d74c7e54858598ac0c5203dd3ec24b9085f7a8b2f33cc156736     --hash=sha256:d70cad744e92c7576c226a72998ae8dd59240c942f73798bbde40284eb9eb991     --hash=sha256:d93590a6a82469f3e58e39692230d99c43a39b215cb581e072dcd52286471152     --hash=sha256:de3d9649b7a3091ec785a67d5bf006584440f03896ee52259c6d9ff412d08afb     --hash=sha256:ea6454acde508c9a62dab3f59e98b32e32b26aa60df20080982503bb7db51304     --hash=sha256:ee013da4f5a4ef50fdeca372470733bc402677a4dc0023ee94bf42478b5a620d     --hash=sha256:f48b4409b306675b7673dad725c9cf3234bf05623bf8a193ad14af39d0368ba6     --hash=sha256:f8396183e6e0a16178773963dc21b58c0c532783476fda314198a9e42f57af7d     --hash=sha256:ff304b9d6c23d8e2ecc860bebac1ec6768a2d920985bcea9ce4a7aaeeea44f76",
-              "repo": "nanopb_pypi_310",
-              "repo_prefix": "nanopb_pypi_310_",
-              "python_interpreter": "",
-              "python_interpreter_target": "@@rules_python~~python~python_3_10_x86_64-unknown-linux-gnu//:bin/python3",
-              "quiet": true,
-              "timeout": 600,
-              "isolated": true,
-              "extra_pip_args": [],
-              "download_only": false,
-              "pip_data_exclude": [],
-              "enable_implicit_namespace_pkgs": false,
-              "environment": {}
             }
           },
           "nanopb_pypi_protobuf": {
@@ -1917,29 +1885,10 @@
             "ruleClassName": "whl_library_alias",
             "attributes": {
               "wheel_name": "protobuf",
-              "default_version": "3.10",
+              "default_version": "3.11",
               "version_map": {
-                "3.10": "nanopb_pypi_310_"
+                "3.11": "nanopb_pypi_311_"
               }
-            }
-          },
-          "nanopb_pypi_310_protobuf": {
-            "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
-            "ruleClassName": "whl_library",
-            "attributes": {
-              "requirement": "protobuf==4.22.0     --hash=sha256:1669cb7524221a8e2d9008d0842453dbefdd0fcdd64d67672f657244867635fb     --hash=sha256:29288813aacaa302afa2381db1d6e0482165737b0afdf2811df5fa99185c457b     --hash=sha256:47d31bdf58222dd296976aa1646c68c6ee80b96d22e0a3c336c9174e253fd35e     --hash=sha256:652d8dfece122a24d98eebfef30e31e455d300efa41999d1182e015984ac5930     --hash=sha256:7c535d126e7dcc714105ab20b418c4fedbd28f8b8afc42b7350b1e317bbbcc71     --hash=sha256:86c3d20428b007537ba6792b475c0853bba7f66b1f60e610d913b77d94b486e4     --hash=sha256:a33a273d21852f911b8bda47f39f4383fe7c061eb1814db2c76c9875c89c2491     --hash=sha256:ab4d043865dd04e6b09386981fe8f80b39a1e46139fb4a3c206229d6b9f36ff6     --hash=sha256:b2fea9dc8e3c0f32c38124790ef16cba2ee0628fe2022a52e435e1117bfef9b1     --hash=sha256:c27f371f0159feb70e6ea52ed7e768b3f3a4c5676c1900a7e51a24740381650e     --hash=sha256:c3325803095fb4c2a48649c321d2fbde59f8fbfcb9bfc7a86df27d112831c571     --hash=sha256:e474b63bab0a2ea32a7b26a4d8eec59e33e709321e5e16fb66e766b61b82a95e     --hash=sha256:e894e9ae603e963f0842498c4cd5d39c6a60f0d7e4c103df50ee939564298658",
-              "repo": "nanopb_pypi_310",
-              "repo_prefix": "nanopb_pypi_310_",
-              "python_interpreter": "",
-              "python_interpreter_target": "@@rules_python~~python~python_3_10_x86_64-unknown-linux-gnu//:bin/python3",
-              "quiet": true,
-              "timeout": 600,
-              "isolated": true,
-              "extra_pip_args": [],
-              "download_only": false,
-              "pip_data_exclude": [],
-              "enable_implicit_namespace_pkgs": false,
-              "environment": {}
             }
           },
           "nanopb_pypi": {
@@ -1953,6 +1902,25 @@
                 "protobuf",
                 "setuptools"
               ]
+            }
+          },
+          "nanopb_pypi_311_setuptools": {
+            "bzlFile": "@@rules_python~//python/pip_install:pip_repository.bzl",
+            "ruleClassName": "whl_library",
+            "attributes": {
+              "requirement": "setuptools==68.2.2     --hash=sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87     --hash=sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a",
+              "repo": "nanopb_pypi_311",
+              "repo_prefix": "nanopb_pypi_311_",
+              "python_interpreter": "",
+              "python_interpreter_target": "@@rules_python~~python~python_3_11_x86_64-unknown-linux-gnu//:bin/python3",
+              "quiet": true,
+              "timeout": 600,
+              "isolated": true,
+              "extra_pip_args": [],
+              "download_only": false,
+              "pip_data_exclude": [],
+              "enable_implicit_namespace_pkgs": false,
+              "environment": {}
             }
           }
         },
@@ -1979,11 +1947,6 @@
           ],
           [
             "rules_python~~python~pythons_hub",
-            "python_3_10_x86_64-unknown-linux-gnu",
-            "rules_python~~python~python_3_10_x86_64-unknown-linux-gnu"
-          ],
-          [
-            "rules_python~~python~pythons_hub",
             "python_3_11_x86_64-unknown-linux-gnu",
             "rules_python~~python~python_3_11_x86_64-unknown-linux-gnu"
           ]
@@ -1997,40 +1960,12 @@
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "python_3_10_aarch64-apple-darwin": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
+          "python_3_11": {
+            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
+            "ruleClassName": "toolchain_aliases",
             "attributes": {
-              "sha256": "018d05a779b2de7a476f3b3ff2d10f503d69d14efcedd0774e6dab8c22ef84ff",
-              "patches": [],
-              "platform": "aarch64-apple-darwin",
-              "python_version": "3.10.9",
-              "release_filename": "20230116/cpython-3.10.9+20230116-aarch64-apple-darwin-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.10.9+20230116-aarch64-apple-darwin-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "@python_3_10_aarch64-apple-darwin_coverage//:coverage",
-              "ignore_root_user_error": true
-            }
-          },
-          "python_3_10_x86_64-apple-darwin": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "0e685f98dce0e5bc8da93c7081f4e6c10219792e223e4b5886730fd73a7ba4c6",
-              "patches": [],
-              "platform": "x86_64-apple-darwin",
-              "python_version": "3.10.9",
-              "release_filename": "20230116/cpython-3.10.9+20230116-x86_64-apple-darwin-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.10.9+20230116-x86_64-apple-darwin-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "@python_3_10_x86_64-apple-darwin_coverage//:coverage",
-              "ignore_root_user_error": true
+              "python_version": "3.11.1",
+              "user_repository_name": "python_3_11"
             }
           },
           "python_3_11_aarch64-unknown-linux-gnu": {
@@ -2069,171 +2004,6 @@
               "ignore_root_user_error": false
             }
           },
-          "python_3_10_x86_64-pc-windows-msvc": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "59c6970cecb357dc1d8554bd0540eb81ee7f6d16a07acf3d14ed294ece02c035",
-              "patches": [],
-              "platform": "x86_64-pc-windows-msvc",
-              "python_version": "3.10.9",
-              "release_filename": "20230116/cpython-3.10.9+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.10.9+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": true
-            }
-          },
-          "pythons_hub": {
-            "bzlFile": "@@rules_python~//python/extensions/private:pythons_hub.bzl",
-            "ruleClassName": "hub_repo",
-            "attributes": {
-              "default_python_version": "3.10",
-              "toolchain_prefixes": [
-                "_0000_python_3_11_",
-                "_0001_python_3_10_"
-              ],
-              "toolchain_python_versions": [
-                "3.11",
-                "3.10"
-              ],
-              "toolchain_set_python_version_constraints": [
-                "True",
-                "False"
-              ],
-              "toolchain_user_repository_names": [
-                "python_3_11",
-                "python_3_10"
-              ]
-            }
-          },
-          "python_3_11_x86_64-pc-windows-msvc": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "edc08979cb0666a597466176511529c049a6f0bba8adf70df441708f766de5bf",
-              "patches": [],
-              "platform": "x86_64-pc-windows-msvc",
-              "python_version": "3.11.1",
-              "release_filename": "20230116/cpython-3.11.1+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.11.1+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": false
-            }
-          },
-          "python_3_10_aarch64-apple-darwin_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_10_aarch64-apple-darwin//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "6d040ef7c9859bb11dfeb056ff5b3872436e3b5e401817d87a31e1750b9ae2fb",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/3d/80/7060a445e1d2c9744b683dc935248613355657809d6c6b2716cdf4ca4766/coverage-7.2.7-cp310-cp310-macosx_11_0_arm64.whl"
-              ]
-            }
-          },
-          "python_3_10_aarch64-unknown-linux-gnu_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_10_aarch64-unknown-linux-gnu//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "ba90a9563ba44a72fda2e85302c3abc71c5589cea608ca16c22b9804262aaeb6",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/b8/9d/926fce7e03dbfc653104c2d981c0fa71f0572a9ebd344d24c573bd6f7c4f/coverage-7.2.7-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
-              ]
-            }
-          },
-          "python_3_10_x86_64-apple-darwin_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_10_x86_64-apple-darwin//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "d39b5b4f2a66ccae8b7263ac3c8170994b65266797fb96cbbfd3fb5b23921db8",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/01/24/be01e62a7bce89bcffe04729c540382caa5a06bee45ae42136c93e2499f5/coverage-7.2.7-cp310-cp310-macosx_10_9_x86_64.whl"
-              ]
-            }
-          },
-          "python_3_10_aarch64-unknown-linux-gnu": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "2003750f40cd09d4bf7a850342613992f8d9454f03b3c067989911fb37e7a4d1",
-              "patches": [],
-              "platform": "aarch64-unknown-linux-gnu",
-              "python_version": "3.10.9",
-              "release_filename": "20230116/cpython-3.10.9+20230116-aarch64-unknown-linux-gnu-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.10.9+20230116-aarch64-unknown-linux-gnu-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "@python_3_10_aarch64-unknown-linux-gnu_coverage//:coverage",
-              "ignore_root_user_error": true
-            }
-          },
-          "python_3_10_x86_64-unknown-linux-gnu_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_10_x86_64-unknown-linux-gnu//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "31563e97dae5598556600466ad9beea39fb04e0229e61c12eaa206e0aa202063",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/b4/bd/1b2331e3a04f4cc9b7b332b1dd0f3a1261dfc4114f8479bebfcc2afee9e8/coverage-7.2.7-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
-              ]
-            }
-          },
-          "python_3_11": {
-            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
-            "ruleClassName": "toolchain_aliases",
-            "attributes": {
-              "python_version": "3.11.1",
-              "user_repository_name": "python_3_11"
-            }
-          },
-          "python_3_10": {
-            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
-            "ruleClassName": "toolchain_aliases",
-            "attributes": {
-              "python_version": "3.10.9",
-              "user_repository_name": "python_3_10"
-            }
-          },
           "python_3_11_x86_64-apple-darwin": {
             "bzlFile": "@@rules_python~//python:repositories.bzl",
             "ruleClassName": "python_repository",
@@ -2252,32 +2022,50 @@
               "ignore_root_user_error": false
             }
           },
+          "pythons_hub": {
+            "bzlFile": "@@rules_python~//python/extensions/private:pythons_hub.bzl",
+            "ruleClassName": "hub_repo",
+            "attributes": {
+              "default_python_version": "3.11",
+              "toolchain_prefixes": [
+                "_0000_python_3_11_"
+              ],
+              "toolchain_python_versions": [
+                "3.11"
+              ],
+              "toolchain_set_python_version_constraints": [
+                "False"
+              ],
+              "toolchain_user_repository_names": [
+                "python_3_11"
+              ]
+            }
+          },
           "python_versions": {
             "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
             "ruleClassName": "multi_toolchain_aliases",
             "attributes": {
               "python_versions": {
-                "3.10": "python_3_10",
                 "3.11": "python_3_11"
               }
             }
           },
-          "python_3_10_x86_64-unknown-linux-gnu": {
+          "python_3_11_x86_64-pc-windows-msvc": {
             "bzlFile": "@@rules_python~//python:repositories.bzl",
             "ruleClassName": "python_repository",
             "attributes": {
-              "sha256": "d196347aeb701a53fe2bb2b095abec38d27d0fa0443f8a1c2023a1bed6e18cdf",
+              "sha256": "edc08979cb0666a597466176511529c049a6f0bba8adf70df441708f766de5bf",
               "patches": [],
-              "platform": "x86_64-unknown-linux-gnu",
-              "python_version": "3.10.9",
-              "release_filename": "20230116/cpython-3.10.9+20230116-x86_64-unknown-linux-gnu-install_only.tar.gz",
+              "platform": "x86_64-pc-windows-msvc",
+              "python_version": "3.11.1",
+              "release_filename": "20230116/cpython-3.11.1+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz",
               "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.10.9+20230116-x86_64-unknown-linux-gnu-install_only.tar.gz"
+                "https://github.com/indygreg/python-build-standalone/releases/download/20230116/cpython-3.11.1+20230116-x86_64-pc-windows-msvc-shared-install_only.tar.gz"
               ],
               "distutils_content": "",
               "strip_prefix": "python",
-              "coverage_tool": "@python_3_10_x86_64-unknown-linux-gnu_coverage//:coverage",
-              "ignore_root_user_error": true
+              "coverage_tool": "",
+              "ignore_root_user_error": false
             }
           },
           "python_3_11_x86_64-unknown-linux-gnu": {
