@@ -11,6 +11,7 @@ python.toolchain(
     configure_coverage_tool = True,
     python_version = "3.10",
     ignore_root_user_error = True,
+    is_default = True,
 )
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
