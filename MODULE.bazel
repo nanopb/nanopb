@@ -12,6 +12,7 @@ python.toolchain(
     configure_coverage_tool = True,
     python_version = "3.11",
     ignore_root_user_error = True,
+    is_default = True,
 )
 use_repo(pip, "nanopb_pypi")
 pip.parse(
