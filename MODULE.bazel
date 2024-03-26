@@ -15,7 +15,8 @@ python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 
 PYTHON_VERSION = "3.11"
 
-python.toolchain(python_version = PYTHON_VERSION)
+# No need for this since rules_python already creates our version.
+# python.toolchain(python_version = PYTHON_VERSION)
 use_repo(python, "python_versions")
 
 use_repo(pip, "nanopb_pypi")

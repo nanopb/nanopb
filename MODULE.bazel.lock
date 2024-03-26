@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 6,
-  "moduleFileHash": "931013a363d4f800a7c260623617d260ac0f69af0aca8638d1872154b47424b2",
+  "moduleFileHash": "ad447e361656417e1a491123b836bf0634606af9c40f9e96543ab771aae2863b",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -32,7 +32,7 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 9,
+            "line": 12,
             "column": 20
           },
           "imports": {
@@ -44,13 +44,13 @@
               "tagName": "parse",
               "attributeValues": {
                 "hub_name": "nanopb_pypi",
-                "requirements_lock": "@nanopb//:extra/requirements_lock.txt",
-                "python_version": "3.11"
+                "python_version": "3.11",
+                "requirements_lock": "@nanopb//:extra/requirements_lock.txt"
               },
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 18,
+                "line": 23,
                 "column": 10
               }
             }
@@ -64,28 +64,14 @@
           "usingModule": "<root>",
           "location": {
             "file": "@@//:MODULE.bazel",
-            "line": 10,
+            "line": 14,
             "column": 23
           },
-          "imports": {},
+          "imports": {
+            "python_versions": "python_versions"
+          },
           "devImports": [],
-          "tags": [
-            {
-              "tagName": "toolchain",
-              "attributeValues": {
-                "configure_coverage_tool": true,
-                "python_version": "3.11",
-                "ignore_root_user_error": true,
-                "is_default": true
-              },
-              "devDependency": false,
-              "location": {
-                "file": "@@//:MODULE.bazel",
-                "line": 11,
-                "column": 17
-              }
-            }
-          ],
+          "tags": [],
           "hasDevUseExtension": false,
           "hasNonDevUseExtension": true
         },
@@ -116,7 +102,7 @@
               "devDependency": false,
               "location": {
                 "file": "@@//:MODULE.bazel",
-                "line": 25,
+                "line": 31,
                 "column": 13
               }
             }
@@ -2159,12 +2145,29 @@
               "distutils_content": "",
               "strip_prefix": "python",
               "coverage_tool": "",
-              "ignore_root_user_error": true
+              "ignore_root_user_error": false
             }
           },
           "python_3_11_host": {
             "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
             "ruleClassName": "host_toolchain",
+            "attributes": {
+              "python_version": "3.11.7",
+              "user_repository_name": "python_3_11",
+              "platforms": [
+                "aarch64-apple-darwin",
+                "aarch64-unknown-linux-gnu",
+                "ppc64le-unknown-linux-gnu",
+                "s390x-unknown-linux-gnu",
+                "x86_64-apple-darwin",
+                "x86_64-pc-windows-msvc",
+                "x86_64-unknown-linux-gnu"
+              ]
+            }
+          },
+          "python_3_11": {
+            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
+            "ruleClassName": "toolchain_aliases",
             "attributes": {
               "python_version": "3.11.7",
               "user_repository_name": "python_3_11",
@@ -2193,8 +2196,8 @@
               ],
               "distutils_content": "",
               "strip_prefix": "python",
-              "coverage_tool": "@python_3_11_aarch64-unknown-linux-gnu_coverage//:coverage",
-              "ignore_root_user_error": true
+              "coverage_tool": "",
+              "ignore_root_user_error": false
             }
           },
           "python_3_11_aarch64-apple-darwin": {
@@ -2211,8 +2214,44 @@
               ],
               "distutils_content": "",
               "strip_prefix": "python",
-              "coverage_tool": "@python_3_11_aarch64-apple-darwin_coverage//:coverage",
-              "ignore_root_user_error": true
+              "coverage_tool": "",
+              "ignore_root_user_error": false
+            }
+          },
+          "python_3_11_ppc64le-unknown-linux-gnu": {
+            "bzlFile": "@@rules_python~//python:repositories.bzl",
+            "ruleClassName": "python_repository",
+            "attributes": {
+              "sha256": "b44e1b74afe75c7b19143413632c4386708ae229117f8f950c2094e9681d34c7",
+              "patches": [],
+              "platform": "ppc64le-unknown-linux-gnu",
+              "python_version": "3.11.7",
+              "release_filename": "20240107/cpython-3.11.7+20240107-ppc64le-unknown-linux-gnu-install_only.tar.gz",
+              "urls": [
+                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-ppc64le-unknown-linux-gnu-install_only.tar.gz"
+              ],
+              "distutils_content": "",
+              "strip_prefix": "python",
+              "coverage_tool": "",
+              "ignore_root_user_error": false
+            }
+          },
+          "python_3_11_x86_64-apple-darwin": {
+            "bzlFile": "@@rules_python~//python:repositories.bzl",
+            "ruleClassName": "python_repository",
+            "attributes": {
+              "sha256": "a0e615eef1fafdc742da0008425a9030b7ea68a4ae4e73ac557ef27b112836d4",
+              "patches": [],
+              "platform": "x86_64-apple-darwin",
+              "python_version": "3.11.7",
+              "release_filename": "20240107/cpython-3.11.7+20240107-x86_64-apple-darwin-install_only.tar.gz",
+              "urls": [
+                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-x86_64-apple-darwin-install_only.tar.gz"
+              ],
+              "distutils_content": "",
+              "strip_prefix": "python",
+              "coverage_tool": "",
+              "ignore_root_user_error": false
             }
           },
           "pythons_hub": {
@@ -2234,6 +2273,15 @@
               ]
             }
           },
+          "python_versions": {
+            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
+            "ruleClassName": "multi_toolchain_aliases",
+            "attributes": {
+              "python_versions": {
+                "3.11": "python_3_11"
+              }
+            }
+          },
           "python_3_11_x86_64-pc-windows-msvc": {
             "bzlFile": "@@rules_python~//python:repositories.bzl",
             "ruleClassName": "python_repository",
@@ -2249,141 +2297,7 @@
               "distutils_content": "",
               "strip_prefix": "python",
               "coverage_tool": "",
-              "ignore_root_user_error": true
-            }
-          },
-          "python_3_11_aarch64-unknown-linux-gnu_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_11_aarch64-unknown-linux-gnu//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "5d6850e6e36e332d5511a48a251790ddc545e16e8beaf046c03985c69ccb2676",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/87/71/0d90c4cda220c1f20f0eeaa997633eb1ec0bcaf5d8250c299d0f27a5885d/coverage-7.4.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
-              ]
-            }
-          },
-          "python_3_11_x86_64-apple-darwin_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_11_x86_64-apple-darwin//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "b8ffb498a83d7e0305968289441914154fb0ef5d8b3157df02a90c6695978295",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/0b/bd/008f9dad615d67e47221a983cd46cb5e87002e569dec60daa84d1b422859/coverage-7.4.1-cp311-cp311-macosx_10_9_x86_64.whl"
-              ]
-            }
-          },
-          "python_3_11_aarch64-apple-darwin_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_11_aarch64-apple-darwin//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "3cacfaefe6089d477264001f90f55b7881ba615953414999c46cc9713ff93c8c",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/12/8d/e078f0ccc4e91aa44f7754f0bac18bd6c62780a029b5d30f6242c6e06b23/coverage-7.4.1-cp311-cp311-macosx_11_0_arm64.whl"
-              ]
-            }
-          },
-          "python_3_11": {
-            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
-            "ruleClassName": "toolchain_aliases",
-            "attributes": {
-              "python_version": "3.11.7",
-              "user_repository_name": "python_3_11",
-              "platforms": [
-                "aarch64-apple-darwin",
-                "aarch64-unknown-linux-gnu",
-                "ppc64le-unknown-linux-gnu",
-                "s390x-unknown-linux-gnu",
-                "x86_64-apple-darwin",
-                "x86_64-pc-windows-msvc",
-                "x86_64-unknown-linux-gnu"
-              ]
-            }
-          },
-          "python_3_11_ppc64le-unknown-linux-gnu": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "b44e1b74afe75c7b19143413632c4386708ae229117f8f950c2094e9681d34c7",
-              "patches": [],
-              "platform": "ppc64le-unknown-linux-gnu",
-              "python_version": "3.11.7",
-              "release_filename": "20240107/cpython-3.11.7+20240107-ppc64le-unknown-linux-gnu-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-ppc64le-unknown-linux-gnu-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "",
-              "ignore_root_user_error": true
-            }
-          },
-          "python_3_11_x86_64-apple-darwin": {
-            "bzlFile": "@@rules_python~//python:repositories.bzl",
-            "ruleClassName": "python_repository",
-            "attributes": {
-              "sha256": "a0e615eef1fafdc742da0008425a9030b7ea68a4ae4e73ac557ef27b112836d4",
-              "patches": [],
-              "platform": "x86_64-apple-darwin",
-              "python_version": "3.11.7",
-              "release_filename": "20240107/cpython-3.11.7+20240107-x86_64-apple-darwin-install_only.tar.gz",
-              "urls": [
-                "https://github.com/indygreg/python-build-standalone/releases/download/20240107/cpython-3.11.7+20240107-x86_64-apple-darwin-install_only.tar.gz"
-              ],
-              "distutils_content": "",
-              "strip_prefix": "python",
-              "coverage_tool": "@python_3_11_x86_64-apple-darwin_coverage//:coverage",
-              "ignore_root_user_error": true
-            }
-          },
-          "python_versions": {
-            "bzlFile": "@@rules_python~//python/private:toolchains_repo.bzl",
-            "ruleClassName": "multi_toolchain_aliases",
-            "attributes": {
-              "python_versions": {
-                "3.11": "python_3_11"
-              }
-            }
-          },
-          "python_3_11_x86_64-unknown-linux-gnu_coverage": {
-            "bzlFile": "@@bazel_tools//tools/build_defs/repo:http.bzl",
-            "ruleClassName": "http_archive",
-            "attributes": {
-              "build_file_content": "\nfilegroup(\n    name = \"coverage\",\n    srcs = [\"coverage/__main__.py\"],\n    data = glob([\"coverage/*.py\", \"coverage/**/*.py\", \"coverage/*.so\"]),\n    visibility = [\"@python_3_11_x86_64-unknown-linux-gnu//:__subpackages__\"],\n)\n    ",
-              "patch_args": [
-                "-p1"
-              ],
-              "patches": [
-                "@@rules_python~//python/private:coverage.patch"
-              ],
-              "sha256": "dfd1e1b9f0898817babf840b77ce9fe655ecbe8b1b327983df485b30df8cc011",
-              "type": "zip",
-              "urls": [
-                "https://files.pythonhosted.org/packages/d5/a7/36bd1c439fab5d450c69b7cdf4be4291d56885ae8be11ebed9ec240b919f/coverage-7.4.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
-              ]
+              "ignore_root_user_error": false
             }
           },
           "python_3_11_x86_64-unknown-linux-gnu": {
@@ -2400,8 +2314,8 @@
               ],
               "distutils_content": "",
               "strip_prefix": "python",
-              "coverage_tool": "@python_3_11_x86_64-unknown-linux-gnu_coverage//:coverage",
-              "ignore_root_user_error": true
+              "coverage_tool": "",
+              "ignore_root_user_error": false
             }
           }
         },
