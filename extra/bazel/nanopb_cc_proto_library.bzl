@@ -39,7 +39,7 @@ cc_nanopb_proto_compile = rule(
         _plugins = attr.label_list(
             providers = [ProtoPluginInfo],
             default = [
-                Label("@com_github_nanopb_nanopb//:nanopb_plugin"),
+                Label("@nanopb//:nanopb_plugin"),
             ],
             doc = "List of protoc plugins to apply",
         ),
@@ -94,5 +94,5 @@ def cc_nanopb_proto_library(name, **kwargs):  # buildifier: disable=function-doc
     )
 
 PROTO_DEPS = [
-    "@com_github_nanopb_nanopb//:nanopb",
+    "@nanopb//:nanopb",
 ]

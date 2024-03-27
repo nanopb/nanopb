@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11]
+        os: [ubuntu-20.04, macos-14]
 
     steps:
       - uses: actions/checkout@v2
@@ -32,4 +32,6 @@ jobs:
 
       - name: Build
         run: |
+          bazelisk build //...
+          cd tests/bazel_workspace_support
           bazelisk build //...

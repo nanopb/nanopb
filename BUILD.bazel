@@ -83,12 +83,20 @@ proto_library(
 )
 
 py_proto_library(
+    name = "descriptor_py_proto",
+    srcs = [
+        "generator/proto/google/protobuf/descriptor.proto",
+    ],
+    include = "generator/proto",
+)
+
+py_proto_library(
     name = "nanopb_py_proto",
     srcs = [
         "generator/proto/nanopb.proto",
     ],
     include = "generator/proto",
-    deps = ["@com_google_protobuf//:protobuf_python"],
+    deps = [":descriptor_py_proto"],
 )
 
 cc_nanopb_proto_library(
