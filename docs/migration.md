@@ -39,7 +39,7 @@ Therefore, nanopb has been migrated to use bzlmod to better support newer bazel 
   * rules_proto_grpc: 4.6.0
 * Start using bzlmod (MODULE.bazel)
 
-**Required actions:** WORKSPACE is still supported, if you're interested in bzlmod, below adding below content to your MODULE.bazel should work
+**Required actions:** bazel build using WORKSPACE has been deprecated. To use bzlmod, adding below content to your MODULE.bazel
 ```py
 bazel_dep(name = "nanopb", version = "0.4.9")
 git_override(

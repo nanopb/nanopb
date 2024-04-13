@@ -15,27 +15,6 @@ git_override(
 )
 ```
 
-Or if you would prefer using WORKSPACE file
-```py
-git_repository(
-    name = "com_github_nanopb_nanopb",
-    remote = "https://github.com/nanopb/nanopb.git"
-    commit = "<TODO:Enter your desired commit>",
-)
-
-load("@nanopb//extra/bazel:nanopb_deps.bzl", "nanopb_deps")
-
-nanopb_deps()
-
-load("@nanopb//extra/bazel:python_deps.bzl", "nanopb_python_deps")
-
-nanopb_python_deps()
-
-load("@nanopb//extra/bazel:nanopb_workspace.bzl", "nanopb_workspace")
-
-nanopb_workspace()
-```
-
 To use the Nanopb rules with in your build you can use the 
 `cc_nanopb_proto_library` which works in a similar way to the native
 `cc_proto_library` rule.

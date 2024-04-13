@@ -1,4 +1,0 @@
-* long_names:true
-* enum_to_string:true
-
-Test.some_string max_length: 32
