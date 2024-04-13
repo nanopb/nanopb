@@ -1,5 +1,8 @@
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_python//python:defs.bzl", "py_binary")
+
+# XXX in bzlmod this works, but in workspace we need
+# load("@python_3_11//:defs.bzl", "py_binary")
+load("@python_versions//3.11:defs.bzl", "py_binary")
 load("@nanopb_pypi//:requirements.bzl", "requirement")
 load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
