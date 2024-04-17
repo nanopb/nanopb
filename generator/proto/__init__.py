@@ -79,7 +79,13 @@ def load_nanopb_pb2():
     if tmpdir is not None and not os.path.isdir(tmpdir):
         tmpdir = None # Use system-wide temp dir
 
-    if os.path.isfile(protosrc):
+    no_rebuild = bool(int(os.getenv("NANOPB_PB2_NO_REBUILD", default = 0)))
+    if bool(no_rebuild):
+        # Don't attempt to autogenerate nanopb_pb2.py, external build rules
+        # should have already done so.
+        import nanopb_pb2 as nanopb_pb2_mod
+        proto_ok = True
+    elif os.path.isfile(protosrc):
         src_date = os.path.getmtime(protosrc)
         if not os.path.isfile(protodst) or os.path.getmtime(protodst) < src_date:
             # Outdated, rebuild

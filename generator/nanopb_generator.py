@@ -62,7 +62,8 @@ if getattr(sys, 'frozen', False):
     # Binary package, just import the file
     from proto import nanopb_pb2
 else:
-    # Try to rebuild nanopb_pb2.py if necessary
+    # Import nanopb_pb2.py, rebuilds if necessary and not disabled
+    # by env variable NANOPB_PB2_NO_REBUILD
     nanopb_pb2 = proto.load_nanopb_pb2()
 
 try:
@@ -1518,12 +1519,23 @@ class Message(ProtoElement):
 
         return result
 
-    def fields_declaration_cpp_lookup(self):
+    def fields_declaration_cpp_lookup(self, local_defines):
         result = 'template <>\n'
         result += 'struct MessageDescriptor<%s> {\n' % (self.name)
         result += '    static PB_INLINE_CONSTEXPR const pb_size_t fields_array_length = %d;\n' % (self.count_all_fields())
+
+        size_define = "%s_size" % (self.name)
+        if size_define in local_defines:
+            result += '    static PB_INLINE_CONSTEXPR const pb_size_t size = %s;\n' % (size_define)
+
         result += '    static inline const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
+        result += '    }\n'
+        result += '    static inline bool has_msgid() {\n'
+        result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
+        result += '    }\n'
+        result += '    static inline uint32_t msgid() {\n'
+        result += '        return %d;\n' % (getattr(self, "msgid", 0), )
         result += '    }\n'
         result += '};'
         return result
@@ -2161,7 +2173,7 @@ class ProtoFile:
             yield '/* Message descriptors for nanopb */\n'
             yield 'namespace nanopb {\n'
             for msg in self.messages:
-                yield msg.fields_declaration_cpp_lookup() + '\n'
+                yield msg.fields_declaration_cpp_lookup(local_defines) + '\n'
             yield '}  // namespace nanopb\n'
             yield '\n'
             yield '#endif  /* __cplusplus */\n'

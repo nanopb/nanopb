@@ -19,9 +19,20 @@ extern "C" int main() {
   TEST(MessageDescriptor<MyNonEmptyMessage>::fields_array_length ==
        MyNonEmptyMessage_msg.field_count);
 
+  TEST(MessageDescriptor<MyNonEmptyMessage>::size ==
+       MyNonEmptyMessage_size);
+  TEST(MessageDescriptor<MyMessageWithSizeBoundRepeatedFields>::size ==
+       MyMessageWithSizeBoundRepeatedFields_size);
+
   TEST(MessageDescriptor<MyEmptyMessage>::fields() == MyEmptyMessage_fields);
   TEST(MessageDescriptor<MyNonEmptyMessage>::fields() ==
        MyNonEmptyMessage_fields);
+
+  TEST(MessageDescriptor<MyMessageWithMsgid>::has_msgid() == true);
+  TEST(MessageDescriptor<MyMessageWithMsgid>::msgid() == 42);
+
+  TEST(MessageDescriptor<MyMessageWithoutMsgid>::has_msgid() == false);
+
 
   if (status != 0) fprintf(stdout, "\n\nSome tests FAILED!\n");
 
