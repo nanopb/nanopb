@@ -1,0 +1,38 @@
+module(
+    name = "nanopb",
+    version = "0.4.9",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "rules_cc", version = "0.0.9")
+bazel_dep(name = "rules_python", version = "0.31.0")
+bazel_dep(name = "rules_proto", version = "5.3.0-21.7")
+bazel_dep(name = "protobuf", version = "23.1", repo_name = "com_google_protobuf")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+
+PYTHON_VERSION = "3.11"
+
+# No need for this since rules_python already creates our version.
+# python.toolchain(python_version = PYTHON_VERSION)
+use_repo(python, "python_versions")
+
+use_repo(pip, "nanopb_pypi")
+pip.parse(
+    hub_name = "nanopb_pypi",
+    python_version = PYTHON_VERSION,
+    requirements_lock = "@nanopb//:extra/requirements_lock.txt",
+)
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "rules_proto_grpc",
+    sha256 = "c0d718f4d892c524025504e67a5bfe83360b3a982e654bc71fed7514eb8ac8ad",
+    strip_prefix = "rules_proto_grpc-4.6.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/4.6.0.tar.gz"],
+)
+
+register_toolchains("@rules_proto_grpc//protobuf:protoc_toolchain")

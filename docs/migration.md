@@ -25,6 +25,35 @@ to restore old behavior.
 
 **Error indications:** Implicit conversion from `uint_least8_t` to `uint8_t`.
 
+### Migrate to bzlmod
+
+**Rationale:** Due to the [shortcomings of the WORKSPACE system](https://bazel.build/external/overview#workspace-shortcomings),
+Bzlmod is going to replace the legacy WORKSPACE system in future Bazel releases.
+Therefore, nanopb has been migrated to use bzlmod to better support newer bazel versions.
+
+**Changes**
+* upgrade bazel deps
+  * rules_python: 0.24.0
+  * rules_proto: 5.3.0-21.7
+  * protobuf: 23.1
+  * rules_proto_grpc: 4.6.0
+* Start using bzlmod (MODULE.bazel)
+
+**Required actions:** bazel build using WORKSPACE has been deprecated. To use bzlmod, adding below content to your MODULE.bazel
+```py
+bazel_dep(name = "nanopb", version = "0.4.9")
+git_override(
+    module_name = "nanopb",
+    remote = "https://github.com/nanopb/nanopb.git",
+    commit = "<commit>",
+)
+```
+noted that the name of the module has been changed to `nanopb`, to better fit the convention of bzlmod.
+If the old name `com_github_nanopb_nanopb` is preferred, can add `repo_name` parameter to indicate the repo name.
+```py
+bazel_dep(name = "nanopb", version = "0.4.9", repo_name="com_github_nanopb_nanopb")
+```
+
 Nanopb-0.4.8 (2023-11-11)
 -------------------------
 

@@ -1,0 +1,3 @@
+# Auto-generated files that don't need human review.
+MODULE.bazel.lock linguist-generated=true
+extra/requirements_lock.txt linguist-generated=true
