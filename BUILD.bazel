@@ -1,6 +1,6 @@
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
-# XXX in bzlmod this works, but in workspace we need
+# Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
 # load("@python_3_11//:defs.bzl", "py_binary")
 load("@python_versions//3.11:defs.bzl", "py_binary")
 load("@nanopb_pypi//:requirements.bzl", "requirement")
