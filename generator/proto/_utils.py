@@ -2,14 +2,19 @@ import sys
 import subprocess
 import os.path
 
-def has_grpcio_protoc():
+import traceback
+
+def has_grpcio_protoc(verbose = False):
     # type: () -> bool
     """ checks if grpcio-tools protoc is installed"""
 
     try:
         import grpc_tools.protoc
     except ImportError:
+        if verbose:
+            sys.stderr.write("Failed to import grpc_tools: %s\n" % traceback.format_exc())
         return False
+
     return True
 
 def get_proto_builtin_include_path():
@@ -64,7 +69,7 @@ def invoke_protoc(argv):
 
 def print_versions():
     try:
-        if has_grpcio_protoc():
+        if has_grpcio_protoc(verbose = True):
             import grpc_tools.protoc
             sys.stderr.write("Using grpcio-tools protoc from " + grpc_tools.protoc.__file__ + "\n")
         else:
