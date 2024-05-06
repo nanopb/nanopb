@@ -21,8 +21,8 @@ git archive HEAD | tar x -C $DEST
 ( cd $DEST/generator; python3 nanopb_generator.py ||: )
 
 # Package the Python libraries
-( cd $DEST/generator; python3 -m PyInstaller nanopb_generator.py )
-( cd $DEST/generator; python3 -m PyInstaller protoc  )
+( cd $DEST/generator; python3 -m PyInstaller --collect-all grpc_tools.grpc_version nanopb_generator.py )
+( cd $DEST/generator; python3 -m PyInstaller --collect-all grpc_tools.grpc_version protoc  )
 mv $DEST/generator/dist/nanopb_generator $DEST/generator-bin
 cp $DEST/generator/dist/protoc/protoc $DEST/generator-bin
 
