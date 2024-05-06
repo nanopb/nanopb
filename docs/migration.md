@@ -9,6 +9,24 @@ document.
 Nanopb-0.4.9 (2024-xx-xx)
 -------------------------
 
+### CMake rules now default to grpcio_tools protoc
+
+**Rationale:** Previously CMake rules primarily looked for `protoc` in system
+path. This was often an outdated version installed from package manager, and
+not necessarily compatible with `python-protobuf` version installed from `pip`.
+
+**Changes:** CMake rules now default to using `generator/protoc`, which in
+turn uses `grpc_tools` Python package if available. If it is not available,
+system path is searched for `protoc`.
+
+**Required actions:** For most users, no actions are needed. In case of
+version incompatibilities, `pip install --user --upgrade grpcio-tools protobuf`
+is recommended. If needed, `PROTOBUF_PROTOC_EXECUTABLE` can be set to override
+the default.
+
+**Error indications:** `Failed to import generator/proto/nanopb_pb2.py` if
+versions of `protoc` selected by CMake is different than installed `python-protobuf`.
+
 ### Use uint8_t for pb_byte_t when UINT8_MAX is defined
 
 **Rationale:** Previously `pb_byte_t` was always defined as `uint8_least_t`.
