@@ -407,7 +407,7 @@ add_library(nanopb STATIC EXCLUDE_FROM_ALL ${NANOPB_SRCS})
 target_compile_features(nanopb PUBLIC c_std_11)
 target_include_directories(nanopb PUBLIC ${NANOPB_INCLUDE_DIRS})
 
-# Find the protoc Executable
+# Find the local protoc Executable
 find_program(PROTOBUF_PROTOC_EXECUTABLE
     NAMES protoc
     DOC "The Google Protocol Buffers Compiler"
@@ -416,7 +416,25 @@ find_program(PROTOBUF_PROTOC_EXECUTABLE
     ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug
     ${NANOPB_SRC_ROOT_FOLDER}/generator-bin
     ${NANOPB_SRC_ROOT_FOLDER}/generator
+    NO_DEFAULT_PATH
 )
+
+# Test protoc, try to get version
+execute_process(
+    COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --version
+    OUTPUT_QUIET
+    ERROR_QUIET
+    RESULT_VARIABLE ret
+)
+if(NOT ret EQUAL 0)
+    # Fallback to system protoc
+    unset(PROTOBUF_PROTOC_EXECUTABLE)
+    find_program(PROTOBUF_PROTOC_EXECUTABLE
+        NAMES protoc
+        DOC "The Google Protocol Buffers Compiler"
+    )
+endif()
+
 mark_as_advanced(PROTOBUF_PROTOC_EXECUTABLE)
 
 # Find nanopb generator source dir
