@@ -107,8 +107,8 @@ jobs:
           python3 -m SCons
 
   build_macos:
-    name: Build binary on Mac OS X Big Sur 11
-    runs-on: macos-11
+    name: Build binary on Mac OS X 14
+    runs-on: macos-14
 
     steps:
       - name: Check out code from GitHub
@@ -119,11 +119,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
-          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
+          python3 -m venv venv
+          venv/bin/python3 -m pip install --upgrade scons protobuf grpcio-tools pyinstaller
+          venv/bin/python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Build binary package
         run: |
+          source venv/bin/activate
           cd nanopb
           git clean -dxf
           tools/make_mac_package.sh
@@ -142,7 +144,7 @@ jobs:
         run: |
           tar xzf nanopb/dist/*.tar.gz
           cd nanopb-*/tests
-          python3 -m SCons
+          ../../venv/bin/python3 -m SCons
           cd ../examples/simple
           make
           ./simple
