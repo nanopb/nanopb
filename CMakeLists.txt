@@ -16,7 +16,8 @@ option(nanopb_MSVC_STATIC_RUNTIME "Link static runtime libraries" ON)
 
 set(nanopb_PYTHON_INSTDIR_OVERRIDE "" CACHE PATH "Override the default python installation directory with the given path")
 
-find_program(nanopb_PROTOC_PATH protoc HINTS generator-bin generator)
+find_program(nanopb_PROTOC_PATH protoc PATHS generator-bin generator NO_DEFAULT_PATH)
+find_program(nanopb_PROTOC_PATH protoc)
 if(NOT EXISTS ${nanopb_PROTOC_PATH})
     message(FATAL_ERROR "protoc compiler not found")
 endif()
