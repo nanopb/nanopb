@@ -615,6 +615,9 @@ class Field(ProtoElement):
             self.default = desc.default_value
 
         # Check field rules, i.e. required/optional/repeated.
+        if field_options.HasField("label_override"):
+            desc.label = field_options.label_override
+
         can_be_static = True
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
@@ -625,6 +628,9 @@ class Field(ProtoElement):
                 if field_options.fixed_count:
                   self.rules = 'FIXARRAY'
 
+        elif desc.label == FieldD.LABEL_REQUIRED:
+            # We allow LABEL_REQUIRED using label_override even for proto3 (see #962)
+            self.rules = 'REQUIRED'
         elif field_options.proto3:
             if desc.type == FieldD.TYPE_MESSAGE and not field_options.proto3_singular_msgs:
                 # In most other protobuf libraries proto3 submessages have
@@ -636,8 +642,6 @@ class Field(ProtoElement):
             else:
                 # Proto3 singular fields (without has_field)
                 self.rules = 'SINGULAR'
-        elif desc.label == FieldD.LABEL_REQUIRED:
-            self.rules = 'REQUIRED'
         elif desc.label == FieldD.LABEL_OPTIONAL:
             self.rules = 'OPTIONAL'
         else:

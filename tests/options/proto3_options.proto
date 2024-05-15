@@ -14,5 +14,6 @@ message Message1
     int32 proto3_on = 3 [(nanopb).proto3 = true];
     SubMsg normal_submsg = 4;
     SubMsg sng_submsg = 5 [(nanopb).proto3_singular_msgs = true];
+    SubMsg required_submsg = 6 [(nanopb).label_override = LABEL_REQUIRED];
 }
 
