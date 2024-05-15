@@ -143,6 +143,11 @@ message NanoPBOptions {
   // Override type of the field in generated C code. Only to be used with related field types
   optional google.protobuf.FieldDescriptorProto.Type type_override = 27;
 
+  // Override of the label of the field (see FieldDescriptorProto.Label). Can be used to create
+  // fields which nanopb considers required in proto3, or whether nanopb treats the field as
+  // optional/required/repeated.
+  optional google.protobuf.FieldDescriptorProto.Label label_override = 31;
+
   // Due to historical reasons, nanopb orders fields in structs by their tag number
   // instead of the order in .proto. Set this to false to keep the .proto order.
   // The default value will probably change to false in nanopb-0.5.0.
