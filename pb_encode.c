@@ -8,13 +8,14 @@
 #include "pb_common.h"
 
 /* Use the GCC warn_unused_result attribute to check that all return values
- * are propagated correctly. On other compilers and gcc before 3.4.0 just
- * ignore the annotation.
+ * are propagated correctly. On other compilers, gcc before 3.4.0 and iar
+ * before 9.40.1 just ignore the annotation.
  */
-#if !defined(__GNUC__) || ( __GNUC__ < 3) || (__GNUC__ == 3 && __GNUC_MINOR__ < 4)
-    #define checkreturn
-#else
+#if (defined(__GNUC__) && ((__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4))) || \
+    (defined(__IAR_SYSTEMS_ICC__) && (__VER__ >= 9040001))
     #define checkreturn __attribute__((warn_unused_result))
+#else
+    #define checkreturn
 #endif
 
 /**************************************
