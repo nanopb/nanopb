@@ -443,6 +443,7 @@ find_path(NANOPB_GENERATOR_SOURCE_DIR
     DOC "nanopb generator source"
     PATHS
     ${NANOPB_SRC_ROOT_FOLDER}/generator
+    NO_DEFAULT_PATH
     NO_CMAKE_FIND_ROOT_PATH
 )
 mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
