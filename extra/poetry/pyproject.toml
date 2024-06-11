@@ -10,7 +10,7 @@ homepage = "https://jpa.kapsi.fi/nanopb/"
 documentation = "https://jpa.kapsi.fi/nanopb/docs/index.html"
 keywords = ["protobuf", "protoc"]
 classifiers = ["Topic :: Software Development :: Build Tools"]
-include = ["nanopb/**/*", "nanopb/__init__.py"]
+include = ["nanopb/**/*", "nanopb/__init__.py", "*.c", "*.h"]
 
 [tool.poetry.scripts]
 nanopb_generator = "nanopb.generator.nanopb_generator:main_cli"

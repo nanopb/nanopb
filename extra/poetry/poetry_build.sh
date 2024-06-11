@@ -11,7 +11,7 @@ cd build
 ln -s ../dist .
 
 mkdir nanopb
-tar xf tmp.tar README.md generator
+tar xf tmp.tar README.md generator *.c *.h
 mv generator nanopb/
 touch nanopb/__init__.py nanopb/generator/__init__.py
 make -C nanopb/generator/proto
