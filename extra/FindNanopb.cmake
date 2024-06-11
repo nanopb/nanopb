@@ -293,7 +293,7 @@ function(NANOPB_GENERATE_CPP)
     endforeach()
 
     # Remove leading space before the first -I directive
-    string(STRIP ${NANOPB_PLUGIN_OPTIONS} NANOPB_PLUGIN_OPTIONS)
+    string(STRIP "${NANOPB_PLUGIN_OPTIONS}" NANOPB_PLUGIN_OPTIONS)
 
     if(NANOPB_OPTIONS)
         set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
