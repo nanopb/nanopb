@@ -1,0 +1,19 @@
+name: Arduino Lint Check
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**/README.md'
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/arduino-lint-action@v1
