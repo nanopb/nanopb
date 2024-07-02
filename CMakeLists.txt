@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.14.0)
 
-project(nanopb C)
+project(nanopb VERSION 0.4.9 LANGUAGES C)
 
-set(nanopb_VERSION_STRING nanopb-0.4.9-dev)
+set(nanopb_VERSION_STRING ${PROJECT_NAME}-${${PROJECT_NAME}_VERSION}-dev)
 set(nanopb_SOVERSION 0)
 
 string(REPLACE "nanopb-" "" nanopb_VERSION ${nanopb_VERSION_STRING})
