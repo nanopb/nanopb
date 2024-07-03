@@ -4,9 +4,10 @@
 # e.g. user@localhost:~/nanopb$ tools/set_version.sh nanopb-0.1.9-dev
 # It sets the version number in pb.h and generator/nanopb_generator.py.
 
+VERSION_NUMBER_ONLY=$(echo $1 | cut -d '-' -f 2)
 sed -i -e 's/nanopb_version\s*=\s*"[^"]*"/nanopb_version = "'$1'"/' generator/nanopb_generator.py
 sed -i -e 's/#define\s*NANOPB_VERSION\s*.*/#define NANOPB_VERSION "'$1'"/' pb.h
-sed -i -e 's/set(\s*nanopb_VERSION_STRING\s*[^)]*)/set(nanopb_VERSION_STRING '$1')/' CMakeLists.txt
+sed -i -e 's/project(\s*nanopb\s*VERSION\s*[^)]*\s*LANGUAGES\s*C\s*)/project(nanopb VERSION '$VERSION_NUMBER_ONLY' LANGUAGES C)/' CMakeLists.txt
 
 VERSION_ONLY=$(echo $1 | sed 's/nanopb-//')
 if [[ $1 != *dev ]]
