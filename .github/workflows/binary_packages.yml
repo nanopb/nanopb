@@ -12,10 +12,11 @@ on:
 jobs:
   build_linux:
     name: Build binary on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         python-version: ['3.8', '3.x']
+        os: ['ubuntu-20.04', 'ubuntu-24.04']
 
     steps:
       - name: Check out code from GitHub
