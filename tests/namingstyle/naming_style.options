@@ -1,5 +1,6 @@
 * long_names:true
 * enum_to_string:true
+* enum_validate:true
 
 MainMessage.repeatedNumber  max_count:4, fixed_count:true
 MainMessage.string_Values1  type:FT_POINTER
