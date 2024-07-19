@@ -520,7 +520,7 @@ class Enum(ProtoElement):
                 Globals.naming_style.func_name('%s_name' % self.names),
                 Globals.naming_style.type_name(self.names))
 
-        if self.options.enum_valid:
+        if self.options.enum_validate:
             result += 'bool *%s(%s v);\n' % (
                 Globals.naming_style.func_name('%s_valid' % self.names),
                 Globals.naming_style.type_name(self.names))
@@ -550,8 +550,8 @@ class Enum(ProtoElement):
 
         return result
 
-    def enum_valid(self):
-        if not self.options.enum_valid:
+    def enum_validate(self):
+        if not self.options.enum_validate:
             return ""
 
         result = 'bool *%s(%s v) {\n' % (
@@ -2263,7 +2263,7 @@ class ProtoFile:
 
         # Generate enum_valid function if enum_valid option is defined
         for enum in self.enums:
-            yield enum.enum_valid() + '\n'
+            yield enum.enum_validate() + '\n'
 
         # Add checks for numeric limits
         if self.messages:
