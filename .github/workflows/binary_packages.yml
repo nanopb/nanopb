@@ -13,6 +13,9 @@ jobs:
   build_linux:
     name: Build binary on Ubuntu 20.04
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.x']
 
     steps:
       - name: Check out code from GitHub
@@ -24,7 +27,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
