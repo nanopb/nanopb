@@ -35,7 +35,8 @@ jobs:
 
       - name: Check for pkg_resources
         run: |
-          ! grep -RniI pkg_resources nanopb/generator
+          cd nanopb
+          ./check_pkg_resources.sh
 
       - name: Install dependencies
         run: |
