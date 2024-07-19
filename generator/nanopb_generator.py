@@ -521,7 +521,7 @@ class Enum(ProtoElement):
                 Globals.naming_style.type_name(self.names))
 
         if self.options.enum_validate:
-            result += 'bool *%s(%s v);\n' % (
+            result += 'bool %s(%s v);\n' % (
                 Globals.naming_style.func_name('%s_valid' % self.names),
                 Globals.naming_style.type_name(self.names))
 
@@ -554,7 +554,7 @@ class Enum(ProtoElement):
         if not self.options.enum_validate:
             return ""
 
-        result = 'bool *%s(%s v) {\n' % (
+        result = 'bool %s(%s v) {\n' % (
             Globals.naming_style.func_name('%s_valid' % self.names),
             Globals.naming_style.type_name(self.names))
 
