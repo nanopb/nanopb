@@ -17,6 +17,15 @@ def has_grpcio_protoc(verbose = False):
 
     return True
 
+def get_grpc_tools_proto_path():
+    if sys.hexversion > 0x03090000:
+        import importlib.resources as ir
+        with ir.as_file(ir.files('grpc_tools') / '_proto') as path:
+            return str(path)
+    else:
+        import pkg_resources
+        return pkg_resources.resource_filename('grpc_tools', '_proto')
+
 def get_proto_builtin_include_path():
     """Find include path for standard google/protobuf includes and for
     nanopb.proto.
@@ -36,8 +45,7 @@ def get_proto_builtin_include_path():
         ]
 
         if has_grpcio_protoc():
-            import pkg_resources
-            paths.append(pkg_resources.resource_filename('grpc_tools', '_proto'))
+            paths.append(get_grpc_tools_proto_path())
 
     return paths
 
