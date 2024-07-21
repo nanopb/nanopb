@@ -25,7 +25,11 @@ on:
 jobs:
   smoke_test:
     name: Run test suite on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.x']
+        os: ['ubuntu-20.04', 'ubuntu-24.04']
 
     steps:
       - name: Check out code from GitHub
@@ -33,10 +37,17 @@ jobs:
         with:
           path: nanopb
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install python3-protobuf protobuf-compiler scons splint valgrind
+          sudo apt-get install protobuf-compiler splint valgrind
+          python3 -m pip install --user --upgrade scons protobuf grpcio-tools pyinstaller
+          python3 -c 'import google.protobuf; print(google.protobuf.__file__)'
 
       - name: Run tests
         run: |
