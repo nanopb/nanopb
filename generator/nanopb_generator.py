@@ -798,7 +798,6 @@ class Field(ProtoElement):
                 result += '    %s *%s;' % (type_name, var_name)
         elif self.allocation == 'CALLBACK':
             result += '    %s %s;' % (self.callback_datatype, var_name)
-            if leading_comment: result = leading_comment + "\n" + result
         else:
             if self.pbtype == 'MSG_W_CB' and self.rules in ['OPTIONAL', 'REPEATED']:
                 result += '    pb_callback_t cb_' + var_name + ';\n'
