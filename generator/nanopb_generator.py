@@ -774,7 +774,7 @@ class Field(ProtoElement):
         var_name = Globals.naming_style.var_name(self.name)
         type_name = Globals.naming_style.type_name(self.ctype) if isinstance(self.ctype, Names) else self.ctype
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
-
+        leading_comment_written = False
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 if self.pbtype == 'MSG_W_CB':
@@ -796,7 +796,6 @@ class Field(ProtoElement):
             else:
                 # Normal case, just a pointer to single item
                 result += '    %s *%s;' % (type_name, var_name)
-            if leading_comment: result = leading_comment + "\n" + result
         elif self.allocation == 'CALLBACK':
             result += '    %s %s;' % (self.callback_datatype, var_name)
             if leading_comment: result = leading_comment + "\n" + result
@@ -808,10 +807,13 @@ class Field(ProtoElement):
                 result += '    bool has_' + var_name + ';\n'
             elif self.rules == 'REPEATED':
                 result += '    pb_size_t ' + var_name + '_count;\n'
-            if leading_comment: result = result + leading_comment + "\n"
+            if leading_comment: 
+                result = result + leading_comment + "\n"
+                leading_comment_written = True
             result += '    %s %s%s;' % (type_name, var_name, self.array_decl)
 
         leading_comment, trailing_comment = self.get_comments(leading_indent = True)
+        if leading_comment and leading_comment_written == False: result = leading_comment + "\n" + result
         if trailing_comment: result = result + " " + trailing_comment
 
         return result
