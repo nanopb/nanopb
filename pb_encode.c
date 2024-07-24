@@ -727,7 +727,8 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     pb_ostream_t substream = PB_OSTREAM_SIZING;
     size_t size;
     bool status;
-    
+
+    substream.state = stream->state;
     if (!pb_encode(&substream, fields, src_struct))
     {
 #ifndef PB_NO_ERRMSG
