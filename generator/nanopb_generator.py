@@ -439,9 +439,7 @@ class Enum(ProtoElement):
         # Override the enum size if user wants to use smaller integers
         if (FieldD.TYPE_ENUM, self.options.int_size) in datatypes:
             self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
-            result += '\n#ifdef __cplusplus\n'
             result += ' : ' + self.ctype + '\n'
-            result += '#endif\n'
             result += '{'
         else:
             result += ' {'
