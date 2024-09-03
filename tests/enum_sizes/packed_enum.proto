@@ -58,41 +58,6 @@ enum PackedInt16 {
     PI16_MAX = 32767;
 }
 
-enum IntSizeInt8
-{
-    option (nanopb_enumopt).int_size = IS_8;
-    I8_A = 0;
-    I8_B = 2;
-    I8_C = 3;
-}
-
-
-enum IntSizeInt16
-{
-    option (nanopb_enumopt).int_size = IS_16;
-    I16_A = 0;
-    I16_B = 2;
-    I16_C = 3;
-}
-
-
-enum IntSizeInt32
-{
-    option (nanopb_enumopt).int_size = IS_32;
-    I32_A = 0;
-    I32_B = 2;
-    I32_C = 3;
-}
-
-
-enum IntSizeInt64
-{
-    option (nanopb_enumopt).int_size = IS_64;
-    I64_A = 0;
-    I64_B = 2;
-    I64_C = 3;
-}
-
 /* Protobuf supports enums up to 32 bits.
  * The 32 bit case is covered by HugeEnum in the alltypes test.
  */

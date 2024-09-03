@@ -1,0 +1,41 @@
+syntax = "proto2";
+
+import 'nanopb.proto';
+
+option (nanopb_fileopt).long_names = false;
+
+
+enum IntSizeInt8
+{
+    option (nanopb_enumopt).enum_intsize = IS_8;
+    I8_A = 0;
+    I8_B = 2;
+    I8_C = 3;
+}
+
+
+enum IntSizeInt16
+{
+    option (nanopb_enumopt).enum_intsize = IS_16;
+    I16_A = 0;
+    I16_B = 2;
+    I16_C = 3;
+}
+
+
+enum IntSizeInt32
+{
+    option (nanopb_enumopt).enum_intsize = IS_32;
+    I32_A = 0;
+    I32_B = 2;
+    I32_C = 3;
+}
+
+
+enum IntSizeInt64
+{
+    option (nanopb_enumopt).enum_intsize = IS_64;
+    I64_A = 0;
+    I64_B = 2;
+    I64_C = 3;
+}

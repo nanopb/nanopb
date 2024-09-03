@@ -1,8 +1,9 @@
 #include <stdio.h>
-#include "enumsizes.pb.h"
+#include "enum_intsize.pb.hpp"
 #include "unittests.h"
 
-extern "C" int TestIntSize() {
+int main()
+{
   int status = 0;
 
   TEST(sizeof(IntSizeInt8) == sizeof(uint8_t));

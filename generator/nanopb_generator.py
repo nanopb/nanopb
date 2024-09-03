@@ -437,14 +437,11 @@ class Enum(ProtoElement):
         result += 'typedef enum %s' % Globals.naming_style.enum_name(self.names)
 
         # Override the enum size if user wants to use smaller integers
-        if (FieldD.TYPE_ENUM, self.options.int_size) in datatypes:
-            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
-            result += '\n#ifdef __cplusplus\n'
-            result += ' : ' + self.ctype + '\n'
-            result += '#endif\n'
-            result += '{'
-        else:
-            result += ' {'
+        if (FieldD.TYPE_ENUM, self.options.enum_intsize) in datatypes:
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.enum_intsize)]
+            result += ': ' + self.ctype
+
+        result += ' {'
 
         if trailing_comment:
             result += " " + trailing_comment
