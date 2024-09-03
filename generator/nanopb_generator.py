@@ -1929,8 +1929,9 @@ class ProtoFile:
             # Check for circular dependencies
             msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             if check_recursive_dependencies(msgobject, self.messages):
-                sys.stderr.write('Breaking circular dependency at message %s by converting to callback\n' % msgobject.name)
-                message_options.type = nanopb_pb2.FT_CALLBACK
+                message_options.type = message_options.fallback_type
+                sys.stderr.write('Breaking circular dependency at message %s by converting to %s\n'
+                                 % (msgobject.name, nanopb_pb2.FieldType.Name(message_options.type)))
                 msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             self.messages.append(msgobject)
 
