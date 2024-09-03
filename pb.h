@@ -156,6 +156,17 @@ extern "C" {
 #endif
 #endif
 
+/* Fields marked with [deprecated = true] in .proto files */
+#ifndef PB_DEPRECATED
+    #if __STDC_VERSION__ > 202311L
+        #define PB_DEPRECATED [[deprecated]]
+    #elif defined(__GNUC__)
+        #define PB_DEPRECATED __attribute__((deprecated))
+    #else
+        #define PB_DEPRECATED
+    #endif
+#endif
+
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
  * #define PB_NO_STATIC_ASSERT to disable it.

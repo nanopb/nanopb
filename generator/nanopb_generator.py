@@ -598,6 +598,7 @@ class Field(ProtoElement):
         self.struct_name = struct_name
         self.union_name = None
         self.name = desc.name
+        self.deprecated = desc.options.deprecated
         self.default = None
         self.max_size = None
         self.max_count = None
@@ -766,10 +767,17 @@ class Field(ProtoElement):
         return 'Field(%s)' % self.name
 
     def __str__(self):
+        '''Returns a string defining this field inside a C struct'''
         result = ''
 
         var_name = Globals.naming_style.var_name(self.name)
         type_name = Globals.naming_style.type_name(self.ctype) if isinstance(self.ctype, Names) else self.ctype
+
+        if self.deprecated:
+            # The deprecation will apply to the first field, which can be either the main
+            # data or the has_ or count_ field. In practice this should be close enough
+            # to provide a warning on any actual use of the field.
+            result += '    PB_DEPRECATED ';
 
         if self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
@@ -1303,6 +1311,7 @@ class Message(ProtoElement):
         self.fields = []
         self.oneofs = {}
         self.desc = desc
+        self.deprecated = False
         self.math_include_required = False
         self.packed = message_options.packed_struct
         self.descriptorsize = message_options.descriptorsize
@@ -1311,6 +1320,7 @@ class Message(ProtoElement):
             self.msgid = message_options.msgid
 
         if desc is not None:
+            self.deprecated = self.desc.options.deprecated
             self.load_fields(desc, message_options)
 
         self.callback_function = message_options.callback_function
@@ -1386,11 +1396,15 @@ class Message(ProtoElement):
         return 'Message(%s)' % self.name
 
     def __str__(self):
+        '''Returns a string defining the C struct for this message'''
         leading_comment, trailing_comment = self.get_comments()
 
         result = ''
         if leading_comment:
             result = '%s\n' % leading_comment
+
+        if self.deprecated:
+            result += 'PB_DEPRECATED '
 
         result += 'typedef struct %s {' % Globals.naming_style.struct_name(self.name)
         if trailing_comment:

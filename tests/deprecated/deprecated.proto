@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// Deprecated field
+message DeprecatedFieldMessage
+{
+    int32 normal = 1;
+    int32 deprecatedfield = 2 [deprecated = true];
+}
+
+// Deprecated message
+message DeprecatedMessage
+{
+    option deprecated = true;
+    int32 deprecatedmessagefield = 1;
+}

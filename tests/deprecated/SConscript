@@ -1,0 +1,10 @@
+Import("env")
+
+env.NanopbProto("deprecated")
+env.Match("deprecated_pb_h.matched", ["deprecated.pb.h", "deprecated.expected"])
+
+if 'gcc' in env['CC']:
+    env_warning = env.Clone()
+    env_warning.Append(CFLAGS = "-Wno-error=deprecated-declarations")
+    ret = env_warning.Command(["deprecated.pb.o", "compiler_output.txt"], ["deprecated.pb.c"], "$CCCOM > $TARGET.dir/compiler_output.txt 2>&1 || true")
+    env_warning.Match("compiler_output.matched", ["compiler_output.txt", "compiler_output.expected"])

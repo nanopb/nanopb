@@ -1,0 +1,2 @@
+warning.*DeprecatedMessage.*deprecated
+warning.*deprecatedfield.*deprecated
