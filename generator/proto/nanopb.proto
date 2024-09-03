@@ -1,9 +1,15 @@
-// Custom options for defining:
-// - Maximum size of string/bytes
-// - Maximum number of elements in array
+// This file contains definitions of custom options used to control the
+// code generator in nanopb protocol buffers library.
 //
-// These are used by nanopb to generate statically allocable structures
-// for memory-limited environments.
+// Most commonly used options are max_count and max_size, which allow
+// the generator to allocate static arrays for repeated and string fields.
+//
+// There are three ways to use these options:
+//  1. Use a separate <protofile>.options file
+//  2. Use command line switches to nanopb_generator.py
+//  3. Use [(nanopb).option = value] in your <protofile>.proto file
+//
+// For detailed documentation, refer to "Generator options" in docs/reference.md
 
 syntax = "proto2";
 import "google/protobuf/descriptor.proto";

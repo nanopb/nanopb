@@ -161,7 +161,7 @@ variable-length datatypes are more complex:
 
 1)  Strings, bytes and repeated fields of any type map to callback
     functions by default.
-2)  If there is a special option `(nanopb).max_size` specified in the
+2)  If there is a special option `(nanopb).max_length` or `(nanopb).max_size` specified in the
     .proto file, string maps to null-terminated char array and bytes map
     to a structure containing a char array and a size field.
 3)  If `(nanopb).fixed_length` is set to `true` and

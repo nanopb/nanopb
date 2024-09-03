@@ -37,10 +37,21 @@ struct pb_istream_s
     bool (*callback)(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 #endif
 
-    void *state; /* Free field for use by callback implementation */
+    /* state is a free field for use of the callback function defined above.
+     * Note that when pb_istream_from_buffer() is used, it reserves this field
+     * for its own use.
+     */
+    void *state;
+
+    /* Maximum number of bytes left in this stream. Callback can report
+     * EOF before this limit is reached. Setting a limit is recommended
+     * when decoding directly from file or network streams to avoid
+     * denial-of-service by excessively long messages.
+     */
     size_t bytes_left;
     
 #ifndef PB_NO_ERRMSG
+    /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
 };
