@@ -1,0 +1,7 @@
+# Regression test for #869:
+# Generation of PB_STATIC_ASSERT can lead to an identified that exceeds compiler maximum length
+
+Import("env")
+
+env.NanopbProto("bigfile.proto")
+env.Object("bigfile.pb.c")
