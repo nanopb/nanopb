@@ -1342,7 +1342,11 @@ class Message(ProtoElement):
 
         for index, f in enumerate(desc.field):
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
+
             if field_options.type == nanopb_pb2.FT_IGNORE:
+                continue
+
+            if field_options.discard_deprecated and f.options.deprecated:
                 continue
 
             if field_options.descriptorsize > self.descriptorsize:
@@ -1918,6 +1922,9 @@ class ProtoFile:
             message_options = get_nanopb_suboptions(message, self.file_options, name)
 
             if message_options.skip_message:
+                continue
+
+            if message_options.discard_deprecated and message.options.deprecated:
                 continue
 
             # Apply any configured typename mangling options

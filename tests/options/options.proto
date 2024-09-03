@@ -125,3 +125,20 @@ message TypeOverrideMessage
     required Enum1 normal = 1;
     required Enum1 overridden = 2 [(nanopb).type_override = TYPE_UINT32];
 }
+
+// Deprecated field
+message DeprecatedFieldMessage
+{
+    option (nanopb_msgopt).discard_deprecated = true;
+    required int32 normal = 1;
+    required int32 discarded_deprecatedfield = 2 [deprecated = true];
+    required int32 kept_deprecatedfield = 3 [deprecated = true, (nanopb).discard_deprecated = false];
+}
+
+// Deprecated message
+message DeprecatedMessage
+{
+    option (nanopb_msgopt).discard_deprecated = true;
+    option deprecated = true;
+    required int32 deprecatedmessagefield = 1;
+}
