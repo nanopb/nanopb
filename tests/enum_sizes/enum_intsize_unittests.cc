@@ -2,7 +2,7 @@
 #include "enum_intsize.pb.hpp"
 #include "unittests.h"
 
-int main()
+extern "C" int main()
 {
   int status = 0;
 
