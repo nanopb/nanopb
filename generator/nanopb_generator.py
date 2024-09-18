@@ -1473,6 +1473,16 @@ class Message(ProtoElement):
                 count += 1
         return count
 
+    def decode_declaration(self):
+        return 'bool pb_decode_%s(pb_istream_t *stream, %s *msg);' % (
+            Globals.naming_style.type_name(self.name),
+            Globals.naming_style.type_name(self.name))
+
+    def release_declaration(self):
+        return 'void pb_release_%s(%s *msg);' % (
+            Globals.naming_style.type_name(self.name),
+            Globals.naming_style.type_name(self.name))
+
     def fields_declaration(self, dependencies):
         '''Return X-macro declaration of all fields in this message.'''
         Field.macro_x_param = 'X'
@@ -2222,6 +2232,18 @@ class ProtoFile:
                 yield '#define %s %s\n' % (longname, shortname)
             yield '\n'
 
+        # Emit generated function declarations
+        if self.messages:
+            for msg in self.messages:
+                yield msg.decode_declaration()
+                yield '\n'
+            yield '\n'
+
+            for msg in self.messages:
+                yield msg.release_declaration()
+                yield '\n'
+            yield '\n'
+
         yield '#ifdef __cplusplus\n'
         yield '} /* extern "C" */\n'
         yield '#endif\n'
@@ -2262,6 +2284,9 @@ class ProtoFile:
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
+
+        yield options.libformat % 'pb_decode_fast.h'
+        yield '\n\n'
 
         # Check if any messages exceed the 64 kB limit of 16-bit pb_size_t
         exceeds_64kB = []
