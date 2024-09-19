@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -42,7 +42,7 @@ jobs:
           openssl sha256 nanopb/dist/*.tar.gz
 
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           path: nanopb/dist/*.tar.gz
           name: nanopb-binary-linux
@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -98,7 +98,7 @@ jobs:
           openssl sha256 nanopb/dist/*.zip
 
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           path: nanopb/dist/*.zip
           name: nanopb-binary-windows
@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -140,7 +140,7 @@ jobs:
           openssl sha256 nanopb/dist/*.tar.gz
 
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           path: nanopb/dist/*.tar.gz
           name: nanopb-binary-macos
