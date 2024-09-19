@@ -6,7 +6,7 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
-Nanopb-0.4.9 (2024-xx-xx)
+Nanopb-0.4.9 (2024-09-19)
 -------------------------
 
 ### CMake rules now default to grpcio_tools protoc
