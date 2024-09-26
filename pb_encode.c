@@ -27,7 +27,7 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
 static bool checkreturn encode_basic_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn encode_callback_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn encode_field(pb_ostream_t *stream, pb_field_iter_t *field);
-static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field);
+static pb_noinline bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb_extension_t *extension);
 static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, uint32_t high);
 static bool checkreturn pb_enc_bool(pb_ostream_t *stream, const pb_field_iter_t *field);
@@ -484,7 +484,7 @@ static bool checkreturn default_extension_encoder(pb_ostream_t *stream, const pb
 
 /* Walk through all the registered extensions and give them a chance
  * to encode themselves. */
-static bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field)
+static pb_noinline bool checkreturn encode_extension_field(pb_ostream_t *stream, const pb_field_iter_t *field)
 {
     const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
 
@@ -725,8 +725,10 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
 {
     /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = PB_OSTREAM_SIZING;
-    size_t size;
+#if !PB_NO_ENCODE_SIZE_CHECK
     bool status;
+    size_t size;
+#endif
     
     if (!pb_encode(&substream, fields, src_struct))
     {
@@ -736,17 +738,19 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
         return false;
     }
     
-    size = substream.bytes_written;
-    
-    if (!pb_encode_varint(stream, (pb_uint64_t)size))
+    if (!pb_encode_varint(stream, (pb_uint64_t)substream.bytes_written))
         return false;
     
     if (stream->callback == NULL)
-        return pb_write(stream, NULL, size); /* Just sizing */
+        return pb_write(stream, NULL, substream.bytes_written); /* Just sizing */
     
-    if (stream->bytes_written + size > stream->max_size)
+    if (stream->bytes_written + substream.bytes_written > stream->max_size)
         PB_RETURN_ERROR(stream, "stream full");
         
+#if PB_NO_ENCODE_SIZE_CHECK
+    return pb_encode(stream, fields, src_struct);
+#else
+    size = substream.bytes_written;
     /* Use a substream to verify that a callback doesn't write more than
      * what it did the first time. */
     substream.callback = stream->callback;
@@ -767,8 +771,9 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     
     if (substream.bytes_written != size)
         PB_RETURN_ERROR(stream, "submsg size changed");
-    
+
     return status;
+#endif
 }
 
 /* Field encoders */

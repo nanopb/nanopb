@@ -28,6 +28,9 @@
 /* Disable support for error messages in order to save some code space. */
 /* #define PB_NO_ERRMSG 1 */
 
+/* Disable checks to ensure sub-message encoded size is consistent when re-run. */
+/* #define PB_NO_ENCODE_SIZE_CHECK 1 */
+
 /* Disable support for custom streams (support only memory buffers). */
 /* #define PB_BUFFER_ONLY 1 */
 
@@ -124,6 +127,19 @@ extern "C" {
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed
+#endif
+
+/* Define for explicitly not inlining a given function */
+#if defined(__GNUC__) || defined(__clang__)
+    /* For GCC and clang */
+#   define pb_noinline __attribute__((noinline))
+#elif defined(__ICCARM__) || defined(__CC_ARM)
+    /* For IAR ARM and Keil MDK-ARM compilers */
+#   define pb_noinline
+#elif defined(_MSC_VER) && (_MSC_VER >= 1500)
+#   define pb_noinline __declspec(noinline)
+#else
+#   define pb_noinline
 #endif
 
 /* Detect endianness */
