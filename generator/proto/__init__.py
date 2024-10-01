@@ -7,24 +7,8 @@ import sys
 import tempfile
 import shutil
 import traceback
+from tempfile import TemporaryDirectory
 from ._utils import has_grpcio_protoc, invoke_protoc, print_versions
-
-# Compatibility layer to make TemporaryDirectory() available on Python 2.
-try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    class TemporaryDirectory:
-        '''TemporaryDirectory fallback for Python 2'''
-        def __init__(self, prefix = 'tmp', dir = None):
-            self.prefix = prefix
-            self.dir = dir
-
-        def __enter__(self):
-            self.dir = tempfile.mkdtemp(prefix = self.prefix, dir = self.dir)
-            return self.dir
-
-        def __exit__(self, *args):
-            shutil.rmtree(self.dir)
 
 def build_nanopb_proto(protosrc, dirname):
     '''Try to build a .proto file for python-protobuf.

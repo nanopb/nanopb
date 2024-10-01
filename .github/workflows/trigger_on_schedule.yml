@@ -11,8 +11,8 @@ jobs:
   simulator_tests:
     uses: ./.github/workflows/simulator_tests.yml
   
-  python2_tests:
-    uses: ./.github/workflows/python2_tests.yml
+  olddistro_tests:
+    uses: ./.github/workflows/olddistro_tests.yml
   
   ios_swift_tests:
     uses: ./.github/workflows/ios_swift_tests.yml
@@ -27,7 +27,7 @@ jobs:
     uses: ./.github/workflows/cifuzz.yml
   
   binary_packages:
-    needs: [compiler_tests, simulator_tests, python2_tests, ios_swift_tests, platformio_tests, cifuzz]
+    needs: [compiler_tests, simulator_tests, olddistro_tests, ios_swift_tests, platformio_tests, cifuzz]
     uses: ./.github/workflows/binary_packages.yml
 
   pypi_publish:

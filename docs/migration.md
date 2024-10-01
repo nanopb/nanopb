@@ -6,6 +6,22 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
+Nanopb-1.0.0 (2025-xx-xx)
+-------------------------
+
+### Remove Python 2 support
+
+**Rationale:** Python 2 interpreter was deprecated in 2020. For backward
+compatibility, nanopb has retained support for running the generator with
+Python 2 for the 0.4.x series. That has required several tricks that
+complicate the codebase.
+
+**Changes:** Removed Python 2 support files and code hacks needed to
+make it work.
+
+**Required actions:** Upgrade to Python 3 and ensure `python-protobuf`
+is installed.
+
 Nanopb-0.4.9 (2024-09-19)
 -------------------------
 

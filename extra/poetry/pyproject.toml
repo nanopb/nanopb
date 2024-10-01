@@ -17,7 +17,7 @@ nanopb_generator = "nanopb.generator.nanopb_generator:main_cli"
 protoc-gen-nanopb = "nanopb.generator.nanopb_generator:main_plugin"
 
 [tool.poetry.dependencies]
-python = ">=2.7"
+python = ">=3.8"
 protobuf = ">=3.19"
 grpcio-tools = {version=">=1.46.0", optional=true}
 
