@@ -10,7 +10,11 @@
 int main()
 {
     int status = 0;
+    main_message_t defaultMessage = MAIN_MESSAGE_INIT_DEFAULT;
     main_message_t message = MAIN_MESSAGE_INIT_ZERO;
+
+    /* Verify the default value was initialized */
+    TEST(defaultMessage.my_enum5 == MY_ENUM1_ENTRY_SECOND);
 
     /* Verify that all members have the expected names */
     message.lucky_number = 13;
