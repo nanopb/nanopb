@@ -1,0 +1,16 @@
+* long_names:true
+* enum_to_string:true
+* enum_validate:true
+
+package.MainMessage.repeatedNumber  max_count:4, fixed_count:true
+package.MainMessage.string_Values1  type:FT_POINTER
+package.MainMessage.stringValues2   max_length:40, max_count:5
+package.MainMessage.requiredString  max_length:10
+package.MainMessage.repeatedFixed32 max_count:10
+package.MainMessage.requiredBytes1  max_size:10, fixed_length:true
+package.MainMessage.requiredBytes2  max_size:10
+package.MainMessage.repeatedBytes1  type:FT_POINTER
+package.MainMessage.repeatedBytes2  type:FT_POINTER, fixed_count:true, max_count:5
+package.MainMessage.repeatedInts    type:FT_POINTER
+package.MainMessage.SUB_MESSAGE2    type:FT_CALLBACK
+package.MainMessage.oneOfName2      anonymous_oneof:true
