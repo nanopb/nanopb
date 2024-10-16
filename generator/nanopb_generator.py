@@ -881,6 +881,8 @@ class Field(ProtoElement):
                     inner_init += '.0f'
                 elif self.pbtype == 'FLOAT':
                     inner_init += 'f'
+            elif self.pbtype in ('ENUM', 'UENUM'):
+                inner_init = Globals.naming_style.enum_entry(self.default)
             else:
                 inner_init = str(self.default)
 
