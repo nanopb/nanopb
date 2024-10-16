@@ -1,0 +1,16 @@
+* long_names:true
+* enum_to_string:true
+* enum_validate:true
+
+MainMessage.repeatedNumber  max_count:4, fixed_count:true
+MainMessage.string_Values1  type:FT_POINTER
+MainMessage.stringValues2   max_length:40, max_count:5
+MainMessage.requiredString  max_length:10
+MainMessage.repeatedFixed32 max_count:10
+MainMessage.requiredBytes1  max_size:10, fixed_length:true
+MainMessage.requiredBytes2  max_size:10
+MainMessage.repeatedBytes1  type:FT_POINTER
+MainMessage.repeatedBytes2  type:FT_POINTER, fixed_count:true, max_count:5
+MainMessage.repeatedInts    type:FT_POINTER
+MainMessage.SUB_MESSAGE2    type:FT_CALLBACK
+MainMessage.oneOfName2      anonymous_oneof:true

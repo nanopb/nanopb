@@ -1,0 +1,70 @@
+syntax = "proto2";
+
+package package;
+
+enum MyEnum1 {
+  ENTRY_FIRST   = 0;
+  ENTRY_Second  = 1;
+  EnumThird     = 2;
+}
+
+enum MY_ENUM2 {
+  ENUM2_ENTRY = 0;
+}
+
+message SubMessage {
+  optional int32 test_value = 1;
+}
+
+message MainMessage {
+  optional int32      LUCKY_number    = 1;
+  required int32      REQUIRED_NUMBER = 2;
+  repeated int32      repeatedNumber  = 3;
+  repeated int32      repeatedInts    = 4;
+
+  optional MyEnum1    MyEnum1         = 5;
+  optional MY_ENUM2   My_Enum2        = 6;
+  required MY_ENUM2   MY_ENUM3        = 7;
+  repeated MY_ENUM2   MY_ENUM4        = 8;
+  required MyEnum1    MyEnum5         = 25 [default = ENTRY_Second];
+  required InnerEnum  my_enum6        = 26;
+
+  repeated string     string_Values1  = 9;
+  repeated string     stringValues2   = 10;
+  optional string     OPTIONAL_String = 11;
+  required string     requiredString  = 12;
+
+  repeated fixed32    repeatedFixed32 = 13;
+
+  required bytes      requiredBytes1  = 14;
+  required bytes      requiredBytes2  = 15;
+  repeated bytes      repeatedBytes1  = 16;
+  repeated bytes      repeatedBytes2  = 17;
+
+  optional SubMessage subMessage1     = 18;
+  repeated SubMessage SUB_MESSAGE2    = 19;
+  required SubMessage sub_message3    = 20;
+
+  oneof oneOfName {
+    SubMessage testMessage1 = 21;
+    SubMessage testMessage2 = 22;
+  }
+
+  oneof oneOfName2 {
+    SubMessage testMessage4 = 23;
+    SubMessage testMessage5 = 24;
+  }
+
+  enum InnerEnum {
+    Inside = 0;
+  }
+
+  extensions 200 to 255;
+}
+
+message TestExtension {
+  extend MainMessage {
+      optional TestExtension testExtension = 250;
+  }
+  optional string stringValue = 1;
+}

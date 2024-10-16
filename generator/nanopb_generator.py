@@ -1856,6 +1856,11 @@ class MangleNames:
             self.name_mapping[str(names)] = new_name
             self.reverse_name_mapping[str(new_name)] = self.canonical_base + names
 
+            styled_name = Globals.naming_style.type_name(new_name)
+            if str(new_name) != str(self.canonical_base + names) and styled_name != str(new_name):
+                # If a custom styling doesn't match the canonical mangled name, which also doesn't match the mangled name, add a reverse mapping between them
+                self.reverse_name_mapping[styled_name] = new_name
+
         return self.name_mapping[str(names)]
 
     def mangle_field_typename(self, typename):
@@ -2415,7 +2420,8 @@ def get_nanopb_suboptions(subdesc, options, name):
 
 import sys
 import os.path
-from optparse import OptionParser
+import importlib.util
+from optparse import OptionParser, OptionValueError
 
 optparser = OptionParser(
     usage = "Usage: nanopb_generator.py [options] file.pb ...",
@@ -2472,6 +2478,18 @@ optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points"
 optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
     help="Use C naming convention.")
 
+
+def parse_custom_style(option, opt_str, value, parser):
+    parts = value.rsplit(".", 1)
+    if len(parts) != 2 or not all(len(part) > 0 for part in parts):
+        raise OptionValueError("Invalid value for %s, must be in the form %s: %r" % (opt_str, option.metavar, value))
+    setattr(parser.values, option.dest, parts)
+
+
+optparser.add_option("--custom-style", dest="custom_style", type=str, metavar="MODULE.CLASS", action="callback", callback=parse_custom_style,
+                     help="Use a custom naming convention from a module/class that defines the methods from the NamingStyle class to be overridden. When paired with the -C/--c-style option, the NamingStyleC class is the fallback, otherwise it's the NamingStyle class.")
+
+
 def process_cmdline(args, is_plugin):
     '''Process command line options. Returns list of options, filenames.'''
 
@@ -2499,7 +2517,25 @@ def process_cmdline(args, is_plugin):
     options.libformat = include_formats.get(options.libformat, options.libformat)
     options.genformat = include_formats.get(options.genformat, options.genformat)
 
-    if options.c_style:
+    if options.custom_style:
+        module_path, class_name = options.custom_style
+        module_name = os.path.splitext(os.path.basename(module_path))[0]
+        if not module_path.endswith(".py"):
+            module_path = module_path + ".py"
+
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        custom_class = getattr(module, class_name)
+
+        class InheritNamingStyle(custom_class, NamingStyleC if options.c_style else NamingStyle):
+            """Class to inherit from the custom class and then NamingStyle or NamingCStyle, in case it doesn't implement all methods."""
+            pass
+
+        Globals.naming_style = InheritNamingStyle()
+    elif options.c_style:
         Globals.naming_style = NamingStyleC()
 
     Globals.verbose_options = options.verbose
