@@ -313,6 +313,11 @@ bool checkreturn pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type)
         case PB_WT_64BIT: return pb_read(stream, NULL, 8);
         case PB_WT_STRING: return pb_skip_string(stream);
         case PB_WT_32BIT: return pb_read(stream, NULL, 4);
+	case PB_WT_PACKED: 
+            /* Calling pb_skip_field with a PB_WT_PACKED is an error.
+             * Explicitly handle this case and fallthrough to default to avoid
+             * compiler warnings.
+             */
         default: PB_RETURN_ERROR(stream, "invalid wire_type");
     }
 }
@@ -348,6 +353,12 @@ static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire
         
         case PB_WT_STRING:
             /* Calling read_raw_value with a PB_WT_STRING is an error.
+             * Explicitly handle this case and fallthrough to default to avoid
+             * compiler warnings.
+             */
+
+	case PB_WT_PACKED: 
+            /* Calling read_raw_value with a PB_WT_PACKED is an error.
              * Explicitly handle this case and fallthrough to default to avoid
              * compiler warnings.
              */
