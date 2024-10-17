@@ -535,11 +535,10 @@ class Enum(ProtoElement):
         result += '    switch (v) {\n'
 
         for ((enumname, _), strname) in zip(self.values, self.value_longnames):
-            # Strip off the leading type name from the string value.
-            strval = str(strname)[len(str(self.names)) + 1:]
+            # Just use the last part of the string value.
             result += '        case %s: return "%s";\n' % (
                 Globals.naming_style.enum_entry(enumname),
-                Globals.naming_style.enum_entry(strval))
+                Globals.naming_style.enum_entry(strname.parts[-1]))
 
         result += '    }\n'
         result += '    return "unknown";\n'
