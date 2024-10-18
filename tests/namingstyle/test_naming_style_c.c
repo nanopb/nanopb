@@ -46,8 +46,10 @@ int main()
     message.sub_message3.test_value = 0;
 
     message.which_one_of_name = MAIN_MESSAGE_TEST_MESSAGE2_TAG;
-    message.one_of_name.test_message2.has_test_value = true;
-    message.one_of_name.test_message2.test_value = 5;
+    union main_message_one_of_name one_of_name;
+    one_of_name.test_message2.has_test_value = true;
+    one_of_name.test_message2.test_value = 5;
+    message.one_of_name = one_of_name;
 
     message.which_one_of_name2 = MAIN_MESSAGE_TEST_MESSAGE5_TAG;
     message.test_message5.test_value = 5;

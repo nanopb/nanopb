@@ -145,6 +145,9 @@ class NamingStyle:
     def struct_name(self, name):
         return "_%s" % (name)
 
+    def union_name(self, name):
+        return "_%s" % (name)
+
     def type_name(self, name):
         return "%s" % (name)
 
@@ -168,6 +171,9 @@ class NamingStyleC(NamingStyle):
         return self.underscore(name)
 
     def struct_name(self, name):
+        return self.underscore(name)
+
+    def union_name(self, name):
         return self.underscore(name)
 
     def type_name(self, name):
@@ -1217,7 +1223,10 @@ class OneOf(Field):
                 result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
             result += '    pb_size_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
-            result += '    union {\n'
+            if self.anonymous:
+                result += '    union {\n'
+            else:
+                result += '    union ' + Globals.naming_style.union_name(self.struct_name + self.name) + ' {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
             if self.anonymous:
