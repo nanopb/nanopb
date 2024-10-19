@@ -343,6 +343,8 @@ struct pb_msgdesc_s {
     const pb_byte_t *default_value;
 
     bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
+    bool (*decode)(pb_istream_t *, void *);
+    void (*release)(void *);
 
     pb_size_t field_count;
     pb_size_t required_field_count;
@@ -515,10 +517,22 @@ struct pb_extension_s {
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 
 /* Force expansion of macro value */
-#define PB_EXPAND(x) x
+#define PB_EXPAND(x)           x
+#define PB_CONCAT(a, b)        a ## b
+#define PB_CONCAT_EXPAND(a, b) PB_CONCAT(a, b)
+
+/* Stubs for when fast decoding isn't enabled */
+#ifndef PB_ENABLE_DECODE_FAST
+#    define PB_GENERATE_DECODE(structname)
+#    define PB_DECODE(structname) NULL
+#    define PB_GENERATE_RELEASE(structname)
+#    define PB_RELEASE(structname) NULL
+#endif
 
 /* Binding of a message field set into a specific structure */
 #define PB_BIND(msgname, structname, width) \
+    PB_GENERATE_DECODE(structname) \
+    PB_GENERATE_RELEASE(structname) \
     const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
@@ -535,6 +549,8 @@ struct pb_extension_s {
        structname ## _submsg_info, \
        msgname ## _DEFAULT, \
        msgname ## _CALLBACK, \
+       (bool (*)(pb_istream_t *, void *))PB_DECODE(structname), \
+       (void (*)(void *))PB_RELEASE(structname), \
        0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
        0 msgname ## _FIELDLIST(PB_GEN_REQ_FIELD_COUNT, structname), \
        0 msgname ## _FIELDLIST(PB_GEN_LARGEST_TAG, structname), \
@@ -549,28 +565,28 @@ struct pb_extension_s {
 
 /* X-macro for generating the entries in struct_field_info[] array. */
 #define PB_GEN_FIELD_INFO_1(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_1(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_1(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_2(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_2(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_2(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_4(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_4(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_4(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_8(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_8(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_8(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
@@ -578,7 +594,7 @@ struct pb_extension_s {
 
 #define PB_GEN_FIELD_INFO_AUTO(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_AUTO2(PB_FIELDINFO_WIDTH_AUTO(_PB_ATYPE_ ## atype, _PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype), \
-                   tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+                   tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
@@ -594,28 +610,28 @@ struct pb_extension_s {
  * The structure of macros here must match the structure above in PB_GEN_FIELD_INFO_x(),
  * but it is not easily reused because of how macro substitutions work. */
 #define PB_GEN_FIELD_INFO_ASSERT_1(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_ASSERT_1(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_ASSERT_1(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_ASSERT_2(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_ASSERT_2(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_ASSERT_2(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_ASSERT_4(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_ASSERT_4(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_ASSERT_4(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
 #define PB_GEN_FIELD_INFO_ASSERT_8(structname, atype, htype, ltype, fieldname, tag) \
-    PB_FIELDINFO_ASSERT_8(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+    PB_FIELDINFO_ASSERT_8(tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
@@ -623,7 +639,7 @@ struct pb_extension_s {
 
 #define PB_GEN_FIELD_INFO_ASSERT_AUTO(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_ASSERT_AUTO2(PB_FIELDINFO_WIDTH_AUTO(_PB_ATYPE_ ## atype, _PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype), \
-                   tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
+                   tag, PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP(PB_LTYPE_MAP_ ## ltype), \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
@@ -865,27 +881,28 @@ struct pb_extension_s {
 #define PB_FI_WIDTH_PB_LTYPE_FIXED_LENGTH_BYTES 2
 
 /* The mapping from protobuf types to LTYPEs is done using these macros. */
-#define PB_LTYPE_MAP_BOOL               PB_LTYPE_BOOL
-#define PB_LTYPE_MAP_BYTES              PB_LTYPE_BYTES
-#define PB_LTYPE_MAP_DOUBLE             PB_LTYPE_FIXED64
-#define PB_LTYPE_MAP_ENUM               PB_LTYPE_VARINT
-#define PB_LTYPE_MAP_UENUM              PB_LTYPE_UVARINT
-#define PB_LTYPE_MAP_FIXED32            PB_LTYPE_FIXED32
-#define PB_LTYPE_MAP_FIXED64            PB_LTYPE_FIXED64
-#define PB_LTYPE_MAP_FLOAT              PB_LTYPE_FIXED32
-#define PB_LTYPE_MAP_INT32              PB_LTYPE_VARINT
-#define PB_LTYPE_MAP_INT64              PB_LTYPE_VARINT
-#define PB_LTYPE_MAP_MESSAGE            PB_LTYPE_SUBMESSAGE
-#define PB_LTYPE_MAP_MSG_W_CB           PB_LTYPE_SUBMSG_W_CB
-#define PB_LTYPE_MAP_SFIXED32           PB_LTYPE_FIXED32
-#define PB_LTYPE_MAP_SFIXED64           PB_LTYPE_FIXED64
-#define PB_LTYPE_MAP_SINT32             PB_LTYPE_SVARINT
-#define PB_LTYPE_MAP_SINT64             PB_LTYPE_SVARINT
-#define PB_LTYPE_MAP_STRING             PB_LTYPE_STRING
-#define PB_LTYPE_MAP_UINT32             PB_LTYPE_UVARINT
-#define PB_LTYPE_MAP_UINT64             PB_LTYPE_UVARINT
-#define PB_LTYPE_MAP_EXTENSION          PB_LTYPE_EXTENSION
-#define PB_LTYPE_MAP_FIXED_LENGTH_BYTES PB_LTYPE_FIXED_LENGTH_BYTES
+#define PB_LTYPE_MAP(e)                 PB_CONCAT_EXPAND(PB_LTYPE_, e)
+#define PB_LTYPE_MAP_BOOL               BOOL
+#define PB_LTYPE_MAP_BYTES              BYTES
+#define PB_LTYPE_MAP_DOUBLE             FIXED64
+#define PB_LTYPE_MAP_ENUM               VARINT
+#define PB_LTYPE_MAP_UENUM              UVARINT
+#define PB_LTYPE_MAP_FIXED32            FIXED32
+#define PB_LTYPE_MAP_FIXED64            FIXED64
+#define PB_LTYPE_MAP_FLOAT              FIXED32
+#define PB_LTYPE_MAP_INT32              VARINT
+#define PB_LTYPE_MAP_INT64              VARINT
+#define PB_LTYPE_MAP_MESSAGE            SUBMESSAGE
+#define PB_LTYPE_MAP_MSG_W_CB           SUBMSG_W_CB
+#define PB_LTYPE_MAP_SFIXED32           FIXED32
+#define PB_LTYPE_MAP_SFIXED64           FIXED64
+#define PB_LTYPE_MAP_SINT32             SVARINT
+#define PB_LTYPE_MAP_SINT64             SVARINT
+#define PB_LTYPE_MAP_STRING             STRING
+#define PB_LTYPE_MAP_UINT32             UVARINT
+#define PB_LTYPE_MAP_UINT64             UVARINT
+#define PB_LTYPE_MAP_EXTENSION          EXTENSION
+#define PB_LTYPE_MAP_FIXED_LENGTH_BYTES FIXED_LENGTH_BYTES
 
 /* These macros are used for giving out error messages.
  * They are mostly a debugging aid; the main error information

@@ -1013,7 +1013,11 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
     pb_fields_seen_t fields_seen = {{0, 0}};
     const uint32_t allbits = ~(uint32_t)0;
+
     pb_field_iter_t iter;
+
+    if (fields->decode)
+        return fields->decode(stream, dest_struct);
 
     if (pb_field_iter_begin(&iter, fields, dest_struct))
     {
@@ -1334,6 +1338,12 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
     
     if (!dest_struct)
         return; /* Ignore NULL pointers, similar to free() */
+
+    if (fields->release)
+    {
+        fields->release(dest_struct);
+        return;
+    }
 
     if (!pb_field_iter_begin(&iter, fields, dest_struct))
         return; /* Empty message type */
