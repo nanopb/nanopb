@@ -166,6 +166,7 @@ There are also a few command line options that cannot be applied using the
 other mechanisms, as they affect the whole generation:
 
 * `--c-style`: Modify symbol names to better match C naming conventions.
+* `--custom-style`: Modify symbol names by providing your own styler implementation.
 * `--no-timestamp`: Do not add timestamp to generated files.
 * `--strip-path`: Remove relative path from generated `#include` directives.
 * `--cpp-descriptors`: Generate extra convenience definitions for use from C++
@@ -224,6 +225,12 @@ For a full list of generator command line options, use `nanopb_generator.py --he
                             Include insertion point comments in output for use by
                             custom protoc plugins
     -C, --c-style         Use C naming convention.
+    --custom-style=MODULE.CLASS
+                          Use a custom naming convention from a module/class
+                          that defines the methods from the NamingStyle class to
+                          be overridden. When paired with the -C/--c-style
+                          option, the NamingStyleC class is the fallback,
+                          otherwise it's the NamingStyle class.
 
     Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. Output will
     be written to file.pb.h and file.pb.c.
