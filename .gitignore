@@ -31,3 +31,4 @@ generator/nanopb_pb2.pyc
 bazel-*
 extra/poetry/build
 build/
+.idea
