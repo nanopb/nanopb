@@ -1857,9 +1857,23 @@ class MangleNames:
             self.reverse_name_mapping[str(new_name)] = self.canonical_base + names
 
             styled_name = Globals.naming_style.type_name(new_name)
-            if str(new_name) != str(self.canonical_base + names) and styled_name != str(new_name):
-                # If a custom styling doesn't match the canonical mangled name, which also doesn't match the mangled name, add a reverse mapping between them
-                self.reverse_name_mapping[styled_name] = new_name
+            unmangled_styled_name = Globals.naming_style.type_name(self.canonical_base + names)
+
+            if styled_name != unmangled_styled_name:
+                # The styled name is mangled and needs extra mapping from unmangled to mangled. We just need to figure out whether
+                # it requires one or two extra mappings to get from the unmangled to the mangled name, depending on how they differ.
+                # This is required because enum dependencies are looked up from the reverse_name_mapping using names_from_type_name.
+
+                # The type name (new_name) doesn't match either of the styled names, so we'll have to add an extra mapping to it.
+                if str(new_name) != unmangled_styled_name and str(new_name) != styled_name:
+                    self.reverse_name_mapping[unmangled_styled_name] = new_name
+
+                # We need to be careful not to redefine the type name (new_name), use unmangled canonical name in this case.
+                if styled_name == str(new_name):
+                    self.reverse_name_mapping[str(self.canonical_base + names)] = unmangled_styled_name
+                else:
+                    self.reverse_name_mapping[styled_name] = unmangled_styled_name
+
 
         return self.name_mapping[str(names)]
 
