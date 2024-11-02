@@ -2,3 +2,7 @@ name: nanopb
 build:
   cmake-ext: True
   kconfig-ext: True
+package-managers:
+  pip:
+    requirement-files:
+      - extra/requirements.txt
