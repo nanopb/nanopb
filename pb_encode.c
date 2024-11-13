@@ -38,14 +38,6 @@ static bool checkreturn pb_enc_string(pb_ostream_t *stream, const pb_field_iter_
 static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_fixed_length_bytes(pb_ostream_t *stream, const pb_field_iter_t *field);
 
-#ifdef PB_WITHOUT_64BIT
-#define pb_int64_t int32_t
-#define pb_uint64_t uint32_t
-#else
-#define pb_int64_t int64_t
-#define pb_uint64_t uint64_t
-#endif
-
 /*******************************
  * pb_ostream_t implementation *
  *******************************/

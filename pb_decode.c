@@ -49,14 +49,6 @@ static bool checkreturn pb_release_union_field(pb_istream_t *stream, pb_field_it
 static void pb_release_single_field(pb_field_iter_t *field);
 #endif
 
-#ifdef PB_WITHOUT_64BIT
-#define pb_int64_t int32_t
-#define pb_uint64_t uint32_t
-#else
-#define pb_int64_t int64_t
-#define pb_uint64_t uint64_t
-#endif
-
 typedef struct {
     uint32_t bitfield[(PB_MAX_REQUIRED_FIELDS + 31) / 32];
 } pb_fields_seen_t;
@@ -163,6 +155,56 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
     return stream;
 }
 
+/*************************
+ * Fast decode interface *
+ *************************/
+
+#ifdef PB_DECODE_FAST
+
+#ifdef PB_ENABLE_MALLOC
+
+static void pb_free_wrapper(void *pData)
+{
+    pb_free(pData);
+}
+
+#endif
+
+static void pb_decode_get_interface(pb_decode_interface_t *pb) {
+    memset(pb, 0, sizeof(*pb));
+
+    pb->istream_from_buffer = pb_istream_from_buffer;
+    pb->make_string_substream = pb_make_string_substream;
+    pb->close_string_substream = pb_close_string_substream;
+
+    pb->decode_tag = pb_decode_tag;
+    pb->decode_varint32 = pb_decode_varint32;
+    pb->decode_varint = pb_decode_varint;
+    pb->decode_svarint = pb_decode_svarint;
+    pb->decode_fixed32 = pb_decode_fixed32;
+#ifndef PB_WITHOUT_64BIT
+    pb->decode_fixed64 = pb_decode_fixed64;
+#else
+    pb->decode_fixed64 = NULL;
+#endif
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+    pb->decode_double_as_float = pb_decode_double_as_float;
+#else
+    pb->decode_double_as_float = NULL;
+#endif
+    pb->decode_bool = pb_decode_bool;
+    pb->skip_field = pb_skip_field;
+
+    pb->read = pb_read;
+    pb->read_value = read_raw_value;
+
+#ifdef PB_ENABLE_MALLOC
+    pb->alloc_field = allocate_field;
+    pb->free_field = pb_free_wrapper;
+#endif
+}
+
+#endif
 
 /********************
  * Helper functions *
@@ -1183,6 +1225,15 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
 {
     bool status;
 
+#ifdef PB_DECODE_FAST
+    if (fields->decode)
+    {
+        pb_decode_interface_t pb;
+        pb_decode_get_interface(&pb);
+        return fields->decode(&pb, stream, dest_struct, flags, 0, (pb_wire_type_t)0);
+    }
+#endif
+
     if ((flags & PB_DECODE_DELIMITED) == 0)
     {
       status = pb_decode_inner(stream, fields, dest_struct, flags);
@@ -1342,6 +1393,16 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
     
     if (!dest_struct)
         return; /* Ignore NULL pointers, similar to free() */
+
+#ifdef PB_DECODE_FAST
+    if (fields->release)
+    {
+        pb_decode_interface_t pb;
+        pb_decode_get_interface(&pb);
+        fields->release(&pb, dest_struct, 0, 0);
+        return;
+    }
+#endif
 
     if (!pb_field_iter_begin(&iter, fields, dest_struct))
         return; /* Empty message type */

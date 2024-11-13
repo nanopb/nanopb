@@ -56,6 +56,34 @@ struct pb_istream_s
 #endif
 };
 
+struct pb_decode_interface_s
+{
+    pb_istream_t (*istream_from_buffer)(const pb_byte_t *, size_t);
+    bool (*make_string_substream)(pb_istream_t *, pb_istream_t *);
+    bool (*close_string_substream)(pb_istream_t *, pb_istream_t *);
+
+    bool (*decode_tag)(pb_istream_t *, pb_wire_type_t *, uint32_t *, bool *);
+    bool (*decode_varint32)(pb_istream_t *, uint32_t *);
+#ifndef PB_WITHOUT_64BIT
+    bool (*decode_varint)(pb_istream_t *, uint64_t *);
+    bool (*decode_svarint)(pb_istream_t *, int64_t *);
+#else
+    bool (*decode_varint)(pb_istream_t *, uint32_t *);
+    bool (*decode_svarint)(pb_istream_t *, int32_t *);
+#endif
+    bool (*decode_fixed32)(pb_istream_t *, void *);
+    bool (*decode_fixed64)(pb_istream_t *, void *);
+    bool (*decode_double_as_float)(pb_istream_t *, float *);
+    bool (*decode_bool)(pb_istream_t *, bool *);
+    bool (*skip_field)(pb_istream_t *, pb_wire_type_t);
+
+    bool (*read)(pb_istream_t *, pb_byte_t *, size_t);
+    bool (*read_value)(pb_istream_t *, pb_wire_type_t, pb_byte_t *, size_t *);
+
+    bool (*alloc_field)(pb_istream_t *, void *, size_t, size_t);
+    void (*free_field)(void *);
+};
+
 #ifndef PB_NO_ERRMSG
 #define PB_ISTREAM_EMPTY {0,0,0,0}
 #else
