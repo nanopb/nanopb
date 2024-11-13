@@ -290,6 +290,7 @@
     if (data)                                                                                                                              \
     {                                                                                                                                      \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
+                                                                                                                                           \
         field_desc->release(pb, data, 0, 0);                                                                                               \
     }
 
@@ -297,6 +298,7 @@
     if (data)                                                                                                                              \
     {                                                                                                                                      \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
+                                                                                                                                           \
         field_desc->release(pb, data, 0, 0);                                                                                               \
     }
 
@@ -523,46 +525,10 @@
 #define PB_WT_MAP_LTYPE_BYTES              PB_WT_STRING
 #define PB_WT_MAP_LTYPE_BOOL               PB_WT_VARINT
 
-#define PB_CHECK_VALUE_OVERFLOW(a, b)                                                                                                      \
-    do {                                                                                                                                   \
-        if (a != b)                                                                                                                        \
-            PB_RETURN_ERROR(stream, "integer too large");                                                                                  \
-    } while (0)
-
-#define PB_FREE_BYTES_ATYPE_POINTER(data)                                                                                                  \
-    do {                                                                                                                                   \
-        PB_FREE(data);                                                                                                                     \
-    } while (0)
-
-#define PB_FREE_BYTES_ATYPE_STATIC(data)
-
-#define PB_REALLOC_BYTES_ATYPE_POINTER(data, size, capacity)                                                                               \
-    do {                                                                                                                                   \
-        PB_REALLOC(data, 1, size);                                                                                                         \
-    } while (0)
-
-#define PB_REALLOC_BYTES_ATYPE_STATIC(data, size, capacity)                                                                                \
-    do {                                                                                                                                   \
-        if (size > capacity)                                                                                                               \
-            PB_RETURN_ERROR(stream, "size too large");                                                                                     \
-    } while (0)
-
 #define PB_DECODE_VALUE_FIXED64(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        if (pb->decode_double_as_float && sizeof(*data) == 4)                                                                              \
-        {                                                                                                                                  \
-            if (!pb->decode_double_as_float(stream, (float *)data))                                                                        \
-                return false;                                                                                                              \
-        }                                                                                                                                  \
-        else if (pb->decode_fixed64)                                                                                                       \
-        {                                                                                                                                  \
-            if (!pb->decode_fixed64(stream, (double *)data))                                                                               \
-                return false;                                                                                                              \
-        }                                                                                                                                  \
-        else                                                                                                                               \
-        {                                                                                                                                  \
-            PB_RETURN_ERROR(stream, "invalid data_size");                                                                                  \
-        }                                                                                                                                  \
+        if (!pb->decode_fixed64(stream, data, sizeof(*data)))                                                                              \
+            return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_FIXED32(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
@@ -573,65 +539,26 @@
 
 #define PB_DECODE_VALUE_SVARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        pb_int64_t value;                                                                                                                  \
-                                                                                                                                           \
-        if (!pb->decode_svarint(stream, &value))                                                                                           \
+        if (!pb->decode_svarint(stream, data, sizeof(*data)))                                                                              \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        *data = value;                                                                                                                     \
-                                                                                                                                           \
-        PB_CHECK_VALUE_OVERFLOW(*data, value);                                                                                             \
     } while (0)
 
 #define PB_DECODE_VALUE_UVARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        pb_uint64_t value;                                                                                                                 \
-                                                                                                                                           \
-        if (!pb->decode_varint(stream, &value))                                                                                            \
+        if (!pb->decode_uvarint(stream, data, sizeof(*data)))                                                                              \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        *data = value;                                                                                                                     \
-                                                                                                                                           \
-        PB_CHECK_VALUE_OVERFLOW(*data, value);                                                                                             \
     } while (0)
 
 #define PB_DECODE_VALUE_VARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                      \
     do {                                                                                                                                   \
-        union { pb_uint64_t u; pb_int64_t s; } value;                                                                                      \
-                                                                                                                                           \
-        if (!pb->decode_varint(stream, &value.u))                                                                                          \
+        if (!pb->decode_varint(stream, data, sizeof(*data)))                                                                               \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        /* when not using 64-bit varints, first cast to an int32_t to get the sign right */                                                \
-        if (sizeof(*data) <= 4)                                                                                                            \
-            value.s = (int32_t)value.u;                                                                                                    \
-                                                                                                                                           \
-        *data = value.s;                                                                                                                   \
-                                                                                                                                           \
-        PB_CHECK_VALUE_OVERFLOW(*data, value.s);                                                                                           \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_FIXED_LENGTH_BYTES(structname, atype, htype, ltype, fieldname, tag, data)                                    \
     do {                                                                                                                                   \
-        size_t array_size = sizeof(data);                                                                                                  \
-        uint32_t wire_length;                                                                                                              \
-                                                                                                                                           \
-        if (!pb->decode_varint32(stream, &wire_length))                                                                                    \
+        if (!pb->decode_fixed_length_bytes(stream, data, sizeof(data)))                                                                    \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        if (wire_length == 0)                                                                                                              \
-        {                                                                                                                                  \
-            /* special case, treat empty bytes string as all zeros */                                                                      \
-            memset(data, 0, array_size);                                                                                                   \
-        }                                                                                                                                  \
-        else                                                                                                                               \
-        {                                                                                                                                  \
-            if (wire_length != array_size)                                                                                                 \
-                PB_RETURN_ERROR(stream, "incorrect fixed length bytes size");                                                              \
-                                                                                                                                           \
-            if (!pb->read(stream, (pb_byte_t *)data, wire_length))                                                                         \
-                return false;                                                                                                              \
-        }                                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_UINT64(structname, atype, htype, ltype, fieldname, tag, data)                                                \
@@ -640,32 +567,20 @@
 #define PB_DECODE_VALUE_LTYPE_UINT32(structname, atype, htype, ltype, fieldname, tag, data)                                                \
     PB_DECODE_VALUE_UVARINT(structname, atype, htype, ltype, fieldname, tag, data)
 
-#define PB_DECODE_VALUE_LTYPE_STRING(structname, atype, htype, ltype, fieldname, tag, data)                                                \
+#define PB_DECODE_VALUE_LTYPE_STRING_ATYPE_POINTER(structname, atype, htype, ltype, fieldname, tag, data)                                  \
     do {                                                                                                                                   \
-        uint32_t wire_length;                                                                                                              \
-        size_t alloc_size;                                                                                                                 \
-                                                                                                                                           \
-        if (!pb->decode_varint32(stream, &wire_length))                                                                                    \
+        if (!pb->decode_string(stream, &data, 0))                                                                                          \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        if (wire_length > PB_SIZE_MAX)                                                                                                     \
-            PB_RETURN_ERROR(stream, "bytes overflow");                                                                                     \
-                                                                                                                                           \
-        alloc_size = wire_length + 1;                                                                                                      \
-                                                                                                                                           \
-        if (alloc_size < wire_length)                                                                                                      \
-            PB_RETURN_ERROR(stream, "size too large");                                                                                     \
-                                                                                                                                           \
-        PB_REALLOC_BYTES_ ## atype(data, alloc_size, sizeof(data));                                                                        \
-                                                                                                                                           \
-        data[wire_length] = 0;                                                                                                             \
-                                                                                                                                           \
-        if (!pb->read(stream, (pb_byte_t *)data, wire_length))                                                                             \
-        {                                                                                                                                  \
-            PB_FREE_BYTES_ ## atype(data);                                                                                                 \
-            return false;                                                                                                                  \
-        }                                                                                                                                  \
     } while (0)
+
+#define PB_DECODE_VALUE_LTYPE_STRING_ATYPE_STATIC(structname, atype, htype, ltype, fieldname, tag, data)                                   \
+    do {                                                                                                                                   \
+        if (!pb->decode_string(stream, data, sizeof(data)))                                                                                \
+            return false;                                                                                                                  \
+    } while (0)
+
+#define PB_DECODE_VALUE_LTYPE_STRING(structname, atype, htype, ltype, fieldname, tag, data)                                                \
+    PB_DECODE_VALUE_LTYPE_STRING_ ## atype(structname, atype, htype, ltype, fieldname, tag, data)
 
 #define PB_DECODE_VALUE_LTYPE_SINT64(structname, atype, htype, ltype, fieldname, tag, data)                                                \
     PB_DECODE_VALUE_SVARINT(structname, atype, htype, ltype, fieldname, tag, data)
@@ -681,75 +596,27 @@
 
 #define PB_DECODE_VALUE_LTYPE_MSG_W_CB(structname, atype, htype, ltype, fieldname, tag, data)                                              \
     do {                                                                                                                                   \
-        const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
-        pb_istream_t substream;                                                                                                            \
-        bool success = false;                                                                                                              \
-        bool res = false;                                                                                                                  \
+        pb_field_iter_t iter;                                                                                                              \
+        pb_callback_t *cb;                                                                                                                 \
                                                                                                                                            \
-        do {                                                                                                                               \
+        if (!pb_field_iter_begin(&iter, desc, msg) || !pb_field_iter_find(&iter, tag))                                                     \
+            PB_RETURN_ERROR(stream, "failed to resolve field tag");                                                                        \
                                                                                                                                            \
-            if (!pb->make_string_substream(stream, &substream))                                                                            \
-                break;                                                                                                                     \
+        cb = &PB_CBNAME(structname, fieldname, htype);                                                                                     \
                                                                                                                                            \
-            /* give the message-level callback the first chance at decoding the message */                                                 \
-            pb_callback_t *cb = &PB_CBNAME(structname, fieldname, htype);                                                                  \
-            bool call_default_decode = true;                                                                                               \
-                                                                                                                                           \
-            if (cb->funcs.decode)                                                                                                          \
-            {                                                                                                                              \
-                pb_field_iter_t iter;                                                                                                      \
-                                                                                                                                           \
-                if (!pb_field_iter_begin(&iter, desc, msg) || !pb_field_iter_find(&iter, tag))                                             \
-                    PB_RETURN_ERROR(stream, "failed to resolve field tag");                                                                \
-                                                                                                                                           \
-                res = cb->funcs.decode(&substream, &iter, &cb->arg);                                                                       \
-                call_default_decode = res && substream.bytes_left;                                                                         \
-            }                                                                                                                              \
-                                                                                                                                           \
-            if (call_default_decode)                                                                                                       \
-                res = field_desc->decode(pb, &substream, data, subflags, 0, (pb_wire_type_t)0);                                            \
-                                                                                                                                           \
-            if (!pb->close_string_substream(stream, &substream))                                                                           \
-                break;                                                                                                                     \
-                                                                                                                                           \
-            success = res;                                                                                                                 \
-        } while (0);                                                                                                                       \
-                                                                                                                                           \
-        if (!success)                                                                                                                      \
-        {                                                                                                                                  \
-            if (res)                                                                                                                       \
-                field_desc->release(pb, data, 0, 0);                                                                                       \
-                                                                                                                                           \
+        if (!pb->decode_submessage(stream, &iter, cb, subflags))                                                                           \
             return false;                                                                                                                  \
-        }                                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_MESSAGE(structname, atype, htype, ltype, fieldname, tag, data)                                               \
     do {                                                                                                                                   \
-        const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
-        pb_istream_t substream;                                                                                                            \
-        bool success = false;                                                                                                              \
-        bool res = false;                                                                                                                  \
+        /* fill out a bogus struct */                                                                                                      \
+        pb_field_iter_t iter = {};                                                                                                         \
+        iter.submsg_desc = PB_MSGDESC(structname, fieldname, htype);                                                                       \
+        iter.pData = data;                                                                                                                 \
                                                                                                                                            \
-        do {                                                                                                                               \
-            if (!pb->make_string_substream(stream, &substream))                                                                            \
-                break;                                                                                                                     \
-                                                                                                                                           \
-            res = field_desc->decode(pb, &substream, data, subflags, 0, (pb_wire_type_t)0);                                                \
-                                                                                                                                           \
-            if (!pb->close_string_substream(stream, &substream))                                                                           \
-                break;                                                                                                                     \
-                                                                                                                                           \
-            success = res;                                                                                                                 \
-        } while (0);                                                                                                                       \
-                                                                                                                                           \
-        if (!success)                                                                                                                      \
-        {                                                                                                                                  \
-            if (res)                                                                                                                       \
-                field_desc->release(pb, data, 0, 0);                                                                                       \
-                                                                                                                                           \
+        if (!pb->decode_submessage(stream, &iter, NULL, subflags))                                                                         \
             return false;                                                                                                                  \
-        }                                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_INT64(structname, atype, htype, ltype, fieldname, tag, data)                                                 \
@@ -768,18 +635,10 @@
     PB_DECODE_VALUE_FIXED32(structname, atype, htype, ltype, fieldname, tag, data)
 
 #define PB_DECODE_VALUE_LTYPE_UENUM(structname, atype, htype, ltype, fieldname, tag, data)                                                 \
-    do {                                                                                                                                   \
-      pb_uint64_t tmp;                                                                                                                     \
-      PB_DECODE_VALUE_UVARINT(structname, atype, htype, ltype, fieldname, tag, &tmp);                                                      \
-      memcpy(data, &tmp, sizeof(*data));                                                                                                   \
-    } while (0)
+    PB_DECODE_VALUE_UVARINT(structname, atype, htype, ltype, fieldname, tag, data)
 
 #define PB_DECODE_VALUE_LTYPE_ENUM(structname, atype, htype, ltype, fieldname, tag, data)                                                  \
-    do {                                                                                                                                   \
-      pb_int64_t tmp;                                                                                                                      \
-      PB_DECODE_VALUE_VARINT(structname, atype, htype, ltype, fieldname, tag, &tmp);                                                       \
-      memcpy(data, &tmp, sizeof(*data));                                                                                                   \
-    } while (0)
+    PB_DECODE_VALUE_VARINT(structname, atype, htype, ltype, fieldname, tag, data)
 
 #define PB_DECODE_VALUE_LTYPE_DOUBLE(structname, atype, htype, ltype, fieldname, tag, data)                                                \
     PB_DECODE_VALUE_FIXED64(structname, atype, htype, ltype, fieldname, tag, data)
@@ -787,32 +646,20 @@
 #define PB_DECODE_VALUE_LTYPE_VARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                \
     PB_DECODE_VALUE_VARINT(structname, atype, htype, ltype, fieldname, tag, data)
 
-#define PB_DECODE_VALUE_LTYPE_BYTES(structname, atype, htype, ltype, fieldname, tag, data)                                                 \
+#define PB_DECODE_VALUE_LTYPE_BYTES_ATYPE_POINTER(structname, atype, htype, ltype, fieldname, tag, data)                                   \
     do {                                                                                                                                   \
-        uint32_t wire_length;                                                                                                              \
-        size_t alloc_size;                                                                                                                 \
-                                                                                                                                           \
-        if (!pb->decode_varint32(stream, &wire_length))                                                                                    \
+        if (!pb->decode_bytes(stream, &data, 0))                                                                                           \
             return false;                                                                                                                  \
-                                                                                                                                           \
-        if (wire_length > PB_SIZE_MAX)                                                                                                     \
-            PB_RETURN_ERROR(stream, "bytes overflow");                                                                                     \
-                                                                                                                                           \
-        alloc_size = PB_BYTES_ARRAY_T_ALLOCSIZE(wire_length);                                                                              \
-                                                                                                                                           \
-        if (alloc_size < wire_length)                                                                                                      \
-            PB_RETURN_ERROR(stream, "size too large");                                                                                     \
-                                                                                                                                           \
-        PB_REALLOC_BYTES_ ## atype(data, alloc_size, sizeof(*data));                                                                       \
-                                                                                                                                           \
-        data->si##ze = wire_length;                                                                                                        \
-                                                                                                                                           \
-        if (!pb->read(stream, data->bytes, wire_length))                                                                                   \
-        {                                                                                                                                  \
-            PB_FREE_BYTES_ ## atype(data);                                                                                                 \
-            return false;                                                                                                                  \
-        }                                                                                                                                  \
     } while (0)
+
+#define PB_DECODE_VALUE_LTYPE_BYTES_ATYPE_STATIC(structname, atype, htype, ltype, fieldname, tag, data)                                    \
+    do {                                                                                                                                   \
+        if (!pb->decode_bytes(stream, data, sizeof(*data)))                                                                                \
+            return false;                                                                                                                  \
+    } while (0)
+
+#define PB_DECODE_VALUE_LTYPE_BYTES(structname, atype, htype, ltype, fieldname, tag, data)                                                 \
+    PB_DECODE_VALUE_LTYPE_BYTES_ ## atype(structname, atype, htype, ltype, fieldname, tag, data)
 
 #define PB_DECODE_VALUE_LTYPE_BOOL(structname, atype, htype, ltype, fieldname, tag, data)                                                  \
     do {                                                                                                                                   \
@@ -837,51 +684,14 @@
 
 #define PB_DECODE_ATYPE_CALLBACK_DEFAULT(structname, atype, htype, ltype, fieldname, tag, field, data, size)                               \
     do {                                                                                                                                   \
-        pb_istream_t substream;                                                                                                            \
-                                                                                                                                           \
         if (desc->field_callback)                                                                                                          \
         {                                                                                                                                  \
             pb_field_iter_t iter;                                                                                                          \
-            bool res = false;                                                                                                              \
                                                                                                                                            \
             if (!pb_field_iter_begin(&iter, desc, msg) || !pb_field_iter_find(&iter, tag))                                                 \
                 PB_RETURN_ERROR(stream, "failed to resolve field tag");                                                                    \
                                                                                                                                            \
-            if (wire_type == PB_WT_STRING)                                                                                                 \
-            {                                                                                                                              \
-                size_t prev_bytes_left = substream.bytes_left;                                                                             \
-                                                                                                                                           \
-                if (!pb->make_string_substream(stream, &substream))                                                                        \
-                    return false;                                                                                                          \
-                                                                                                                                           \
-                do                                                                                                                         \
-                {                                                                                                                          \
-                    prev_bytes_left = substream.bytes_left;                                                                                \
-                                                                                                                                           \
-                    if (!(res = desc->field_callback(&substream, NULL, &iter)))                                                            \
-                        break;                                                                                                             \
-                }                                                                                                                          \
-                while (substream.bytes_left > 0 && substream.bytes_left < prev_bytes_left);                                                \
-                                                                                                                                           \
-                if (!pb->close_string_substream(stream, &substream))                                                                       \
-                    return false;                                                                                                          \
-            }                                                                                                                              \
-            else                                                                                                                           \
-            {                                                                                                                              \
-                pb_byte_t buffer[10];                                                                                                      \
-                size_t buffer_size;                                                                                                        \
-                                                                                                                                           \
-                buffer_size = sizeof(buffer);                                                                                              \
-                                                                                                                                           \
-                if (!pb->read_value(stream, wire_type, buffer, &buffer_size))                                                              \
-                    return false;                                                                                                          \
-                                                                                                                                           \
-                substream = pb->istream_from_buffer(buffer, buffer_size);                                                                  \
-                                                                                                                                           \
-                res = desc->field_callback(&substream, NULL, &iter);                                                                       \
-            }                                                                                                                              \
-                                                                                                                                           \
-            if (!res)                                                                                                                      \
+            if (!pb->decode_callback_field(stream, wire_type, &iter))                                                                      \
                 return false;                                                                                                              \
         }                                                                                                                                  \
         else                                                                                                                               \
