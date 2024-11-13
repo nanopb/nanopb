@@ -62,24 +62,30 @@ struct pb_decode_interface_s
     bool (*make_string_substream)(pb_istream_t *, pb_istream_t *);
     bool (*close_string_substream)(pb_istream_t *, pb_istream_t *);
 
-    bool (*decode_tag)(pb_istream_t *, pb_wire_type_t *, uint32_t *, bool *);
-    bool (*decode_varint32)(pb_istream_t *, uint32_t *);
-    bool (*decode_callback_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
-
-    bool (*decode_bool)(pb_istream_t *, void *);
-    bool (*decode_varint)(pb_istream_t *, void *, size_t);
-    bool (*decode_uvarint)(pb_istream_t *, void *, size_t);
-    bool (*decode_svarint)(pb_istream_t *, void *, size_t);
-    bool (*decode_fixed32)(pb_istream_t *, void *);
-    bool (*decode_fixed64)(pb_istream_t *, void *, size_t);
-    bool (*decode_bytes)(pb_istream_t *, void *, size_t);
-    bool (*decode_string)(pb_istream_t *, void *, size_t);
-    bool (*decode_submessage)(pb_istream_t *, const pb_field_iter_t *, pb_callback_t *, unsigned);
-    bool (*decode_fixed_length_bytes)(pb_istream_t *, void *, size_t);
-    bool (*skip_field)(pb_istream_t *, pb_wire_type_t);
-
     bool (*alloc_field)(pb_istream_t *, void *, size_t, size_t);
     void (*free_field)(void *);
+
+    bool (*decode_basic_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
+    bool (*decode_static_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
+    bool (*decode_pointer_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
+    bool (*decode_callback_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
+    bool (*decode_field)(pb_istream_t *, pb_wire_type_t, pb_field_iter_t *);
+    bool (*decode_extension)(pb_istream_t *, uint32_t, pb_wire_type_t, pb_extension_t *);
+
+    bool (*decode_tag)(pb_istream_t *, pb_wire_type_t *, uint32_t *, bool *);
+    bool (*decode_varint32)(pb_istream_t *, uint32_t *);
+
+    bool (*dec_bool)(pb_istream_t *, void *);
+    bool (*dec_varint)(pb_istream_t *, void *, size_t);
+    bool (*dec_uvarint)(pb_istream_t *, void *, size_t);
+    bool (*dec_svarint)(pb_istream_t *, void *, size_t);
+    bool (*dec_fixed32)(pb_istream_t *, void *);
+    bool (*dec_fixed64)(pb_istream_t *, void *, size_t);
+    bool (*dec_bytes)(pb_istream_t *, void *, size_t);
+    bool (*dec_string)(pb_istream_t *, void *, size_t);
+    bool (*dec_submessage)(pb_istream_t *, const pb_field_iter_t *, pb_callback_t *, unsigned);
+    bool (*dec_fixed_length_bytes)(pb_istream_t *, void *, size_t);
+    bool (*skip_field)(pb_istream_t *, pb_wire_type_t);
 };
 
 #ifndef PB_NO_ERRMSG
@@ -222,6 +228,34 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest);
 /* Make a limited-length substream for reading a PB_WT_STRING field. */
 bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
 bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+
+/* Functions that are shared by pb_decode.c and pb_decode_fast.h */
+#ifdef PB_DECODE_INTERNAL
+
+#ifdef PB_DECODE_FAST
+bool pb_alloc_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size);
+void pb_free_field(void *pData);
+#endif
+
+bool decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
+bool decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
+bool decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
+bool decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
+bool decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
+bool decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
+
+bool pb_dec_bool(pb_istream_t *stream, void *dest);
+bool pb_dec_varint(pb_istream_t *stream, void *dest, size_t size);
+bool pb_dec_uvarint(pb_istream_t *stream, void *dest, size_t size);
+bool pb_dec_svarint(pb_istream_t *stream, void *dest, size_t size);
+bool pb_dec_fixed32(pb_istream_t *stream, void *dest);
+bool pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t size);
+bool pb_dec_bytes(pb_istream_t *stream, void *dest, size_t capacity);
+bool pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity);
+bool pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags);
+bool pb_dec_fixed_length_bytes(pb_istream_t *stream, void *dest, size_t capacity);
+
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

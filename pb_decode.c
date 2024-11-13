@@ -14,6 +14,8 @@
     #define checkreturn
 #endif
 
+#define PB_DECODE_INTERNAL
+
 #include "pb.h"
 #include "pb_decode.h"
 #include "pb_common.h"
@@ -24,25 +26,9 @@
 
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
-static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn default_extension_decoder(pb_istream_t *stream, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
-static bool checkreturn decode_extension(pb_istream_t *stream, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
 static bool pb_field_set_to_default(pb_field_iter_t *field);
 static bool pb_message_set_to_defaults(pb_field_iter_t *iter);
-static bool checkreturn pb_dec_bool(pb_istream_t *stream, void *dest);
-static bool checkreturn pb_dec_varint(pb_istream_t *stream, void *dest, size_t size);
-static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, void *dest, size_t size);
-static bool checkreturn pb_dec_svarint(pb_istream_t *stream, void *dest, size_t size);
-static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, void *dest);
-static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t size);
-static bool checkreturn pb_dec_bytes(pb_istream_t *stream, void *dest, size_t capacity);
-static bool checkreturn pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity);
-static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags);
-static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, void *dest, size_t capacity);
 static bool checkreturn pb_skip_varint(pb_istream_t *stream);
 static bool checkreturn pb_skip_string(pb_istream_t *stream);
 
@@ -165,43 +151,62 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
 
 #ifdef PB_DECODE_FAST
 
-#ifdef PB_ENABLE_MALLOC
-
-static void pb_free_wrapper(void *pData)
+bool pb_alloc_field(pb_istream_t *stream, void *pData, size_t data_size, size_t array_size)
 {
-    pb_free(pData);
-}
-
-#endif
-
-static void pb_decode_get_interface(pb_decode_interface_t *pb) {
-    memset(pb, 0, sizeof(*pb));
-
-    pb->istream_from_buffer = pb_istream_from_buffer;
-    pb->make_string_substream = pb_make_string_substream;
-    pb->close_string_substream = pb_close_string_substream;
-
-    pb->decode_tag = pb_decode_tag;
-    pb->decode_varint32 = pb_decode_varint32;
-    pb->decode_callback_field = decode_callback_field;
-
-    pb->decode_bool = pb_dec_bool;
-    pb->decode_varint = pb_dec_varint;
-    pb->decode_uvarint = pb_dec_uvarint;
-    pb->decode_svarint = pb_dec_svarint;
-    pb->decode_fixed32 = pb_dec_fixed32;
-    pb->decode_fixed64 = pb_dec_fixed64;
-    pb->decode_bytes = pb_dec_bytes;
-    pb->decode_string = pb_dec_string;
-    pb->decode_submessage = pb_dec_submessage;
-    pb->decode_fixed_length_bytes = pb_dec_fixed_length_bytes;
-    pb->skip_field = pb_skip_field;
-
 #ifdef PB_ENABLE_MALLOC
-    pb->alloc_field = allocate_field;
-    pb->free_field = pb_free_wrapper;
+    return allocate_field(stream, pData, data_size, array_size);
+#else
+    PB_UNUSED(stream);
+    PB_UNUSED(pData);
+    PB_UNUSED(data_size);
+    PB_UNUSED(array_size);
+
+    PB_RETURN_ERROR(stream, "no malloc support");
 #endif
 }
+
+void pb_free_field(void *pData)
+{
+#ifdef PB_ENABLE_MALLOC
+    pb_free(pData);
+#else
+    PB_UNUSED(pData);
+#endif
+}
+
+#ifdef PB_DYNAMIC_DECODE_FAST
+static void pb_bind_dynamic_decode_interface()
+{
+    pb_dec_if.istream_from_buffer = pb_istream_from_buffer;
+    pb_dec_if.make_string_substream = pb_make_string_substream;
+    pb_dec_if.close_string_substream = pb_close_string_substream;
+
+    pb_dec_if.alloc_field = pb_alloc_field;
+    pb_dec_if.free_field = pb_free_field;
+
+    pb_dec_if.decode_basic_field = decode_basic_field;
+    pb_dec_if.decode_static_field = decode_static_field;
+    pb_dec_if.decode_pointer_field = decode_pointer_field;
+    pb_dec_if.decode_callback_field = decode_callback_field;
+    pb_dec_if.decode_field = decode_field;
+    pb_dec_if.decode_extension = decode_extension;
+
+    pb_dec_if.decode_tag = pb_decode_tag;
+    pb_dec_if.decode_varint32 = pb_decode_varint32;
+
+    pb_dec_if.dec_bool = pb_dec_bool;
+    pb_dec_if.dec_varint = pb_dec_varint;
+    pb_dec_if.dec_uvarint = pb_dec_uvarint;
+    pb_dec_if.dec_svarint = pb_dec_svarint;
+    pb_dec_if.dec_fixed32 = pb_dec_fixed32;
+    pb_dec_if.dec_fixed64 = pb_dec_fixed64;
+    pb_dec_if.dec_bytes = pb_dec_bytes;
+    pb_dec_if.dec_string = pb_dec_string;
+    pb_dec_if.dec_submessage = pb_dec_submessage;
+    pb_dec_if.dec_fixed_length_bytes = pb_dec_fixed_length_bytes;
+    pb_dec_if.skip_field = pb_skip_field;
+}
+#endif
 
 #endif
 
@@ -455,7 +460,7 @@ bool checkreturn pb_close_string_substream(pb_istream_t *stream, pb_istream_t *s
  * Decode a single field *
  *************************/
 
-static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
+bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
     switch (PB_LTYPE(field->type))
     {
@@ -545,7 +550,7 @@ static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t 
     }
 }
 
-static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
+bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
     switch (PB_HTYPE(field->type))
     {
@@ -702,7 +707,7 @@ static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
 }
 #endif
 
-static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
+bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
 #ifndef PB_ENABLE_MALLOC
     PB_UNUSED(wire_type);
@@ -830,7 +835,7 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 #endif
 }
 
-static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
+bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
     if (!field->descriptor->field_callback)
         return pb_skip_field(stream, wire_type);
@@ -876,7 +881,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
     }
 }
 
-static bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
+bool checkreturn decode_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
 #ifdef PB_ENABLE_MALLOC
     /* When decoding an oneof field, check if there is old data that must be
@@ -924,7 +929,7 @@ static bool checkreturn default_extension_decoder(pb_istream_t *stream,
 
 /* Try to decode an unknown field as an extension field. Tries each extension
  * decoder in turn, until one of them handles the field or loop ends. */
-static bool checkreturn decode_extension(pb_istream_t *stream,
+bool checkreturn decode_extension(pb_istream_t *stream,
     uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension)
 {
     size_t pos = stream->bytes_left;
@@ -1246,9 +1251,10 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
 #ifdef PB_DECODE_FAST
     if (fields->decode)
     {
-        pb_decode_interface_t pb;
-        pb_decode_get_interface(&pb);
-        return fields->decode(&pb, stream, dest_struct, flags, 0, (pb_wire_type_t)0);
+#ifdef PB_DYNAMIC_DECODE_FAST
+        pb_bind_dynamic_decode_interface();
+#endif
+        return fields->decode(stream, dest_struct, flags, 0, (pb_wire_type_t)0);
     }
 #endif
 
@@ -1415,9 +1421,10 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
 #ifdef PB_DECODE_FAST
     if (fields->release)
     {
-        pb_decode_interface_t pb;
-        pb_decode_get_interface(&pb);
-        fields->release(&pb, dest_struct, 0, 0);
+#ifdef PB_DYNAMIC_DECODE_FAST
+        pb_bind_dynamic_decode_interface();
+#endif
+        fields->release(dest_struct, 0, 0);
         return;
     }
 #endif
@@ -1515,12 +1522,12 @@ bool pb_decode_fixed64(pb_istream_t *stream, void *dest)
 }
 #endif
 
-static bool checkreturn pb_dec_bool(pb_istream_t *stream, void *dest)
+bool checkreturn pb_dec_bool(pb_istream_t *stream, void *dest)
 {
     return pb_decode_bool(stream, (bool *)dest);
 }
 
-static bool checkreturn pb_dec_varint(pb_istream_t *stream, void *dest, size_t size)
+bool checkreturn pb_dec_varint(pb_istream_t *stream, void *dest, size_t size)
 {
     pb_uint64_t overflow;
 
@@ -1561,7 +1568,7 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, void *dest, size_t s
     return true;
 }
 
-static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, void *dest, size_t size)
+bool checkreturn pb_dec_uvarint(pb_istream_t *stream, void *dest, size_t size)
 {
     pb_uint64_t value;
 
@@ -1590,7 +1597,7 @@ static bool checkreturn pb_dec_uvarint(pb_istream_t *stream, void *dest, size_t 
     return true;
 }
 
-static bool checkreturn pb_dec_svarint(pb_istream_t *stream, void *dest, size_t size)
+bool checkreturn pb_dec_svarint(pb_istream_t *stream, void *dest, size_t size)
 {
     pb_uint64_t overflow;
 
@@ -1622,12 +1629,12 @@ static bool checkreturn pb_dec_svarint(pb_istream_t *stream, void *dest, size_t 
     return true;
 }
 
-static bool checkreturn pb_dec_fixed32(pb_istream_t *stream, void *dest)
+bool checkreturn pb_dec_fixed32(pb_istream_t *stream, void *dest)
 {
     return pb_decode_fixed32(stream, dest);
 }
 
-static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t size)
+bool checkreturn pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t size)
 {
 #ifdef PB_WITHOUT_64BIT
     PB_UNUSED(dest);
@@ -1647,7 +1654,7 @@ static bool checkreturn pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t 
 #endif
 }
 
-static bool checkreturn pb_dec_bytes(pb_istream_t *stream, void *dest, size_t capacity)
+bool checkreturn pb_dec_bytes(pb_istream_t *stream, void *dest, size_t capacity)
 {
     uint32_t size;
     size_t alloc_size;
@@ -1698,7 +1705,7 @@ static bool checkreturn pb_dec_bytes(pb_istream_t *stream, void *dest, size_t ca
     return true;
 }
 
-static bool checkreturn pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity)
+bool checkreturn pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity)
 {
     uint32_t size;
     size_t alloc_size;
@@ -1766,7 +1773,7 @@ static bool checkreturn pb_dec_string(pb_istream_t *stream, void *dest, size_t c
     return true;
 }
 
-static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags)
+bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags)
 {
     bool status = true;
     bool submsg_consumed = false;
@@ -1805,7 +1812,7 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     return status;
 }
 
-static bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, void *dest, size_t capacity)
+bool checkreturn pb_dec_fixed_length_bytes(pb_istream_t *stream, void *dest, size_t capacity)
 {
     uint32_t size;
 

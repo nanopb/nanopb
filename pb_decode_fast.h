@@ -3,6 +3,8 @@
 
 #ifdef PB_DECODE_FAST
 
+#define PB_DECODE_INTERNAL
+
 #include "pb_common.h"
 #include "pb_decode.h"
 
@@ -10,6 +12,56 @@
 #define PB_DECODE_ISINIT      0x10U
 #define PB_DECODE_ISDECODE    0x20U
 #define PB_DECODE_ISEXTENSION 0x40U
+
+/* -- DECODE INTERFACE ------------------------------------------------------------------------------------------------------------------ */
+
+#ifdef PB_DYNAMIC_DECODE_FAST
+
+extern struct pb_decode_interface_s pb_dec_if;
+
+#define PB_ISTREAM_FROM_BUFFER(_1, _2)           pb_dec_if.istream_from_buffer(_1, _2)
+#define PB_MAKE_STRING_SUBSTREAM(_1, _2)         pb_dec_if.make_string_substream(_1, _2)
+#define PB_CLOSE_STRING_SUBSTREAM(_1, _2)        pb_dec_if.close_string_substream(_1, _2)
+#define PB_DECODE_CALLBACK_FIELD(_1, _2, _3)     pb_dec_if.decode_callback_field(_1, _2, _3)
+#define PB_DECODE_TAG(_1, _2, _3, _4)            pb_dec_if.decode_tag(_1, _2, _3, _4)
+#define PB_DECODE_VARINT32(_1, _2)               pb_dec_if.decode_varint32(_1, _2)
+#define PB_DECODE_BOOL(_1, _2)                   pb_dec_if.dec_bool(_1, _2)
+#define PB_DECODE_VARINT(_1, _2, _3)             pb_dec_if.dec_varint(_1, _2, _3)
+#define PB_DECODE_UVARINT(_1, _2, _3)            pb_dec_if.dec_uvarint(_1, _2, _3)
+#define PB_DECODE_SVARINT(_1, _2, _3)            pb_dec_if.dec_svarint(_1, _2, _3)
+#define PB_DECODE_FIXED32(_1, _2)                pb_dec_if.dec_fixed32(_1, _2)
+#define PB_DECODE_FIXED64(_1, _2, _3)            pb_dec_if.dec_fixed64(_1, _2, _3)
+#define PB_DECODE_BYTES(_1, _2, _3)              pb_dec_if.dec_bytes(_1, _2, _3)
+#define PB_DECODE_STRING(_1, _2, _3)             pb_dec_if.dec_string(_1, _2, _3)
+#define PB_DECODE_SUBMESSAGE(_1, _2, _3, _4)     pb_dec_if.dec_submessage(_1, _2, _3, _4)
+#define PB_DECODE_FIXED_LENGTH_BYTES(_1, _2, _3) pb_dec_if.dec_fixed_length_bytes(_1, _2, _3)
+#define PB_SKIP_FIELD(_1, _2)                    pb_dec_if.skip_field(_1, _2)
+#define PB_ALLOC_FIELD(_1, _2, _3, _4)           pb_dec_if.alloc_field(_1, _2, _3, _4)
+#define PB_FREE_FIELD(_1)                        pb_dec_if.free_field(_1)
+
+#else
+
+#define PB_ISTREAM_FROM_BUFFER(_1, _2)           pb_istream_from_buffer(_1, _2)
+#define PB_MAKE_STRING_SUBSTREAM(_1, _2)         pb_make_string_substream(_1, _2)
+#define PB_CLOSE_STRING_SUBSTREAM(_1, _2)        pb_close_string_substream(_1, _2)
+#define PB_DECODE_CALLBACK_FIELD(_1, _2, _3)     decode_callback_field(_1, _2, _3)
+#define PB_DECODE_TAG(_1, _2, _3, _4)            pb_decode_tag(_1, _2, _3, _4)
+#define PB_DECODE_VARINT32(_1, _2)               pb_decode_varint32(_1, _2)
+#define PB_DECODE_BOOL(_1, _2)                   pb_dec_bool(_1, _2)
+#define PB_DECODE_VARINT(_1, _2, _3)             pb_dec_varint(_1, _2, _3)
+#define PB_DECODE_UVARINT(_1, _2, _3)            pb_dec_uvarint(_1, _2, _3)
+#define PB_DECODE_SVARINT(_1, _2, _3)            pb_dec_svarint(_1, _2, _3)
+#define PB_DECODE_FIXED32(_1, _2)                pb_dec_fixed32(_1, _2)
+#define PB_DECODE_FIXED64(_1, _2, _3)            pb_dec_fixed64(_1, _2, _3)
+#define PB_DECODE_BYTES(_1, _2, _3)              pb_dec_bytes(_1, _2, _3)
+#define PB_DECODE_STRING(_1, _2, _3)             pb_dec_string(_1, _2, _3)
+#define PB_DECODE_SUBMESSAGE(_1, _2, _3, _4)     pb_dec_submessage(_1, _2, _3, _4)
+#define PB_DECODE_FIXED_LENGTH_BYTES(_1, _2, _3) pb_dec_fixed_length_bytes(_1, _2, _3)
+#define PB_SKIP_FIELD(_1, _2)                    pb_skip_field(_1, _2)
+#define PB_ALLOC_FIELD(_1, _2, _3, _4)           pb_alloc_field(_1, _2, _3, _4)
+#define PB_FREE_FIELD(_1)                        pb_free_field(_1)
+
+#endif
 
 /* -- FIELD HELPERS --------------------------------------------------------------------------------------------------------------------- */
 
@@ -255,16 +307,13 @@
 
 #define PB_FREE(ptr)                                                                                                                       \
     do {                                                                                                                                   \
-        pb->free_field(ptr);                                                                                                               \
+        PB_FREE_FIELD(ptr);                                                                                                                \
         ptr = NULL;                                                                                                                        \
     } while (0)
 
 #define PB_REALLOC(ptr, num, size)                                                                                                         \
     do {                                                                                                                                   \
-        if (!pb->alloc_field)                                                                                                              \
-            PB_SET_ERROR(stream, "no malloc support");                                                                                     \
-                                                                                                                                           \
-        if (!pb->alloc_field(stream, &(ptr), size, num))                                                                                   \
+        if (!PB_ALLOC_FIELD(stream, &(ptr), size, num))                                                                                    \
             return false;                                                                                                                  \
     } while (0)
 
@@ -291,7 +340,7 @@
     {                                                                                                                                      \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
                                                                                                                                            \
-        field_desc->release(pb, data, 0, 0);                                                                                               \
+        field_desc->release(data, 0, 0);                                                                                                   \
     }
 
 #define PB_RELEASE_VALUE_LTYPE_MESSAGE(structname, atype, htype, ltype, fieldname, tag, data)                                              \
@@ -299,7 +348,7 @@
     {                                                                                                                                      \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
                                                                                                                                            \
-        field_desc->release(pb, data, 0, 0);                                                                                               \
+        field_desc->release(data, 0, 0);                                                                                                   \
     }
 
 #define PB_RELEASE_VALUE_LTYPE_INT64(structname, atype, htype, ltype, fieldname, tag, data)
@@ -459,7 +508,7 @@
             const pb_msgdesc_t *ext_desc = (const pb_msgdesc_t *)ext->type->arg;                                                           \
                                                                                                                                            \
             if (t##ag == 0 || t##ag == ext_desc->largest_tag)                                                                              \
-                ext_desc->release(pb, &ext->dest, PB_DECODE_ISEXTENSION, ext_desc->largest_tag);                                           \
+                ext_desc->release(&ext->dest, PB_DECODE_ISEXTENSION, ext_desc->largest_tag);                                               \
                                                                                                                                            \
             ext = ext->next;                                                                                                               \
         }                                                                                                                                  \
@@ -484,7 +533,7 @@
     }
 
 #define PB_RELEASE_GENERATE(msgname, structname)                                                                                           \
-    static void pb_release_ ## structname(pb_decode_interface_t *pb, void *data, unsigned flags, uint32_t tag)                             \
+    static void pb_release_ ## structname(void *data, unsigned flags, uint32_t tag)                                                        \
     {                                                                                                                                      \
         structname *msg = (structname *)data;                                                                                              \
                                                                                                                                            \
@@ -493,7 +542,6 @@
             msg = (structname *)*(void **)data;                                                                                            \
                                                                                                                                            \
         /* mark unused in case FIELDLIST is empty */                                                                                       \
-        PB_UNUSED(pb);                                                                                                                     \
         PB_UNUSED(data);                                                                                                                   \
         PB_UNUSED(flags);                                                                                                                  \
         PB_UNUSED(tag);                                                                                                                    \
@@ -527,37 +575,37 @@
 
 #define PB_DECODE_VALUE_FIXED64(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        if (!pb->decode_fixed64(stream, data, sizeof(*data)))                                                                              \
+        if (!PB_DECODE_FIXED64(stream, data, sizeof(*data)))                                                                               \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_FIXED32(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        if (!pb->decode_fixed32(stream, data))                                                                                             \
+        if (!PB_DECODE_FIXED32(stream, data))                                                                                              \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_SVARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        if (!pb->decode_svarint(stream, data, sizeof(*data)))                                                                              \
+        if (!PB_DECODE_SVARINT(stream, data, sizeof(*data)))                                                                               \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_UVARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                     \
     do {                                                                                                                                   \
-        if (!pb->decode_uvarint(stream, data, sizeof(*data)))                                                                              \
+        if (!PB_DECODE_UVARINT(stream, data, sizeof(*data)))                                                                               \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_VARINT(structname, atype, htype, ltype, fieldname, tag, data)                                                      \
     do {                                                                                                                                   \
-        if (!pb->decode_varint(stream, data, sizeof(*data)))                                                                               \
+        if (!PB_DECODE_VARINT(stream, data, sizeof(*data)))                                                                                \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_FIXED_LENGTH_BYTES(structname, atype, htype, ltype, fieldname, tag, data)                                    \
     do {                                                                                                                                   \
-        if (!pb->decode_fixed_length_bytes(stream, data, sizeof(data)))                                                                    \
+        if (!PB_DECODE_FIXED_LENGTH_BYTES(stream, data, sizeof(data)))                                                                     \
             return false;                                                                                                                  \
     } while (0)
 
@@ -569,13 +617,13 @@
 
 #define PB_DECODE_VALUE_LTYPE_STRING_ATYPE_POINTER(structname, atype, htype, ltype, fieldname, tag, data)                                  \
     do {                                                                                                                                   \
-        if (!pb->decode_string(stream, &data, 0))                                                                                          \
+        if (!PB_DECODE_STRING(stream, &data, 0))                                                                                           \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_STRING_ATYPE_STATIC(structname, atype, htype, ltype, fieldname, tag, data)                                   \
     do {                                                                                                                                   \
-        if (!pb->decode_string(stream, data, sizeof(data)))                                                                                \
+        if (!PB_DECODE_STRING(stream, data, sizeof(data)))                                                                                 \
             return false;                                                                                                                  \
     } while (0)
 
@@ -604,7 +652,7 @@
                                                                                                                                            \
         cb = &PB_CBNAME(structname, fieldname, htype);                                                                                     \
                                                                                                                                            \
-        if (!pb->decode_submessage(stream, &iter, cb, subflags))                                                                           \
+        if (!PB_DECODE_SUBMESSAGE(stream, &iter, cb, subflags))                                                                            \
             return false;                                                                                                                  \
     } while (0)
 
@@ -615,7 +663,7 @@
         iter.submsg_desc = PB_MSGDESC(structname, fieldname, htype);                                                                       \
         iter.pData = data;                                                                                                                 \
                                                                                                                                            \
-        if (!pb->decode_submessage(stream, &iter, NULL, subflags))                                                                         \
+        if (!PB_DECODE_SUBMESSAGE(stream, &iter, NULL, subflags))                                                                          \
             return false;                                                                                                                  \
     } while (0)
 
@@ -648,13 +696,13 @@
 
 #define PB_DECODE_VALUE_LTYPE_BYTES_ATYPE_POINTER(structname, atype, htype, ltype, fieldname, tag, data)                                   \
     do {                                                                                                                                   \
-        if (!pb->decode_bytes(stream, &data, 0))                                                                                           \
+        if (!PB_DECODE_BYTES(stream, &data, 0))                                                                                            \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_BYTES_ATYPE_STATIC(structname, atype, htype, ltype, fieldname, tag, data)                                    \
     do {                                                                                                                                   \
-        if (!pb->decode_bytes(stream, data, sizeof(*data)))                                                                                \
+        if (!PB_DECODE_BYTES(stream, data, sizeof(*data)))                                                                                 \
             return false;                                                                                                                  \
     } while (0)
 
@@ -663,7 +711,7 @@
 
 #define PB_DECODE_VALUE_LTYPE_BOOL(structname, atype, htype, ltype, fieldname, tag, data)                                                  \
     do {                                                                                                                                   \
-        if (!pb->decode_bool(stream, data))                                                                                                \
+        if (!PB_DECODE_BOOL(stream, data))                                                                                                 \
             return false;                                                                                                                  \
     } while (0)
 
@@ -691,12 +739,12 @@
             if (!pb_field_iter_begin(&iter, desc, msg) || !pb_field_iter_find(&iter, tag))                                                 \
                 PB_RETURN_ERROR(stream, "failed to resolve field tag");                                                                    \
                                                                                                                                            \
-            if (!pb->decode_callback_field(stream, wire_type, &iter))                                                                      \
+            if (!PB_DECODE_CALLBACK_FIELD(stream, wire_type, &iter))                                                                       \
                 return false;                                                                                                              \
         }                                                                                                                                  \
         else                                                                                                                               \
         {                                                                                                                                  \
-            if (!pb->skip_field(stream, wire_type))                                                                                        \
+            if (!PB_SKIP_FIELD(stream, wire_type))                                                                                         \
                 return false;                                                                                                              \
         }                                                                                                                                  \
     } while (0)
@@ -704,7 +752,7 @@
 #define PB_DECODE_ATYPE_CALLBACK_HTYPE_ONEOF(structname, atype, htype, ltype, fieldname, tag, field, data, size)                           \
     do {                                                                                                                                   \
         if (size && size != tag)                                                                                                           \
-            pb_release_ ## structname(pb, msg, 0, size);                                                                                   \
+            pb_release_ ## structname(msg, 0, size);                                                                                       \
                                                                                                                                            \
         size = tag;                                                                                                                        \
                                                                                                                                            \
@@ -757,7 +805,7 @@
             size_t end_bytes_left;                                                                                                         \
             uint32_t len;                                                                                                                  \
                                                                                                                                            \
-            if (!pb->decode_varint32(stream, &len))                                                                                        \
+            if (!PB_DECODE_VARINT32(stream, &len))                                                                                         \
                 return false;                                                                                                              \
                                                                                                                                            \
             end_bytes_left = stream->bytes_left - (size_t)len;                                                                             \
@@ -807,7 +855,7 @@
     do {                                                                                                                                   \
         if (size && size != tag)                                                                                                           \
         {                                                                                                                                  \
-            pb_release_ ## structname(pb, msg, 0, size);                                                                                   \
+            pb_release_ ## structname(msg, 0, size);                                                                                       \
                                                                                                                                            \
             /* make sure there's no static data leftover that will produce a garbage pointer */                                            \
             data = NULL;                                                                                                                   \
@@ -864,12 +912,7 @@
     } while (0)
 
 #define PB_DECODE_ATYPE_POINTER(structname, atype, htype, ltype, fieldname, tag, field, data, size)                                        \
-    do {                                                                                                                                   \
-        if (!pb->alloc_field || !pb->free_field)                                                                                           \
-            PB_RETURN_ERROR(stream, "no malloc support");                                                                                  \
-                                                                                                                                           \
-        PB_DECODE_ATYPE_POINTER_ ## htype(structname, atype, htype, ltype, fieldname, tag, field, data, size);                             \
-    } while (0)
+    PB_DECODE_ATYPE_POINTER_ ## htype(structname, atype, htype, ltype, fieldname, tag, field, data, size)
 
 /* -- DECODE STATIC FIELDS -------------------------------------------------------------------------------------------------------------- */
 
@@ -880,7 +923,7 @@
             size_t end_bytes_left;                                                                                                         \
             uint32_t len;                                                                                                                  \
                                                                                                                                            \
-            if (!pb->decode_varint32(stream, &len))                                                                                        \
+            if (!PB_DECODE_VARINT32(stream, &len))                                                                                         \
                 return false;                                                                                                              \
                                                                                                                                            \
             end_bytes_left = stream->bytes_left - (size_t)len;                                                                             \
@@ -916,7 +959,7 @@
 #define PB_DECODE_ATYPE_STATIC_HTYPE_ONEOF(structname, atype, htype, ltype, fieldname, tag, field, data, size)                             \
     do {                                                                                                                                   \
         if (size && size != tag)                                                                                                           \
-            pb_release_ ## structname(pb, msg, 0, size);                                                                                   \
+            pb_release_ ## structname(msg, 0, size);                                                                                       \
                                                                                                                                            \
         if (!size)                                                                                                                         \
         {                                                                                                                                  \
@@ -1038,7 +1081,7 @@
                 if (ext->type->decode)                                                                                                     \
                     status = ext->type->decode(stream, ext, t##ag, wire_type);                                                             \
                 else                                                                                                                       \
-                    status = ext_desc->decode(pb, stream, &ext->dest, subflags | PB_DECODE_ISEXTENSION, t##ag, wire_type);                 \
+                    status = ext_desc->decode(stream, &ext->dest, subflags | PB_DECODE_ISEXTENSION, t##ag, wire_type);                     \
                                                                                                                                            \
                 ext->found = true;                                                                                                         \
                                                                                                                                            \
@@ -1054,7 +1097,7 @@
         /* skip if unhandled */                                                                                                            \
         if (!ext)                                                                                                                          \
         {                                                                                                                                  \
-            if (!pb->skip_field(stream, wire_type))                                                                                        \
+            if (!PB_SKIP_FIELD(stream, wire_type))                                                                                         \
                 return false;                                                                                                              \
         }                                                                                                                                  \
     }
@@ -1101,8 +1144,7 @@
     PB_EMIT_REQUIRED_FIELD_ENUM_ ## htype(structname, atype, htype, ltype, fieldname, tag)
 
 #define PB_DECODE_GENERATE(msgname, structname)                                                                                            \
-    static bool pb_decode_inner_ ## structname(pb_decode_interface_t *pb, pb_istream_t *stream, void *data,                                \
-        unsigned flags, uint32_t tag, pb_wire_type_t wire_type)                                                                            \
+    static bool pb_decode_inner_ ## structname(pb_istream_t *stream, void *data, unsigned flags, uint32_t tag, pb_wire_type_t wire_type)   \
     {                                                                                                                                      \
         const unsigned subflags = PB_DECODE_ISDECODE | PB_DECODE_NOINIT;                                                                   \
         const pb_msgdesc_t *desc = &(structname ## _msg);                                                                                  \
@@ -1141,14 +1183,14 @@
         bool eof = true;                                                                                                                   \
                                                                                                                                            \
         if ((flags & PB_DECODE_NOINIT) == 0)                                                                                               \
-            if (!pb_init_ ## structname(pb, data, flags))                                                                                  \
+            if (!pb_init_ ## structname(data, flags))                                                                                      \
                 return false;                                                                                                              \
                                                                                                                                            \
         while (1)                                                                                                                          \
         {                                                                                                                                  \
             if (!decode_single)                                                                                                            \
             {                                                                                                                              \
-                if (!pb->decode_tag(stream, &wire_type, &tag, &eof))                                                                       \
+                if (!PB_DECODE_TAG(stream, &wire_type, &tag, &eof))                                                                        \
                     break;                                                                                                                 \
             }                                                                                                                              \
                                                                                                                                            \
@@ -1166,7 +1208,7 @@
             msgname ## _FIELDLIST(PB_DECODE_FIELD_ONLY_EXTENSIONS, structname)                                                             \
             else                                                                                                                           \
             {                                                                                                                              \
-                if (!pb->skip_field(stream, wire_type))                                                                                    \
+                if (!PB_SKIP_FIELD(stream, wire_type))                                                                                     \
                     return false;                                                                                                          \
             }                                                                                                                              \
                                                                                                                                            \
@@ -1182,7 +1224,7 @@
         return eof;                                                                                                                        \
     }                                                                                                                                      \
                                                                                                                                            \
-    static bool pb_decode_ ## structname(pb_decode_interface_t *pb, pb_istream_t *stream, void *data,                                      \
+    static bool pb_decode_ ## structname(pb_istream_t *stream, void *data,                                                                 \
         unsigned flags, uint32_t tag, pb_wire_type_t wire_type)                                                                            \
     {                                                                                                                                      \
         pb_istream_t *decstream = stream;                                                                                                  \
@@ -1191,20 +1233,20 @@
                                                                                                                                            \
         if (flags & PB_DECODE_DELIMITED)                                                                                                   \
         {                                                                                                                                  \
-            if (!pb->make_string_substream(stream, &substream))                                                                            \
+            if (!PB_MAKE_STRING_SUBSTREAM(stream, &substream))                                                                             \
                 return false;                                                                                                              \
                                                                                                                                            \
             decstream = &substream;                                                                                                        \
         }                                                                                                                                  \
                                                                                                                                            \
-        status = pb_decode_inner_ ## structname(pb, decstream, data, flags, tag, wire_type);                                               \
+        status = pb_decode_inner_ ## structname(decstream, data, flags, tag, wire_type);                                                   \
                                                                                                                                            \
         if (!status)                                                                                                                       \
-            pb_release_ ## structname(pb, data, flags, 0);                                                                                 \
+            pb_release_ ## structname(data, flags, 0);                                                                                     \
                                                                                                                                            \
         if (flags & PB_DECODE_DELIMITED)                                                                                                   \
         {                                                                                                                                  \
-            if (!pb->close_string_substream(stream, &substream))                                                                           \
+            if (!PB_CLOSE_STRING_SUBSTREAM(stream, &substream))                                                                            \
                 return false;                                                                                                              \
         }                                                                                                                                  \
                                                                                                                                            \
@@ -1251,7 +1293,7 @@
     do {                                                                                                                                   \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
                                                                                                                                            \
-        if (!field_desc->init(pb, data, subflags))                                                                                         \
+        if (!field_desc->init(data, subflags))                                                                                             \
             return false;                                                                                                                  \
     } while (0)
 
@@ -1259,7 +1301,7 @@
     do {                                                                                                                                   \
         const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
                                                                                                                                            \
-        if (!field_desc->init(pb, data, subflags))                                                                                         \
+        if (!field_desc->init(data, subflags))                                                                                             \
             return false;                                                                                                                  \
     } while (0)
 
@@ -1389,7 +1431,7 @@
         {                                                                                                                                  \
             const pb_msgdesc_t *ext_desc = (const pb_msgdesc_t *)ext->type->arg;                                                           \
                                                                                                                                            \
-            if (!ext_desc->init(pb, &ext->dest, subflags | PB_DECODE_ISEXTENSION))                                                         \
+            if (!ext_desc->init(&ext->dest, subflags | PB_DECODE_ISEXTENSION))                                                             \
                 return false;                                                                                                              \
                                                                                                                                            \
             ext->found = false;                                                                                                            \
@@ -1414,7 +1456,7 @@
     PB_INIT_FIELD_EXPAND(structname, ATYPE_ ## atype, HTYPE_ ## htype, LTYPE_ ## ltype, fieldname, tag);
 
 #define PB_INIT_GENERATE(msgname, structname)                                                                                              \
-    static bool pb_init_ ## structname(pb_decode_interface_t *pb, void *data, unsigned flags)                                              \
+    static bool pb_init_ ## structname(void *data, unsigned flags)                                                                         \
     {                                                                                                                                      \
         const unsigned subflags = PB_DECODE_ISINIT | PB_DECODE_NOINIT;                                                                     \
         structname *msg = (structname *)data;                                                                                              \
@@ -1432,16 +1474,16 @@
             return true;                                                                                                                   \
                                                                                                                                            \
         /* initialize fields to user-defined default values */                                                                             \
-        pb_istream_t stream = pb->istream_from_buffer(msgname ## _DEFAULT, (size_t)-1);                                                    \
-        return pb_decode_ ## structname(pb, &stream, msg, subflags | PB_DECODE_NULLTERMINATED, 0, (pb_wire_type_t)0);                      \
+        pb_istream_t stream = PB_ISTREAM_FROM_BUFFER(msgname ## _DEFAULT, (size_t)-1);                                                     \
+        return pb_decode_ ## structname(&stream, msg, subflags | PB_DECODE_NULLTERMINATED, 0, (pb_wire_type_t)0);                          \
     }
 
 /* -- ENTRYPOINT ------------------------------------------------------------------------------------------------------------------------ */
 
 #define PB_BIND_DECODE_FAST(msgname, structname)                                                                                           \
-    static bool pb_init_ ## structname(pb_decode_interface_t *, void *, unsigned);                                                         \
-    static bool pb_decode_ ## structname(pb_decode_interface_t *, pb_istream_t *, void *, unsigned, uint32_t, pb_wire_type_t);             \
-    static void pb_release_ ## structname(pb_decode_interface_t *, void *, unsigned, uint32_t);                                            \
+    static bool pb_init_ ## structname(void *, unsigned);                                                                                  \
+    static bool pb_decode_ ## structname(pb_istream_t *, void *, unsigned, uint32_t, pb_wire_type_t);                                      \
+    static void pb_release_ ## structname(void *, unsigned, uint32_t);                                                                     \
                                                                                                                                            \
     PB_INIT_GENERATE(msgname, structname)                                                                                                  \
     PB_DECODE_GENERATE(msgname, structname)                                                                                                \

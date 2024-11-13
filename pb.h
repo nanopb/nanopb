@@ -337,7 +337,6 @@ typedef pb_byte_t pb_type_t;
 typedef struct pb_istream_s pb_istream_t;
 typedef struct pb_ostream_s pb_ostream_t;
 typedef struct pb_field_iter_s pb_field_iter_t;
-typedef struct pb_decode_interface_s pb_decode_interface_t;
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
@@ -360,9 +359,9 @@ struct pb_msgdesc_s {
     bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
 
 #ifdef PB_DECODE_FAST
-    bool (*init)(pb_decode_interface_t *, void *, unsigned int);
-    bool (*decode)(pb_decode_interface_t *, pb_istream_t *, void *, unsigned int, uint32_t, pb_wire_type_t);
-    void (*release)(pb_decode_interface_t *, void *, unsigned int, uint32_t);
+    bool (*init)(void *, unsigned int);
+    bool (*decode)(pb_istream_t *, void *, unsigned int, uint32_t, pb_wire_type_t);
+    void (*release)(void *, unsigned int, uint32_t);
 #endif
 
     pb_size_t field_count;
