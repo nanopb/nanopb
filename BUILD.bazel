@@ -1,6 +1,6 @@
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@nanopb_pypi//:requirements.bzl", "requirement")
-load("@protobuf//:protobuf.bzl", "py_proto_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 # Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
 # load("@python_3_11//:defs.bzl", "py_binary")
@@ -86,20 +86,8 @@ proto_library(
 )
 
 py_proto_library(
-    name = "descriptor_py_proto",
-    srcs = [
-        "generator/proto/google/protobuf/descriptor.proto",
-    ],
-    include = "generator/proto",
-)
-
-py_proto_library(
     name = "nanopb_py_proto",
-    srcs = [
-        "generator/proto/nanopb.proto",
-    ],
-    include = "generator/proto",
-    deps = [":descriptor_py_proto"],
+    deps = [":nanopb_proto"],
 )
 
 cc_nanopb_proto_library(
