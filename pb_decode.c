@@ -1478,7 +1478,7 @@ static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_
     else if (value.s64 < 0)
         overflow = ~overflow;
 
-    if (overflow >> ((field->data_size << 3) - 1))
+    if (overflow >> (pb_size_t)((field->data_size << 3) - 1))
         PB_RETURN_ERROR(stream, "integer too large");
 
     memcpy(field->pData, &value.u64, field->data_size);
