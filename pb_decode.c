@@ -1010,6 +1010,10 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 
 static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
+    /* If the message contains extension fields, the extension handlers
+     * are called when tag number is >= extension_range_start. This precheck
+     * is just for speed, and the handlers will check for precise match.
+     */
     uint32_t extension_range_start = 0;
     pb_extension_t *extensions = NULL;
 
@@ -1021,8 +1025,16 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
     pb_size_t fixed_count_size = 0;
     pb_size_t fixed_count_total_size = 0;
 
+    /* Tag and wire type of next field from the input stream */
+    uint32_t tag;
+    pb_wire_type_t wire_type;
+    bool eof;
+
+    /* Track presence of required fields */
     pb_fields_seen_t fields_seen = {{0, 0}};
     const uint32_t allbits = ~(uint32_t)0;
+
+    /* Descriptor for the structure field matching the tag decoded from stream */
     pb_field_iter_t iter;
 
     if (pb_field_iter_begin(&iter, fields, dest_struct))
@@ -1034,24 +1046,13 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
         }
     }
 
-    while (1)
+    while (pb_decode_tag(stream, &wire_type, &tag, &eof))
     {
-        uint32_t tag;
-        pb_wire_type_t wire_type;
-        bool eof;
-
-        if (!pb_decode_tag(stream, &wire_type, &tag, &eof))
-        {
-            if (eof)
-                break;
-            else
-                return false;
-        }
-
         if (tag == 0)
         {
           if (flags & PB_DECODE_NULLTERMINATED)
           {
+            eof = true;
             break;
           }
           else
@@ -1130,6 +1131,12 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
         if (!decode_field(stream, wire_type, &iter))
             return false;
+    }
+
+    if (!eof)
+    {
+        /* pb_decode_tag() returned error before end of stream */
+        return false;
     }
 
     /* Check that all elements of the last decoded fixed count field were present. */
