@@ -1246,6 +1246,8 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
 bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
+    pb_istream_t *decstream = stream;
+    pb_istream_t substream;
     bool status;
 
 #ifdef PB_DECODE_FAST
@@ -1258,27 +1260,25 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
     }
 #endif
 
-    if ((flags & PB_DECODE_DELIMITED) == 0)
+    if (flags & PB_DECODE_DELIMITED)
     {
-      status = pb_decode_inner(stream, fields, dest_struct, flags);
+        if (!pb_make_string_substream(stream, &substream))
+            return false;
+
+        decstream = &substream;
     }
-    else
+
+    status = pb_decode_inner(decstream, fields, dest_struct, flags);
+
+    if (flags & PB_DECODE_DELIMITED)
     {
-      pb_istream_t substream;
-      if (!pb_make_string_substream(stream, &substream))
-        return false;
-
-      status = pb_decode_inner(&substream, fields, dest_struct, flags);
-
-      if (!pb_close_string_substream(stream, &substream))
-        status = false;
+        if (!pb_close_string_substream(stream, &substream))
+            status = false;
     }
-    
-#ifdef PB_ENABLE_MALLOC
+
     if (!status)
         pb_release(fields, dest_struct);
-#endif
-    
+
     return status;
 }
 

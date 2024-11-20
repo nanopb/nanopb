@@ -1235,14 +1235,14 @@ extern struct pb_decode_interface_s pb_dec_if;
                                                                                                                                            \
         status = pb_decode_inner_ ## structname(decstream, data, flags, tag, wire_type);                                                   \
                                                                                                                                            \
-        if (!status)                                                                                                                       \
-            pb_release_ ## structname(data, flags, 0);                                                                                     \
-                                                                                                                                           \
         if (flags & PB_DECODE_DELIMITED)                                                                                                   \
         {                                                                                                                                  \
             if (!PB_CLOSE_STRING_SUBSTREAM(stream, &substream))                                                                            \
-                return false;                                                                                                              \
+                status = false;                                                                                                            \
         }                                                                                                                                  \
+                                                                                                                                           \
+        if (!status)                                                                                                                       \
+            pb_release_ ## structname(data, flags, 0);                                                                                     \
                                                                                                                                            \
         return status;                                                                                                                     \
     }
