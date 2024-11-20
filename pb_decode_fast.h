@@ -1066,9 +1066,9 @@ extern struct pb_decode_interface_s pb_dec_if;
 #define PB_PRE_DECODE_HTYPE_REQUIRED(structname, atype, htype, ltype, fieldname, tag, field, data, size)
 
 #define PB_DECODE_FIELD_EXTENSION(structname, atype, htype, ltype, fieldname, tag, field, data, size)                                      \
-    else if (t##ag >= tag)                                                                                                                 \
+    if (t##ag >= tag)                                                                                                                      \
     {                                                                                                                                      \
-        pb_extension_t *ext = *data;                                                                                                       \
+        ext = *data;                                                                                                                       \
                                                                                                                                            \
         while (ext)                                                                                                                        \
         {                                                                                                                                  \
@@ -1093,22 +1093,14 @@ extern struct pb_decode_interface_s pb_dec_if;
                                                                                                                                            \
             ext = ext->next;                                                                                                               \
         }                                                                                                                                  \
-                                                                                                                                           \
-        /* skip if unhandled */                                                                                                            \
-        if (!ext)                                                                                                                          \
-        {                                                                                                                                  \
-            if (!PB_SKIP_FIELD(stream, wire_type))                                                                                         \
-                return false;                                                                                                              \
-        }                                                                                                                                  \
     }
 
 #define PB_DECODE_FIELD_DEFAULT(structname, atype, htype, ltype, fieldname, tag, field, data, size)                                        \
-    else if (t##ag == tag)                                                                                                                 \
-    {                                                                                                                                      \
+    case tag: {                                                                                                                            \
         PB_PRE_DECODE_ ## htype(structname, atype, htype, ltype, fieldname, tag, field, data, size);                                       \
         PB_DECODE_ ## atype(structname, atype, htype, ltype, fieldname, tag, field, data, size);                                           \
         PB_POST_DECODE_ ## htype(structname, atype, htype, ltype, fieldname, tag, field, data, size);                                      \
-    }
+    } break;
 
 #define PB_DECODE_FIELD_EXPAND(structname, atype, htype, ltype, fieldname, tag)                                                            \
     PB_SELECT(PB_IS_EXTENSION_ ## ltype, PB_DECODE_FIELD_EXTENSION, PB_DECODE_FIELD_DEFAULT)(                                              \
@@ -1180,41 +1172,43 @@ extern struct pb_decode_interface_s pb_dec_if;
                                                                                                                                            \
         /* current field state */                                                                                                          \
         bool decode_single = tag != 0;                                                                                                     \
-        bool eof = true;                                                                                                                   \
+        bool eof = false;                                                                                                                  \
                                                                                                                                            \
         if ((flags & PB_DECODE_NOINIT) == 0)                                                                                               \
             if (!pb_init_ ## structname(data, flags))                                                                                      \
                 return false;                                                                                                              \
                                                                                                                                            \
-        while (1)                                                                                                                          \
+        while (!eof)                                                                                                                       \
         {                                                                                                                                  \
-            if (!decode_single)                                                                                                            \
+            if (decode_single)                                                                                                             \
+            {                                                                                                                              \
+                eof = true;                                                                                                                \
+            }                                                                                                                              \
+            else                                                                                                                           \
             {                                                                                                                              \
                 if (!PB_DECODE_TAG(stream, &wire_type, &tag, &eof))                                                                        \
                     break;                                                                                                                 \
             }                                                                                                                              \
                                                                                                                                            \
-            if (tag == 0)                                                                                                                  \
+            switch (tag)                                                                                                                   \
             {                                                                                                                              \
-                if (flags & PB_DECODE_NULLTERMINATED)                                                                                      \
-                {                                                                                                                          \
+                case 0: {                                                                                                                  \
+                    if (!(flags & PB_DECODE_NULLTERMINATED))                                                                               \
+                        PB_RETURN_ERROR(stream, "zero tag");                                                                               \
+                                                                                                                                           \
                     eof = true;                                                                                                            \
-                    break;                                                                                                                 \
-                }                                                                                                                          \
+                } break;                                                                                                                   \
                                                                                                                                            \
-                PB_RETURN_ERROR(stream, "zero tag");                                                                                       \
-            }                                                                                                                              \
-            msgname ## _FIELDLIST(PB_DECODE_FIELD_NO_EXTENSIONS, structname)                                                               \
-            msgname ## _FIELDLIST(PB_DECODE_FIELD_ONLY_EXTENSIONS, structname)                                                             \
-            else                                                                                                                           \
-            {                                                                                                                              \
-                if (!PB_SKIP_FIELD(stream, wire_type))                                                                                     \
-                    return false;                                                                                                          \
-            }                                                                                                                              \
+                msgname ## _FIELDLIST(PB_DECODE_FIELD_NO_EXTENSIONS, structname)                                                           \
                                                                                                                                            \
-            if (decode_single)                                                                                                             \
-            {                                                                                                                              \
-                break;                                                                                                                     \
+                default: {                                                                                                                 \
+                    pb_extension_t *ext = NULL;                                                                                            \
+                                                                                                                                           \
+                    msgname ## _FIELDLIST(PB_DECODE_FIELD_ONLY_EXTENSIONS, structname)                                                     \
+                                                                                                                                           \
+                    if (!ext && !PB_SKIP_FIELD(stream, wire_type))                                                                         \
+                        return false;                                                                                                      \
+                } break;                                                                                                                   \
             }                                                                                                                              \
         }                                                                                                                                  \
                                                                                                                                            \
