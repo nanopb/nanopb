@@ -83,7 +83,7 @@ struct pb_decode_interface_s
     bool (*dec_fixed64)(pb_istream_t *, void *, size_t);
     bool (*dec_bytes)(pb_istream_t *, void *, size_t);
     bool (*dec_string)(pb_istream_t *, void *, size_t);
-    bool (*dec_submessage)(pb_istream_t *, const pb_field_iter_t *, pb_callback_t *, unsigned);
+    bool (*dec_submessage)(pb_istream_t *, const pb_field_iter_t *, unsigned);
     bool (*dec_fixed_length_bytes)(pb_istream_t *, void *, size_t);
     bool (*skip_field)(pb_istream_t *, pb_wire_type_t);
 };
@@ -252,7 +252,7 @@ bool pb_dec_fixed32(pb_istream_t *stream, void *dest);
 bool pb_dec_fixed64(pb_istream_t *stream, void *dest, size_t size);
 bool pb_dec_bytes(pb_istream_t *stream, void *dest, size_t capacity);
 bool pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity);
-bool pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags);
+bool pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, unsigned flags);
 bool pb_dec_fixed_length_bytes(pb_istream_t *stream, void *dest, size_t capacity);
 
 #endif

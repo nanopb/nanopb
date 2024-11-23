@@ -33,7 +33,7 @@ extern struct pb_decode_interface_s pb_dec_if;
 #define PB_DECODE_FIXED64(_1, _2, _3)            pb_dec_if.dec_fixed64(_1, _2, _3)
 #define PB_DECODE_BYTES(_1, _2, _3)              pb_dec_if.dec_bytes(_1, _2, _3)
 #define PB_DECODE_STRING(_1, _2, _3)             pb_dec_if.dec_string(_1, _2, _3)
-#define PB_DECODE_SUBMESSAGE(_1, _2, _3, _4)     pb_dec_if.dec_submessage(_1, _2, _3, _4)
+#define PB_DECODE_SUBMESSAGE(_1, _2, _3)         pb_dec_if.dec_submessage(_1, _2, _3)
 #define PB_DECODE_FIXED_LENGTH_BYTES(_1, _2, _3) pb_dec_if.dec_fixed_length_bytes(_1, _2, _3)
 #define PB_SKIP_FIELD(_1, _2)                    pb_dec_if.skip_field(_1, _2)
 #define PB_ALLOC_FIELD(_1, _2, _3, _4)           pb_dec_if.alloc_field(_1, _2, _3, _4)
@@ -55,7 +55,7 @@ extern struct pb_decode_interface_s pb_dec_if;
 #define PB_DECODE_FIXED64(_1, _2, _3)            pb_dec_fixed64(_1, _2, _3)
 #define PB_DECODE_BYTES(_1, _2, _3)              pb_dec_bytes(_1, _2, _3)
 #define PB_DECODE_STRING(_1, _2, _3)             pb_dec_string(_1, _2, _3)
-#define PB_DECODE_SUBMESSAGE(_1, _2, _3, _4)     pb_dec_submessage(_1, _2, _3, _4)
+#define PB_DECODE_SUBMESSAGE(_1, _2, _3)         pb_dec_submessage(_1, _2, _3)
 #define PB_DECODE_FIXED_LENGTH_BYTES(_1, _2, _3) pb_dec_fixed_length_bytes(_1, _2, _3)
 #define PB_SKIP_FIELD(_1, _2)                    pb_skip_field(_1, _2)
 #define PB_ALLOC_FIELD(_1, _2, _3, _4)           pb_alloc_field(_1, _2, _3, _4)
@@ -197,15 +197,6 @@ extern struct pb_decode_interface_s pb_dec_if;
 #define PB_FIELDNAME_HTYPE_OPTIONAL(fieldname)                               fieldname
 #define PB_FIELDNAME_HTYPE_REQUIRED(fieldname)                               fieldname
 #define PB_FIELDNAME(structname, fieldname, htype)                           msg->PB_FIELDNAME_ ## htype(fieldname)
-
-#define PB_CBNAME_HTYPE_ONEOF1(unionname, membername, fullname)              unionname
-#define PB_CBNAME_HTYPE_ONEOF(fieldname)                                     PB_CBNAME_HTYPE_ONEOF1 fieldname
-#define PB_CBNAME_HTYPE_FIXARRAY(fieldname)                                  fieldname
-#define PB_CBNAME_HTYPE_REPEATED(fieldname)                                  fieldname
-#define PB_CBNAME_HTYPE_SINGULAR(fieldname)                                  fieldname
-#define PB_CBNAME_HTYPE_OPTIONAL(fieldname)                                  fieldname
-#define PB_CBNAME_HTYPE_REQUIRED(fieldname)                                  fieldname
-#define PB_CBNAME(structname, fieldname, htype)                              PB_CONCAT(msg->cb_, PB_CBNAME_ ## htype(fieldname))
 
 #define PB_IS_VARLEN_LTYPE_FIXED_LENGTH_BYTES                                0
 #define PB_IS_VARLEN_LTYPE_EXTENSION                                         0
@@ -645,25 +636,19 @@ extern struct pb_decode_interface_s pb_dec_if;
 #define PB_DECODE_VALUE_LTYPE_MSG_W_CB(structname, atype, htype, ltype, fieldname, tag, data)                                              \
     do {                                                                                                                                   \
         pb_field_iter_t iter;                                                                                                              \
-        pb_callback_t *cb;                                                                                                                 \
                                                                                                                                            \
         if (!pb_field_iter_begin(&iter, desc, msg) || !pb_field_iter_find(&iter, tag))                                                     \
             PB_RETURN_ERROR(stream, "failed to resolve field tag");                                                                        \
                                                                                                                                            \
-        cb = &PB_CBNAME(structname, fieldname, htype);                                                                                     \
-                                                                                                                                           \
-        if (!PB_DECODE_SUBMESSAGE(stream, &iter, cb, subflags))                                                                            \
+        if (!PB_DECODE_SUBMESSAGE(stream, &iter, subflags))                                                                                \
             return false;                                                                                                                  \
     } while (0)
 
 #define PB_DECODE_VALUE_LTYPE_MESSAGE(structname, atype, htype, ltype, fieldname, tag, data)                                               \
     do {                                                                                                                                   \
-        /* fill out a bogus struct */                                                                                                      \
-        pb_field_iter_t iter = {};                                                                                                         \
-        iter.submsg_desc = PB_MSGDESC(structname, fieldname, htype);                                                                       \
-        iter.pData = data;                                                                                                                 \
+        const pb_msgdesc_t *field_desc = PB_MSGDESC(structname, fieldname, htype);                                                         \
                                                                                                                                            \
-        if (!PB_DECODE_SUBMESSAGE(stream, &iter, NULL, subflags))                                                                          \
+        if (!field_desc->decode(stream, data, subflags | PB_DECODE_DELIMITED, 0, (pb_wire_type_t)0))                                       \
             return false;                                                                                                                  \
     } while (0)
 

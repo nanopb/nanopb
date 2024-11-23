@@ -515,7 +515,6 @@ bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_ty
 
         case PB_LTYPE_SUBMESSAGE:
         case PB_LTYPE_SUBMSG_W_CB: {
-            pb_callback_t *cb = NULL;
             unsigned int flags = 0;
 
             if (wire_type != PB_WT_STRING)
@@ -524,19 +523,13 @@ bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_ty
             if (field->submsg_desc == NULL)
                 PB_RETURN_ERROR(stream, "invalid field descriptor");
 
-            /* Submessages can have a separate message-level callback that is called
-             * before decoding the message. Typically it is used to set callback fields
-             * inside oneofs. */
-            if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
-                cb = (pb_callback_t *)field->pSize - 1;
-
             /* Static required/optional fields are already initialized by top-level
              * pb_decode(), no need to initialize them again. */
             if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
                 PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
                 flags = PB_DECODE_NOINIT;
 
-            return pb_dec_submessage(stream, field, cb, flags);
+            return pb_dec_submessage(stream, field, flags);
         }
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
@@ -1773,10 +1766,10 @@ bool checkreturn pb_dec_string(pb_istream_t *stream, void *dest, size_t capacity
     return true;
 }
 
-bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, pb_callback_t *cb, unsigned flags)
+bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *field, unsigned flags)
 {
-    bool status = true;
     bool submsg_consumed = false;
+    bool status = true;
     pb_istream_t substream;
 
     if (!pb_make_string_substream(stream, &substream))
@@ -1785,13 +1778,21 @@ bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_iter_t *
     if (field->submsg_desc == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
     
-    if (cb != NULL && cb->funcs.decode != NULL)
+    /* Submessages can have a separate message-level callback that is called
+     * before decoding the message. Typically it is used to set callback fields
+     * inside oneofs. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
     {
-        status = cb->funcs.decode(&substream, field, &cb->arg);
+        pb_callback_t *cb = (pb_callback_t *)field->pSize - 1;
 
-        if (substream.bytes_left == 0)
+        if (cb != NULL && cb->funcs.decode != NULL)
         {
-            submsg_consumed = true;
+            status = cb->funcs.decode(&substream, field, &cb->arg);
+
+            if (substream.bytes_left == 0)
+            {
+                submsg_consumed = true;
+            }
         }
     }
 
