@@ -1,12 +1,11 @@
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
-load("@nanopb_pypi//:requirements.bzl", "requirement")
-load("@rules_python//python:proto.bzl", "py_proto_library")
 
 # Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
 # load("@python_3_11//:defs.bzl", "py_binary")
 load("@python_versions//3.11:defs.bzl", "py_binary")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
 load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 
@@ -49,12 +48,14 @@ py_binary(
     data = glob([
         "generator/**/*.proto",
     ]),
+    env = {
+        "NANOPB_PB2_NO_REBUILD": "1",
+    },
     imports = [
         "generator",
     ],
     deps = [
         ":nanopb_py_proto",
-        requirement("grpcio-tools"),
     ],
 )
 
