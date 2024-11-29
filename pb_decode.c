@@ -1443,55 +1443,74 @@ static bool checkreturn pb_dec_bool(pb_istream_t *stream, const pb_field_iter_t 
 
 static bool checkreturn pb_dec_varint(pb_istream_t *stream, const pb_field_iter_t *field)
 {
-    pb_uint64_t overflow;
-
-    union {
-        pb_uint64_t u64;
-        pb_int64_t s64;
-    } value;
-
-    if (PB_LTYPE(field->type) == PB_LTYPE_SVARINT)
+    if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT)
     {
-        if (!pb_decode_svarint(stream, &value.s64))
+        pb_uint64_t value, clamped;
+        if (!pb_decode_varint(stream, &value))
             return false;
+
+        /* Cast to the proper field size, while checking for overflows */
+        if (field->data_size == sizeof(pb_uint64_t))
+            clamped = *(pb_uint64_t*)field->pData = value;
+        else if (field->data_size == sizeof(uint32_t))
+            clamped = *(uint32_t*)field->pData = (uint32_t)value;
+        else if (field->data_size == sizeof(uint_least16_t))
+            clamped = *(uint_least16_t*)field->pData = (uint_least16_t)value;
+        else if (field->data_size == sizeof(uint_least8_t))
+            clamped = *(uint_least8_t*)field->pData = (uint_least8_t)value;
+        else
+            PB_RETURN_ERROR(stream, "invalid data_size");
+
+        if (clamped != value)
+            PB_RETURN_ERROR(stream, "integer too large");
+
+        return true;
     }
     else
     {
-        if (!pb_decode_varint(stream, &value.u64))
-            return false;
+        pb_uint64_t value;
+        pb_int64_t svalue;
+        pb_int64_t clamped;
+
+        if (PB_LTYPE(field->type) == PB_LTYPE_SVARINT)
+        {
+            if (!pb_decode_svarint(stream, &svalue))
+                return false;
+        }
+        else
+        {
+            if (!pb_decode_varint(stream, &value))
+                return false;
+
+            /* See issue 97: Google's C++ protobuf allows negative varint values to
+            * be cast as int32_t, instead of the int64_t that should be used when
+            * encoding. Nanopb versions before 0.2.5 had a bug in encoding. In order to
+            * not break decoding of such messages, we cast <=32 bit fields to
+            * int32_t first to get the sign correct.
+            */
+            if (field->data_size == sizeof(pb_int64_t))
+                svalue = (pb_int64_t)value;
+            else
+                svalue = (int32_t)value;
+        }
+
+        /* Cast to the proper field size, while checking for overflows */
+        if (field->data_size == sizeof(pb_int64_t))
+            clamped = *(pb_int64_t*)field->pData = svalue;
+        else if (field->data_size == sizeof(int32_t))
+            clamped = *(int32_t*)field->pData = (int32_t)svalue;
+        else if (field->data_size == sizeof(int_least16_t))
+            clamped = *(int_least16_t*)field->pData = (int_least16_t)svalue;
+        else if (field->data_size == sizeof(int_least8_t))
+            clamped = *(int_least8_t*)field->pData = (int_least8_t)svalue;
+        else
+            PB_RETURN_ERROR(stream, "invalid data_size");
+
+        if (clamped != svalue)
+            PB_RETURN_ERROR(stream, "integer too large");
+
+        return true;
     }
-
-    /* See issue 97: Google's C++ protobuf allows negative varint values to
-    * be cast as int32_t, instead of the int64_t that should be used when
-    * encoding. Nanopb versions before 0.2.5 had a bug in encoding. In order to
-    * not break decoding of such messages, we cast <=32 bit fields to
-    * int32_t first to get the sign correct.
-    */
-    if (PB_LTYPE(field->type) == PB_LTYPE_VARINT && field->data_size <= 4)
-        value.s64 = (int32_t)value.s64;
-
-    /* Check that the decoded value isn't too small for the field */
-    if (sizeof(pb_uint64_t) < field->data_size)
-        PB_RETURN_ERROR(stream, "invalid data_size");
-
-    /* Check that the decoded value isn't too big for the field. The rules are:
-
-       1.) For unsigned, check if any bit > than field->data_size is set
-       2.) For positive signed, check if any bit >= the sign bit are set
-       3.) For negative signed, negate and check if any bit >= the sign bit are set */
-    overflow = value.u64;
-
-    if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT)
-        overflow >>= 1;
-    else if (value.s64 < 0)
-        overflow = ~overflow;
-
-    if (overflow >> (pb_size_t)((field->data_size << 3) - 1))
-        PB_RETURN_ERROR(stream, "integer too large");
-
-    memcpy(field->pData, &value.u64, field->data_size);
-
-    return true;
 }
 
 static bool checkreturn pb_dec_bytes(pb_istream_t *stream, const pb_field_iter_t *field)
