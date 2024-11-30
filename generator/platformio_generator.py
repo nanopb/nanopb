@@ -32,7 +32,13 @@ except ImportError:
 
 nanopb_root = os.path.join(os.getcwd(), '..')
 
-project_dir = env.subst("$PROJECT_DIR")
+# Check if 'custom_nanopb_project_dir' is defined, else default to $PROJECT_DIR
+project_dir = env.GetProjectOption("custom_nanopb_project_dir", default=None)
+if project_dir:
+    project_dir = env.subst(project_dir)
+else:
+    project_dir = env.subst("$PROJECT_DIR")
+
 build_dir = env.subst("$BUILD_DIR")
 
 generated_src_dir = os.path.join(build_dir, 'nanopb', 'generated-src')
@@ -53,6 +59,7 @@ else:
     protos_files = fs.match_src_files(project_dir, nanopb_protos)
     if not len(protos_files):
         print("[nanopb] ERROR: No files matched pattern:")
+        print(f"project_directory: {project_dir}")
         print(f"custom_nanopb_protos: {nanopb_protos}")
         exit(1)
 
