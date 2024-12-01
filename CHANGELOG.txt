@@ -1,3 +1,9 @@
+nanopb-0.4.9.1 (2024-12-01)
+ Fix memory not released on error return from pb_decode_ex() (GHSA-xwqq-qxmw-hj5r)
+ Fix deprecated MakeClass() call in generator (#1015)
+ Fix compiler error with enums and --c-style (#1014)
+ Fix version conflict with bazel build rules (#1034)
+
 nanopb-0.4.9 (2024-09-19)
  Fix problems with enum intsize introduced in 0.4.8 (#961)
  Fix Python pkg_resources deprecation (#887)
