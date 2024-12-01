@@ -1196,7 +1196,7 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
       status = pb_decode_inner(&substream, fields, dest_struct, flags);
 
       if (!pb_close_string_substream(stream, &substream))
-        return false;
+        status = false;
     }
     
 #ifdef PB_ENABLE_MALLOC
