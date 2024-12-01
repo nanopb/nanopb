@@ -23,7 +23,7 @@ bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     memcpy(buf, &input_data[cursor], count);
     cursor += count;
 
-    *(uintptr_t *)(&stream->state) = (uintptr_t)cursor;
+    stream->state = (void*)(uintptr_t)cursor;
 
     return true;
 }
