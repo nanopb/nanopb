@@ -10,8 +10,9 @@ sed -i -e 's/#define\s*NANOPB_VERSION\s*.*/#define NANOPB_VERSION "'$1'"/' pb.h
 sed -i -e 's/project(\s*nanopb\s*VERSION\s*[^)]*\s*LANGUAGES\s*C\s*)/project(nanopb VERSION '$VERSION_NUMBER_ONLY' LANGUAGES C)/' CMakeLists.txt
 
 VERSION_ONLY=$(echo $1 | sed 's/nanopb-//')
+FAKE_SEMVER=$(echo $VERSION_ONLY | sed 's/^\([0-9]*\.[0-9]*\.[0-9]*\)\.\([0-9]*\)$/\1\2/')
 if [[ $1 != *dev ]]
-then sed -i -e 's/"version":\s*"[^"]*"/"version": "'$VERSION_ONLY'"/' library.json
+then sed -i -e 's/"version":\s*"[^"]*"/"version": "'$FAKE_SEMVER'"/' library.json
 fi
 
 sed -i -e 's/version =.*/version = "'$VERSION_ONLY'"/' conanfile.py
