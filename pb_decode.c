@@ -554,9 +554,9 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 memset(field->pData, 0, (size_t)field->data_size);
 
                 /* Set default values for the submessage fields. */
-                if (field->submsg_desc->default_value != NULL ||
-                    field->submsg_desc->field_callback != NULL ||
-                    field->submsg_desc->submsg_info[0] != NULL)
+                if (PB_PROGMEM_READPTR(field->submsg_desc->default_value) != NULL ||
+                    PB_PROGMEM_READPTR(field->submsg_desc->field_callback) != NULL ||
+                    PB_PROGMEM_READPTR(field->submsg_desc->submsg_info[0]) != NULL)
                 {
                     pb_field_iter_t submsg_iter;
                     if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
@@ -772,7 +772,9 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
-    if (!field->descriptor->field_callback)
+    bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field) = PB_PROGMEM_READPTR(field->descriptor->field_callback);
+
+    if (!field_callback)
         return pb_skip_field(stream, wire_type);
 
     if (wire_type == PB_WT_STRING)
@@ -786,7 +788,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
         do
         {
             prev_bytes_left = substream.bytes_left;
-            if (!field->descriptor->field_callback(&substream, NULL, field))
+            if (!field_callback(&substream, NULL, field))
             {
                 PB_SET_ERROR(stream, substream.errmsg ? substream.errmsg : "callback failed");
                 return false;
@@ -812,7 +814,7 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
             return false;
         substream = pb_istream_from_buffer(buffer, size);
         
-        return field->descriptor->field_callback(&substream, NULL, field);
+        return field_callback(&substream, NULL, field);
     }
 }
 
@@ -928,9 +930,9 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
         if (init_data)
         {
             if (PB_LTYPE_IS_SUBMSG(field->type) &&
-                (field->submsg_desc->default_value != NULL ||
-                 field->submsg_desc->field_callback != NULL ||
-                 field->submsg_desc->submsg_info[0] != NULL))
+                (PB_PROGMEM_READPTR(field->submsg_desc->default_value) != NULL ||
+                 PB_PROGMEM_READPTR(field->submsg_desc->field_callback) != NULL ||
+                PB_PROGMEM_READPTR(field->submsg_desc->submsg_info[0]) != NULL))
             {
                 /* Initialize submessage to defaults.
                  * Only needed if it has default values
@@ -975,10 +977,11 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
     uint32_t tag = 0;
     pb_wire_type_t wire_type = PB_WT_VARINT;
     bool eof;
+    const pb_byte_t * default_values = PB_PROGMEM_READPTR(iter->descriptor->default_value);
 
-    if (iter->descriptor->default_value)
+    if (default_values)
     {
-        defstream = pb_istream_from_buffer(iter->descriptor->default_value, (size_t)-1);
+        defstream = pb_istream_from_buffer(default_values, (size_t)-1);
         if (!pb_decode_tag(&defstream, &wire_type, &tag, &eof))
             return false;
     }
@@ -1148,7 +1151,7 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
 
     /* Check that all required fields were present. */
     {
-        pb_size_t req_field_count = iter.descriptor->required_field_count;
+        pb_size_t req_field_count = PB_PROGMEM_READSIZE(iter.descriptor->required_field_count);
 
         if (req_field_count > 0)
         {
