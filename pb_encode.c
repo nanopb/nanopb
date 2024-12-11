@@ -725,7 +725,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
 {
     /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = PB_OSTREAM_SIZING;
-#if !PB_NO_ENCODE_SIZE_CHECK
+#if !defined(PB_NO_ENCODE_SIZE_CHECK) || PB_NO_ENCODE_SIZE_CHECK == 0
     bool status;
     size_t size;
 #endif
@@ -747,7 +747,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     if (stream->bytes_written + substream.bytes_written > stream->max_size)
         PB_RETURN_ERROR(stream, "stream full");
         
-#if PB_NO_ENCODE_SIZE_CHECK
+#if defined(PB_NO_ENCODE_SIZE_CHECK) && PB_NO_ENCODE_SIZE_CHECK == 1
     return pb_encode(stream, fields, src_struct);
 #else
     size = substream.bytes_written;
