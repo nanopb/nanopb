@@ -143,13 +143,17 @@ extern "C" {
 #endif
 
 /* Detect endianness */
+#if !defined(CHAR_BIT) && defined(__CHAR_BIT__)
+#define CHAR_BIT __CHAR_BIT__
+#endif
+
 #ifndef PB_LITTLE_ENDIAN_8BIT
 #if ((defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) || \
      (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
       defined(__LITTLE_ENDIAN__) || defined(__ARMEL__) || \
       defined(__THUMBEL__) || defined(__AARCH64EL__) || defined(_MIPSEL) || \
       defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM)) \
-     && CHAR_BIT == 8
+     && defined(CHAR_BIT) && CHAR_BIT == 8
 #define PB_LITTLE_ENDIAN_8BIT 1
 #endif
 #endif
