@@ -233,6 +233,11 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 /* Cannot use doubles without 64-bit types */
 #undef PB_CONVERT_DOUBLE_FLOAT
 #endif
+#define pb_int64_t int32_t
+#define pb_uint64_t uint32_t
+#else
+#define pb_int64_t int64_t
+#define pb_uint64_t uint64_t
 #endif
 
 /* Data type for storing encoded data and other byte streams.
@@ -337,6 +342,15 @@ typedef struct pb_istream_s pb_istream_t;
 typedef struct pb_ostream_s pb_ostream_t;
 typedef struct pb_field_iter_s pb_field_iter_t;
 
+/* Wire types. Library user needs these only in encoder callbacks. */
+typedef enum {
+    PB_WT_VARINT = 0,
+    PB_WT_64BIT  = 1,
+    PB_WT_STRING = 2,
+    PB_WT_32BIT  = 5,
+    PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
+} pb_wire_type_t;
+
 /* This structure is used in auto-generated constants
  * to specify struct fields.
  */
@@ -347,6 +361,12 @@ struct pb_msgdesc_s {
     const pb_byte_t *default_value;
 
     bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
+
+#ifdef PB_DECODE_FAST
+    bool (*init)(void *, unsigned int);
+    bool (*decode)(pb_istream_t *, void *, unsigned int, uint32_t, pb_wire_type_t);
+    void (*release)(void *, unsigned int, uint32_t);
+#endif
 
     pb_size_t field_count;
     pb_size_t required_field_count;
@@ -436,15 +456,6 @@ struct pb_callback_s {
 
 extern bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);
 
-/* Wire types. Library user needs these only in encoder callbacks. */
-typedef enum {
-    PB_WT_VARINT = 0,
-    PB_WT_64BIT  = 1,
-    PB_WT_STRING = 2,
-    PB_WT_32BIT  = 5,
-    PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
-} pb_wire_type_t;
-
 /* Structure for defining the handling of unknown/extension fields.
  * Usually the pb_extension_type_t structure is automatically generated,
  * while the pb_extension_t structure is created by the user. However,
@@ -519,10 +530,38 @@ struct pb_extension_s {
 #define pb_delta(st, m1, m2) ((int)offsetof(st, m1) - (int)offsetof(st, m2))
 
 /* Force expansion of macro value */
-#define PB_EXPAND(x) x
+#define PB_EXPAND(x)             x
+#define PB_CONCAT_NX(a, b)       a ## b
+#define PB_CONCAT(a, b)          PB_CONCAT_NX(a, b)
+
+#define PB_SELECT_0(t, f)        f
+#define PB_SELECT_1(t, f)        t
+#define PB_SELECT_NX(c, t, f)    PB_SELECT_ ## c (t, f)
+#define PB_SELECT(c, t, f)       PB_SELECT_NX(c, t, f)
+
+/* Stubs for when fast decoding isn't enabled */
+#ifdef PB_DECODE_FAST
+
+#include "pb_decode_fast.h"
+
+#define PB_INIT(structname) pb_init_ ## structname,
+#define PB_DECODE(structname) pb_decode_ ## structname,
+#define PB_RELEASE(structname) pb_release_ ## structname,
+
+#else
+
+#define PB_BIND_DECODE_FAST(msgname, structname)
+
+#define PB_INIT(structname)
+#define PB_DECODE(structname)
+#define PB_RELEASE(structname)
+
+#endif
 
 /* Binding of a message field set into a specific structure */
 #define PB_BIND(msgname, structname, width) \
+    extern const pb_msgdesc_t structname ## _msg; \
+    PB_BIND_DECODE_FAST(msgname, structname) \
     const uint32_t structname ## _field_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
@@ -539,6 +578,9 @@ struct pb_extension_s {
        structname ## _submsg_info, \
        msgname ## _DEFAULT, \
        msgname ## _CALLBACK, \
+       PB_INIT(structname) \
+       PB_DECODE(structname) \
+       PB_RELEASE(structname) \
        0 msgname ## _FIELDLIST(PB_GEN_FIELD_COUNT, structname), \
        0 msgname ## _FIELDLIST(PB_GEN_REQ_FIELD_COUNT, structname), \
        0 msgname ## _FIELDLIST(PB_GEN_LARGEST_TAG, structname), \

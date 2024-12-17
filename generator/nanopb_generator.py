@@ -1173,6 +1173,7 @@ class ExtensionField(Field):
         result += str(self.msg)
         result += self.msg.fields_declaration(dependencies)
         result += 'pb_byte_t %s_default[] = {0x00};\n' % Globals.naming_style.var_name(self.msg.name)
+        result += 'extern const pb_msgdesc_t %s_msg;\n' % Globals.naming_style.type_name(self.msg.name)
         result += self.msg.fields_definition(dependencies)
         result += 'const pb_extension_type_t %s = {\n' % Globals.naming_style.var_name(self.fullname)
         result += '    NULL,\n'
