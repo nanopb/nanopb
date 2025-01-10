@@ -6,3 +6,7 @@ package-managers:
   pip:
     requirement-files:
       - extra/requirements.txt
+security:
+  external-references:
+    - cpe:2.3:a:nanopb_project:nanopb:1.0.0:*:*:*:*:*:*:*
+    - pkg:github/nanopb/nanopb@1.0.0
