@@ -4,6 +4,12 @@ import os.path
 
 import traceback
 
+try:
+    # For PyInstaller compatibility with grpcio-tools >= 1.69
+    import grpc_tools.grpc_version
+except ImportError:
+    pass
+
 def has_grpcio_protoc(verbose = False):
     # type: () -> bool
     """ checks if grpcio-tools protoc is installed"""
