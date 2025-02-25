@@ -1550,13 +1550,13 @@ class Message(ProtoElement):
         if size_define in local_defines:
             result += '    static PB_INLINE_CONSTEXPR const pb_size_t size = %s;\n' % (size_define)
 
-        result += '    static inline const pb_msgdesc_t* fields() {\n'
+        result += '    static PB_INLINE_CONSTEXPR const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
         result += '    }\n'
-        result += '    static inline bool has_msgid() {\n'
+        result += '    static PB_INLINE_CONSTEXPR bool has_msgid() {\n'
         result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
         result += '    }\n'
-        result += '    static inline uint32_t msgid() {\n'
+        result += '    static PB_INLINE_CONSTEXPR uint32_t msgid() {\n'
         result += '        return %d;\n' % (getattr(self, "msgid", 0), )
         result += '    }\n'
         result += '};'
