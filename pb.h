@@ -166,15 +166,25 @@ extern "C" {
 /* Harvard-architecture processors may need special attributes for storing
  * field information in program memory. */
 #ifndef PB_PROGMEM
-#ifdef __AVR__
-#include <avr/pgmspace.h>
-#define PB_PROGMEM             PROGMEM
-#define PB_PROGMEM_READU32(x)  pgm_read_dword(&x)
-#else
-#define PB_PROGMEM
-#define PB_PROGMEM_READU32(x)  (x)
-#endif
-#endif
+#   ifdef __AVR__
+#       include <avr/pgmspace.h>
+#       define PB_PROGMEM                 PROGMEM
+#       define PB_PROGMEM_READU32(x)      pgm_read_dword(&x)
+#       if defined(PB_FIELD_32BIT)
+#           define PB_PROGMEM_READSIZE(x) PB_PROGMEM_READU32(x)
+#       else /* !PB_FIELD_32BIT */
+#           define PB_PROGMEM_READSIZE(x) pgm_read_word(&x)
+#       endif /* !PB_FIELD_32BIT */
+#       define PB_PROGMEM_READPTR(x)      pgm_read_ptr(&x)
+#       define PB_PROGMEM_READBYTE(x)     pgm_read_byte(&x)
+#   else /* !__AVR__ */
+#       define PB_PROGMEM
+#       define PB_PROGMEM_READU32(x)      (x)
+#       define PB_PROGMEM_READSIZE(x)     (x)
+#       define PB_PROGMEM_READPTR(x)      (x)
+#       define PB_PROGMEM_READBYTE(x)     (x)
+#   endif /* !__AVR__ */
+#endif /* !PB_PROGMEM */
 
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
@@ -528,12 +538,12 @@ struct pb_extension_s {
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \
     }; \
-    const pb_msgdesc_t* const structname ## _submsg_info[] = \
+    const pb_msgdesc_t* const structname ## _submsg_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
     }; \
-    const pb_msgdesc_t structname ## _msg = \
+    const pb_msgdesc_t structname ## _msg PB_PROGMEM = \
     { \
        structname ## _field_info, \
        structname ## _submsg_info, \
