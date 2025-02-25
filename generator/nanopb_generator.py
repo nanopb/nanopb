@@ -735,7 +735,7 @@ class Field(ProtoElement):
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
             self.enc_size = None # Needs to be filled in after the message type is available
-            if field_options.submsg_callback and self.allocation == 'STATIC':
+            if field_options.submsg_callback and self.allocation in ['STATIC', 'CALLBACK']:
                 self.pbtype = 'MSG_W_CB'
         else:
             raise NotImplementedError(desc.type)
