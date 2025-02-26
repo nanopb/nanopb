@@ -782,6 +782,22 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
         
         if (!pb_make_string_substream(stream, &substream))
             return false;
+
+        /* If the callback field is inside a submsg, first call the submsg_callback which
+         * should set the decoder for the callback field. */
+        if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL) {
+            pb_callback_t* callback;
+            *(pb_size_t*)field->pSize = field->tag;
+            callback = (pb_callback_t*)field->pSize - 1;
+
+            if (callback->funcs.decode)
+            {
+                if (!callback->funcs.decode(&substream, field, &callback->arg)) {
+                    PB_SET_ERROR(stream, substream.errmsg ? substream.errmsg : "submsg callback failed");
+                    return false;
+                }
+            }
+        }
         
         do
         {
