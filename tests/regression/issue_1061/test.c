@@ -77,7 +77,7 @@ int main(void)
     {
         pb_istream_t istream = pb_istream_from_buffer(buf, msglen);
         OneOfMessage msg = OneOfMessage_init_zero;
-        char rx_string[tx_string_len + 1];
+        char rx_string[16];
 
         msg.cb_value.arg = &rx_string;
         msg.cb_value.funcs.decode = decode_msg_cb;
