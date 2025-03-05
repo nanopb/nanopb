@@ -594,6 +594,7 @@ class Field(ProtoElement):
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
+        self.submsg_callback_requested = False
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -735,7 +736,11 @@ class Field(ProtoElement):
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
             self.enc_size = None # Needs to be filled in after the message type is available
-            if field_options.submsg_callback and self.allocation in ['STATIC', 'CALLBACK']:
+            self.submsg_callback_requested = field_options.submsg_callback
+
+            # Add submessage callback for statically allocated fields inside or
+            # outside oneofs. This can be used for repeated fields and oneofs.
+            if field_options.submsg_callback and self.allocation == 'STATIC':
                 self.pbtype = 'MSG_W_CB'
         else:
             raise NotImplementedError(desc.type)
@@ -1194,6 +1199,12 @@ class OneOf(Field):
 
         if self.sort_by_tag:
             self.fields.sort()
+
+        # Add submessage callback for callback fields inside oneofs.
+        # This is done here because the Field() initializer doesn't know
+        # whether the field will end up inside oneof or not.
+        if field.submsg_callback_requested and field.allocation == 'CALLBACK':
+            field.pbtype = 'MSG_W_CB'
 
         if field.pbtype == 'MSG_W_CB':
             self.has_msg_cb = True
