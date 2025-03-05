@@ -1,0 +1,15 @@
+# Regression test for #1061
+# submsg_callback with FT_CALLBACK
+
+Import("env")
+env.NanopbProto("submsg_ft_callback")
+env.Object("submsg_ft_callback.pb.c")
+
+p = env.Program(["test.c",
+                 "submsg_ft_callback.pb.c",
+                 "$COMMON/pb_decode.o",
+                 "$COMMON/pb_encode.o",
+                 "$COMMON/pb_common.o",
+                 ])
+
+env.RunTest(p)
