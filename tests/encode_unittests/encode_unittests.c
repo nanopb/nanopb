@@ -1,6 +1,6 @@
 /* This includes the whole .c file to get access to static functions. */
-#include "pb_common.c"
-#include "pb_encode.c"
+#include <nanopb/pb_common.c>
+#include <nanopb/pb_encode.c>
 
 #include <stdio.h>
 #include <string.h>
