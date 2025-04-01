@@ -3,7 +3,7 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
-#include <nanopb/pb.h>
+#include <pb.h>
 #include <nanopb/pb_encode.h>
 #include <nanopb/pb_common.h>
 
