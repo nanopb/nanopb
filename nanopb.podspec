@@ -36,6 +36,8 @@ Pod::Spec.new do |s|
     d.source_files = ['pb.h', 'pb_common.h', 'pb_common.c', 'pb_decode.h', 'pb_decode.c']
   end
 
+  s.module_name  = "nanopb"
+
   s.resource_bundles = {
     "#{s.module_name}_Privacy" => 'spm_resources/PrivacyInfo.xcprivacy'
   }
