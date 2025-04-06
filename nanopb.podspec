@@ -23,8 +23,8 @@ Pod::Spec.new do |s|
   s.requires_arc = false
   s.xcconfig = { 'GCC_PREPROCESSOR_DEFINITIONS' => '$(inherited) PB_FIELD_32BIT=1 PB_NO_PACKED_STRUCTS=1 PB_ENABLE_MALLOC=1' }
 
-  s.source_files  = '*.{h,c}'
-  s.public_header_files  = '*.h'
+  s.source_files  = 'nanopb/*.{h,c}'
+  s.public_header_files = 'nanopb/*.h'
 
   s.subspec 'encode' do |e|
     e.public_header_files = ['pb.h', 'pb_encode.h', 'pb_common.h']
