@@ -1,6 +1,9 @@
 /* The wrapper functions in this file work like regular malloc() and free(),
  * but store check values before and after the allocation. This helps to catch
  * any buffer overrun errors in the test cases.
+ *
+ * This is done to help testing on embedded targets, where regular valgrind
+ * and other systems are not necessarily available.
  */
 
 #include "malloc_wrappers.h"
@@ -53,6 +56,7 @@ static size_t round_blocksize(size_t size)
 /* Allocate memory and place check values before and after. */
 void* malloc_with_check(size_t size)
 {
+    const size_t check2 = CHECK2;
     char *buf = NULL;
 
     if (size <= g_max_alloc_bytes - g_alloc_bytes)
@@ -64,7 +68,8 @@ void* malloc_with_check(size_t size)
     {
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
-        ((size_t*)(buf + size))[2] = CHECK2;
+        memcpy(buf + PREFIX_SIZE + size, &check2, sizeof(check2));
+
         g_alloc_count++;
         g_alloc_bytes += size;
         if (DEBUG_MALLOC) fprintf(stderr, "Alloc 0x%04x/%u\n", (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
@@ -83,14 +88,16 @@ void free_with_check(void *mem)
     if (mem)
     {
         char *buf = (char*)mem - PREFIX_SIZE;
+        size_t check2 = 0;
         size_t size = ((size_t*)buf)[0];
         if (DEBUG_MALLOC) fprintf(stderr, "Release 0x%04x/%u\n", (unsigned)(uintptr_t)mem, (unsigned)size);
         assert(((size_t*)buf)[1] == CHECK1);
-        assert(((size_t*)(buf + size))[2] == CHECK2);
+        memcpy(&check2, buf + PREFIX_SIZE + size, sizeof(check2));
+        assert(check2 == CHECK2);
         assert(g_alloc_count > 0);
         assert(g_alloc_bytes >= size);
         ((size_t*)buf)[1] = 0;
-        ((size_t*)(buf + size))[2] = 0;
+        memset(buf + PREFIX_SIZE + size, 0, sizeof(check2));
         g_alloc_count--;
         g_alloc_bytes -= size;
         free(buf);
@@ -109,9 +116,11 @@ void* realloc_with_check(void *ptr, size_t size)
     {
         /* Change block size */
         char *buf = (char*)ptr - PREFIX_SIZE;
+        size_t check2 = 0;
         size_t oldsize = ((size_t*)buf)[0];
         assert(((size_t*)buf)[1] == CHECK1);
-        assert(((size_t*)(buf + oldsize))[2] == CHECK2);
+        memcpy(&check2, buf + PREFIX_SIZE + oldsize, sizeof(check2));
+        assert(check2 == CHECK2);
         assert(g_alloc_count > 0);
         assert(g_alloc_bytes >= oldsize);
 
@@ -138,7 +147,7 @@ void* realloc_with_check(void *ptr, size_t size)
 
         ((size_t*)buf)[0] = size;
         ((size_t*)buf)[1] = CHECK1;
-        ((size_t*)(buf + size))[2] = CHECK2;
+        memcpy(buf + PREFIX_SIZE + size, &check2, sizeof(check2));
         g_alloc_bytes -= oldsize;
         g_alloc_bytes += size;
 
