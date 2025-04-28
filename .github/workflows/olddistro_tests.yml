@@ -12,8 +12,8 @@ on:
 
 jobs:
   test_python2:
-    name: Test with Python 3 on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    name: Test with Python 3 on Ubuntu 22.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out code from GitHub

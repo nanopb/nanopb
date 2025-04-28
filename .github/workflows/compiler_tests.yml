@@ -7,7 +7,7 @@ on:
 jobs:
   test_linux:
     name: Test with gcc & clang on Ubuntu
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out code from GitHub
@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install python3-protobuf protobuf-compiler scons
           sudo apt-get install clang valgrind splint cmake
-          sudo apt-get install libstdc++6:i386 libgcc-s1:i386 lib32gcc-9-dev lib32stdc++-9-dev libncurses5:i386 libc6-dbg:i386 libc6-dev:i386 binutils-multiarch
+          sudo apt-get install libstdc++6:i386 libgcc-s1:i386 lib32gcc-13-dev lib32stdc++-13-dev libc6-dbg:i386 libc6-dev:i386 binutils-multiarch
 
       - name: Test with 64-bit GCC
         run: |

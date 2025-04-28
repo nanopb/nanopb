@@ -24,12 +24,12 @@ on:
 
 jobs:
   smoke_test:
-    name: Run test suite on Ubuntu 20.04
+    name: Run test suite on Ubuntu
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ['3.8', '3.x']
-        os: ['ubuntu-20.04', 'ubuntu-24.04']
+        python-version: ['3.x']
+        os: ['ubuntu-latest']
 
     steps:
       - name: Check out code from GitHub
