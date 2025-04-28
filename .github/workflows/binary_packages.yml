@@ -11,8 +11,8 @@ on:
 
 jobs:
   build_linux:
-    name: Build binary on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    name: Build binary on Ubuntu 22.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out code from GitHub

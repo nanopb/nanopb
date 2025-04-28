@@ -9,8 +9,8 @@ on:
 
 jobs:
   publish_pypi:
-    name: Build and publish pypi package on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    name: Build and publish pypi package on Ubuntu 22.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out code from GitHub
@@ -53,7 +53,7 @@ jobs:
 
   test_pypi:
     name: Test pypi package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: publish_pypi
 
     steps:
