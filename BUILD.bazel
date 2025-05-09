@@ -16,6 +16,15 @@ licenses(["notice"])
 exports_files(["LICENSE.txt"])
 
 cc_library(
+    name = "nanopb_compilation_options_default"
+)
+
+label_flag(
+    name = "nanopb_compilation_options",
+    build_setting_default = ":nanopb_compilation_options_default"
+)
+
+cc_library(
     name = "nanopb",
     srcs = [
         "pb_common.c",
@@ -29,6 +38,7 @@ cc_library(
         "pb_encode.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [":nanopb_compilation_options"],
 )
 
 copy_file(
