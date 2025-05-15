@@ -595,6 +595,7 @@ class Field(ProtoElement):
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
         self.submsg_callback_requested = False
+        self.can_be_static = True
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -628,11 +629,10 @@ class Field(ProtoElement):
         if field_options.HasField("label_override"):
             desc.label = field_options.label_override
 
-        can_be_static = True
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
             if self.max_count is None:
-                can_be_static = False
+                self.can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
                 if field_options.fixed_count:
@@ -660,19 +660,19 @@ class Field(ProtoElement):
         # Check if the field can be implemented with static allocation
         # i.e. whether the data size is known.
         if desc.type == FieldD.TYPE_STRING and self.max_size is None:
-            can_be_static = False
+            self.can_be_static = False
 
         if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
-            can_be_static = False
+            self.can_be_static = False
 
         # Decide how the field data will be allocated
         if field_options.type == nanopb_pb2.FT_DEFAULT:
-            if can_be_static:
+            if self.can_be_static:
                 field_options.type = nanopb_pb2.FT_STATIC
             else:
                 field_options.type = field_options.fallback_type
 
-        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
+        if field_options.type == nanopb_pb2.FT_STATIC and not self.can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
 
@@ -714,6 +714,7 @@ class Field(ProtoElement):
                 self.array_decl += '[%d]' % self.max_size
                 # -1 because of null terminator. Both pb_encode and pb_decode
                 # check the presence of it.
+            if self.can_be_static:
                 self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
@@ -723,7 +724,6 @@ class Field(ProtoElement):
                     raise Exception("Field '%s' is defined as fixed length, "
                                     "but max_size is not given." % self.name)
 
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
                 self.ctype = 'pb_byte_t'
                 self.array_decl += '[%d]' % self.max_size
             else:
@@ -731,7 +731,8 @@ class Field(ProtoElement):
                 self.ctype = 'pb_bytes_array_t'
                 if self.allocation == 'STATIC':
                     self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
-                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+            if self.can_be_static:
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
@@ -1008,7 +1009,7 @@ class Field(ProtoElement):
         including the field tag. If the size cannot be determined, returns
         None.'''
 
-        if self.allocation != 'STATIC':
+        if not self.can_be_static:
             return None
 
         if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
