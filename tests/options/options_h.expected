@@ -13,7 +13,7 @@ Message5_EnumValue1
 #define PB_MSG_105 Message5
 #define OPTIONS_MESSAGES \\
 \s+PB_MSG\(103,[0-9]*,Message3\) \\
-\s+PB_MSG\(104,-1,Message4\) \\
+\s+PB_MSG\(104,[0-9]*,Message4\) \\
 \s+PB_MSG\(105,[0-9]*,Message5\) \\
 #define Message5_msgid 105
 ! has_proto3field
