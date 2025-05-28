@@ -199,6 +199,28 @@ function(NANOPB_GENERATE_CPP)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto)
 
+  # Set extensions according to NANOPB_OPTIONS
+  string(REGEX MATCH "--extension=[^ ]+" _gen_ext "${NANOPB_OPTIONS}")
+  string(REGEX MATCH "--header-extension=[^ ]+" _gen_hdr_ext
+               "${NANOPB_OPTIONS}")
+  string(REGEX MATCH "--source-extension=[^ ]+" _gen_src_ext
+               "${NANOPB_OPTIONS}")
+  if(_gen_ext)
+    string(REPLACE "--extension=" "" GEN_EXTENSION "${_gen_ext}")
+  else()
+    set(GEN_EXTENSION ".pb")
+  endif()
+  if(_gen_hdr_ext)
+    string(REPLACE "--header-extension=" "" GEN_HDR_EXTENSION "${_gen_hdr_ext}")
+  else()
+    set(GEN_HDR_EXTENSION ".h")
+  endif()
+  if(_gen_src_ext)
+    string(REPLACE "--source-extension=" "" GEN_SRC_EXTENSION "${_gen_src_ext}")
+  else()
+    set(GEN_SRC_EXTENSION ".c")
+  endif()
+
   # Treat the source directory as immutable.
   #
   # Copy the generator directory to the build directory before
@@ -249,8 +271,8 @@ function(NANOPB_GENERATE_CPP)
       set(FIL_PATH_REL ".")
     endif()
 
-    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c")
-    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h")
+    list(APPEND ${SRCS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_SRC_EXTENSION}")
+    list(APPEND ${HDRS} "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_HDR_EXTENSION}")
 
     get_filename_component(ABS_OPT_IN_FIL ${FIL_DIR}/${FIL_WE}.options.in ABSOLUTE)
     if(EXISTS ${ABS_OPT_IN_FIL})
@@ -311,8 +333,8 @@ function(NANOPB_GENERATE_CPP)
     endif()
 
     add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.c"
-             "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}.pb.h"
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_SRC_EXTENSION}"
+             "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_HDR_EXTENSION}"
       COMMAND ${CUSTOM_COMMAND_PREFIX} ${PROTOBUF_PROTOC_EXECUTABLE}
       ARGS ${_nanopb_include_path} -I${GENERATOR_PATH}
            -I${GENERATOR_CORE_DIR} -I${CMAKE_CURRENT_BINARY_DIR}
