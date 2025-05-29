@@ -10,14 +10,18 @@ import os.path
 # Depending on how this script is run, we may or may not have PEP366 package name
 # available for relative imports.
 if not __package__:
-    from proto._utils import invoke_protoc
+    from proto._utils import has_grpcio_protoc, invoke_protoc
 else:
-    from .proto._utils import invoke_protoc
+    from .proto._utils import has_grpcio_protoc, invoke_protoc
 
 if __name__ == '__main__':
     # Get path of the directory where this script is stored.
     if getattr(sys, 'frozen', False):
         mypath = os.path.dirname(sys.executable) # For pyInstaller
+
+        # The whole point of the binary package is to include grpcio,
+        # so better to report it as error if it the import fails.
+        assert has_grpcio_protoc(verbose = True)
     else:
         mypath = os.path.dirname(__file__)
 

@@ -91,7 +91,7 @@ There exist build rules for several systems:
 * **Conan**: `conanfile.py` in source root
 * **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
 * **PyPI/pip**: https://pypi.org/project/nanopb/
-* **vcpkg**: https://vcpkg.info/port/nanopb
+* **vcpkg**: https://vcpkg.io/en/package/nanopb
 
 And also integration to platform interfaces:
 

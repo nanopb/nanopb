@@ -9,12 +9,12 @@ on:
 
 jobs:
   publish_pypi:
-    name: Build and publish pypi package on Ubuntu 20.04
-    runs-on: ubuntu-20.04
+    name: Build and publish pypi package on Ubuntu 22.04
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -53,12 +53,12 @@ jobs:
 
   test_pypi:
     name: Test pypi package
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: publish_pypi
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
 

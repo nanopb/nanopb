@@ -1,0 +1,8 @@
+# Regression test for #956:
+# (nanopb_msgopt).skip_message does not skip generation of map types
+
+Import("env")
+
+env.NanopbProto("skipmap.proto")
+env.Match(["skipmap.pb.h", "skipmap.expected"])
+env.Object("skipmap.pb.c")

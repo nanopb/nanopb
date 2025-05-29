@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+import "custom_naming_style_other.proto";
+
+package importer;
+
+enum MyEnum {
+  MY_ENUM_NONE = 0;
+  MY_ENUM_SOMETHING = 1;
+}
+
+message MainMessage {
+  required MyEnum my_own_enum = 1;
+  required other.THE_OTHER_ENUM imported_enum = 2;
+  required other.AnotherEnum another_imported_enum = 3;
+}

@@ -24,6 +24,7 @@ message MainMessage {
   optional MY_ENUM2   My_Enum2        = 6;
   required MY_ENUM2   MY_ENUM3        = 7;
   repeated MY_ENUM2   MY_ENUM4        = 8;
+  required MyEnum1    MyEnum5         = 25 [default = ENTRY_Second];
 
   repeated string     string_Values1  = 9;
   repeated string     stringValues2   = 10;

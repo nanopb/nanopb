@@ -1,0 +1,28 @@
+syntax = "proto3";
+import "nanopb.proto";
+
+option (nanopb_fileopt).max_count = 4;
+
+message Message1 {
+    map<uint32, string> mymap1 = 1;
+}
+
+message Message2 {
+    option (nanopb_msgopt).skip_message = true;
+    map<uint32, string> mymap2 = 1;
+}
+
+message Message3 {
+    map<uint32, string> mymap3 = 1 [(nanopb).type = FT_IGNORE];
+}
+
+message Message4 {
+    option (nanopb_msgopt).skip_message = true;
+
+    message SubMessage4 {
+        option (nanopb_msgopt).skip_message = true;
+        uint32 dummy = 1;
+    }
+
+    map<uint32, SubMessage4> mymap4 = 1;
+}

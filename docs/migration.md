@@ -6,7 +6,23 @@ required modifications of user applications are explained. Also any
 error indications are included, in order to make it easier to find this
 document.
 
-Nanopb-0.4.9 (2024-xx-xx)
+Nanopb-1.0.0 (2025-xx-xx)
+-------------------------
+
+### Remove Python 2 support
+
+**Rationale:** Python 2 interpreter was deprecated in 2020. For backward
+compatibility, nanopb has retained support for running the generator with
+Python 2 for the 0.4.x series. That has required several tricks that
+complicate the codebase.
+
+**Changes:** Removed Python 2 support files and code hacks needed to
+make it work.
+
+**Required actions:** Upgrade to Python 3 and ensure `python-protobuf`
+is installed.
+
+Nanopb-0.4.9 (2024-09-19)
 -------------------------
 
 ### CMake rules now default to grpcio_tools protoc
@@ -51,10 +67,11 @@ Therefore, nanopb has been migrated to use bzlmod to better support newer bazel 
 
 **Changes**
 * upgrade bazel deps
-  * rules_python: 0.24.0
-  * rules_proto: 5.3.0-21.7
-  * protobuf: 23.1
-  * rules_proto_grpc: 4.6.0
+  * bazel_skylib: 1.7.1
+  * rules_python: 0.34.0
+  * rules_proto: 6.0.2
+  * protobuf: 24.4
+  * rules_proto_grpc: 5.0.0
 * Start using bzlmod (MODULE.bazel)
 
 **Required actions:** bazel build using WORKSPACE has been deprecated. To use bzlmod, adding below content to your MODULE.bazel
@@ -71,6 +88,20 @@ If the old name `com_github_nanopb_nanopb` is preferred, can add `repo_name` par
 ```py
 bazel_dep(name = "nanopb", version = "0.4.9", repo_name="com_github_nanopb_nanopb")
 ```
+
+### Separate enum_intsize setting
+
+**Rationale:** Nanopb-0.4.7 extended `int_size` option to affect enums.
+This is only supported by C++11 and C23 compilers.
+The generation used `#ifdef` to limit size option to use on C++ compilers.
+This caused binary incompatibility when project mixed C and C++ files.
+
+**Changes**: `enum_intsize` is now a separate option, and does not use `#ifdef`.
+If compiler does not support the setting, compilation will fail.
+
+**Required actions:** If using the recently introduced `int_size` option on enums, update to use `enum_intsize` instead.
+
+**Error indications:** Enum integer sizes use defaults as the old setting is ignored.
 
 Nanopb-0.4.8 (2023-11-11)
 -------------------------
@@ -93,13 +124,15 @@ Nanopb-0.4.7 (2022-12-11)
 
 ### Add int_size option to enum fields
 
+**This option was separated to `enum_intsize` in nanopb-0.4.9. This migration notice has been updated to match.**
+
 **Rationale:** The `packed_enum` option does not work with MSVC due to `#pragma pack` not supporting enums with MSVC. To workaround this, enum sizes can be specified with the new `int_size` option. Note that this is only supported when generating C++.
 
-**Changes:** The `int_size` option can be specified for enums.
+**Changes:** The ~~`int_size`~~ `enum_intsize` option can be specified for enums.
 
-**Required actions:** Any users concerned about the size of the generated C++ enums and are setting the int_size of enums via a wildcard (e.g. `MyMessage.*  int_size=IS_8`) will need to instead set the `int_size` option for individual fields.
+**Required actions:** ~~Any users concerned about the size of the generated C++ enums and are setting the int_size of enums via a wildcard (e.g. `MyMessage.*  int_size=IS_8`) will need to instead set the `int_size` option for individual fields.~~
 
-**Error indications:** The size of generated C++ enums has changed.
+**Error indications:** ~~The size of generated C++ enums has changed.~~
 
 ### Updated include path order in FindNanopb.cmake
 

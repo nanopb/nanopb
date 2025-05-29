@@ -166,7 +166,7 @@ if not env.get('NODEFARGS'):
         
         # Debug info, warnings as errors
         env.Append(CFLAGS = '-g -Wall -Werror ')
-        env.Append(CORECFLAGS = '-Wextra ')
+        env.Append(CORECFLAGS = '-Wextra -Wundef ')
 
         # Pedantic ANSI C. On AVR this doesn't work because we use large
         # enums in some of the tests.
@@ -185,7 +185,7 @@ if not env.get('NODEFARGS'):
     elif 'clang' in env['CC']:
         # CLang
         env.Append(CFLAGS = '-ansi -g -Wall -Werror')
-        env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion')
+        env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion -Wundef')
     elif 'cl' in env['CC']:
         # Microsoft Visual C++
 

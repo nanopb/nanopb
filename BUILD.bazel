@@ -1,20 +1,28 @@
-load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 
 # Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
 # load("@python_3_11//:defs.bzl", "py_binary")
 load("@python_versions//3.11:defs.bzl", "py_binary")
-load("@nanopb_pypi//:requirements.bzl", "requirement")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
-load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
-load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
-load("@com_google_protobuf//:protobuf.bzl", "py_proto_library")
+load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
 exports_files(["LICENSE.txt"])
+
+cc_library(
+    name = "nanopb_compilation_options_default"
+)
+
+label_flag(
+    name = "nanopb_compilation_options",
+    build_setting_default = ":nanopb_compilation_options_default"
+)
 
 cc_library(
     name = "nanopb",
@@ -30,6 +38,7 @@ cc_library(
         "pb_encode.h",
     ],
     visibility = ["//visibility:public"],
+    deps = [":nanopb_compilation_options"],
 )
 
 copy_file(
@@ -49,12 +58,14 @@ py_binary(
     data = glob([
         "generator/**/*.proto",
     ]),
+    env = {
+        "NANOPB_PB2_NO_REBUILD": "1",
+    },
     imports = [
         "generator",
     ],
     deps = [
         ":nanopb_py_proto",
-        requirement("grpcio-tools"),
     ],
 )
 
@@ -82,29 +93,17 @@ proto_library(
         "generator/proto/nanopb.proto",
     ],
     strip_import_prefix = "generator/proto/",
-    deps = ["@com_google_protobuf//:descriptor_proto"],
-)
-
-py_proto_library(
-    name = "descriptor_py_proto",
-    srcs = [
-        "generator/proto/google/protobuf/descriptor.proto",
-    ],
-    include = "generator/proto",
+    deps = ["@protobuf//:descriptor_proto"],
 )
 
 py_proto_library(
     name = "nanopb_py_proto",
-    srcs = [
-        "generator/proto/nanopb.proto",
-    ],
-    include = "generator/proto",
-    deps = [":descriptor_py_proto"],
+    deps = [":nanopb_proto"],
 )
 
 cc_nanopb_proto_library(
     name = "test_compilation",
-    protos = ["@com_google_protobuf//:descriptor_proto"],
+    protos = ["@protobuf//:descriptor_proto"],
     visibility = ["//visibility:private"],
 )
 

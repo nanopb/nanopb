@@ -7,11 +7,11 @@ on:
 jobs:
   test_avr:
     name: Test in simavr for ATMega1284
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -37,11 +37,11 @@ jobs:
 
   test_mips:
     name: Test in qemu for MIPS
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"
@@ -66,11 +66,11 @@ jobs:
 
   test_riscv:
     name: Test in qemu for RISCV64
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: nanopb
           fetch-depth: "0"

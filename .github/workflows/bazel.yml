@@ -15,13 +15,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-14]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Mount bazel cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: "/home/runner/.cache/bazel"
           key: ${{ runner.os }}-bazel

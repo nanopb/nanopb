@@ -37,11 +37,21 @@ struct pb_ostream_s
 #else
     bool (*callback)(pb_ostream_t *stream, const pb_byte_t *buf, size_t count);
 #endif
-    void *state;          /* Free field for use by callback implementation. */
-    size_t max_size;      /* Limit number of output bytes written (or use SIZE_MAX). */
-    size_t bytes_written; /* Number of bytes written so far. */
+
+    /* state is a free field for use of the callback function defined above.
+     * Note that when pb_ostream_from_buffer() is used, it reserves this field
+     * for its own use.
+     */
+    void *state;
+
+    /* Limit number of output bytes written. Can be set to SIZE_MAX. */
+    size_t max_size;
+
+    /* Number of bytes written so far. */
+    size_t bytes_written;
     
 #ifndef PB_NO_ERRMSG
+    /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
 };

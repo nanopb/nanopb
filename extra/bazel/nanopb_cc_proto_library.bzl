@@ -44,7 +44,7 @@ cc_nanopb_proto_compile = rule(
             doc = "List of protoc plugins to apply",
         ),
     ),
-    toolchains = [str(Label("@rules_proto_grpc//protobuf:toolchain_type"))],
+    toolchains = [str(Label("@rules_proto//proto:toolchain_type"))],
 )
 
 

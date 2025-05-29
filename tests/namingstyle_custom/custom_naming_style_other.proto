@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package other;
+
+enum THE_OTHER_ENUM {
+  OTHER_UNSET = 0;
+  OTHER_SET = 1;
+}
+
+enum AnotherEnum {
+  ANOTHER_UNSET = 0;
+}

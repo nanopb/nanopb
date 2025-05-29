@@ -2,13 +2,21 @@
 
 Import('env')
 
-env.NanopbProto('enumsizes')
-
-p = env.Program(["enumsizes_unittests.c",
-                 "enumsizes_intsize_unittests.cc",
-                 "enumsizes.pb.c",
+env.NanopbProto('packed_enum')
+p = env.Program(["packed_enum_unittests.c",
+                 "packed_enum.pb.c",
                  "$COMMON/pb_encode.o",
                  "$COMMON/pb_decode.o",
                  "$COMMON/pb_common.o"])
 env.RunTest(p)
 
+# Enum size specification is supported by C++11 and newer
+env2 = env.Clone()
+env2.Append(CXXFLAGS = "-std=c++11")
+env2.NanopbProtoCpp('enum_intsize')
+p2 = env2.Program(["enum_intsize_unittests.cc",
+                   "enum_intsize.pb.cpp",
+                   "$COMMON/pb_encode.o",
+                   "$COMMON/pb_decode.o",
+                   "$COMMON/pb_common.o"])
+env2.RunTest(p2)

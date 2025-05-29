@@ -8,3 +8,18 @@ message xmit {
    required bytes data = 2 [(nanopb).max_size = 128];
 }
 
+message CallbackSub {
+    required int32 value = 1;
+}
+
+message WithCallbackSubmsg {
+    required CallbackSub submsg = 1 [(nanopb).submsg_callback = true];
+}
+
+message PointerSub {
+    required int32 value = 1;
+}
+
+message WithPointerSubmsg {
+    required PointerSub submsg = 1 [(nanopb).type = FT_POINTER];
+}

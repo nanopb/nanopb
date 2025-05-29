@@ -1,0 +1,30 @@
+# Test namingstyle option
+
+Import('env')
+
+env = env.Clone()
+env.Replace(NANOPBFLAGS = "--custom-style=custom_naming_style.CustomNamingStyle")
+
+style = Command("custom_naming_style.py", "../../namingstyle_custom/custom_naming_style.py", Copy("$TARGET", "$SOURCE"))
+
+proto = env.NanopbProto(["custom_naming_style", "custom_naming_style.options"])
+Depends(proto, style)
+proto = env.NanopbProto(["custom_naming_style_package", "custom_naming_style_package.options"])
+Depends(proto, style)
+proto = env.NanopbProto(["custom_naming_style_mangle", "custom_naming_style_mangle.options"])
+Depends(proto, style)
+
+proto = env.NanopbProto(["custom_naming_style_other", "custom_naming_style_other.options"])
+Depends(proto, style)
+proto = env.NanopbProto(["custom_naming_style_importer", "custom_naming_style_importer.options", "custom_naming_style_other", "custom_naming_style_other.options"])
+Depends(proto, style)
+
+test = env.Program(["test_custom_naming_style_c.c", "custom_naming_style.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+mangle = env.Program(["test_custom_naming_style_mangle_c.c", "custom_naming_style_mangle.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+package = env.Program(["test_custom_naming_style_package_c.c", "custom_naming_style_package.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+importer = env.Program(["test_custom_naming_style_importer_c.c", "custom_naming_style_importer.pb.c", "custom_naming_style_other.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+
+env.RunTest(test)
+env.RunTest(mangle)
+env.RunTest(package)
+env.RunTest(importer)

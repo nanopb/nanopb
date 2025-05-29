@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 
 '''Generate header file for nanopb from a ProtoBuf FileDescriptorSet.'''
-nanopb_version = "nanopb-0.4.9-dev"
+nanopb_version = "nanopb-1.0.0-dev"
 
 import sys
 import re
@@ -25,17 +25,11 @@ if not os.getenv("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"):
     os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 try:
-    # Make sure grpc_tools gets included in binary package if it is available
-    import grpc_tools.protoc
-except:
-    pass
-
-try:
     import google.protobuf.text_format as text_format
     import google.protobuf.descriptor_pb2 as descriptor
     import google.protobuf.compiler.plugin_pb2 as plugin_pb2
-    import google.protobuf.reflection as reflection
     import google.protobuf.descriptor
+    import google.protobuf.message_factory as message_factory
 except:
     sys.stderr.write('''
          **********************************************************************
@@ -46,6 +40,15 @@ except:
          **********************************************************************
     ''' + '\n')
     raise
+
+# GetMessageClass() is used by modern python-protobuf (around 5.x onwards)
+# Retain compatibility with older python-protobuf versions.
+try:
+    import google.protobuf.message_factory as message_factory
+    GetMessageClass = message_factory.GetMessageClass
+except AttributeError:
+    import google.protobuf.reflection as reflection
+    GetMessageClass = reflection.MakeClass
 
 # Depending on how this script is run, we may or may not have PEP366 package name
 # available for relative imports.
@@ -65,14 +68,6 @@ else:
     # Import nanopb_pb2.py, rebuilds if necessary and not disabled
     # by env variable NANOPB_PB2_NO_REBUILD
     nanopb_pb2 = proto.load_nanopb_pb2()
-
-try:
-    # Add some dummy imports to keep packaging tools happy.
-    import google # bbfreeze seems to need these
-    from proto import nanopb_pb2 # pyinstaller seems to need this
-except:
-    # Don't care, we will error out later if it is actually important.
-    pass
 
 # ---------------------------------------------------------------------------
 #                     Generation of single fields
@@ -136,6 +131,9 @@ class NamingStyle:
     def struct_name(self, name):
         return "_%s" % (name)
 
+    def union_name(self, name):
+        return "_%s" % (name)
+
     def type_name(self, name):
         return "%s" % (name)
 
@@ -159,6 +157,9 @@ class NamingStyleC(NamingStyle):
         return self.underscore(name)
 
     def struct_name(self, name):
+        return self.underscore(name)
+
+    def union_name(self, name):
         return self.underscore(name)
 
     def type_name(self, name):
@@ -194,27 +195,12 @@ class Globals:
     protoc_insertion_points = False
     naming_style = NamingStyle()
 
-# String types and file encoding for Python2 UTF-8 support
-if sys.version_info.major == 2:
-    import codecs
-    open = codecs.open
-    strtypes = (unicode, str)
-
-    def str(x):
-        try:
-            return strtypes[1](x)
-        except UnicodeEncodeError:
-            return strtypes[0](x)
-else:
-    strtypes = (str, )
-
-
 class Names:
     '''Keeps a set of nested names and formats them to C identifier.'''
     def __init__(self, parts = ()):
         if isinstance(parts, Names):
             parts = parts.parts
-        elif isinstance(parts, strtypes):
+        elif isinstance(parts, str):
             parts = (parts,)
         self.parts = tuple(parts)
 
@@ -228,7 +214,7 @@ class Names:
         return 'Names(%s)' % ','.join("'%s'" % x for x in self.parts)
 
     def __add__(self, other):
-        if isinstance(other, strtypes):
+        if isinstance(other, str):
             return Names(self.parts + (other,))
         elif isinstance(other, Names):
             return Names(self.parts + other.parts)
@@ -274,7 +260,7 @@ class EncodedSize:
             self.symbols = value.symbols
             self.declarations = value.declarations
             self.required_defines = value.required_defines
-        elif isinstance(value, strtypes + (Names,)):
+        elif isinstance(value, (str, Names)):
             self.symbols = [str(value)]
             self.value = 0
             self.declarations = []
@@ -288,7 +274,7 @@ class EncodedSize:
     def __add__(self, other):
         if isinstance(other, int):
             return EncodedSize(self.value + other, self.symbols, self.declarations, self.required_defines)
-        elif isinstance(other, strtypes + (Names,)):
+        elif isinstance(other, (str, Names)):
             return EncodedSize(self.value, self.symbols + [str(other)], self.declarations, self.required_defines + [str(other)])
         elif isinstance(other, EncodedSize):
             return EncodedSize(self.value + other.value, self.symbols + other.symbols,
@@ -437,14 +423,11 @@ class Enum(ProtoElement):
         result += 'typedef enum %s' % Globals.naming_style.enum_name(self.names)
 
         # Override the enum size if user wants to use smaller integers
-        if (FieldD.TYPE_ENUM, self.options.int_size) in datatypes:
-            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.int_size)]
-            result += '\n#ifdef __cplusplus\n'
-            result += ' : ' + self.ctype + '\n'
-            result += '#endif\n'
-            result += '{'
-        else:
-            result += ' {'
+        if (FieldD.TYPE_ENUM, self.options.enum_intsize) in datatypes:
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.enum_intsize)]
+            result += ': ' + self.ctype
+
+        result += ' {'
 
         if trailing_comment:
             result += " " + trailing_comment
@@ -538,11 +521,10 @@ class Enum(ProtoElement):
         result += '    switch (v) {\n'
 
         for ((enumname, _), strname) in zip(self.values, self.value_longnames):
-            # Strip off the leading type name from the string value.
-            strval = str(strname)[len(str(self.names)) + 1:]
+            # Just use the last part of the string value.
             result += '        case %s: return "%s";\n' % (
                 Globals.naming_style.enum_entry(enumname),
-                Globals.naming_style.enum_entry(strval))
+                Globals.naming_style.enum_entry(strname.parts[-1]))
 
         result += '    }\n'
         result += '    return "unknown";\n'
@@ -612,6 +594,8 @@ class Field(ProtoElement):
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
+        self.submsg_callback_requested = False
+        self.can_be_static = True
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -645,11 +629,10 @@ class Field(ProtoElement):
         if field_options.HasField("label_override"):
             desc.label = field_options.label_override
 
-        can_be_static = True
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
             if self.max_count is None:
-                can_be_static = False
+                self.can_be_static = False
             else:
                 self.array_decl = '[%d]' % self.max_count
                 if field_options.fixed_count:
@@ -677,19 +660,19 @@ class Field(ProtoElement):
         # Check if the field can be implemented with static allocation
         # i.e. whether the data size is known.
         if desc.type == FieldD.TYPE_STRING and self.max_size is None:
-            can_be_static = False
+            self.can_be_static = False
 
         if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
-            can_be_static = False
+            self.can_be_static = False
 
         # Decide how the field data will be allocated
         if field_options.type == nanopb_pb2.FT_DEFAULT:
-            if can_be_static:
+            if self.can_be_static:
                 field_options.type = nanopb_pb2.FT_STATIC
             else:
                 field_options.type = field_options.fallback_type
 
-        if field_options.type == nanopb_pb2.FT_STATIC and not can_be_static:
+        if field_options.type == nanopb_pb2.FT_STATIC and not self.can_be_static:
             raise Exception("Field '%s' is defined as static, but max_size or "
                             "max_count is not given." % self.name)
 
@@ -731,6 +714,7 @@ class Field(ProtoElement):
                 self.array_decl += '[%d]' % self.max_size
                 # -1 because of null terminator. Both pb_encode and pb_decode
                 # check the presence of it.
+            if self.can_be_static:
                 self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
@@ -740,7 +724,6 @@ class Field(ProtoElement):
                     raise Exception("Field '%s' is defined as fixed length, "
                                     "but max_size is not given." % self.name)
 
-                self.enc_size = varint_max_size(self.max_size) + self.max_size
                 self.ctype = 'pb_byte_t'
                 self.array_decl += '[%d]' % self.max_size
             else:
@@ -748,11 +731,16 @@ class Field(ProtoElement):
                 self.ctype = 'pb_bytes_array_t'
                 if self.allocation == 'STATIC':
                     self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
-                    self.enc_size = varint_max_size(self.max_size) + self.max_size
+            if self.can_be_static:
+                self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
             self.ctype = self.submsgname = names_from_type_name(desc.type_name)
             self.enc_size = None # Needs to be filled in after the message type is available
+            self.submsg_callback_requested = field_options.submsg_callback
+
+            # Add submessage callback for statically allocated fields inside or
+            # outside oneofs. This can be used for repeated fields and oneofs.
             if field_options.submsg_callback and self.allocation == 'STATIC':
                 self.pbtype = 'MSG_W_CB'
         else:
@@ -820,7 +808,7 @@ class Field(ProtoElement):
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, Globals.naming_style.var_name(self.ctype))
+            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
         else:
             result = ''
         return result
@@ -893,6 +881,8 @@ class Field(ProtoElement):
                     inner_init += '.0f'
                 elif self.pbtype == 'FLOAT':
                     inner_init += 'f'
+            elif self.pbtype in ('ENUM', 'UENUM'):
+                inner_init = Globals.naming_style.enum_entry(self.default)
             else:
                 inner_init = str(self.default)
 
@@ -1022,7 +1012,7 @@ class Field(ProtoElement):
         including the field tag. If the size cannot be determined, returns
         None.'''
 
-        if self.allocation != 'STATIC':
+        if not self.can_be_static:
             return None
 
         if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
@@ -1177,7 +1167,7 @@ class ExtensionField(Field):
         result = "/* Definition for extension field %s */\n" % self.fullname
         result += str(self.msg)
         result += self.msg.fields_declaration(dependencies)
-        result += 'pb_byte_t %s_default[] = {0x00};\n' % self.msg.name
+        result += 'pb_byte_t %s_default[] = {0x00};\n' % Globals.naming_style.var_name(self.msg.name)
         result += self.msg.fields_definition(dependencies)
         result += 'const pb_extension_type_t %s = {\n' % Globals.naming_style.var_name(self.fullname)
         result += '    NULL,\n'
@@ -1214,6 +1204,12 @@ class OneOf(Field):
         if self.sort_by_tag:
             self.fields.sort()
 
+        # Add submessage callback for callback fields inside oneofs.
+        # This is done here because the Field() initializer doesn't know
+        # whether the field will end up inside oneof or not.
+        if field.submsg_callback_requested and field.allocation == 'CALLBACK':
+            field.pbtype = 'MSG_W_CB'
+
         if field.pbtype == 'MSG_W_CB':
             self.has_msg_cb = True
 
@@ -1227,7 +1223,10 @@ class OneOf(Field):
                 result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
             result += '    pb_size_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
-            result += '    union {\n'
+            if self.anonymous:
+                result += '    union {\n'
+            else:
+                result += '    union ' + Globals.naming_style.union_name(self.struct_name + self.name) + ' {\n'
             for f in self.fields:
                 result += '    ' + str(f).replace('\n', '\n    ') + '\n'
             if self.anonymous:
@@ -1348,7 +1347,11 @@ class Message(ProtoElement):
 
         for index, f in enumerate(desc.field):
             field_options = get_nanopb_suboptions(f, message_options, self.name + f.name)
+
             if field_options.type == nanopb_pb2.FT_IGNORE:
+                continue
+
+            if field_options.discard_deprecated and f.options.deprecated:
                 continue
 
             if field_options.descriptorsize > self.descriptorsize:
@@ -1562,13 +1565,13 @@ class Message(ProtoElement):
         if size_define in local_defines:
             result += '    static PB_INLINE_CONSTEXPR const pb_size_t size = %s;\n' % (size_define)
 
-        result += '    static inline const pb_msgdesc_t* fields() {\n'
+        result += '    static PB_INLINE_CONSTEXPR const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (self.name)
         result += '    }\n'
-        result += '    static inline bool has_msgid() {\n'
+        result += '    static PB_INLINE_CONSTEXPR bool has_msgid() {\n'
         result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
         result += '    }\n'
-        result += '    static inline uint32_t msgid() {\n'
+        result += '    static PB_INLINE_CONSTEXPR uint32_t msgid() {\n'
         result += '        return %d;\n' % (getattr(self, "msgid", 0), )
         result += '    }\n'
         result += '};'
@@ -1691,7 +1694,7 @@ class Message(ProtoElement):
         optional_only.name += str(id(self))
 
         desc = google.protobuf.descriptor.MakeDescriptor(optional_only)
-        msg = reflection.MakeClass(desc)()
+        msg = GetMessageClass(desc)()
 
         for field in optional_only.field:
             if field.type == FieldD.TYPE_STRING:
@@ -1854,6 +1857,25 @@ class MangleNames:
             self.name_mapping[str(names)] = new_name
             self.reverse_name_mapping[str(new_name)] = self.canonical_base + names
 
+            styled_name = Globals.naming_style.type_name(new_name)
+            unmangled_styled_name = Globals.naming_style.type_name(self.canonical_base + names)
+
+            if styled_name != unmangled_styled_name:
+                # The styled name is mangled and needs extra mapping from unmangled to mangled. We just need to figure out whether
+                # it requires one or two extra mappings to get from the unmangled to the mangled name, depending on how they differ.
+                # This is required because enum dependencies are looked up from the reverse_name_mapping using names_from_type_name.
+
+                # The type name (new_name) doesn't match either of the styled names, so we'll have to add an extra mapping to it.
+                if str(new_name) != unmangled_styled_name and str(new_name) != styled_name:
+                    self.reverse_name_mapping[unmangled_styled_name] = new_name
+
+                # We need to be careful not to redefine the type name (new_name), use unmangled canonical name in this case.
+                if styled_name == str(new_name):
+                    self.reverse_name_mapping[str(self.canonical_base + names)] = unmangled_styled_name
+                else:
+                    self.reverse_name_mapping[styled_name] = unmangled_styled_name
+
+
         return self.name_mapping[str(names)]
 
     def mangle_field_typename(self, typename):
@@ -1889,6 +1911,7 @@ class ProtoFile:
         self.dependencies = {}
         self.math_include_required = False
         self.parse()
+        self.discard_unused_automatic_types()
         for message in self.messages:
             if message.math_include_required:
                 self.math_include_required = True
@@ -1925,6 +1948,9 @@ class ProtoFile:
             if message_options.skip_message:
                 continue
 
+            if message_options.discard_deprecated and message.options.deprecated:
+                continue
+
             # Apply any configured typename mangling options
             message = copy.deepcopy(message)
             for field in message.field:
@@ -1934,8 +1960,9 @@ class ProtoFile:
             # Check for circular dependencies
             msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             if check_recursive_dependencies(msgobject, self.messages):
-                sys.stderr.write('Breaking circular dependency at message %s by converting to callback\n' % msgobject.name)
-                message_options.type = nanopb_pb2.FT_CALLBACK
+                message_options.type = message_options.fallback_type
+                sys.stderr.write('Breaking circular dependency at message %s by converting to %s\n'
+                                 % (msgobject.name, nanopb_pb2.FieldType.Name(message_options.type)))
                 msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             self.messages.append(msgobject)
 
@@ -1956,6 +1983,28 @@ class ProtoFile:
 
             if field_options.type != nanopb_pb2.FT_IGNORE:
                 self.extensions.append(ExtensionField(name, extension, field_options))
+
+    def discard_unused_automatic_types(self):
+        '''Discard unused types that are automatically generated by protoc if they are not actually
+        needed. Currently this applies to map< > types when the field is ignored by options.
+        '''
+
+        if not self.file_options.discard_unused_automatic_types:
+            return
+
+        map_entries = {}
+        types_used = set()
+        for msg in self.messages:
+            if msg.desc.options.map_entry:
+                map_entries[str(msg.name)] = msg
+
+            for field in msg.all_fields():
+                if field.pbtype == 'MESSAGE':
+                    types_used.add(str(field.submsgname))
+
+        for name, msg in map_entries.items():
+            if name not in types_used:
+                self.messages.remove(msg)
 
     def add_dependency(self, other):
         for enum in other.enums:
@@ -2386,7 +2435,8 @@ def get_nanopb_suboptions(subdesc, options, name):
 
 import sys
 import os.path
-from optparse import OptionParser
+import importlib.util
+from optparse import OptionParser, OptionValueError
 
 optparser = OptionParser(
     usage = "Usage: nanopb_generator.py [options] file.pb ...",
@@ -2443,6 +2493,18 @@ optparser.add_option("--protoc-insertion-points", dest="protoc_insertion_points"
 optparser.add_option("-C", "--c-style", dest="c_style", action="store_true", default=False,
     help="Use C naming convention.")
 
+
+def parse_custom_style(option, opt_str, value, parser):
+    parts = value.rsplit(".", 1)
+    if len(parts) != 2 or not all(len(part) > 0 for part in parts):
+        raise OptionValueError("Invalid value for %s, must be in the form %s: %r" % (opt_str, option.metavar, value))
+    setattr(parser.values, option.dest, parts)
+
+
+optparser.add_option("--custom-style", dest="custom_style", type=str, metavar="MODULE.CLASS", action="callback", callback=parse_custom_style,
+                     help="Use a custom naming convention from a module/class that defines the methods from the NamingStyle class to be overridden. When paired with the -C/--c-style option, the NamingStyleC class is the fallback, otherwise it's the NamingStyle class.")
+
+
 def process_cmdline(args, is_plugin):
     '''Process command line options. Returns list of options, filenames.'''
 
@@ -2470,7 +2532,25 @@ def process_cmdline(args, is_plugin):
     options.libformat = include_formats.get(options.libformat, options.libformat)
     options.genformat = include_formats.get(options.genformat, options.genformat)
 
-    if options.c_style:
+    if options.custom_style:
+        module_path, class_name = options.custom_style
+        module_name = os.path.splitext(os.path.basename(module_path))[0]
+        if not module_path.endswith(".py"):
+            module_path = module_path + ".py"
+
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        custom_class = getattr(module, class_name)
+
+        class InheritNamingStyle(custom_class, NamingStyleC if options.c_style else NamingStyle):
+            """Class to inherit from the custom class and then NamingStyle or NamingCStyle, in case it doesn't implement all methods."""
+            pass
+
+        Globals.naming_style = InheritNamingStyle()
+    elif options.c_style:
         Globals.naming_style = NamingStyleC()
 
     Globals.verbose_options = options.verbose

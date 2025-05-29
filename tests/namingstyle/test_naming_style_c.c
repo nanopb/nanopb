@@ -10,7 +10,11 @@
 int main()
 {
     int status = 0;
+    main_message_t defaultMessage = MAIN_MESSAGE_INIT_DEFAULT;
     main_message_t message = MAIN_MESSAGE_INIT_ZERO;
+
+    /* Verify the default value was initialized */
+    TEST(defaultMessage.my_enum5 == MY_ENUM1_ENTRY_SECOND);
 
     /* Verify that all members have the expected names */
     message.lucky_number = 13;
@@ -42,8 +46,10 @@ int main()
     message.sub_message3.test_value = 0;
 
     message.which_one_of_name = MAIN_MESSAGE_TEST_MESSAGE2_TAG;
-    message.one_of_name.test_message2.has_test_value = true;
-    message.one_of_name.test_message2.test_value = 5;
+    union main_message_one_of_name one_of_name;
+    one_of_name.test_message2.has_test_value = true;
+    one_of_name.test_message2.test_value = 5;
+    message.one_of_name = one_of_name;
 
     message.which_one_of_name2 = MAIN_MESSAGE_TEST_MESSAGE5_TAG;
     message.test_message5.test_value = 5;

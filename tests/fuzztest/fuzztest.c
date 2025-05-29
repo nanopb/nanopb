@@ -101,7 +101,12 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
         assert(status);
     }
 
-    pb_release(msgtype, msg);
+    if (status)
+    {
+        /* On error return, pb_release() should be called automatically. */
+        pb_release(msgtype, msg);
+    }
+
     free_with_check(msg);
     free_with_check(buf2);
     assert(get_alloc_count() == initial_alloc_count);
@@ -109,7 +114,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     return status;
 }
 
-static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_after, size_t structsize, const pb_msgdesc_t *msgtype, bool assert_success)
+static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_after, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
 {
     bool status;
     flakystream_t stream;
@@ -119,7 +124,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
 
     memset(msg, 0, structsize);
     flakystream_init(&stream, buffer, msglen, fail_after);
-    status = pb_decode(&stream.stream, msgtype, msg);
+    status = pb_decode_ex(&stream.stream, msgtype, msg, flags);
 
     if (status)
     {
@@ -132,7 +137,12 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
         assert(status);
     }
 
-    pb_release(msgtype, msg);
+    if (status)
+    {
+        /* On error return, pb_release() should be called automatically. */
+        pb_release(msgtype, msg);
+    }
+
     free_with_check(msg);
     assert(get_alloc_count() == initial_alloc_count);
 
@@ -295,7 +305,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, true);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, true);
         do_callback_decode(data, size, true);
     }
 #endif
@@ -304,7 +314,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, true);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, true);
     }
 #endif
 
@@ -312,7 +322,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, true);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, true);
     }
 #endif
 
@@ -320,7 +330,7 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, expect_valid))
     {
         do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, true);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, true);
     }
 #endif
 
@@ -332,8 +342,9 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
          * Testing proto2 is enough for good coverage here, as it has a superset of the field types of proto3.
          */
         set_max_alloc_bytes(get_alloc_bytes() + 4096);
-        do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, false);
-        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, PB_DECODE_DELIMITED, false);
         set_max_alloc_bytes(orig_max_alloc_bytes);
     }
 
