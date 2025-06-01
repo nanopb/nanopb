@@ -65,7 +65,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cd examples/simple
-          call C:\nanopb-test\bin\nanopb_generator simple.proto
+          python3 C:\nanopb-test\bin\nanopb_generator.py simple.proto
           cl simple.pb.c simple.c /IC:\nanopb-test\include\nanopb C:\nanopb-test\lib\protobuf-nanopb.lib /link /out:simple.exe
           simple.exe
 
