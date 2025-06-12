@@ -1,0 +1,8 @@
+# Test building google descriptor.proto
+
+Import('env')
+
+opts = env.Clone()
+opts.Append(CPPDEFINES = {'PB_FIELD_32BIT': 1})
+opts.NanopbProto('descriptor.proto')
+opts.Object('descriptor.pb.c')
