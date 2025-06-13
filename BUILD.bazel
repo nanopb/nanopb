@@ -103,6 +103,7 @@ py_proto_library(
 
 cc_nanopb_proto_library(
     name = "test_compilation",
+    defines = ["PB_FIELD_32BIT"],
     protos = ["@protobuf//:descriptor_proto"],
     visibility = ["//visibility:private"],
 )
