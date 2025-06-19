@@ -1560,7 +1560,10 @@ class Message(ProtoElement):
 
         size_define = "%s_size" % (Globals.naming_style.type_name(self.name))
         if size_define in local_defines:
+            result += '/* The size define we are using may be defined conditionally guarded. */\n'
+            result += '#if defined %s\n' % size_define
             result += '    static PB_INLINE_CONSTEXPR const pb_size_t size = %s;\n' % (size_define)
+            result += '#endif\n'
 
         result += '    static PB_INLINE_CONSTEXPR const pb_msgdesc_t* fields() {\n'
         result += '        return &%s_msg;\n' % (Globals.naming_style.type_name(self.name))
