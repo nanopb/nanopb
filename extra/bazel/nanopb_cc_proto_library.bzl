@@ -9,6 +9,7 @@ load(
     "proto_compile_attrs",
     "proto_compile",
 )
+load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
 def cc_nanopb_proto_compile_impl(ctx):
     """Nanopb proto compile implementation to add options files."""
@@ -19,6 +20,9 @@ def cc_nanopb_proto_compile_impl(ctx):
             extra_protoc_args = extra_protoc_args + [
                 "--nanopb_plugin_opt=-f{}".format(options_file.path)]
             extra_protoc_files = extra_protoc_files + [options_file]
+    extra_protoc_args = extra_protoc_args + [
+        "--nanopb_plugin_opt=--extension={}".format(ctx.attr._extension[BuildSettingInfo].value)
+    ]
     return proto_compile(ctx, ctx.attr.options, extra_protoc_args, extra_protoc_files)
 
 
@@ -26,6 +30,10 @@ nanopb_proto_compile_attrs = dict(
     nanopb_options_files = attr.label_list(
         allow_files = [".options"],
         doc = "An optional list of additional nanopb options files to apply",
+    ),
+    _extension = attr.label(
+        doc = "Private field to allow //:nanopb_extension string_flag to apply",
+        default = "//:nanopb_extension",
     ),
     **proto_compile_attrs,
 )
