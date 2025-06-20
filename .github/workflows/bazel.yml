@@ -15,6 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        extension: [.pb, .nanopb]
         os: [ubuntu-latest, macos-latest]
 
     steps:
@@ -28,8 +29,8 @@ jobs:
 
       - name: Test
         run: |
-          bazelisk test //...
+          bazelisk test --//:nanopb_extension=${{ matrix.extension }} //...
 
       - name: Build
         run: |
-          bazelisk build //...
+          bazelisk build --//:nanopb_extension=${{ matrix.extension }} //...

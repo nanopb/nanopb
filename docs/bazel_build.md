@@ -55,3 +55,32 @@ cc_nanopb_proto_library(
     visibility = ["//visibility:private"],
 )
 ```
+
+## Bazel Configuration Options
+
+### Use a non-default extension
+
+By default, nanopb generates files with extension `.pb`, which ends up creating
+names such as `my_proto.pb.h` and `my_proto.pb.c`. This naming pattern conflicts
+with `cc_proto_library` rules, which generate files with the same names.
+
+To resolve this conflict, we provide a `string_flag` `//:nanopb_extension` that
+currently accepts two options: `.pb` and `.nanopb`. (In the future, we could
+pontentially accept your choice of input, but that was tricky to do, so to start
+with only these two options are supported.)
+
+To build `nanopb` files with the `.nanopb` extension (creating files of
+`my_proto.nanopb.h` and `my_proto.nanopb.c`) you can add the following to your
+command line:
+
+```
+bazel build --@nanopb//:nanopb_extension=".nanopb"
+```
+
+If you want to apply this to all nanopb files, add the above to your `.bazelrc`
+file:
+
+```
+# .bazelrc
+build --@nanopb//:nanopb_extension=".nanopb"
+```

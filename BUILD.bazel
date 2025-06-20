@@ -1,4 +1,5 @@
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 
 # Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
 # load("@python_3_11//:defs.bzl", "py_binary")
@@ -69,6 +70,26 @@ py_binary(
     ],
 )
 
+string_flag(
+    name = "nanopb_extension",
+    values = [".pb", ".nanopb"],
+    build_setting_default = ".pb",
+)
+
+config_setting(
+    name = "nanopb_extension_default",
+    flag_values = {
+        ":nanopb_extension": ".pb"
+    }
+)
+
+config_setting(
+    name = "nanopb_extension_nanopb",
+    flag_values = {
+        ":nanopb_extension": ".nanopb"
+    }
+)
+
 proto_plugin(
     name = "nanopb_plugin",
     env = {
@@ -77,10 +98,16 @@ proto_plugin(
     options = [
         "--library-include-format=quote",
     ],
-    outputs = [
-        "{protopath}.pb.h",
-        "{protopath}.pb.c",
-    ],
+    outputs = select({
+        ":nanopb_extension_default": [
+            "{protopath}.pb.h",
+            "{protopath}.pb.c",
+        ],
+        ":nanopb_extension_nanopb": [
+            "{protopath}.nanopb.h",
+            "{protopath}.nanopb.c",
+        ],
+    }),
     separate_options_flag = True,
     tool = ":protoc-gen-nanopb",
     use_built_in_shell_environment = False,
@@ -124,6 +151,10 @@ cc_test(
     name = "bazel_options_support",
     srcs = ["tests/bazel_options_support/bazel_options_support.cc"],
     deps = [":all_types_nanopb"],
+    copts = select({
+        ":nanopb_extension_nanopb": ["-DUSE_NANOPB_EXTENSION_NAME"],
+        ":nanopb_extension_default": [],
+    }),
 )
 
 # Run `bazel run //:requirements.update` if you want to update the requirements.
