@@ -70,8 +70,8 @@ jobs:
           (cd legacy_cmake_simple; mkdir build; cd build; cmake ..; make)
 
   build_windows:
-    name: Build binary on Windows 2019
-    runs-on: windows-2019
+    name: Build binary on Windows 2022
+    runs-on: windows-2022
 
     steps:
       - name: Check out code from GitHub
