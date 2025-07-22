@@ -130,6 +130,7 @@ extern "C" {
 #endif
 
 /* Define for explicitly not inlining a given function */
+#ifndef pb_noinline
 #if defined(__GNUC__) || defined(__clang__)
     /* For GCC and clang */
 #   if defined(noinline)
@@ -144,6 +145,7 @@ extern "C" {
 #   define pb_noinline __declspec(noinline)
 #else
 #   define pb_noinline
+#endif
 #endif
 
 /* Detect endianness */
