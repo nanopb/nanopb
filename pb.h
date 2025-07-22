@@ -132,7 +132,11 @@ extern "C" {
 /* Define for explicitly not inlining a given function */
 #if defined(__GNUC__) || defined(__clang__)
     /* For GCC and clang */
+#   if defined(noinline)
+#   define pb_noinline noinline
+#   else
 #   define pb_noinline __attribute__((noinline))
+#   endif
 #elif defined(__ICCARM__) || defined(__CC_ARM)
     /* For IAR ARM and Keil MDK-ARM compilers */
 #   define pb_noinline
