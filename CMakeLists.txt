@@ -42,17 +42,17 @@ if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
     set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/nanopb")
 endif()
 
-# Determine Python module installation path
-if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
-    find_package(Python REQUIRED COMPONENTS Interpreter)
-    file(TO_CMAKE_PATH "${Python_SITELIB}" PYTHON_INSTDIR)
-else()
-    set(PYTHON_INSTDIR ${nanopb_PYTHON_INSTDIR_OVERRIDE})
-endif()
-message(STATUS "Python install dir: ${PYTHON_INSTDIR}")
-
 # Package nanopb generator as Python module 'nanopb'
 if(nanopb_BUILD_GENERATOR)
+    # Determine Python module installation path
+    if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
+        find_package(Python REQUIRED COMPONENTS Interpreter)
+        file(TO_CMAKE_PATH "${Python_SITELIB}" PYTHON_INSTDIR)
+    else()
+        set(PYTHON_INSTDIR ${nanopb_PYTHON_INSTDIR_OVERRIDE})
+    endif()
+    message(STATUS "Python install dir: ${PYTHON_INSTDIR}")
+
     # Copy Python code files related to the generator
     add_custom_target(nanopb_generator ALL
         COMMAND ${CMAKE_COMMAND} -E make_directory
