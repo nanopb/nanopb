@@ -4,7 +4,7 @@
 #include <pb_encode.h>
 #include <malloc_wrappers.h>
 #include <unittests.h>
-#include "fixed_count.pb.h"
+#include <fixed_count.pb.h>
 
 int main()
 {

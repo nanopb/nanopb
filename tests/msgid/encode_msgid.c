@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pb_encode.h>
-#include "msgid_example.pb.h"
+#include <msgid_example.pb.h>
 #include <test_helpers.h>
 
 /* This function writes the message id as a prefix to the message, allowing

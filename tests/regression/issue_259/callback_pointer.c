@@ -1,4 +1,4 @@
-#include "callback_pointer.pb.h"
+#include <callback_pointer.pb.h>
 #include <unittests.h>
 #include <pb_decode.h>
 

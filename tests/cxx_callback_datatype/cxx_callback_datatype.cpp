@@ -1,5 +1,5 @@
 // Test wrapping of a C++ class inside struct using callback_datatype option.
-#include "message.pb.hpp"
+#include <message.pb.hpp>
 
 #include <pb_encode.h>
 #include <pb_decode.h>

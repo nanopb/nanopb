@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <unittests.h>
-#include "flatten.pb.h"
+#include <flatten.pb.h>
 
 int main()
 {

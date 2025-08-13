@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
-#include "stackusage.pb.h"
+#include <stackusage.pb.h>
 
 static uint8_t g_msgbuf[256];
 static size_t g_msglen;

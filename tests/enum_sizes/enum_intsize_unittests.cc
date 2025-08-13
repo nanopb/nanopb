@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "enum_intsize.pb.hpp"
+#include <enum_intsize.pb.hpp>
 #include <unittests.h>
 
 extern "C" int main()

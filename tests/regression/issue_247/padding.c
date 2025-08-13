@@ -1,7 +1,7 @@
 #include <pb_encode.h>
 #include <unittests.h>
 #include <string.h>
-#include "padding.pb.h"
+#include <padding.pb.h>
 
 int main()
 {

@@ -2,7 +2,7 @@
 #undef __STRICT_ANSI__
 #include <math.h>
 #include <pb_decode.h>
-#include "floats.pb.h"
+#include <floats.pb.h>
 #include <unittests.h>
 
 bool check_floats(Floats *floats)

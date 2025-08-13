@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "message.pb.h"
+#include <message.pb.h>
 #include <unittests.h>
 
 extern "C" int main() {

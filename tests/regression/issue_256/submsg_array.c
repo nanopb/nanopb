@@ -1,7 +1,7 @@
 #include <unittests.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "submsg_array.pb.h"
+#include <submsg_array.pb.h>
 
 int main()
 {

@@ -1,4 +1,4 @@
-#include "test.pb.h"
+#include <test.pb.h>
 #include <unittests.h>
 
 int main()

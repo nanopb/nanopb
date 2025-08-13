@@ -1,4 +1,4 @@
-#include "defaults.pb.h"
+#include <defaults.pb.h>
 #include <unittests.h>
 #include <pb_decode.h>
 

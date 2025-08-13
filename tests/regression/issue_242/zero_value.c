@@ -2,7 +2,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include <string.h>
-#include "zero_value.pb.h"
+#include <zero_value.pb.h>
 
 int main()
 {

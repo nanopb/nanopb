@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "alltypes_static.pb.h"
-#include "random_data.h"
+#include <alltypes_static.pb.h>
+#include <random_data.h>
 
 #ifndef FUZZTEST_BUFSIZE
 #define FUZZTEST_BUFSIZE 4096

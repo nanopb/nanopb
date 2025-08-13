@@ -2,7 +2,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include <unittests.h>
-#include "enums.pb.h"
+#include <enums.pb.h>
 
 int main()
 {

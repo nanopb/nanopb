@@ -14,15 +14,15 @@
 #include <string.h>
 #include <assert.h>
 #include <malloc_wrappers.h>
-#include "random_data.h"
-#include "validation.h"
-#include "flakystream.h"
+#include <random_data.h>
+#include <validation.h>
+#include <flakystream.h>
 #include <test_helpers.h>
-#include "alltypes_static.pb.h"
-#include "alltypes_pointer.pb.h"
-#include "alltypes_callback.pb.h"
-#include "alltypes_proto3_static.pb.h"
-#include "alltypes_proto3_pointer.pb.h"
+#include <alltypes_static.pb.h>
+#include <alltypes_pointer.pb.h>
+#include <alltypes_callback.pb.h>
+#include <alltypes_proto3_static.pb.h>
+#include <alltypes_proto3_pointer.pb.h>
 
 /* Longer buffer size allows hitting more branches, but lowers performance. */
 #ifndef FUZZTEST_BUFSIZE

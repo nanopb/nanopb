@@ -1,4 +1,4 @@
-#include "flakystream.h"
+#include <flakystream.h>
 #include <string.h>
 
 bool flakystream_callback(pb_istream_t *stream, pb_byte_t *buf, size_t count)

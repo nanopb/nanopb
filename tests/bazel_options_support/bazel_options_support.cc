@@ -1,7 +1,7 @@
 #ifdef USE_NANOPB_EXTENSION_NAME
-#include "tests/alltypes/alltypes.nanopb.h"
+#include <tests/alltypes/alltypes.nanopb.h>
 #else
-#include "tests/alltypes/alltypes.pb.h"
+#include <tests/alltypes/alltypes.pb.h>
 #endif
 
 int main(int argc, char* argv[]) {

@@ -3,7 +3,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <unittests.h>
-#include "packed_enum.pb.h"
+#include <packed_enum.pb.h>
 
 int main()
 {

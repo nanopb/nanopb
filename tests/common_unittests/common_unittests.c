@@ -1,10 +1,10 @@
 #define PB_VALIDATE_UTF8
-#include "pb_common.c"
+#include <pb_common.c>
 
 #include <stdio.h>
 #include <string.h>
 #include <unittests.h>
-#include "../alltypes/alltypes.pb.h"
+#include <../alltypes/alltypes.pb.h>
 
 int main()
 {

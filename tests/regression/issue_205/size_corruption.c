@@ -1,4 +1,4 @@
-#include "size_corruption.pb.h"
+#include <size_corruption.pb.h>
 #include <pb_decode.h>
 
 int main()

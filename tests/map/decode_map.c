@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pb_decode.h>
-#include "map.pb.h"
+#include <map.pb.h>
 #include <test_helpers.h>
 #include <unittests.h>
 

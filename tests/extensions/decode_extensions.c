@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <pb_decode.h>
 #include <alltypes.pb.h>
-#include "extensions.pb.h"
+#include <extensions.pb.h>
 #include <test_helpers.h>
 #include <unittests.h>
 

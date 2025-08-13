@@ -3,7 +3,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "extensions.pb.h"
+#include <extensions.pb.h>
 #include <unittests.h>
 
 static bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)

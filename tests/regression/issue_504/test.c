@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pb_encode.h>
-#include "test.pb.h"
+#include <test.pb.h>
 #include <unittests.h>
 
 const char STR[] = "test str";

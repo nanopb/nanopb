@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <pb_decode.h>
 #include <unittests.h>
-#include "test.pb.h"
+#include <test.pb.h>
 #include <stdio.h>
 
 const uint8_t input_data[] = {

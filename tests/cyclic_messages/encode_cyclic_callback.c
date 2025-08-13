@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "cyclic_callback.pb.h"
+#include <cyclic_callback.pb.h>
 
 static char *find_end_of_item(char *p)
 {

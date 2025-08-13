@@ -5,7 +5,7 @@
 #include <malloc_wrappers.h>
 #include <stdio.h>
 #include <test_helpers.h>
-#include "mem_release.pb.h"
+#include <mem_release.pb.h>
 
 #define TEST(x) if (!(x)) { \
     fprintf(stderr, "Test %s on line %d failed.\n", #x, __LINE__); \

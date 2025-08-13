@@ -3,7 +3,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "oneofmsg.pb.h"
+#include <oneofmsg.pb.h>
 #include <unittests.h>
 
 int main(int argc, char **argv)

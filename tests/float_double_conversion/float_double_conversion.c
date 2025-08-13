@@ -5,7 +5,7 @@
 #include <string.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include "doublemsg.pb.h"
+#include <doublemsg.pb.h>
 #include <unittests.h>
 
 /* This message mimics how DoubleMsg would appear on e.g. AVR. */

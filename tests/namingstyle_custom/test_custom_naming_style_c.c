@@ -5,7 +5,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include <unittests.h>
-#include "custom_naming_style.pb.h"
+#include <custom_naming_style.pb.h>
 
 int main()
 {

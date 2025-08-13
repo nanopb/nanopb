@@ -2462,7 +2462,7 @@ optparser.add_option("-D", "--output-dir", dest="output_dir",
                      metavar="OUTPUTDIR", default=None,
                      help="Output directory of .pb.h and .pb.c files")
 optparser.add_option("-Q", "--generated-include-format", dest="genformat",
-    metavar="FORMAT", default='#include "%s"',
+    metavar="FORMAT", default='#include <%s>',
     help="Set format string to use for including other .pb.h files. Value can be 'quote', 'bracket' or a format string. [default: %default]")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
     metavar="FORMAT", default='#include <%s>',

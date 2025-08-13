@@ -1,11 +1,11 @@
 /* This includes the whole .c file to get access to static functions. */
-#include "pb_common.c"
-#include "pb_encode.c"
+#include <pb_common.c>
+#include <pb_encode.c>
 
 #include <stdio.h>
 #include <string.h>
 #include <unittests.h>
-#include "unittestproto.pb.h"
+#include <unittestproto.pb.h>
 
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
 {

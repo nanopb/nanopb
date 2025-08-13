@@ -1,4 +1,4 @@
-#include "submsg_callback.pb.h"
+#include <submsg_callback.pb.h>
 
 SubMsg1 submsg1_zero = SubMsg1_init_zero;
 SubMsg1 submsg1_def = SubMsg1_init_default;

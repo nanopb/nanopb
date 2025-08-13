@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <unittests.h>
-#include "replace_package_b.pb.h"
+#include <replace_package_b.pb.h>
 
 int main()
 {

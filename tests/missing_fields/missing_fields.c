@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "missing_fields.pb.h"
+#include <missing_fields.pb.h>
 
 int main()
 {

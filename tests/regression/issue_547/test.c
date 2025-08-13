@@ -1,7 +1,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include <unittests.h>
-#include "test.pb.h"
+#include <test.pb.h>
 
 int main()
 {

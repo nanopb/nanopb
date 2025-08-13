@@ -1,12 +1,12 @@
 /* This includes the whole .c file to get access to static functions. */
 #define PB_ENABLE_MALLOC
-#include "pb_common.c"
-#include "pb_decode.c"
+#include <pb_common.c>
+#include <pb_decode.c>
 
 #include <stdio.h>
 #include <string.h>
 #include <unittests.h>
-#include "unittestproto.pb.h"
+#include <unittestproto.pb.h>
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)
 

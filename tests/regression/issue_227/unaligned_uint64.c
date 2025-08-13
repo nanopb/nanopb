@@ -1,4 +1,4 @@
-#include "unaligned_uint64.pb.h"
+#include <unaligned_uint64.pb.h>
 #include <pb_encode.h>
 
 int main()

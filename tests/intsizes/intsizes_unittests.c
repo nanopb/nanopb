@@ -3,7 +3,7 @@
 #include <pb_decode.h>
 #include <pb_encode.h>
 #include <unittests.h>
-#include "intsizes.pb.h"
+#include <intsizes.pb.h>
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)
 

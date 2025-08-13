@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "options.pb.h"
+#include <options.pb.h>
 #include <unittests.h>
 
 int main()

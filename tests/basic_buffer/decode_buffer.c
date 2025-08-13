@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 #include <pb_decode.h>
-#include "person.pb.h"
+#include <person.pb.h>
 #include <test_helpers.h>
 
 /* This function is called once from main(), it handles

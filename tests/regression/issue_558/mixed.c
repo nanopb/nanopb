@@ -1,7 +1,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-#include "mixed.pb.h"
+#include <mixed.pb.h>
 #include <unittests.h>
 
 int main()

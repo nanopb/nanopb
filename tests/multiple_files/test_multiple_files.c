@@ -6,8 +6,8 @@
 #include <pb_encode.h>
 #include <pb_common.h>
 #include <unittests.h>
-#include "multifile2.pb.h"
-#include "subdir/multifile2.pb.h"
+#include <multifile2.pb.h>
+#include <subdir/multifile2.pb.h>
 
 int main()
 {

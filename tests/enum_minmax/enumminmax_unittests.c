@@ -1,5 +1,5 @@
 #include <unittests.h>
-#include "enumminmax.pb.h"
+#include <enumminmax.pb.h>
 
 int main()
 {

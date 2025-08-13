@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <unittests.h>
-#include "package_initials.pb.h"
+#include <package_initials.pb.h>
 
 int main()
 {
