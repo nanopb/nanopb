@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "enum.pb.h"
 
 int main()

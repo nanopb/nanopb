@@ -5,8 +5,8 @@
 #include <string.h>
 #include <pb_decode.h>
 #include "map.pb.h"
-#include "test_helpers.h"
-#include "unittests.h"
+#include <test_helpers.h>
+#include <unittests.h>
 
 /* Helper function to find an entry in the list. Not as efficient as a real
  * hashmap or similar would be, but suitable for small arrays. */

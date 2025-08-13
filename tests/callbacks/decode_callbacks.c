@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <pb_decode.h>
 #include "callbacks.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {

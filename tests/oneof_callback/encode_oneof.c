@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pb_encode.h>
-#include "oneof.pb.h"
-#include "test_helpers.h"
+#include <oneof.pb.h>
+#include <test_helpers.h>
 
 /* This is a nanopb-0.4 style global callback, that is referred by function name
  * and does not have to be bound separately to the message. It also allows defining

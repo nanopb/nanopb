@@ -2,7 +2,7 @@
 #include <string.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "inline.pb.h"
 
 int main()

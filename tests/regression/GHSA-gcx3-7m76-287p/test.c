@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "test_helpers.h"
+#include <test_helpers.h>
 #include "test.pb.h"
 
 bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)

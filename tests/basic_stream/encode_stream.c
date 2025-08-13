@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <pb_encode.h>
 #include "person.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 /* This binds the pb_ostream_t into the stdout stream */
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)

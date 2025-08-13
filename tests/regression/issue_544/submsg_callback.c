@@ -1,7 +1,7 @@
 #include "submsg_callback.pb.h"
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "unittests.h"
+#include <unittests.h>
 
 bool msg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
 {

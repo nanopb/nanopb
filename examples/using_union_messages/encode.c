@@ -8,7 +8,7 @@
 
 #include <pb_encode.h>
 #include <pb_common.h>
-#include "unionproto.pb.h"
+#include <unionproto.pb.h>
 
 /* This function is the core of the union encoding process. It handles
  * the top-level pb_field_t array manually, in order to encode a correct

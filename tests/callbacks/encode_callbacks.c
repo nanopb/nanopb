@@ -4,7 +4,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include "callbacks.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {

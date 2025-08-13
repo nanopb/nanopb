@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "unittestproto.pb.h"
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)

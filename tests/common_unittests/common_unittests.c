@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "../alltypes/alltypes.pb.h"
 
 int main()

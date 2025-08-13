@@ -20,8 +20,8 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-#include "fileproto.pb.h"
-#include "common.h"
+#include <fileproto.pb.h>
+#include <common.h>
 
 /* This callback function will be called during the encoding.
  * It will write out any number of FileInfo entries, without consuming unnecessary memory.

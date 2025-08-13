@@ -5,7 +5,7 @@
 #include <string.h>
 #include <pb_encode.h>
 #include "msgid_example.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 /* This function writes the message id as a prefix to the message, allowing
  * the receiving side to identify message type. Here we use uint8_t to store

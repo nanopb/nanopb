@@ -3,7 +3,7 @@
  */
 
 #include <stdio.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "strip_package.pb.h"
 
 int main()

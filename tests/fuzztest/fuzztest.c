@@ -17,7 +17,7 @@
 #include "random_data.h"
 #include "validation.h"
 #include "flakystream.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 #include "alltypes_static.pb.h"
 #include "alltypes_pointer.pb.h"
 #include "alltypes_callback.pb.h"

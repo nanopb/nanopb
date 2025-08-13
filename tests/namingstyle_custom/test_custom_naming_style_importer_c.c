@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "custom_naming_style_other.pb.h"
 #include "custom_naming_style_importer.pb.h"
 

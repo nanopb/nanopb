@@ -2,7 +2,7 @@
 #include <pb_encode.h>
 #include <string.h>
 #include <stdio.h>
-#include "test_helpers.h"
+#include <test_helpers.h>
 #include "anytest.pb.h"
 #include "google/protobuf/duration.pb.h"
 

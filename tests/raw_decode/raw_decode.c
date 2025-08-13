@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pb_decode.h>
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 #define HISTORY_LEN 32
 static pb_byte_t g_history[HISTORY_LEN];

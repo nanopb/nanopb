@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <pb_decode.h>
 #include "msgid_example.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 /* This function reads the prefix written by sending side. */
 bool read_prefix(pb_istream_t *stream, int *msgid)

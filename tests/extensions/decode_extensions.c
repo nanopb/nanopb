@@ -4,10 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pb_decode.h>
-#include "alltypes.pb.h"
+#include <alltypes.pb.h>
 #include "extensions.pb.h"
-#include "test_helpers.h"
-#include "unittests.h"
+#include <test_helpers.h>
+#include <unittests.h>
 
 int main(int argc, char **argv)
 {

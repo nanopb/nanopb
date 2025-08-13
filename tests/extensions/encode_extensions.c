@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pb_encode.h>
-#include "alltypes.pb.h"
+#include <alltypes.pb.h>
 #include "extensions.pb.h"
-#include "test_helpers.h"
+#include <test_helpers.h>
 
 int main(int argc, char **argv)
 {

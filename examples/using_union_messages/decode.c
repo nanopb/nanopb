@@ -7,7 +7,7 @@
 
 #include <pb_decode.h>
 #include <pb_common.h>
-#include "unionproto.pb.h"
+#include <unionproto.pb.h>
 
 /* This function reads manually the first tag from the stream and finds the
  * corresponding message type. It doesn't yet decode the actual message.

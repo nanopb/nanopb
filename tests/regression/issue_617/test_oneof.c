@@ -1,6 +1,6 @@
 #include <pb_decode.h>
 #include <unittests.h>
-#include "oneof.pb.h"
+#include <oneof.pb.h>
 
 int main()
 {

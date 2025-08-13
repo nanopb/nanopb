@@ -2,7 +2,7 @@
 #include <pb_decode.h>
 
 #include "mixed.pb.h"
-#include "unittests.h"
+#include <unittests.h>
 
 int main()
 {

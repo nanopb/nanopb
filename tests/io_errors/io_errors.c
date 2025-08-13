@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <pb_decode.h>
 #include <pb_encode.h>
-#include "alltypes.pb.h"
-#include "test_helpers.h"
+#include <alltypes.pb.h>
+#include <test_helpers.h>
 
 typedef struct
 {

@@ -5,9 +5,9 @@
 #include <string.h>
 #include <pb_decode.h>
 #include <assert.h>
-#include "oneof.pb.h"
-#include "test_helpers.h"
-#include "unittests.h"
+#include <oneof.pb.h>
+#include <test_helpers.h>
+#include <unittests.h>
 
 /* This is a nanopb-0.4 style global callback, that is referred by function name
  * and does not have to be bound separately to the message. It also allows defining

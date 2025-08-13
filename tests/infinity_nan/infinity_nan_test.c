@@ -3,7 +3,7 @@
 #include <math.h>
 #include <pb_decode.h>
 #include "floats.pb.h"
-#include "unittests.h"
+#include <unittests.h>
 
 bool check_floats(Floats *floats)
 {

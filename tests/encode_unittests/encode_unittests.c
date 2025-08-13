@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "unittests.h"
+#include <unittests.h>
 #include "unittestproto.pb.h"
 
 bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)

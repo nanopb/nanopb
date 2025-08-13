@@ -1,5 +1,5 @@
-#include "oneof.pb.h"
-#include "unittests.h"
+#include <oneof.pb.h>
+#include <unittests.h>
 
 extern "C" int main()
 {

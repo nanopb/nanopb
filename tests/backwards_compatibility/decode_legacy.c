@@ -10,9 +10,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pb_decode.h>
-#include "alltypes_legacy.h"
-#include "test_helpers.h"
-#include "unittests.h"
+#include <alltypes_legacy.h>
+#include <test_helpers.h>
+#include <unittests.h>
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */

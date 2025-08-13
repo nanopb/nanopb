@@ -20,8 +20,8 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-#include "fileproto.pb.h"
-#include "common.h"
+#include <fileproto.pb.h>
+#include <common.h>
 
 /* This callback function will be called once for each filename received
  * from the server. The filenames will be printed out immediately, so that

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <pb_encode.h>
 #include <pb_decode.h>
-#include "simple.pb.h"
+#include <simple.pb.h>
 
 int main()
 {
