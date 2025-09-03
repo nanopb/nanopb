@@ -51,6 +51,8 @@ The full set of available options is defined in [nanopb.proto](https://github.co
 * `fixed_count`: Generate arrays with constant length defined by `max_count`.
 * `package`: Package name that applies only for nanopb generator. Defaults to name defined by `package` keyword in .proto file, which applies for all languages.
 * `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure. When used with enum types, the size of the generated enum can be specified (C++ only)
+* `default_string_decoder`: Specify which function to use to decode string fields by default. Only for `FT_CALLBACK`.
+* `default_string_encoder`: Specify which function to use to encode string fields by default. Only for `FT_CALLBACK`.
 
 These options can be defined for the .proto files before they are
 converted using the nanopb-generator.py. There are three ways to define

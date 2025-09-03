@@ -182,8 +182,10 @@ message NanoPBOptions {
   // Discard messages and fields marked with [deprecated = true] in the proto file.
   optional bool discard_deprecated = 35 [default = false];
 
+  // Specify default string encoder for pb_callback_t string representation
   optional string default_string_encoder = 36;
 
+  // Specify default string decoder for pb_callback_t string representation
   optional string default_string_decoder = 37;
 }
 
