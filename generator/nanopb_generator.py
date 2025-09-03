@@ -572,6 +572,10 @@ class FieldMaxSize:
 
         self.checks.extend(extend.checks)
 
+class FieldEncodingOptions:
+    def __init__(self, string_coder = None):
+        self.string_coder = string_coder
+
 class Field(ProtoElement):
     macro_x_param = 'X'
     macro_a_param = 'a'
@@ -596,6 +600,8 @@ class Field(ProtoElement):
         self.sort_by_tag = field_options.sort_by_tag
         self.submsg_callback_requested = False
         self.can_be_static = True
+        self.default_string_encoder = None
+        self.default_string_decoder = None
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -607,6 +613,12 @@ class Field(ProtoElement):
         # Parse field options
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size
+
+        if field_options.HasField("default_string_encoder"):
+            self.default_string_encoder = field_options.default_string_encoder
+
+        if field_options.HasField("default_string_decoder"):
+            self.default_string_decoder = field_options.default_string_decoder
 
         if field_options.HasField("initializer"):
             self.initializer = field_options.initializer
@@ -819,11 +831,13 @@ class Field(ProtoElement):
         else:
             return []
 
-    def get_initializer(self, null_init, inner_init_only = False):
+    def get_initializer(self, null_init, inner_init_only = False, encoding_opts=None):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
         inner_init_only: If True, exclude initialization for any count/has fields
         '''
+
+        string_coder = encoding_opts.string_coder if encoding_opts is not None else "NULL"
 
         inner_init = None
         if self.initializer is not None:
@@ -908,7 +922,10 @@ class Field(ProtoElement):
             if self.pbtype == 'EXTENSION':
                 outer_init = 'NULL'
             elif self.callback_datatype == 'pb_callback_t':
-                outer_init = '{{NULL}, NULL}'
+                if self.pbtype == 'STRING':
+                    outer_init = '{{%s}, NULL}' % string_coder
+                else:
+                    outer_init = '{{NULL}, NULL}'
             elif self.initializer is not None:
                 outer_init = inner_init
             elif self.callback_datatype.strip().endswith('*'):
@@ -1430,13 +1447,16 @@ class Message(ProtoElement):
     def types(self):
         return ''.join([f.types() for f in self.fields])
 
-    def get_initializer(self, null_init):
+    def get_initializer(self, null_init, field_encoding_opts = None):
         if not self.fields:
             return '{0}'
 
         parts = []
         for field in self.fields:
-            parts.append(field.get_initializer(null_init))
+            if not isinstance(field, OneOf):
+                parts.append(field.get_initializer(null_init, False, field_encoding_opts))
+            else:
+                parts.append(field.get_initializer(null_init))
         return '{' + ', '.join(parts) + '}'
 
     def count_required_fields(self):
@@ -2134,6 +2154,28 @@ class ProtoFile:
                 if unmangledName:
                     unmangledIdentifier = Globals.naming_style.define_name('%s_init_zero' % unmangledName)
                     self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
+            if self.file_options.default_string_decoder is not None:
+                decoding_opts = FieldEncodingOptions(
+                    string_coder=self.file_options.default_string_decoder
+                )
+                for msg in self.messages:
+                    identifier = Globals.naming_style.define_name('%s_init_zero_for_decode' % msg.name)
+                    yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True, decoding_opts))
+                    unmangledName = self.manglenames.unmangle(msg.name)
+                    if unmangledName:
+                        unmangledIdentifier = Globals.naming_style.define_name('%s_init_zero_for_decode' % unmangledName)
+                        self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
+            if self.file_options.default_string_encoder is not None:
+                encoding_opts = FieldEncodingOptions(
+                    string_coder=self.file_options.default_string_encoder
+                )
+                for msg in self.messages:
+                    identifier = Globals.naming_style.define_name('%s_init_zero_for_encode' % msg.name)
+                    yield '#define %-40s %s\n' % (identifier, msg.get_initializer(True, encoding_opts))
+                    unmangledName = self.manglenames.unmangle(msg.name)
+                    if unmangledName:
+                        unmangledIdentifier = Globals.naming_style.define_name('%s_init_zero_for_encode' % unmangledName)
+                        self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
             yield '\n'
 
             yield '/* Field tags (for use in manual encoding/decoding) */\n'
