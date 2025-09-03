@@ -573,7 +573,8 @@ class FieldMaxSize:
         self.checks.extend(extend.checks)
 
 class FieldEncodingOptions:
-    def __init__(self, string_coder = None):
+    def __init__(self, message_init_suffix, string_coder = None):
+        self.message_init_suffix = message_init_suffix
         self.string_coder = string_coder
 
 class Field(ProtoElement):
@@ -838,15 +839,16 @@ class Field(ProtoElement):
         '''
 
         string_coder = encoding_opts.string_coder if encoding_opts is not None else "NULL"
+        message_init_suffix = encoding_opts.message_init_suffix if encoding_opts is not None else ""
 
         inner_init = None
         if self.initializer is not None:
             inner_init = self.initializer
         elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
             if null_init:
-                inner_init = Globals.naming_style.define_name('%s_init_zero' % self.ctype)
+                inner_init = Globals.naming_style.define_name('%s_init_zero%s' % (self.ctype, message_init_suffix))
             else:
-                inner_init =  Globals.naming_style.define_name('%s_init_default' % self.ctype)
+                inner_init =  Globals.naming_style.define_name('%s_init_default%s' % (self.ctype, message_init_suffix))
         elif self.default is None or null_init:
             if self.pbtype == 'STRING':
                 inner_init = '""'
@@ -2156,6 +2158,7 @@ class ProtoFile:
                     self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
             if self.file_options.default_string_decoder is not None:
                 decoding_opts = FieldEncodingOptions(
+                    message_init_suffix="_for_decode",
                     string_coder=self.file_options.default_string_decoder
                 )
                 for msg in self.messages:
@@ -2167,6 +2170,7 @@ class ProtoFile:
                         self.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
             if self.file_options.default_string_encoder is not None:
                 encoding_opts = FieldEncodingOptions(
+                    message_init_suffix="_for_encode",
                     string_coder=self.file_options.default_string_encoder
                 )
                 for msg in self.messages:
