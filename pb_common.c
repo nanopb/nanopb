@@ -323,11 +323,11 @@ bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, con
 
             if (PB_LTYPE(field->type) == PB_LTYPE_STRING) {
             	if (decode == NULL) {
-            		decode = &PB_DEFAULT_STRING_DECODER;
+            		decode = PB_DEFAULT_STRING_DECODER;
             	}
 
             	if (encode == NULL) {
-            		encode = &PB_DEFAULT_STRING_ENCODER;
+            		encode = PB_DEFAULT_STRING_ENCODER;
             	}
             }
 
