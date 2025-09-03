@@ -23,6 +23,9 @@ includes nanopb headers.
 * `PB_VALIDATE_UTF8`: Check whether incoming strings are valid UTF-8 sequences. Adds a small performance and code size penalty.
 * `PB_C99_STATIC_ASSERT`: Use C99 style negative array trick for static assertions. For compilers that do not support C11 standard.
 * `PB_NO_STATIC_ASSERT`: Disable static assertions at compile time. Only for compilers with limited support of C standards.
+* `PB_ENCODERS_HEADER`: Add header with decoders and encoders to use. Works only with `FT_CALLBACK`. The header may specify the following functions, which will be taken if callback is `NULL`:
+  * `PB_DEFAULT_STRING_DECODER`: Default string decoder.
+  * `PB_DEFAULT_STRING_ENCODER`: Default string encoder.
 
 The `PB_MAX_REQUIRED_FIELDS` and `PB_FIELD_32BIT` settings allow
 raising some datatype limits to suit larger messages. Their need is
