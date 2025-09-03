@@ -5,6 +5,14 @@
 
 #include "pb_common.h"
 
+#ifdef PB_ENCODERS_HEADER
+#include PB_ENCODERS_HEADER
+#else
+#define PB_DEFAULT_STRING_DECODER NULL
+#define PB_DEFAULT_STRING_ENCODER NULL
+#endif
+
+
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     uint32_t word0;
@@ -305,14 +313,27 @@ bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, con
 
         if (pCallback != NULL)
         {
-            if (istream != NULL && pCallback->funcs.decode != NULL)
-            {
-                return pCallback->funcs.decode(istream, field, &pCallback->arg);
+            typeof(pCallback->funcs.decode) decode = pCallback->funcs.decode;
+            typeof(pCallback->funcs.encode) encode = pCallback->funcs.encode;
+
+            if (PB_LTYPE(field->type) == PB_LTYPE_STRING) {
+            	if (decode == NULL) {
+            		decode = &PB_DEFAULT_STRING_DECODER;
+            	}
+
+            	if (encode == NULL) {
+            		encode = &PB_DEFAULT_STRING_ENCODER;
+            	}
             }
 
-            if (ostream != NULL && pCallback->funcs.encode != NULL)
+            if (istream != NULL && decode != NULL)
             {
-                return pCallback->funcs.encode(ostream, field, &pCallback->arg);
+                return decode(istream, field, &pCallback->arg);
+            }
+
+            if (ostream != NULL && encode != NULL)
+            {
+                return encode(ostream, field, &pCallback->arg);
             }
         }
     }
