@@ -634,7 +634,7 @@ class Field(ProtoElement):
             if self.max_count is None:
                 self.can_be_static = False
             else:
-                self.array_decl = '[%d]' % self.max_count
+                self.array_decl = '[%s]' % ('%s_%s_container_size' % (self.struct_name, self.name))
                 if field_options.fixed_count:
                   self.rules = 'FIXARRAY'
 
@@ -711,7 +711,7 @@ class Field(ProtoElement):
             self.ctype = 'char'
             if self.allocation == 'STATIC':
                 self.ctype = 'char'
-                self.array_decl += '[%d]' % self.max_size
+                self.array_decl += '[%s]' % ('%s_%s_container_size' % (self.struct_name, self.name))
                 # -1 because of null terminator. Both pb_encode and pb_decode
                 # check the presence of it.
             if self.can_be_static:
@@ -725,7 +725,7 @@ class Field(ProtoElement):
                                     "but max_size is not given." % self.name)
 
                 self.ctype = 'pb_byte_t'
-                self.array_decl += '[%d]' % self.max_size
+                self.array_decl += '[%s]' % ('%s_%s_container_size' % (self.struct_name, self.name))
             else:
                 self.pbtype = 'BYTES'
                 self.ctype = 'pb_bytes_array_t'
@@ -925,6 +925,13 @@ class Field(ProtoElement):
         '''Return the #define for the tag number of this field.'''
         identifier = Globals.naming_style.define_name('%s_%s_tag' % (self.struct_name, self.name))
         return '#define %-40s %d\n' % (identifier, self.tag)
+
+    def container_size(self):
+        '''Return the #define for the container size of this field.'''
+        if self.max_size is None and self.max_count is None:
+            return ''
+        identifier = Globals.naming_style.define_name('%s_%s_container_size' % (self.struct_name, self.name))
+        return '#define %-40s %d\n' % (identifier, self.max_size if self.max_size is not None else self.max_count)
 
     def fieldlist(self):
         '''Return the FIELDLIST macro entry for this field.
@@ -1249,6 +1256,9 @@ class OneOf(Field):
 
     def tags(self):
         return ''.join([f.tags() for f in self.fields])
+
+    def container_size(self):
+        return ''.join([f.container_size() for f in self.fields])
 
     def data_size(self, dependencies):
         return max(f.data_size(dependencies) for f in self.fields)
@@ -2093,6 +2103,12 @@ class ProtoFile:
                 yield str(enum) + '\n\n'
 
         if self.messages:
+            yield '/* Container size (for use in manual encoding/decoding) */\n'
+            for msg in sort_dependencies(self.messages):
+                for field in msg.fields:
+                    yield field.container_size()
+            yield '\n'
+
             yield '/* Struct definitions */\n'
             for msg in sort_dependencies(self.messages):
                 yield msg.types()
