@@ -1555,15 +1555,15 @@ class Message(ProtoElement):
 
     def fields_declaration_cpp_lookup(self, local_defines):
         result = 'template <>\n'
-        result += 'struct MessageDescriptor<%s> {\n' % (self.name)
+        result += 'struct MessageDescriptor<%s> {\n' % (Globals.naming_style.type_name(self.name))
         result += '    static PB_INLINE_CONSTEXPR const pb_size_t fields_array_length = %d;\n' % (self.count_all_fields())
 
-        size_define = "%s_size" % (self.name)
+        size_define = "%s_size" % (Globals.naming_style.type_name(self.name))
         if size_define in local_defines:
             result += '    static PB_INLINE_CONSTEXPR const pb_size_t size = %s;\n' % (size_define)
 
         result += '    static PB_INLINE_CONSTEXPR const pb_msgdesc_t* fields() {\n'
-        result += '        return &%s_msg;\n' % (self.name)
+        result += '        return &%s_msg;\n' % (Globals.naming_style.type_name(self.name))
         result += '    }\n'
         result += '    static PB_INLINE_CONSTEXPR bool has_msgid() {\n'
         result += '        return %s;\n' % ("true" if hasattr(self, "msgid") else "false", )
