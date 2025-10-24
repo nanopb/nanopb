@@ -1,0 +1,4 @@
+option('decoder', type : 'feature', value: 'enabled')
+option('encoder', type : 'feature', value: 'enabled')
+option('generator', type : 'feature', value: 'enabled', description: 'Find generator and output it to the "generator_path" list with python executable and absolute generator path')
+option('examples', type : 'feature', value: 'disabled')

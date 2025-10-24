@@ -89,6 +89,7 @@ There exist build rules for several systems:
 * **SCons**: `tests/site_scons` (generator only)
 * **Bazel**: `BUILD.bazel` in source root
 * **Conan**: `conanfile.py` in source root
+* **Meson**: `meson.build` in source root
 * **PlatformIO**: https://platformio.org/lib/show/431/Nanopb
 * **PyPI/pip**: https://pypi.org/project/nanopb/
 * **vcpkg**: https://vcpkg.io/en/package/nanopb

@@ -10,6 +10,7 @@
 *~
 *.tar.gz
 *.swp
+.cache/
 .sconsign.dblite
 config.log
 .sconf_temp
