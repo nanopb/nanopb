@@ -25,6 +25,9 @@ jobs:
 
   cifuzz:
     uses: ./.github/workflows/cifuzz.yml
+
+  meson:
+    uses: ./.github/workflows/meson.yml
   
   binary_packages:
     needs: [compiler_tests, simulator_tests, olddistro_tests, ios_swift_tests, platformio_tests, cifuzz]

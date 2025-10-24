@@ -8,6 +8,7 @@ VERSION_NUMBER_ONLY=$(echo $1 | cut -d '-' -f 2)
 sed -i -e 's/nanopb_version\s*=\s*"[^"]*"/nanopb_version = "'$1'"/' generator/nanopb_generator.py
 sed -i -e 's/#define\s*NANOPB_VERSION\s*.*/#define NANOPB_VERSION "'$1'"/' pb.h
 sed -i -e 's/project(\s*nanopb\s*VERSION\s*[^)]*\s*LANGUAGES\s*C\s*)/project(nanopb VERSION '$VERSION_NUMBER_ONLY' LANGUAGES C)/' CMakeLists.txt
+sed -i -e "0,/version: '[^']*'/s/version: '[^']*'/version: '$VERSION_NUMBER_ONLY'/" meson.build
 sed -i -e 's/nanopb\@[^\s]*/nanopb\@'$VERSION_NUMBER_ONLY'/' zephyr/module.yml 
 sed -i -e 's/cpe:2.3:a:nanopb_project:nanopb:[^:]*/cpe:2.3:a:nanopb_project:nanopb:'$VERSION_NUMBER_ONLY'/' zephyr/module.yml 
 # Update the first occurrence of "version" in MODULE.bazel, which is the nanopb
