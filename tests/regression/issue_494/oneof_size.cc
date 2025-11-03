@@ -1,7 +1,7 @@
 #include "oneof.pb.h"
 #include "unittests.h"
 
-extern "C" int main()
+int main()
 {
     int status = 0;
 

@@ -302,9 +302,6 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     return status == 0;
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
 int main(int argc, char **argv)
 {
     uint8_t buffer[1024];

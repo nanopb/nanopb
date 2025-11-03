@@ -1,7 +1,10 @@
 # Test stack usage
+# This test case intentionally performs access outside the legal stack area,
+# so it may have to be skipped to avoid false positives on memory safety tools.
 
 Import("env")
 
-env.NanopbProto(["stackusage", "stackusage.options"])
-test = env.Program(["stackusage.c", "stackusage.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
-env.RunTest(test)
+if not env.get("NOUNSAFE"):
+    env.NanopbProto(["stackusage", "stackusage.options"])
+    test = env.Program(["stackusage.c", "stackusage.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+    env.RunTest(test)

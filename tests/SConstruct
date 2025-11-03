@@ -14,8 +14,10 @@ LINKFLAGS   Flags to pass to linker
 LINKLIBS    Flags to pass to linker after object files
 PROTOC      Path to protoc binary
 PROTOCFLAGS Arguments to pass protoc
+PLATFORM    Run using simulator
 NODEFARGS   Do not add the default CCFLAGS
 NOVALGRIND  Do not use valgrind for memory checks
+NOUNSAFE    Skip tests that intentionally break memory safety
 
 For example, for a clang build, use:
 scons CC=clang CXX=clang++
