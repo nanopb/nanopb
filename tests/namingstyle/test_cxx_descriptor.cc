@@ -2,7 +2,7 @@
 #include "naming_style.pb.h"
 #include "unittests.h"
 
-extern "C" int main() {
+int main() {
   using namespace nanopb;
 
   int status = 0;

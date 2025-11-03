@@ -8,9 +8,6 @@
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 
-#ifdef __cplusplus
-extern "C"
-#endif
 int main(int argc, char **argv)
 {
     int mode = (argc > 1) ? atoi(argv[1]) : 0;

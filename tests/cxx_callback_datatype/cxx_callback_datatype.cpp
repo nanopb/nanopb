@@ -44,7 +44,6 @@ bool TestMessage_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb
 	return true;
 }
 
-extern "C"
 int main() {
 	TestMessage source = TestMessage_init_zero; // Not strictly necessary to initialize, just using it to test the initializer.
 	source.values.push_back(5);

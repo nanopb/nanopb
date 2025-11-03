@@ -11,6 +11,10 @@
 #undef main
 extern int app_main(int argc, const char **argv);
 
+// Declare weak symbols in case the main program is compiled as C++
+__attribute__((weak)) int _Z12app_mainiPPc(int argc, const char **argv) {return 0;};
+int app_main(int argc, const char **argv) __attribute__((weak, alias("_Z12app_mainiPPc")));
+
 struct {
     uint8_t argc;
     char args[3][16];
