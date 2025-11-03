@@ -1,0 +1,36 @@
+name: Run tests with Fil-C compiler
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test_filc:
+    name: Test in Fil-C
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4
+        with:
+          path: nanopb
+          fetch-depth: "0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install python3-protobuf protobuf-compiler scons patchelf
+
+      - name: Install Fil-C
+        run: |
+          wget https://github.com/pizlonator/fil-c/releases/download/v0.674/filc-0.674-linux-x86_64.tar.xz
+          tar xf filc*
+          rm *.xz
+          mv filc* filc
+          cd filc
+          ./setup.sh
+
+      - name: Run tests in Fil-C
+        run: |
+          cd nanopb/tests
+          scons CC=../../filc/build/bin/clang CXX=../../filc/build/bin/clang++ NOUNSAFE=1 NOVALGRIND=1 CCFLAGS="-O2" CXXFLAGS="-O2"

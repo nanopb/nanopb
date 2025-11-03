@@ -29,8 +29,11 @@ jobs:
   meson:
     uses: ./.github/workflows/meson.yml
   
+  fil-c:
+    uses: ./.github/workflows/fil-c.yml
+
   binary_packages:
-    needs: [compiler_tests, simulator_tests, olddistro_tests, ios_swift_tests, platformio_tests, cifuzz]
+    needs: [compiler_tests, simulator_tests, olddistro_tests, ios_swift_tests, platformio_tests, cifuzz, fil-c]
     uses: ./.github/workflows/binary_packages.yml
 
   pypi_publish:
