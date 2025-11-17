@@ -167,6 +167,7 @@ bool raw_decode(pb_istream_t *stream, const char *indent)
                     }
                     
                     pb_close_string_substream(stream, &substream);
+                    stream->errmsg = NULL;
                 }
             }
         }
