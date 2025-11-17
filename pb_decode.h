@@ -118,12 +118,6 @@ bool pb_decode(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_stru
 #define PB_DECODE_NULLTERMINATED  0x04U
 bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
 
-/* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)
-#define pb_decode_delimited(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED)
-#define pb_decode_delimited_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED | PB_DECODE_NOINIT)
-#define pb_decode_nullterminated(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NULLTERMINATED)
-
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If
  * pb_decode() returns with an error, the message is already released.
@@ -211,6 +205,41 @@ bool pb_decode_double_as_float(pb_decode_ctx_t *ctx, float *dest);
 bool pb_decode_open_substream(pb_decode_ctx_t *ctx, size_t *old_length);
 bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length);
 
+/* API compatibility defines for code written before nanopb-1.0.0 */
+#if PB_API_VERSION < PB_API_VERSION_v1_0
+
+static inline pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
+{
+    pb_istream_t ctx;
+    (void)pb_init_decode_ctx_for_buffer(&ctx, buf, msglen);
+    return ctx;
+}
+
+static inline bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream)
+{
+    *substream = *stream;
+    if (!pb_decode_open_substream(substream, &stream->bytes_left))
+    {
+        stream->bytes_left = substream->bytes_left;
+        PB_RETURN_ERROR(stream, PB_GET_ERROR(substream));
+    }
+    return true;
+}
+
+static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
+{
+    size_t old_length = stream->bytes_left;
+    *stream = *substream;
+    return pb_decode_close_substream(stream, old_length);
+}
+
+/* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)
+#define pb_decode_delimited(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED)
+#define pb_decode_delimited_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED | PB_DECODE_NOINIT)
+#define pb_decode_nullterminated(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NULLTERMINATED)
+
+#endif /* PB_API_VERSION */
 
 #ifdef __cplusplus
 } /* extern "C" */

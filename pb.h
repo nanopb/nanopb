@@ -70,6 +70,20 @@
  * your own program. */
 #define NANOPB_VERSION "nanopb-1.0.0-dev"
 
+/* API compatibility version.
+ * If this is set to lower than PB_API_VERSION_LATEST, compatibility
+ * defines at the end of this file get enabled. This allows easier
+ * porting from older nanopb versions.
+ */
+#define PB_API_VERSION_v1_0 10
+#define PB_API_VERSION_v0_4  4
+#define PB_API_VERSION_LATEST PB_API_VERSION_v1_0
+#define PB_API_VERSION_DEFAULT PB_API_VERSION_v0_4
+
+#ifndef PB_API_VERSION
+#define PB_API_VERSION PB_API_VERSION_DEFAULT
+#endif
+
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
  * - strlen, memcpy, memset functions
@@ -918,6 +932,14 @@ struct pb_extension_s {
 #endif
 
 #define PB_RETURN_ERROR(ctx, msg) return PB_SET_ERROR(ctx, msg), false
+
+/* API compatibility defines for code written before nanopb-1.0.0 */
+#if PB_API_VERSION < PB_API_VERSION_v1_0
+
+typedef pb_decode_ctx_t pb_istream_t;
+typedef pb_encode_ctx_t pb_ostream_t;
+
+#endif /* PB_API_VERSION */
 
 #ifdef __cplusplus
 } /* extern "C" */
