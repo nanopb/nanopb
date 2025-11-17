@@ -12,9 +12,16 @@
 extern "C" {
 #endif
 
-/* Structure for defining custom input streams. You will need to provide
- * a callback function to read the bytes from your storage, which can be
- * for example a file or a network socket.
+#ifdef PB_BUFFER_ONLY
+/* Callback pointer is not used in buffer-only configuration.
+ * Having an int pointer here allows binary compatibility but
+ * gives an error if someone tries to assign callback function.
+ */
+typedef const int* pb_decode_ctx_read_callback_t;
+#else
+/* Callback pointer for custom stream types. This can read the
+ * bytes directly from your storage, which can be for example
+ * a file or a network socket.
  * 
  * The callback must conform to these rules:
  *
@@ -23,19 +30,18 @@ extern "C" {
  *    and rely on pb_read to verify that no-body reads past bytes_left.
  * 3) Your callback may be used with substreams, in which case bytes_left
  *    is different than from the main stream. Don't use bytes_left to compute
- *    any pointers.
+ *    any pointers. The ctx pointer remains the same even for substreams.
  */
-struct pb_istream_s
-{
-#ifdef PB_BUFFER_ONLY
-    /* Callback pointer is not used in buffer-only configuration.
-     * Having an int pointer here allows binary compatibility but
-     * gives an error if someone tries to assign callback function.
-     */
-    int *callback;
-#else
-    bool (*callback)(pb_istream_t *stream, pb_byte_t *buf, size_t count);
+typedef bool (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 #endif
+
+/* Structure containing the state associated with message decoding.
+ * For the common case of message coming from a memory buffer, this
+ * is initialized with pb_init_decode_ctx_for_buffer().
+ */
+struct pb_decode_ctx_s
+{
+    pb_decode_ctx_read_callback_t callback;
 
     /* state is a free field for use of the callback function defined above.
      * Note that when pb_istream_from_buffer() is used, it reserves this field
@@ -75,14 +81,14 @@ struct pb_istream_s
  * Example usage:
  *    MyMessage msg = {};
  *    uint8_t buffer[64];
- *    pb_istream_t stream;
+ *    pb_decode_ctx_t ctx;
  *    
  *    // ... read some data into buffer ...
  *
- *    stream = pb_istream_from_buffer(buffer, count);
- *    pb_decode(&stream, MyMessage_fields, &msg);
+ *    pb_init_decode_ctx_for_buffer(&ctx, buffer, count);
+ *    pb_decode(&ctx, MyMessage_fields, &msg);
  */
-bool pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct);
+bool pb_decode(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct);
 
 /* Extended version of pb_decode, with several options to control
  * the decoding process:
@@ -110,7 +116,7 @@ bool pb_decode(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_stru
 #define PB_DECODE_NOINIT          0x01U
 #define PB_DECODE_DELIMITED       0x02U
 #define PB_DECODE_NULLTERMINATED  0x04U
-bool pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
+bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)
@@ -128,7 +134,7 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
  * Functions for manipulating streams *
  **************************************/
 
-/* Create an input stream for reading from a memory buffer.
+/* Create a decode context for reading from a memory buffer.
  *
  * msglen should be the actual length of the message, not the full size of
  * allocated buffer.
@@ -136,12 +142,12 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
  * Alternatively, you can use a custom stream that reads directly from e.g.
  * a file or a network socket.
  */
-pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen);
+bool pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen);
 
-/* Function to read from a pb_istream_t. You can use this if you need to
+/* Function to read from the stream associated with decode context. You can use this if you need to
  * read some custom header data, or to read data in field callbacks.
  */
-bool pb_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
+bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 
 
 /************************************************
@@ -150,52 +156,61 @@ bool pb_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 
 /* Decode the tag for the next field in the stream. Gives the wire type and
  * field tag. At end of the message, returns false and sets eof to true. */
-bool pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof);
+bool pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof);
 
 /* Skip the field payload data, given the wire type. */
-bool pb_skip_field(pb_istream_t *stream, pb_wire_type_t wire_type);
+bool pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type);
 
 /* Decode an integer in the varint format. This works for enum, int32,
  * int64, uint32 and uint64 field types. */
 #ifndef PB_WITHOUT_64BIT
-bool pb_decode_varint(pb_istream_t *stream, uint64_t *dest);
+bool pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest);
 #else
 #define pb_decode_varint pb_decode_varint32
 #endif
 
 /* Decode an integer in the varint format. This works for enum, int32,
  * and uint32 field types. */
-bool pb_decode_varint32(pb_istream_t *stream, uint32_t *dest);
+bool pb_decode_varint32(pb_decode_ctx_t *ctx, uint32_t *dest);
 
 /* Decode a bool value in varint format. */
-bool pb_decode_bool(pb_istream_t *stream, bool *dest);
+bool pb_decode_bool(pb_decode_ctx_t *ctx, bool *dest);
 
 /* Decode an integer in the zig-zagged svarint format. This works for sint32
  * and sint64. */
 #ifndef PB_WITHOUT_64BIT
-bool pb_decode_svarint(pb_istream_t *stream, int64_t *dest);
+bool pb_decode_svarint(pb_decode_ctx_t *ctx, int64_t *dest);
 #else
-bool pb_decode_svarint(pb_istream_t *stream, int32_t *dest);
+bool pb_decode_svarint(pb_decode_ctx_t *ctx, int32_t *dest);
 #endif
 
 /* Decode a fixed32, sfixed32 or float value. You need to pass a pointer to
  * a 4-byte wide C variable. */
-bool pb_decode_fixed32(pb_istream_t *stream, void *dest);
+bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest);
 
 #ifndef PB_WITHOUT_64BIT
 /* Decode a fixed64, sfixed64 or double value. You need to pass a pointer to
  * a 8-byte wide C variable. */
-bool pb_decode_fixed64(pb_istream_t *stream, void *dest);
+bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest);
 #endif
 
 #ifdef PB_CONVERT_DOUBLE_FLOAT
 /* Decode a double value into float variable. */
-bool pb_decode_double_as_float(pb_istream_t *stream, float *dest);
+bool pb_decode_double_as_float(pb_decode_ctx_t *ctx, float *dest);
 #endif
 
-/* Make a limited-length substream for reading a PB_WT_STRING field. */
-bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *substream);
-bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream);
+/* Start reading a PB_WT_STRING field.
+ * This function first reads a varint32 for the field length and then
+ * modifies the ctx->bytes_left to the length of the field data.
+ *
+ * Calling code can then proceed to decode the field contents and the
+ * end of the stream indicates the end of the field.
+ *
+ * Remember to close the substream using pb_decode_close_substream().
+ */
+bool pb_decode_open_substream(pb_decode_ctx_t *ctx, size_t *old_length);
+bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

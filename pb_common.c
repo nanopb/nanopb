@@ -297,7 +297,7 @@ bool pb_field_iter_begin_extension_const(pb_field_iter_t *iter, const pb_extensi
     return pb_field_iter_begin_extension(iter, (pb_extension_t*)pb_const_cast(extension));
 }
 
-bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
+bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
 {
     if (field->data_size == sizeof(pb_callback_t))
     {
@@ -305,14 +305,14 @@ bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, con
 
         if (pCallback != NULL)
         {
-            if (istream != NULL && pCallback->funcs.decode != NULL)
+            if (decctx != NULL && pCallback->funcs.decode != NULL)
             {
-                return pCallback->funcs.decode(istream, field, &pCallback->arg);
+                return pCallback->funcs.decode(decctx, field, &pCallback->arg);
             }
 
-            if (ostream != NULL && pCallback->funcs.encode != NULL)
+            if (encctx != NULL && pCallback->funcs.encode != NULL)
             {
-                return pCallback->funcs.encode(ostream, field, &pCallback->arg);
+                return pCallback->funcs.encode(encctx, field, &pCallback->arg);
             }
         }
     }

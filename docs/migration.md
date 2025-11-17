@@ -9,6 +9,19 @@ document.
 Nanopb-1.0.0 (2025-xx-xx)
 -------------------------
 
+### Streams renamed to context
+
+**Rationale:** Previously streams only handled reading/writing. This has
+been replaced with a `ctx` argument that can contain e.g. allocator
+information. The `ctx` pointer is always passed as-is to callbacks, only
+the fields inside are modified during processing. Previously the callbacks
+were given varying `stream` pointers when substreams were processed.
+
+**Changes:** `pb_istream_t` is now `pb_decode_ctx_t` and `pb_ostream_t` is `pb_encode_ctx_t`.
+
+**Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
+
+
 ### Remove Python 2 support
 
 **Rationale:** Python 2 interpreter was deprecated in 2020. For backward

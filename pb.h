@@ -339,8 +339,8 @@ typedef pb_byte_t pb_type_t;
 #define PB_SIZE_MAX ((pb_size_t)-1)
 
 /* Forward declaration of struct types */
-typedef struct pb_istream_s pb_istream_t;
-typedef struct pb_ostream_s pb_ostream_t;
+typedef struct pb_decode_ctx_s pb_decode_ctx_t;
+typedef struct pb_encode_ctx_s pb_encode_ctx_t;
 typedef struct pb_field_iter_s pb_field_iter_t;
 
 /* This structure is used in auto-generated constants
@@ -352,7 +352,7 @@ struct pb_msgdesc_s {
     const pb_msgdesc_t * const * submsg_info;
     const pb_byte_t *default_value;
 
-    bool (*field_callback)(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
+    bool (*field_callback)(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_iter_t *field);
 
     pb_size_t field_count;
     pb_size_t required_field_count;
@@ -432,15 +432,15 @@ struct pb_callback_s {
      * You can access the value of the field as *arg, and modify it if needed.
      */
     union {
-        bool (*decode)(pb_istream_t *stream, const pb_field_t *field, void **arg);
-        bool (*encode)(pb_ostream_t *stream, const pb_field_t *field, void * const *arg);
+        bool (*decode)(pb_decode_ctx_t *ctx, const pb_field_t *field, void **arg);
+        bool (*encode)(pb_encode_ctx_t *ctx, const pb_field_t *field, void * const *arg);
     } funcs;
 
     /* Free arg for use by callback */
     void *arg;
 };
 
-extern bool pb_default_field_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);
+extern bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field);
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
@@ -466,7 +466,7 @@ struct pb_extension_type_s {
      * If you run into an error, return false.
      * Set to NULL for default handler.
      */
-    bool (*decode)(pb_istream_t *stream, pb_extension_t *extension,
+    bool (*decode)(pb_decode_ctx_t *ctx, pb_extension_t *extension,
                    uint32_t tag, pb_wire_type_t wire_type);
 
     /* Called once after all regular fields have been encoded.
@@ -475,7 +475,7 @@ struct pb_extension_type_s {
      * If you run into an error, return false.
      * Set to NULL for default handler.
      */
-    bool (*encode)(pb_ostream_t *stream, const pb_extension_t *extension);
+    bool (*encode)(pb_encode_ctx_t *ctx, const pb_extension_t *extension);
 
     /* Free field for use by the callback. */
     const void *arg;
@@ -910,14 +910,14 @@ struct pb_extension_s {
  *                   function.
  */
 #ifdef PB_NO_ERRMSG
-#define PB_SET_ERROR(stream, msg) PB_UNUSED(stream)
-#define PB_GET_ERROR(stream) "(errmsg disabled)"
+#define PB_SET_ERROR(ctx, msg) PB_UNUSED(ctx)
+#define PB_GET_ERROR(ctx) "(errmsg disabled)"
 #else
-#define PB_SET_ERROR(stream, msg) (stream->errmsg = (stream)->errmsg ? (stream)->errmsg : (msg))
-#define PB_GET_ERROR(stream) ((stream)->errmsg ? (stream)->errmsg : "(none)")
+#define PB_SET_ERROR(ctx, msg) (ctx->errmsg = (ctx)->errmsg ? (ctx)->errmsg : (msg))
+#define PB_GET_ERROR(ctx) ((ctx)->errmsg ? (ctx)->errmsg : "(none)")
 #endif
 
-#define PB_RETURN_ERROR(stream, msg) return PB_SET_ERROR(stream, msg), false
+#define PB_RETURN_ERROR(ctx, msg) return PB_SET_ERROR(ctx, msg), false
 
 #ifdef __cplusplus
 } /* extern "C" */
