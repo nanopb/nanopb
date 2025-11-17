@@ -170,10 +170,10 @@ if not env.get('NODEFARGS'):
         env.Append(CFLAGS = '-g -Wall -Werror ')
         env.Append(CORECFLAGS = '-Wextra -Wundef ')
 
-        # Pedantic ANSI C. On AVR this doesn't work because we use large
+        # Pedantic ANSI C99. On AVR this doesn't work because we use large
         # enums in some of the tests.
         if env.get("EMBEDDED") != "AVR":
-            env.Append(CFLAGS = '-ansi ')
+            env.Append(CFLAGS = '-std=c99 ')
             env.Append(CORECFLAGS = '-pedantic ')
 
         # Profiling and coverage
@@ -181,12 +181,9 @@ if not env.get('NODEFARGS'):
             env.Append(CFLAGS = '-fprofile-arcs -ftest-coverage ')
             env.Append(LINKFLAGS = '-g --coverage')
 
-
-        # We currently need uint64_t anyway, even though ANSI C90 otherwise..
-        env.Append(CFLAGS = '-Wno-long-long')
     elif 'clang' in env['CC']:
         # CLang
-        env.Append(CFLAGS = '-ansi -g -Wall -Werror')
+        env.Append(CFLAGS = '-std=c99  -g -Wall -Werror')
         env.Append(CORECFLAGS = ' -Wextra -Wcast-qual -Wconversion -Wundef')
     elif 'cl' in env['CC']:
         # Microsoft Visual C++

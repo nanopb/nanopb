@@ -35,6 +35,7 @@
 -noret
 -noeffect
 -usedef
+-fcnuse
 
 # Splint doesn't support C11
 -DPB_C99_STATIC_ASSERT
