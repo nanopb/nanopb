@@ -12,9 +12,9 @@ user@host:~/nanopb/examples/network_server$ make        # Build the example
 protoc -ofileproto.pb fileproto.proto
 python ../../generator/nanopb_generator.py fileproto.pb
 Writing to fileproto.pb.h and fileproto.pb.c
-cc -ansi -Wall -Werror -I .. -g -O0 -I../.. -o server server.c
+cc -std=c99 -Wall -Werror -I .. -g -O0 -I../.. -o server server.c
     ../../pb_decode.c ../../pb_encode.c fileproto.pb.c common.c
-cc -ansi -Wall -Werror -I .. -g -O0 -I../.. -o client client.c
+cc -std=c99 -Wall -Werror -I .. -g -O0 -I../.. -o client client.c
     ../../pb_decode.c ../../pb_encode.c fileproto.pb.c common.c
 
 user@host:~/nanopb/examples/network_server$ ./server &  # Start the server on background
