@@ -9,6 +9,20 @@ document.
 Nanopb-1.0.0 (2025-xx-xx)
 -------------------------
 
+### API version compatibility defines
+
+**Rationale:** Several API changes have been made in nanopb-1.0.0.
+To make porting old code easier, a define controls whether compatibility
+wrappers are defined in the headers.
+
+**Changes:** You can optionally define `PB_API_VERSION` to the nanopb
+version that compatibility is aimed for. Use `PB_API_VERSION_v0_4` for
+nanopb-0.4 compatibility, and `PB_API_VERSION_LATEST` or
+`PB_API_VERSION_v1_0` for new code.
+
+**Required changes:** Define `PB_API_VERSION` or use the conversion tool
+**(to be done)** to update old code.
+
 ### Streams renamed to context
 
 **Rationale:** Previously streams only handled reading/writing. This has

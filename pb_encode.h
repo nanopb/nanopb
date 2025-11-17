@@ -99,10 +99,6 @@ bool pb_encode(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src
 #define PB_ENCODE_NULLTERMINATED  0x04U
 bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
 
-/* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define pb_encode_delimited(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_DELIMITED)
-#define pb_encode_nullterminated(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_NULLTERMINATED)
-
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
 bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
@@ -195,6 +191,22 @@ bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value);
  * calculate message size and then to actually write it out.
  */
 bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct);
+
+/* API compatibility defines for code written before nanopb-1.0.0 */
+#if PB_API_VERSION < PB_API_VERSION_v1_0
+
+static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
+{
+    pb_ostream_t ctx;
+    (void)pb_init_encode_ctx_for_buffer(&ctx, buf, bufsize);
+    return ctx;
+}
+
+/* Defines for backwards compatibility with code written before nanopb-0.4.0 */
+#define pb_encode_delimited(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_DELIMITED)
+#define pb_encode_nullterminated(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_NULLTERMINATED)
+
+#endif /* PB_API_VERSION */
 
 #ifdef __cplusplus
 } /* extern "C" */
