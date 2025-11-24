@@ -99,15 +99,15 @@ message Proto3Field
 // Wide descriptors
 message WideMessage
 {
-    option (nanopb_msgopt).descriptorsize = DS_4;
+    option (nanopb_msgopt).descriptorsize = DS_LARGE;
     required int32 foo = 1;
 }
 
 // Wide descriptor option in a single field
 message WideMessage2
 {
-    required int32 foo = 1 [(nanopb).descriptorsize = DS_8];
-    required int32 foo2 = 2 [(nanopb).descriptorsize = DS_4];
+    required int32 foo = 1 [(nanopb).descriptorsize = DS_LARGE];
+    required int32 foo2 = 2 [(nanopb).descriptorsize = DS_SMALL];
     required int32 foo3 = 3;
 }
 

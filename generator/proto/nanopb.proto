@@ -40,12 +40,19 @@ enum TypenameMangling {
     M_PACKAGE_INITIALS = 3; // Replace the package name by the initials
 }
 
+// Low-level option for adjusting the generated descriptor sizes
 enum DescriptorSize {
+    option allow_alias = true;
+
     DS_AUTO = 0; // Select minimal size based on field type
-    DS_1 = 1;    // 1 word; up to 15 byte fields, no arrays
-    DS_2 = 2;    // 2 words; up to 4095 byte fields, 4095 entry arrays
-    DS_4 = 4;    // 4 words; up to 2^32-1 byte fields, 2^16-1 entry arrays
-    DS_8 = 8;    // 8 words; up to 2^32-1 entry arrays
+    DS_SMALL = 2; // Small descriptor, tags and message size <= 4095
+    DS_LARGE = 5; // Large descriptor
+
+    // These are deprecated legacy names
+    DS_1 = 1;
+    DS_2 = 2;
+    DS_4 = 4;
+    DS_8 = 8;
 }
 
 // This is the inner options message, which basically defines options for

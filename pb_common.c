@@ -7,70 +7,42 @@
 
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
-    uint32_t word0;
-    uint32_t data_offset;
-    int_least8_t size_offset;
-
     if (iter->index >= iter->descriptor->field_count)
         return false;
 
-    word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
-    iter->type = (pb_type_t)((word0 >> 8) & 0xFF);
+    const uint32_t *field_info = &iter->descriptor->field_info[iter->field_info_index];
+    pb_size_t size_offset, data_offset;
 
-    switch(word0 & 3)
+    if (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
     {
-        case 0: {
-            /* 1-word format */
-            iter->array_size = 1;
-            iter->tag = (pb_size_t)((word0 >> 2) & 0x3F);
-            size_offset = (int_least8_t)((word0 >> 24) & 0x0F);
-            data_offset = (word0 >> 16) & 0xFF;
-            iter->data_size = (pb_size_t)((word0 >> 28) & 0x0F);
-            break;
-        }
+        // Load descriptor values for large format (5 words)
+        uint32_t word0 = PB_PROGMEM_READU32(field_info[0]);
+        uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
 
-        case 1: {
-            /* 2-word format */
-            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
+        iter->tag = (pb_size_t)(word0 & 0x1FFFFFFF);
+        iter->type = (pb_type_t)(((word0 >> 21) & 0x700) | (word1 >> 24));
+        iter->array_size = (pb_size_t)(word1 & 0xFFFFFF);
+        iter->data_size = (pb_size_t)PB_PROGMEM_READU32(field_info[2]);
 
-            iter->array_size = (pb_size_t)((word0 >> 16) & 0x0FFF);
-            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 28) << 6));
-            size_offset = (int_least8_t)((word0 >> 28) & 0x0F);
-            data_offset = word1 & 0xFFFF;
-            iter->data_size = (pb_size_t)((word1 >> 16) & 0x0FFF);
-            break;
-        }
+        size_offset = (pb_size_t)PB_PROGMEM_READU32(field_info[3]);
+        data_offset = (pb_size_t)PB_PROGMEM_READU32(field_info[4]);
+    }
+    else
+    {
+        // Load descriptor values for small descriptor format (2 words)
+        uint32_t word0 = PB_PROGMEM_READU32(field_info[0]);
+        uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
 
-        case 2: {
-            /* 4-word format */
-            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
-            uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
-            uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
+        iter->tag = (pb_size_t)(word0 & 0xFFF);
+        iter->type = (pb_type_t)(word1 >> 24);
+        iter->data_size = (pb_size_t)(word1 & 0xFFF);
+        iter->array_size = (pb_size_t)(word0 >> 24);
 
-            iter->array_size = (pb_size_t)(word0 >> 16);
-            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 8) << 6));
-            size_offset = (int_least8_t)(word1 & 0xFF);
-            data_offset = word2;
-            iter->data_size = (pb_size_t)word3;
-            break;
-        }
-
-        default: {
-            /* 8-word format */
-            uint32_t word1 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 1]);
-            uint32_t word2 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 2]);
-            uint32_t word3 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 3]);
-            uint32_t word4 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index + 4]);
-
-            iter->array_size = (pb_size_t)word4;
-            iter->tag = (pb_size_t)(((word0 >> 2) & 0x3F) | ((word1 >> 8) << 6));
-            size_offset = (int_least8_t)(word1 & 0xFF);
-            data_offset = word2;
-            iter->data_size = (pb_size_t)word3;
-            break;
-        }
+        data_offset = (pb_size_t)((word0 >> 12) & 0xFFF);
+        size_offset = (pb_size_t)((word1 >> 12) & 0xFFF);
     }
 
+    // Calculate pField and pSize pointers from the offsets given by descriptor
     if (!iter->message)
     {
         /* Avoid doing arithmetic on null pointers, it is undefined */
@@ -81,9 +53,9 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     {
         iter->pField = (char*)iter->message + data_offset;
 
-        if (size_offset)
+        if (size_offset != data_offset)
         {
-            iter->pSize = (char*)iter->pField - size_offset;
+            iter->pSize = (char*)iter->message + size_offset;
         }
         else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
                  (PB_ATYPE(iter->type) == PB_ATYPE_STATIC ||
@@ -94,6 +66,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         }
         else
         {
+            // No size field
             iter->pSize = NULL;
         }
 
@@ -119,6 +92,25 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     return true;
 }
 
+// Get field type without loading rest of the descriptor
+static inline pb_type_t get_type_quick(const uint32_t *field_info)
+{
+    uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
+    return (pb_type_t)(word1 >> 24);
+}
+
+// Get field tag without loading rest of the descriptor
+static inline pb_size_t get_tag_quick(const pb_field_iter_t *iter)
+{
+    uint32_t word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
+
+    if (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
+        return (pb_size_t)(word0 & 0x1FFFFFFF);
+    else
+        return (pb_size_t)(word0 & 0xFFF);
+}
+
+// Go to next field but do not load descriptor data yet
 static void advance_iterator(pb_field_iter_t *iter)
 {
     iter->index++;
@@ -135,19 +127,17 @@ static void advance_iterator(pb_field_iter_t *iter)
     {
         /* Increment indexes based on previous field type.
          * All field info formats have the following fields:
-         * - lowest 2 bits tell the amount of words in the descriptor (2^n words)
-         * - bits 2..7 give the lowest bits of tag number.
-         * - bits 8..15 give the field type.
+         * - lowest 12 bits of the first word contain the tag number
+         * - highest 8 bits of the second word contain the field type
          */
-        uint32_t prev_descriptor = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
-        pb_type_t prev_type = (prev_descriptor >> 8) & 0xFF;
-        pb_size_t descriptor_len = (pb_size_t)(1 << (prev_descriptor & 3));
+        pb_type_t prev_type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
 
         /* Add to fields.
          * The cast to pb_size_t is needed to avoid -Wconversion warning.
          * Because the data is is constants from generator, there is no danger of overflow.
          */
-        iter->field_info_index = (pb_size_t)(iter->field_info_index + descriptor_len);
+        pb_size_t desc_len = (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC) ? 5 : 2;
+        iter->field_info_index = (pb_size_t)(iter->field_info_index + desc_len);
         iter->required_field_index = (pb_size_t)(iter->required_field_index + (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED));
         iter->submessage_index = (pb_size_t)(iter->submessage_index + PB_LTYPE_IS_SUBMSG(prev_type));
     }
@@ -168,8 +158,8 @@ bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extens
     const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type->arg;
     bool status;
 
-    uint32_t word0 = PB_PROGMEM_READU32(msg->field_info[0]);
-    if (PB_ATYPE(word0 >> 8) == PB_ATYPE_POINTER)
+    pb_type_t type = get_type_quick(msg->field_info);
+    if (PB_ATYPE(type) == PB_ATYPE_POINTER)
     {
         /* For pointer extensions, the pointer is stored directly
          * in the extension structure. This avoids having an extra
@@ -204,40 +194,31 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     }
     else
     {
-        pb_size_t start = iter->index;
-        uint32_t fieldinfo;
+        pb_size_t field_count = iter->descriptor->field_count;
 
         if (tag < iter->tag)
         {
             /* Fields are in tag number order, so we know that tag is between
              * 0 and our start position. Setting index to end forces
              * advance_iterator() call below to restart from beginning. */
-            iter->index = iter->descriptor->field_count;
+            iter->index = field_count;
         }
 
+        pb_size_t itertag = 0;
         do
         {
             /* Advance iterator but don't load values yet */
             advance_iterator(iter);
 
-            /* Do fast check for tag number match */
-            fieldinfo = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
-
-            if (((fieldinfo >> 2) & 0x3F) == (tag & 0x3F))
+            /* Compare tag and load values if match */
+            itertag = get_tag_quick(iter);
+            if (itertag == tag)
             {
-                /* Good candidate, check further */
-                (void)load_descriptor_values(iter);
-
-                if (iter->tag == tag &&
-                    PB_LTYPE(iter->type) != PB_LTYPE_EXTENSION)
-                {
-                    /* Found it */
-                    return true;
-                }
+                return load_descriptor_values(iter);
             }
-        } while (iter->index != start);
+        } while (itertag < tag);
 
-        /* Searched all the way back to start, and found nothing. */
+        /* Searched until first tag number beyond, and found nothing. */
         (void)load_descriptor_values(iter);
         return false;
     }
@@ -252,7 +233,6 @@ bool pb_field_iter_find_extension(pb_field_iter_t *iter)
     else
     {
         pb_size_t start = iter->index;
-        uint32_t fieldinfo;
 
         do
         {
@@ -260,9 +240,8 @@ bool pb_field_iter_find_extension(pb_field_iter_t *iter)
             advance_iterator(iter);
 
             /* Do fast check for field type */
-            fieldinfo = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
-
-            if (PB_LTYPE((fieldinfo >> 8) & 0xFF) == PB_LTYPE_EXTENSION)
+            pb_type_t type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
+            if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
             {
                 return load_descriptor_values(iter);
             }
