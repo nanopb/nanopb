@@ -819,6 +819,40 @@ class Field(ProtoElement):
         else:
             return []
 
+    def has_default_value(self, dependencies):
+        '''Returns True if this field has a default value that should be set by pb_decode().'''
+
+        if self.allocation != 'STATIC':
+            # Non-static fields have nowhere to apply the default to
+            return False
+
+        if self.rules == 'REPEATED':
+            # Arrays are initialized to zero length
+            return False
+
+        if self.pbtype in ['MESSAGE', 'MSG_W_CB']:
+            # Submessage defaults are in their own descriptor
+            return False
+
+        if self.default is not None:
+            # Ok, default value is defined
+            return True
+
+        if self.pbtype in ['ENUM', 'UENUM']:
+            # Enum default value is not necessarily 0
+            enumtype = dependencies.get(str(self.ctype))
+            if not enumtype:
+                return True # Safe default
+
+            if enumtype.values and enumtype.values[0][1] == 0:
+                return False # First value is 0
+
+            # Enum must be initialized to non-zero value
+            return True
+
+        # No default value for field
+        return False
+
     def get_initializer(self, null_init, inner_init_only = False):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
@@ -1475,6 +1509,37 @@ class Message(ProtoElement):
                 count += 1
         return count
 
+    def get_flags(self, dependencies, ancestors = None):
+        '''Get PB_MSGFLAGs for this message and submessages.'''
+        if not ancestors: ancestors = set()
+        ancestors.add(self)
+        flags = set()
+
+        if self.has_default_value(dependencies):
+            flags.add('PB_MSGFLAG_R_HAS_DEFVAL')
+
+        for f in self.fields:
+            if f.allocation == 'POINTER':
+                flags.add('PB_MSGFLAG_R_HAS_PTRS')
+
+            if f.pbtype == 'EXTENSION':
+                flags.add('PB_MSGFLAG_EXTENSIBLE')
+
+            if f.pbtype in ['MESSAGE', 'MSG_W_CB']:
+                submsg = dependencies.get(str(f.submsgname))
+                if submsg in ancestors:
+                    # Skip recursive reference
+                    pass
+                elif submsg:
+                    # Collect flags recursively
+                    for flag in submsg.get_flags(dependencies, ancestors):
+                        if flag.startswith('PB_MSGFLAG_R_') or flag.startswith('PB_MSGFLAG_COLLECT'):
+                            flags.add(flag)
+                else:
+                    # Collect flags symbolically
+                    flags.add('PB_MSGFLAG_COLLECT(%s_FLAGS)' % Globals.naming_style.define_name(f.submsgname))
+        return flags
+
     def fields_declaration(self, dependencies):
         '''Return X-macro declaration of all fields in this message.'''
         Field.macro_x_param = 'X'
@@ -1513,6 +1578,22 @@ class Message(ProtoElement):
                 hexcoded)
         else:
             result += '#define %s_DEFAULT NULL\n' % Globals.naming_style.define_name(self.name)
+
+        # Collect message flags recursively
+        flags = self.get_flags(dependencies)
+        flagstr = ' | '.join(flags)
+        if not flagstr: flagstr = '0'
+        flagstr = '#define %s_FLAGS (%s)\n' % (Globals.naming_style.define_name(self.name), flagstr)
+
+        guards = [x.replace('PB_MSGFLAG_COLLECT', '').strip('()') for x in flags if x.startswith('PB_MSGFLAG_COLLECT')]
+        if guards:
+            # Add ifdef guard for message flags imported from other files.
+            # This is necessary to handle cyclic messages across multiple files.
+            result += '#if %s\n' % ' && '.join('defined(%s)' % x for x in guards)
+            result += flagstr
+            result += '#endif\n'
+        else:
+            result += flagstr
 
         for field in sorted_fields:
             if field.pbtype in ['MESSAGE', 'MSG_W_CB']:
@@ -1580,8 +1661,10 @@ class Message(ProtoElement):
     def fields_definition(self, dependencies):
         '''Return the field descriptor definition that goes in .pb.c file.'''
         width = self.required_descriptor_width(dependencies)
-        if width == 1:
-          width = 'AUTO'
+        if width <= int(nanopb_pb2.DS_SMALL):
+            width = 'S'
+        else:
+            width = 'L'
 
         result = 'PB_BIND(%s, %s, %s)\n' % (
             Globals.naming_style.define_name(self.name),
@@ -1590,31 +1673,30 @@ class Message(ProtoElement):
         return result
 
     def required_descriptor_width(self, dependencies):
-        '''Estimate how many words are necessary for each field descriptor.'''
+        '''Determine if the message fits the small field descriptor format.'''
         if self.descriptorsize != nanopb_pb2.DS_AUTO:
             return int(self.descriptorsize)
 
         if not self.fields:
-          return 1
+          return int(nanopb_pb2.DS_SMALL)
 
         max_tag = max(field.tag for field in self.all_fields())
         max_offset = self.data_size(dependencies)
         max_arraysize = max((field.max_count or 0) for field in self.all_fields())
         max_datasize = max(field.data_size(dependencies) for field in self.all_fields())
 
-        if max_arraysize > 0xFFFF:
-            return 8
-        elif (max_tag > 0x3FF or max_offset > 0xFFFF or
-              max_arraysize > 0x0FFF or max_datasize > 0x0FFF):
-            return 4
-        elif max_tag > 0x3F or max_offset > 0xFF:
-            return 2
+        # Bit counts must match the format definitions in pb.h.
+        fits_small = (
+            (max_tag >> 12) == 0 and
+            (max_offset >> 12) == 0 and
+            (max_arraysize >> 8) == 0 and
+            (max_datasize >> 12) == 0
+        )
+
+        if fits_small:
+            return int(nanopb_pb2.DS_SMALL)
         else:
-            # NOTE: Macro logic in pb.h ensures that width 1 will
-            # be raised to 2 automatically for string/submsg fields
-            # and repeated fields. Thus only tag and offset need to
-            # be checked.
-            return 1
+            return int(nanopb_pb2.DS_LARGE)
 
     def data_size(self, dependencies):
         '''Return approximate sizeof(struct) in the compiled code.'''
@@ -1633,14 +1715,26 @@ class Message(ProtoElement):
 
         return size
 
+    def has_default_value(self, dependencies):
+        '''Returns True if this message includes default values.'''
+
+        if not self.desc:
+            return False
+
+        if self.desc.options.map_entry:
+            return False
+
+        for field in self.fields:
+            if field.has_default_value(dependencies):
+                return True
+
+        return False
+
     def default_value(self, dependencies):
         '''Generate serialized protobuf message that contains the
         default values for optional fields.'''
 
-        if not self.desc:
-            return b''
-
-        if self.desc.options.map_entry:
+        if not self.has_default_value(dependencies):
             return b''
 
         optional_only = copy.deepcopy(self.desc)
@@ -1650,13 +1744,9 @@ class Message(ProtoElement):
         for field in reversed(list(optional_only.field)):
             field.ClearField(str('extendee'))
             parsed_field = self.field_for_tag(field.number)
-            if parsed_field is None or parsed_field.allocation != 'STATIC':
+            if not parsed_field.has_default_value(dependencies):
                 optional_only.field.remove(field)
-            elif (field.label == FieldD.LABEL_REPEATED or
-                  field.type == FieldD.TYPE_MESSAGE):
-                optional_only.field.remove(field)
-            elif hasattr(field, 'oneof_index') and field.HasField('oneof_index'):
-                optional_only.field.remove(field)
+
             elif field.type == FieldD.TYPE_ENUM:
                 # The partial descriptor doesn't include the enum type
                 # so we fake it with int64.
@@ -1681,8 +1771,6 @@ class Message(ProtoElement):
                     field.ClearField(str('type_name'))
                 else:
                     optional_only.field.remove(field)
-            elif not field.HasField('default_value'):
-                optional_only.field.remove(field)
 
         if len(optional_only.field) == 0:
             return b''
@@ -2085,7 +2173,7 @@ class ProtoFile:
 
         yield '\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 40\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 90\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
@@ -2282,7 +2370,7 @@ class ProtoFile:
         if Globals.protoc_insertion_points:
             yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 40\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 90\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
