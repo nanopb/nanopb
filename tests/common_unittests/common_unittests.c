@@ -140,6 +140,8 @@ int main()
         TEST(!pb_validate_utf8("a\xffz"));
         TEST(!pb_validate_utf8("a\xc0\xafz"));
         TEST(!pb_validate_utf8("a\xef\xbf\xbez"));
+        TEST(!pb_validate_utf8("\xF4\x90\x80\x80"));
+        TEST(!pb_validate_utf8("\xF5\x80\x80\x80"));
     }
 
     if (status != 0)
