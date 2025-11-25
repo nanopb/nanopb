@@ -60,6 +60,12 @@
 /* #define PB_C99_STATIC_ASSERT 1 */
 /* #define PB_NO_STATIC_ASSERT 1 */
 
+/* Message nesting and recursion. By default enough stack space is reserved
+ * to handle up to PB_MESSAGE_NESTING levels of submessages. If deeper
+ * hierarchy is encoutered, function call recursion is used to get more stack.
+ */
+/* #define PB_MESSAGE_NESTING 8 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
@@ -246,6 +252,21 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 
 #if PB_MAX_REQUIRED_FIELDS < 64
 #error You should not lower PB_MAX_REQUIRED_FIELDS from the default value (64).
+#endif
+
+/* Number of nested messages to prepare stack space for in single recursion level */
+#ifndef PB_MESSAGE_NESTING
+#define PB_MESSAGE_NESTING 8
+#endif
+
+/* Maximum number of nested messages, with recursion used */
+#ifndef PB_MESSAGE_NESTING_MAX
+#define PB_MESSAGE_NESTING_MAX 100
+#endif
+
+/* Number of bytes of stack space to reserve per recursion level */
+#ifndef PB_WALK_STACK_SIZE
+#define PB_WALK_STACK_SIZE (PB_MESSAGE_NESTING * 32)
 #endif
 
 #ifdef PB_WITHOUT_64BIT

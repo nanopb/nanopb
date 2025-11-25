@@ -8,7 +8,16 @@
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     if (iter->index >= iter->descriptor->field_count)
+    {
+        /* This is used to indicate end of message.
+         * It is used in pb_walk() and also for empty message types.
+         */
+        iter->tag = 0;
+        iter->type = 0;
+        iter->data_size = iter->array_size = 0;
+        iter->pData = iter->pField = iter->pSize = 0;
         return false;
+    }
 
     const uint32_t *field_info = &iter->descriptor->field_info[iter->field_info_index];
     pb_size_t size_offset, data_offset;
@@ -117,17 +126,14 @@ static inline pb_fieldidx_t descsize(const pb_field_iter_t *iter)
 }
 
 // Go to next field but do not load descriptor data yet
-static void advance_iterator(pb_field_iter_t *iter)
+static void advance_iterator(pb_field_iter_t *iter, bool wrap)
 {
     iter->index++;
 
-    if (iter->index >= iter->descriptor->field_count)
+    if (wrap && iter->index >= iter->descriptor->field_count)
     {
         /* Restart */
-        iter->index = 0;
-        iter->field_info_index = 0;
-        iter->submessage_index = 0;
-        iter->required_field_index = 0;
+        (void)pb_field_iter_reset(iter);
     }
     else
     {
@@ -180,9 +186,18 @@ bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extens
     return status;
 }
 
+bool pb_field_iter_reset(pb_field_iter_t *iter)
+{
+    iter->index = 0;
+    iter->field_info_index = 0;
+    iter->submessage_index = 0;
+    iter->required_field_index = 0;
+    return load_descriptor_values(iter);
+}
+
 bool pb_field_iter_next(pb_field_iter_t *iter)
 {
-    advance_iterator(iter);
+    advance_iterator(iter, true);
     (void)load_descriptor_values(iter);
     return iter->index != 0;
 }
@@ -213,7 +228,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag)
         do
         {
             /* Advance iterator but don't load values yet */
-            advance_iterator(iter);
+            advance_iterator(iter, true);
 
             /* Compare tag and load values if match */
             itertag = get_tag_quick(iter);
@@ -221,7 +236,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag)
             {
                 return load_descriptor_values(iter);
             }
-        } while (itertag < tag);
+        } while (itertag < tag && iter->index < field_count - 1);
 
         /* Searched until first tag number beyond, and found nothing. */
         (void)load_descriptor_values(iter);
@@ -242,7 +257,7 @@ bool pb_field_iter_find_extension(pb_field_iter_t *iter)
         do
         {
             /* Advance iterator but don't load values yet */
-            advance_iterator(iter);
+            advance_iterator(iter, true);
 
             /* Do fast check for field type */
             pb_type_t type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
@@ -303,6 +318,161 @@ bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx,
 
     return true; /* Success, but didn't do anything */
 
+}
+
+/* Information stored internally by pb_walk() for each submessage level. */
+typedef struct {
+    /* Message descriptor and structure */
+    const pb_msgdesc_t *descriptor;
+    void *message;
+
+    /* pb_field_iter_t state */
+    pb_fieldidx_t index;
+    pb_fieldidx_t required_field_index;
+    pb_fieldidx_t submessage_index;
+
+    /* Size of the previous user stackframe */
+    pb_walk_stacksize_t prev_stacksize;
+} pb_walk_stackframe_t;
+
+#ifndef PB_WALK_STACK_ALIGN_OVERRIDE
+typedef void* pb_walk_stack_align_t;
+#else
+typedef PB_WALK_STACK_ALIGN_OVERRIDE pb_walk_stack_align_t;
+#endif
+
+#define PB_WALK_ALIGNSIZE sizeof(pb_walk_stack_align_t)
+
+// Round byte count upwards to a multiple of sizeof(void*) to retain alignment
+#define ALIGN_BYTES(x) (pb_walk_stacksize_t)((((x) - 1) / PB_WALK_ALIGNSIZE + 1) * PB_WALK_ALIGNSIZE)
+
+// Configured stack size must also be divisible by alignment requirement
+PB_STATIC_ASSERT(ALIGN_BYTES(PB_WALK_STACK_SIZE) == PB_WALK_STACK_SIZE, PB_WALK_STACK_SIZE_not_aligned)
+
+bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback)
+{
+    state->callback = callback;
+    state->stack = NULL;
+    state->stacksize = 0;
+    state->next_stacksize = 0;
+    state->ctx = NULL;
+    state->flags = 0;
+    state->depth = 0;
+    state->max_depth = PB_MESSAGE_NESTING_MAX;
+    state->retval = PB_WALK_EXIT_OK;
+
+#ifndef PB_NO_ERRMSG
+    state->errmsg = NULL;
+#endif
+
+    return pb_field_iter_begin_const(&state->iter, desc, message);
+}
+
+bool pb_walk(pb_walk_state_t *state)
+{
+    // Manually managed stack for storing only the necessary data for
+    // walking the message tree.
+    union {
+        pb_walk_stack_align_t alignment;
+        char buf[PB_WALK_STACK_SIZE];
+    } aligned_storage;
+    char *storage = aligned_storage.buf;
+    pb_walk_stacksize_t pos = PB_WALK_STACK_SIZE;
+
+    // Allocate first frame
+    state->stacksize = ALIGN_BYTES(state->next_stacksize);
+    if (state->stacksize > pos) PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
+    pos -= state->stacksize;
+    state->stack = &storage[pos];
+    memset(&storage[pos], 0, state->stacksize);
+
+    // Invoke the first callback
+    state->retval = state->callback(state);
+
+    while (state->retval > 0)
+    {
+        if (state->retval == PB_WALK_IN)
+        {
+            /* Enter into a submessage */
+
+            if (state->depth >= state->max_depth)
+            {
+                PB_RETURN_ERROR(state, "max_depth exceeded");
+            }
+            state->depth++;
+
+            pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->next_stacksize);
+            pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+
+            if (pos < cb_stacksize + our_stacksize)
+            {
+                /* Not enough space for new stackframe */
+#ifndef PB_NO_RECURSION
+                if (!pb_walk(state)) return false;
+                continue;
+#else
+                PB_RETURN_ERROR(state, "recursion disabled");
+#endif
+            }
+
+            // Store iterator state so that we can restore it after return
+            pos -= our_stacksize;
+            pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)&storage[pos];
+            frame->descriptor = state->iter.descriptor;
+            frame->message = state->iter.message;
+            frame->index = state->iter.index;
+            frame->required_field_index = state->iter.required_field_index;
+            frame->submessage_index = state->iter.submessage_index;
+            frame->prev_stacksize = state->stacksize;
+
+            // Setup stack frame for callback
+            state->stacksize = cb_stacksize;
+            pos -= cb_stacksize;
+            state->stack = &storage[pos];
+            memset(&storage[pos], 0, cb_stacksize);
+
+            // Reset iterator to submessage
+            (void)pb_field_iter_begin(&state->iter, state->iter.submsg_desc, state->iter.pData);
+        }
+        else if (state->retval == PB_WALK_OUT)
+        {
+            /* Return from submessage */
+
+            if (state->depth == 0)
+            {
+                // Exit from topmost level
+                state->retval = PB_WALK_EXIT_OK;
+                break;
+            }
+            state->depth--;
+
+            // Restore iterator state
+            pos += state->stacksize;
+            const pb_walk_stackframe_t *frame = (const pb_walk_stackframe_t*)&storage[pos];
+            state->iter.descriptor = frame->descriptor;
+            state->iter.message = frame->message;
+            state->iter.index = frame->index;
+            state->iter.required_field_index = frame->required_field_index;
+            state->iter.submessage_index = frame->submessage_index;
+            state->iter.field_info_index = descsize(&state->iter) * frame->index;
+            (void)load_descriptor_values(&state->iter);
+
+            // Restore previous stack frame
+            state->stacksize = frame->prev_stacksize;
+            pos += ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+            state->stack = &storage[pos];
+        }
+        else
+        {
+            // Go to next field, do not wrap at the end of message
+            advance_iterator(&state->iter, false);
+            (void)load_descriptor_values(&state->iter);
+        }
+
+        state->retval = state->callback(state);
+    }
+
+    return state->retval == PB_WALK_EXIT_OK;
 }
 
 #ifdef PB_VALIDATE_UTF8

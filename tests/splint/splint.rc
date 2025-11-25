@@ -29,6 +29,7 @@
 -immediatetrans
 -mustfreefresh
 -allimponly
+-retalias
 
 # These tests give false positives, compiler typically has
 # better warnings for these.

@@ -37,6 +37,10 @@ typedef const int* pb_encode_ctx_write_callback_t;
 typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
 #endif
 
+/* Flags for encode context state */
+typedef uint16_t pb_encode_ctx_flags_t;
+#define PB_ENCODE_CTX_FLAG_SIZING (pb_encode_ctx_flags_t)(1 << 0)
+
 /* Structure containing the state associated with message encoding.
  * For the common case of writing a message to a memory buffer, this
  * is initialized with pb_init_encode_ctx_for_buffer().
@@ -61,6 +65,8 @@ struct pb_encode_ctx_s
     /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
+
+    pb_encode_ctx_flags_t flags;
 };
 
 /***************************
@@ -127,9 +133,9 @@ bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
  *    printf("Message size is %d\n", stream.bytes_written);
  */
 #ifndef PB_NO_ERRMSG
-#define PB_OSTREAM_SIZING {0,0,0,0,0}
+#define PB_OSTREAM_SIZING {0,0,0,0,0,0}
 #else
-#define PB_OSTREAM_SIZING {0,0,0,0}
+#define PB_OSTREAM_SIZING {0,0,0,0,0}
 #endif
 
 /* Function to write into a pb_ostream_t stream. You can use this if you need
