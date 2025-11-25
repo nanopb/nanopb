@@ -150,7 +150,7 @@ bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 
 /* Decode the tag for the next field in the stream. Gives the wire type and
  * field tag. At end of the message, returns false and sets eof to true. */
-bool pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof);
+bool pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, pb_tag_t *tag, bool *eof);
 
 /* Skip the field payload data, given the wire type. */
 bool pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type);

@@ -148,7 +148,7 @@ bool pb_encode_tag_for_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 
 /* Encode field header by manually specifying wire type. You need to use this
  * if you want to write out packed arrays from a callback field. */
-bool pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, uint32_t field_number);
+bool pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field_number);
 
 /* Encode an integer in the varint format.
  * This works for bool, enum, int32, int64, uint32 and uint64 field types. */

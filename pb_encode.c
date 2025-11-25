@@ -259,7 +259,7 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
         else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
         {
             /* Oneof fields */
-            return *(const pb_size_t*)field->pSize == 0;
+            return *(const pb_tag_t*)field->pSize == 0;
         }
         else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->pSize != NULL)
         {
@@ -419,7 +419,7 @@ static bool checkreturn encode_field(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
     /* Check field presence */
     if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
     {
-        if (*(const pb_size_t*)field->pSize != field->tag)
+        if (*(const pb_tag_t*)field->pSize != field->tag)
         {
             /* Different type oneof field */
             return true;
@@ -671,7 +671,7 @@ bool checkreturn pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value)
 }
 #endif
 
-bool checkreturn pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, uint32_t field_number)
+bool checkreturn pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field_number)
 {
     pb_uint64_t tag = ((pb_uint64_t)field_number << 3) | wiretype;
     return pb_encode_varint(ctx, tag);

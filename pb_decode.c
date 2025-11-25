@@ -274,7 +274,7 @@ bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx)
     return pb_read(ctx, NULL, (size_t)length);
 }
 
-bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, uint32_t *tag, bool *eof)
+bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, pb_tag_t *tag, bool *eof)
 {
     uint32_t temp;
     *eof = false;
@@ -539,7 +539,7 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 
         case PB_HTYPE_ONEOF:
             if (PB_LTYPE_IS_SUBMSG(field->type) &&
-                *(pb_size_t*)field->pSize != field->tag)
+                *(pb_tag_t*)field->pSize != field->tag)
             {
                 /* We memset to zero so that any callbacks are set to NULL.
                  * This is because the callbacks might otherwise have values
@@ -563,7 +563,7 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
                     }
                 }
             }
-            *(pb_size_t*)field->pSize = field->tag;
+            *(pb_tag_t*)field->pSize = field->tag;
 
             return decode_basic_field(ctx, wire_type, field);
 
@@ -660,7 +660,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
         
             if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
             {
-                *(pb_size_t*)field->pSize = field->tag;
+                *(pb_tag_t*)field->pSize = field->tag;
             }
 
             if (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
@@ -943,12 +943,16 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
              * itself also. */
             *(bool*)field->pSize = false;
         }
-        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
-                 PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
-            /* REPEATED: Set array count to 0, no need to initialize contents.
-               ONEOF: Set which_field to 0. */
+            /* REPEATED: Set array count to 0, no need to initialize contents. */
             *(pb_size_t*)field->pSize = 0;
+            init_data = false;
+        }
+        else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        {
+            /* ONEOF: Set which_field to 0. */
+            *(pb_tag_t*)field->pSize = 0;
             init_data = false;
         }
 
@@ -982,10 +986,13 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
         *(void**)field->pField = NULL;
 
         /* Initialize array count to 0. */
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
-            PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
             *(pb_size_t*)field->pSize = 0;
+        }
+        else if(PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        {
+            *(pb_tag_t*)field->pSize = 0;
         }
     }
     else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
@@ -1249,8 +1256,8 @@ bool checkreturn pb_decode(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, voi
 static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 {
     pb_field_iter_t old_field = *field;
-    pb_size_t old_tag = *(pb_size_t*)field->pSize; /* Previous which_ value */
-    pb_size_t new_tag = field->tag; /* New which_ value */
+    pb_tag_t old_tag = *(pb_tag_t*)field->pSize; /* Previous which_ value */
+    pb_tag_t new_tag = field->tag; /* New which_ value */
 
     if (old_tag == 0)
         return true; /* Ok, no old data in union */
@@ -1283,7 +1290,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
 
     if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
     {
-        if (*(pb_size_t*)field->pSize != field->tag)
+        if (*(pb_tag_t*)field->pSize != field->tag)
             return; /* This is not the current field in the union */
     }
 
@@ -1553,7 +1560,7 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     if (!pb_decode_varint32(ctx, &size))
         return false;
     
-    if (size > PB_SIZE_MAX)
+    if ((pb_size_t)size != size)
         PB_RETURN_ERROR(ctx, "bytes overflow");
     
     alloc_size = PB_BYTES_ARRAY_T_ALLOCSIZE(size);
@@ -1693,7 +1700,7 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb
     if (!pb_decode_varint32(ctx, &size))
         return false;
 
-    if (size > PB_SIZE_MAX)
+    if ((pb_size_t)size != size)
         PB_RETURN_ERROR(ctx, "bytes overflow");
 
     if (size == 0)

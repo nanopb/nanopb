@@ -1253,7 +1253,7 @@ class OneOf(Field):
             if self.has_msg_cb:
                 result += '    pb_callback_t cb_' + Globals.naming_style.var_name(self.name) + ';\n'
 
-            result += '    pb_size_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
+            result += '    pb_tag_t which_' + Globals.naming_style.var_name(self.name) + ";\n"
             if self.anonymous:
                 result += '    union {\n'
             else:
@@ -2173,7 +2173,7 @@ class ProtoFile:
 
         yield '\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 90\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 91\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
@@ -2370,7 +2370,7 @@ class ProtoFile:
         if Globals.protoc_insertion_points:
             yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 90\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 91\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
