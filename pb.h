@@ -345,17 +345,39 @@ typedef uint16_t pb_type_t;
 #define PB_LTYPE_IS_SUBMSG(x) (PB_LTYPE(x) == PB_LTYPE_SUBMESSAGE || \
                                PB_LTYPE(x) == PB_LTYPE_SUBMSG_W_CB)
 
-/* Data type used for storing sizes of struct fields
- * and array counts.
- */
-#ifndef PB_NO_LARGEMSG
-    typedef uint32_t pb_size_t;
-    typedef int32_t pb_ssize_t;
+/* Data type used for storing field tags. */
+#ifdef PB_NO_LARGEMSG
+    typedef uint_least16_t pb_tag_t;
 #else
-    typedef uint_least16_t pb_size_t;
-    typedef int_least16_t pb_ssize_t;
+    typedef uint32_t pb_tag_t;
 #endif
+
+/* Data type used for storing field sizes and array counts.
+ * If large descriptor is disabled, all messages are limited to max 4 kB
+ * and we can use 16-bit size type.
+ *
+ * Even when running on 64-bit platforms, we have pb_size_t limited to
+ * 32 bits by default. It's not typical to have messages over 4 GB.
+ */
+#if defined(PB_SIZE_T_OVERRIDE)
+    typedef PB_SIZE_T_OVERRIDE pb_size_t;
+#elif defined(PB_NO_LARGEMSG)
+    typedef uint_least16_t pb_size_t;
+#elif SIZE_MAX > UINT32_MAX
+    typedef uint32_t pb_size_t;
+#else
+    typedef size_t pb_size_t;
+#endif
+
 #define PB_SIZE_MAX ((pb_size_t)-1)
+
+/* Data type used for storing field indexes.
+ * According to Google "Proto Limits", protobuf implementations
+ * are typically limited to about 4000 fields per message.
+ * Using uint16_t for index works for up to 13000 fields,
+ * and saves space in nested message stack frames vs. uint32_t.
+ */
+typedef uint_least16_t pb_fieldidx_t;
 
 /* Forward declaration of struct types */
 typedef struct pb_decode_ctx_s pb_decode_ctx_t;
@@ -400,9 +422,9 @@ typedef struct pb_msgdesc_s pb_msgdesc_t;
 struct pb_msgdesc_s {
     /* Basic information about the message */
     pb_size_t struct_size;
-    pb_size_t field_count;
-    pb_size_t required_field_count;
-    pb_size_t largest_tag;
+    pb_fieldidx_t field_count;
+    pb_fieldidx_t required_field_count;
+    pb_tag_t largest_tag;
     pb_msgflag_t msg_flags;
 
     /* Field_info can be in either long or short format,
@@ -431,12 +453,12 @@ struct pb_field_iter_s {
     const pb_msgdesc_t *descriptor;  /* Pointer to message descriptor constant */
     void *message;                   /* Pointer to start of the structure */
 
-    pb_size_t index;                 /* Index of the field */
-    pb_size_t field_info_index;      /* Index to descriptor->field_info array */
-    pb_size_t required_field_index;  /* Index that counts only the required fields */
-    pb_size_t submessage_index;      /* Index that counts only submessages */
+    pb_fieldidx_t index;                 /* Index of the field */
+    pb_fieldidx_t required_field_index;  /* Index that counts only the required fields */
+    pb_fieldidx_t submessage_index;      /* Index that counts only submessages */
+    pb_fieldidx_t field_info_index;      /* Index to descriptor->field_info array */
 
-    pb_size_t tag;                   /* Tag of current field */
+    pb_tag_t tag;                    /* Tag of current field */
     pb_size_t data_size;             /* sizeof() of a single item */
     pb_size_t array_size;            /* Number of array entries */
     pb_type_t type;                  /* Type of current field */
@@ -581,7 +603,7 @@ struct pb_extension_s {
 #endif
 
 /* This is used to inform about need to regenerate .pb.h/.pb.c files. */
-#define PB_PROTO_HEADER_VERSION 90
+#define PB_PROTO_HEADER_VERSION 91
 
 /* These macros are used to declare pb_field_t's in the constant array. */
 /* Size of a structure member, in bytes. */

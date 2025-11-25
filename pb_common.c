@@ -100,14 +100,20 @@ static inline pb_type_t get_type_quick(const uint32_t *field_info)
 }
 
 // Get field tag without loading rest of the descriptor
-static inline pb_size_t get_tag_quick(const pb_field_iter_t *iter)
+static inline pb_tag_t get_tag_quick(const pb_field_iter_t *iter)
 {
     uint32_t word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
 
     if (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
-        return (pb_size_t)(word0 & 0x1FFFFFFF);
+        return (pb_tag_t)(word0 & 0x1FFFFFFF);
     else
-        return (pb_size_t)(word0 & 0xFFF);
+        return (pb_tag_t)(word0 & 0xFFF);
+}
+
+// Return number of words per descriptor entry
+static inline pb_fieldidx_t descsize(const pb_field_iter_t *iter)
+{
+    return (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC) ? 5 : 2;
 }
 
 // Go to next field but do not load descriptor data yet
@@ -133,13 +139,12 @@ static void advance_iterator(pb_field_iter_t *iter)
         pb_type_t prev_type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
 
         /* Add to fields.
-         * The cast to pb_size_t is needed to avoid -Wconversion warning.
+         * The cast to pb_fieldidx_t is needed to avoid -Wconversion warning.
          * Because the data is is constants from generator, there is no danger of overflow.
          */
-        pb_size_t desc_len = (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC) ? 5 : 2;
-        iter->field_info_index = (pb_size_t)(iter->field_info_index + desc_len);
-        iter->required_field_index = (pb_size_t)(iter->required_field_index + (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED));
-        iter->submessage_index = (pb_size_t)(iter->submessage_index + PB_LTYPE_IS_SUBMSG(prev_type));
+        iter->field_info_index = (pb_fieldidx_t)(iter->field_info_index + descsize(iter));
+        iter->required_field_index = (pb_fieldidx_t)(iter->required_field_index + (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED));
+        iter->submessage_index = (pb_fieldidx_t)(iter->submessage_index + PB_LTYPE_IS_SUBMSG(prev_type));
     }
 }
 
@@ -182,7 +187,7 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
     return iter->index != 0;
 }
 
-bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
+bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag)
 {
     if (iter->tag == tag)
     {
@@ -194,7 +199,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
     }
     else
     {
-        pb_size_t field_count = iter->descriptor->field_count;
+        pb_fieldidx_t field_count = iter->descriptor->field_count;
 
         if (tag < iter->tag)
         {
@@ -204,7 +209,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, uint32_t tag)
             iter->index = field_count;
         }
 
-        pb_size_t itertag = 0;
+        pb_tag_t itertag = 0;
         do
         {
             /* Advance iterator but don't load values yet */
