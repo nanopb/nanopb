@@ -26,16 +26,14 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn encode_field(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
-static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension);
+// static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+// static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension);
 static bool checkreturn pb_encode_varint_32(pb_encode_ctx_t *ctx, uint32_t low, uint32_t high);
 static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_submessage(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 
 #ifdef PB_WITHOUT_64BIT
@@ -62,6 +60,7 @@ static bool checkreturn buf_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, si
 
 bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize)
 {
+    ctx->flags = 0;
 #ifdef PB_BUFFER_ONLY
     /* In PB_BUFFER_ONLY configuration the callback pointer is just int*.
      * NULL pointer marks a sizing field, so put a non-NULL value to mark a buffer stream.
@@ -82,7 +81,8 @@ bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
 
 bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
 {
-    if (count > 0 && ctx->callback != NULL)
+    if (count > 0 && ctx->callback != NULL &&
+        (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING) == 0)
     {
         if (ctx->bytes_written + count < ctx->bytes_written ||
             ctx->bytes_written + count > ctx->max_size)
@@ -389,13 +389,11 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
         case PB_LTYPE_STRING:
             return pb_enc_string(ctx, field);
 
-        case PB_LTYPE_SUBMESSAGE:
-        case PB_LTYPE_SUBMSG_W_CB:
-            return pb_enc_submessage(ctx, field);
-
         case PB_LTYPE_FIXED_LENGTH_BYTES:
             return pb_enc_fixed_length_bytes(ctx, field);
 
+        case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
         default:
             PB_RETURN_ERROR(ctx, "invalid field type");
     }
@@ -413,16 +411,15 @@ static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_fie
     return true;
 }
 
-/* Encode a single field of any callback, pointer or static type. */
-static bool checkreturn encode_field(pb_encode_ctx_t *ctx, pb_field_iter_t *field)
+/* Check if field is present */
+static bool field_present(const pb_field_iter_t *field)
 {
-    /* Check field presence */
     if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
     {
         if (*(const pb_tag_t*)field->pSize != field->tag)
         {
             /* Different type oneof field */
-            return true;
+            return false;
         }
     }
     else if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
@@ -432,103 +429,286 @@ static bool checkreturn encode_field(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
             if (safe_read_bool(field->pSize) == false)
             {
                 /* Missing optional field */
-                return true;
+                return false;
             }
         }
         else if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
         {
             /* Proto3 singular field */
             if (pb_check_proto3_default_value(field))
-                return true;
+                return false;
+        }
+    }
+    else if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
+    {
+        if (field->pSize)
+        {
+            if (*(pb_size_t*)field->pSize == 0)
+            {
+                /* Empty array */
+                return false;
+            }
         }
     }
 
     if (!field->pData)
     {
-        if (PB_HTYPE(field->type) == PB_HTYPE_REQUIRED)
-            PB_RETURN_ERROR(ctx, "missing required field");
-
         /* Pointer field set to NULL */
-        return true;
+        return false;
     }
 
-    /* Then encode field contents */
-    if (PB_ATYPE(field->type) == PB_ATYPE_CALLBACK)
-    {
-        return encode_callback_field(ctx, field);
-    }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-    {
-        return encode_array(ctx, field);
-    }
-    else
-    {
-        return encode_basic_field(ctx, field);
-    }
+    return true;
 }
 
 /* Default handler for extension fields. Expects to have a pb_msgdesc_t
  * pointer in the extension->type->arg field, pointing to a message with
  * only one field in it.  */
-static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension)
-{
-    pb_field_iter_t iter;
+// static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension)
+// {
+//     pb_field_iter_t iter;
 
-    if (!pb_field_iter_begin_extension_const(&iter, extension))
-        PB_RETURN_ERROR(ctx, "invalid extension");
+//     if (!pb_field_iter_begin_extension_const(&iter, extension))
+//         PB_RETURN_ERROR(ctx, "invalid extension");
 
-    return encode_field(ctx, &iter);
-}
+//     return false; // FIXME
+//     //return encode_field(ctx, &iter);
+// }
 
 
 /* Walk through all the registered extensions and give them a chance
  * to encode themselves. */
-static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
+// static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
+// {
+//     const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
 
-    while (extension)
-    {
-        bool status;
-        if (extension->type->encode)
-            status = extension->type->encode(ctx, extension);
-        else
-            status = default_extension_encoder(ctx, extension);
+//     while (extension)
+//     {
+//         bool status;
+//         if (extension->type->encode)
+//             status = extension->type->encode(ctx, extension);
+//         else
+//             status = default_extension_encoder(ctx, extension);
 
-        if (!status)
-            return false;
+//         if (!status)
+//             return false;
         
-        extension = extension->next;
-    }
+//         extension = extension->next;
+//     }
     
-    return true;
-}
+//     return true;
+// }
 
 /*********************
  * Encode all fields *
  *********************/
 
-bool checkreturn pb_encode(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
+typedef struct {
+#ifndef PB_NO_EXTENSIONS
+    pb_extension_t *extension;
+#endif
+
+    size_t msg_start_pos;
+    pb_size_t array_idx;
+    uint16_t flags;
+} pb_encode_walk_stackframe_t;
+
+#define PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG 1
+#define PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG 1
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY 2
+
+/* Loop through all fields in the message and encode them.
+ * If a submessage is encoutered, return to pb_walk().
+ */
+static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t *state)
 {
-    pb_field_iter_t iter;
-    if (!pb_field_iter_begin_const(&iter, fields, src_struct))
-        return true; /* Empty message type */
-    
+    pb_field_iter_t *iter = &state->iter;
+
+    if (iter->tag == 0)
+    {
+        // End of message or empty message
+        return PB_WALK_OUT;
+    }
+
     do {
-        if (PB_LTYPE(iter.type) == PB_LTYPE_EXTENSION)
+        if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
-            /* Special case for the extension field placeholder */
-            if (!encode_extension_field(ctx, &iter))
-                return false;
+            // Extensions are stored as a linked list.
+            // frame->extension is used to store the point in the list we are going at.
+            pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
+
+            if (!frame->extension)
+            {
+                // First extension field
+                if (iter->data_size == sizeof(pb_extension_t*))
+                    frame->extension = *(pb_extension_t* const *)iter->pData;
+            }
+            else
+            {
+                // Next extension field
+                frame->extension = frame->extension->next;
+            }
+
+            if (frame->extension)
+            {
+                // Descend into extension
+                iter->submsg_desc = frame->extension->type;
+                iter->pData = pb_get_extension_data_ptr(frame->extension);
+                return PB_WALK_IN;
+            }
+
+            continue;
+        }
+
+        if (!field_present(iter))
+        {
+            if (PB_HTYPE(iter->type) == PB_HTYPE_REQUIRED)
+            {
+                PB_SET_ERROR(ctx, "missing required field");
+                return PB_WALK_EXIT_ERR;
+            }
+
+            continue;
+        }
+
+        if (PB_LTYPE_IS_SUBMSG(iter->type) && PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
+        {
+            // Encode submessage prefix tag
+            if (!pb_encode_tag_for_field(ctx, iter))
+                return PB_WALK_EXIT_ERR;
+
+            // Go into a submessage
+            state->flags = PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
+            return PB_WALK_IN;
+        }
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
+        {
+            if (!encode_callback_field(ctx, iter))
+                return PB_WALK_EXIT_ERR;
+        }
+        else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+        {
+            if (!encode_array(ctx, iter))
+                return PB_WALK_EXIT_ERR;
         }
         else
         {
-            /* Regular field */
-            if (!encode_field(ctx, &iter))
-                return false;
+            if (!encode_basic_field(ctx, iter))
+                return PB_WALK_EXIT_ERR;
         }
-    } while (pb_field_iter_next(&iter));
+    } while (pb_field_iter_next(iter));
+
+    return PB_WALK_OUT;
+}
+
+static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
+{
+    pb_field_iter_t *iter = &state->iter;
+    pb_encode_ctx_t *ctx = (pb_encode_ctx_t *)state->ctx;
+    pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
+
+    // Check the previous action
+    if (state->flags & PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG)
+    {
+        // This is the beginning of a submessage
+        // We need to start by calculating the submessage size
+        state->flags = 0;
+        frame->msg_start_pos = ctx->bytes_written;
+
+        if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
+        {
+            // We are inside another submessage which is being sized
+            frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG |
+                            PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY;
+        }
+        else
+        {
+            // Start sizing the submessage
+            frame->flags = PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG;
+            ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+        }
+    }
+    else if (state->retval == PB_WALK_OUT)
+    {
+        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+            frame->array_idx + 1 < *(pb_size_t*)iter->pSize)
+        {
+            if (PB_ATYPE(iter->type) != PB_ATYPE_POINTER &&
+                *(pb_size_t*)iter->pSize > iter->array_size)
+            {
+                PB_SET_ERROR(ctx, "array max size exceeded");
+                return PB_WALK_EXIT_ERR;
+            }
+
+            // Go to next array item
+            frame->array_idx++;
+            iter->pData = (char*)iter->pData + frame->array_idx * iter->data_size;
+        }
+        else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+        {
+            // Extensions have their own loop mechanism
+        }
+        else
+        {
+            // Go to next field
+            frame->array_idx = 0;
+            if (!pb_field_iter_next(&state->iter))
+            {
+                iter->tag = 0; // End of message
+            }
+        }
+    }
+
+    pb_walk_retval_t retval = encode_all_fields(ctx, state);
+
+    if (retval == PB_WALK_OUT &&
+        (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG) != 0)
+    {
+        // End of sizing pass.
+        size_t submsgsize = ctx->bytes_written - frame->msg_start_pos;
+
+        if (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY)
+        {
+            // This was part of upper level sizing pass,
+            // we can just add the size of the length prefix now.
+            frame->flags = 0;
+            if (!pb_encode_varint(ctx, (pb_uint64_t)submsgsize))
+                return PB_WALK_EXIT_ERR;
+        }
+        else
+        {
+            // We started this sizing pass, we can now write out
+            // the actual message data.
+            ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags & ~PB_ENCODE_CTX_FLAG_SIZING);
+            ctx->bytes_written = frame->msg_start_pos;
+            frame->flags = 0;
+
+            if (!pb_encode_varint(ctx, (pb_uint64_t)submsgsize))
+                return PB_WALK_EXIT_ERR;
+
+            (void)pb_field_iter_reset(iter);
+            retval = encode_all_fields(ctx, state);
+        }
+    }
     
+    return retval;
+}
+
+bool checkreturn pb_encode(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
+{
+    pb_walk_state_t state;
+
+    if (!pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb))
+        return true; /* Empty message type */
+
+    state.ctx = ctx;
+    state.next_stacksize = sizeof(pb_encode_walk_stackframe_t);
+
+    if (!pb_walk(&state))
+    {
+        PB_RETURN_ERROR(ctx, state.errmsg);
+    }
+
     return true;
 }
 
@@ -919,24 +1099,24 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
     return pb_encode_string(ctx, (const pb_byte_t*)str, size);
 }
 
-static bool checkreturn pb_enc_submessage(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    if (field->submsg_desc == NULL)
-        PB_RETURN_ERROR(ctx, "invalid field descriptor");
+// static bool checkreturn pb_enc_submessage(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
+// {
+//     if (field->submsg_desc == NULL)
+//         PB_RETURN_ERROR(ctx, "invalid field descriptor");
 
-    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
-    {
-        /* Message callback is stored right before pSize. */
-        pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
-        if (callback->funcs.encode)
-        {
-            if (!callback->funcs.encode(ctx, field, &callback->arg))
-                return false;
-        }
-    }
+//     if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+//     {
+//         // Message callback is stored right before pSize.
+//         pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
+//         if (callback->funcs.encode)
+//         {
+//             if (!callback->funcs.encode(ctx, field, &callback->arg))
+//                 return false;
+//         }
+//     }
     
-    return pb_encode_submessage(ctx, field->submsg_desc, field->pData);
-}
+//     return pb_encode_submessage(ctx, field->submsg_desc, field->pData);
+// }
 
 static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
