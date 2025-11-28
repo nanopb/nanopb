@@ -561,40 +561,14 @@ typedef enum {
     PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
 } pb_wire_type_t;
 
-/* Structure for defining the handling of unknown/extension fields.
- * Usually the pb_extension_type_t structure is automatically generated,
- * while the pb_extension_t structure is created by the user. However,
- * if you want to catch all unknown fields, you can also create a custom
- * pb_extension_type_t with your own callback.
+/* Structure for defining the handling of extension fields.
+ * The extensions are stored as a linked list, which is searched until
+ * matching field tag is found.
  */
-typedef struct pb_extension_type_s pb_extension_type_t;
 typedef struct pb_extension_s pb_extension_t;
-struct pb_extension_type_s {
-    /* Called for each unknown field in the message.
-     * If you handle the field, read off all of its data and return true.
-     * If you do not handle the field, do not read anything and return true.
-     * If you run into an error, return false.
-     * Set to NULL for default handler.
-     */
-    bool (*decode)(pb_decode_ctx_t *ctx, pb_extension_t *extension,
-                   uint32_t tag, pb_wire_type_t wire_type);
-
-    /* Called once after all regular fields have been encoded.
-     * If you have something to write, do so and return true.
-     * If you do not have anything to write, just return true.
-     * If you run into an error, return false.
-     * Set to NULL for default handler.
-     */
-    bool (*encode)(pb_encode_ctx_t *ctx, const pb_extension_t *extension);
-
-    /* Free field for use by the callback. */
-    const void *arg;
-};
-
 struct pb_extension_s {
-    /* Type describing the extension field. Usually you'll initialize
-     * this to a pointer to the automatically generated structure. */
-    const pb_extension_type_t *type;
+    /* Message descriptor for the extension field */
+    const pb_msgdesc_t *type;
 
     /* Destination for the decoded data. This must match the datatype
      * of the extension field. */
@@ -624,7 +598,7 @@ struct pb_extension_s {
 #endif
 
 /* This is used to inform about need to regenerate .pb.h/.pb.c files. */
-#define PB_PROTO_HEADER_VERSION 91
+#define PB_PROTO_HEADER_VERSION 92
 
 /* These macros are used to declare pb_field_t's in the constant array. */
 /* Size of a structure member, in bytes. */

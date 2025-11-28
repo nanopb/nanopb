@@ -899,9 +899,9 @@ static bool checkreturn decode_extension(pb_decode_ctx_t *ctx,
     while (extension != NULL && pos == ctx->bytes_left)
     {
         bool status;
-        if (extension->type->decode)
-            status = extension->type->decode(ctx, extension, tag, wire_type);
-        else
+        // if (extension->type->decode)
+        //     status = extension->type->decode(ctx, extension, tag, wire_type);
+        // else
             status = default_extension_decoder(ctx, extension, tag, wire_type);
 
         if (!status)

@@ -1186,7 +1186,7 @@ class ExtensionField(Field):
             msg +='   type of extension fields is currently supported. */\n'
             return msg
 
-        return ('extern const pb_extension_type_t %s; /* field type: %s */\n' %
+        return ('extern const pb_msgdesc_t %s; /* field type: %s */\n' %
             (Globals.naming_style.var_name(self.fullname), str(self).strip()))
 
     def extension_def(self, dependencies):
@@ -1199,12 +1199,8 @@ class ExtensionField(Field):
         result += str(self.msg)
         result += self.msg.fields_declaration(dependencies)
         result += 'pb_byte_t %s_default[] = {0x00};\n' % Globals.naming_style.var_name(self.msg.name)
+        result += '#define %s_msg %s\n' % (Globals.naming_style.type_name(self.msg.name), Globals.naming_style.type_name(self.fullname))
         result += self.msg.fields_definition(dependencies)
-        result += 'const pb_extension_type_t %s = {\n' % Globals.naming_style.var_name(self.fullname)
-        result += '    NULL,\n'
-        result += '    NULL,\n'
-        result += '    &%s_msg\n' % Globals.naming_style.type_name(self.msg.name)
-        result += '};\n'
         return result
 
 
@@ -1581,7 +1577,7 @@ class Message(ProtoElement):
 
         # Collect message flags recursively
         flags = self.get_flags(dependencies)
-        flagstr = ' | '.join(flags)
+        flagstr = ' | '.join(sorted(flags))
         if not flagstr: flagstr = '0'
         flagstr = '#define %s_FLAGS (%s)\n' % (Globals.naming_style.define_name(self.name), flagstr)
 
@@ -2173,7 +2169,7 @@ class ProtoFile:
 
         yield '\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 91\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 92\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
@@ -2370,7 +2366,7 @@ class ProtoFile:
         if Globals.protoc_insertion_points:
             yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 91\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 92\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
