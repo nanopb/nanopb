@@ -28,7 +28,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         uint32_t word0 = PB_PROGMEM_READU32(field_info[0]);
         uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
 
-        iter->tag = (pb_size_t)(word0 & 0x1FFFFFFF);
+        iter->tag = (pb_tag_t)(word0 & 0x1FFFFFFF);
         iter->type = (pb_type_t)(((word0 >> 21) & 0x700) | (word1 >> 24));
         iter->array_size = (pb_size_t)(word1 & 0xFFFFFF);
         iter->data_size = (pb_size_t)PB_PROGMEM_READU32(field_info[2]);
@@ -42,7 +42,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         uint32_t word0 = PB_PROGMEM_READU32(field_info[0]);
         uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
 
-        iter->tag = (pb_size_t)(word0 & 0xFFF);
+        iter->tag = (pb_tag_t)(word0 & 0xFFF);
         iter->type = (pb_type_t)(word1 >> 24);
         iter->data_size = (pb_size_t)(word1 & 0xFFF);
         iter->array_size = (pb_size_t)(word0 >> 24);

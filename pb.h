@@ -831,7 +831,7 @@ struct pb_extension_s {
 
 #define PB_FIELDINFO_S(tag, type, data_offset, data_size, size_offset, array_size) \
     (((uint32_t)(tag)) | ((uint32_t)(data_offset) << 12) | ((uint32_t)(array_size) << 24)), \
-    (((uint32_t)(data_size)) | ((uint32_t)((size_offset) << 12) | ((uint32_t)(type) << 24))),
+    (((uint32_t)(data_size)) | ((uint32_t)(size_offset) << 12) | ((uint32_t)(type) << 24)),
 
 #define PB_FIELDINFO_L(tag, type, data_offset, data_size, size_offset, array_size) \
     (((uint32_t)(tag)) | ((uint32_t)((type) >> 8) << 29)), \
