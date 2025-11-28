@@ -389,8 +389,8 @@ bool pb_decode_open_substream(pb_decode_ctx_t *ctx, size_t *old_length)
     if (ctx->bytes_left < size)
         PB_RETURN_ERROR(ctx, "parent stream too short");
 
-    *old_length = ctx->bytes_left - size;
-    ctx->bytes_left = size;
+    *old_length = (size_t)(ctx->bytes_left - size);
+    ctx->bytes_left = (size_t)size;
     return true;
 }
 
@@ -784,7 +784,7 @@ static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type
          * should set the decoder for the callback field. */
         if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL) {
             pb_callback_t* callback;
-            *(pb_size_t*)field->pSize = field->tag;
+            *(pb_tag_t*)field->pSize = field->tag;
             callback = (pb_callback_t*)field->pSize - 1;
 
             if (callback->funcs.decode)

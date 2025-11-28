@@ -92,7 +92,7 @@ int main(void)
         assert(msg.suffix == 321);
 
         if (msg.which_value != OneOfMessage_submsg1_tag) {
-            fprintf(stderr, "msg.which_value not set correctly: %d\n", msg.which_value);
+            fprintf(stderr, "msg.which_value not set correctly: %d\n", (int)msg.which_value);
             return 1;
         }
 

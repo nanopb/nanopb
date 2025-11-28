@@ -9,7 +9,7 @@ int main()
     MyMessage msg = MyMessage_init_zero;
     pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
 
-    msg.mybytes.size = 0xFFFFFFFF;
+    msg.mybytes.size = -1;
     
     if (pb_encode(&stream, MyMessage_fields, &msg))
     {
