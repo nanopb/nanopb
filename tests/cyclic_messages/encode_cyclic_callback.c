@@ -128,15 +128,21 @@ int main(int argc, char *argv[])
     uint8_t buffer[1024];
     pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
     Dictionary dict = Dictionary_init_zero;
+    dict.dictItem.funcs.encode = encode_dictionary;
     
+    char str[1024];
     if (argc <= 1)
     {
-        fprintf(stderr, "Usage: %s \"{'foobar': 1234, ...}\"\n", argv[0]);
-        return 1;
+        // Input from stdin
+        size_t len = fread(str, 1, sizeof(str) - 1, stdin);
+        str[len - 1] = '\0';
+        dict.dictItem.arg = str;
     }
-    
-    dict.dictItem.funcs.encode = encode_dictionary;
-    dict.dictItem.arg = argv[1];
+    else
+    {
+        // Input from command line
+        dict.dictItem.arg = argv[1];
+    }
 
     if (!pb_encode(&stream, Dictionary_fields, &dict))
     {
