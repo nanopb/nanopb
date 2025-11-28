@@ -18,6 +18,9 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 /* Get a field iterator for extension field. */
 bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension);
 
+/* Get pointer to the destination data for an extension field */
+void *pb_get_extension_data_ptr(pb_extension_t *extension);
+
 /* Same as pb_field_iter_begin(), but for const message pointer.
  * Note that the pointers in pb_field_iter_t will be non-const but shouldn't
  * be written to when using these functions. */

@@ -35,6 +35,15 @@ were given varying `stream` pointers when substreams were processed.
 
 **Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
 
+### Remove custom extension field callback support
+
+**Rationale:** Previously extension fields used extra `pb_extension_type_t`
+indirection level. This was rarely used, not well-tested and is overlapping
+in functionality with the new context-based callback mechanism that will be added.
+
+**Changes:** Only automatically generated extension types are supported.
+
+**Required actions:** **TODO:** Document how to migrate to new context callback.
 
 ### Remove Python 2 support
 

@@ -166,8 +166,18 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 
 bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension)
 {
-    const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type->arg;
+    const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type;
     bool status;
+
+    void *data = pb_get_extension_data_ptr(extension);
+    status = pb_field_iter_begin(iter, msg, data);
+    iter->pSize = &extension->found;
+    return status;
+}
+
+void *pb_get_extension_data_ptr(pb_extension_t *extension)
+{
+    const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type;
 
     pb_type_t type = get_type_quick(msg->field_info);
     if (PB_ATYPE(type) == PB_ATYPE_POINTER)
@@ -175,15 +185,12 @@ bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extens
         /* For pointer extensions, the pointer is stored directly
          * in the extension structure. This avoids having an extra
          * indirection. */
-        status = pb_field_iter_begin(iter, msg, &extension->dest);
+        return &extension->dest;
     }
     else
     {
-        status = pb_field_iter_begin(iter, msg, extension->dest);
+        return extension->dest;
     }
-
-    iter->pSize = &extension->found;
-    return status;
 }
 
 bool pb_field_iter_reset(pb_field_iter_t *iter)
