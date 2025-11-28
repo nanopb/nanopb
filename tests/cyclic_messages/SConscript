@@ -8,4 +8,15 @@ env.NanopbProto(["cyclic_callback", "cyclic_callback.options"])
 
 enc_callback = env.Program(["encode_cyclic_callback.c", "cyclic_callback.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
 
+testmsg = """{
+    'foobar': 1234,
+    'xyz': 'abc',
+    'dict': {'a': 1, 'b': 2},
+    'tree': [[[1, 2], 3], [4, 5]],
+    'deep': {'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':{'a':1}}}}}}}}}}}}}}}}}}}}}}
+}"""
 
+env.RunTest('encode_cyclic_callback.output', enc_callback, ARGS = [testmsg])
+env.Decode('encode_cyclic_callback.output.decoded', ['encode_cyclic_callback.output', 'cyclic.proto'], MESSAGE='Dictionary')
+env.Encode('expected.pb', ['expected.txt', 'cyclic.proto'], MESSAGE='Dictionary')
+env.Compare(['encode_cyclic_callback.output', 'expected.pb'])

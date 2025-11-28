@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "cyclic_callback.pb.h"
 
 static char *find_end_of_item(char *p)
@@ -25,7 +26,7 @@ static char *find_end_of_item(char *p)
         return p; /* End of parent dict */
     
     p++;
-    while (*p == ' ') p++;
+    while (isspace(*p)) p++;
     return p;
 }
 
@@ -67,6 +68,8 @@ static bool encode_dictionary(pb_ostream_t *stream, const pb_field_t *field, voi
     {
         KeyValuePair pair = KeyValuePair_init_zero;
         
+        while (isspace(*p)) p++;
+
         if (*p != '\'')
             PB_RETURN_ERROR(stream, "invalid key, missing quote");
         
@@ -122,7 +125,7 @@ static bool encode_dictionary(pb_ostream_t *stream, const pb_field_t *field, voi
 
 int main(int argc, char *argv[])
 {
-    uint8_t buffer[256];
+    uint8_t buffer[1024];
     pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
     Dictionary dict = Dictionary_init_zero;
     
