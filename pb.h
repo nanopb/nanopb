@@ -81,8 +81,8 @@
  * defines at the end of this file get enabled. This allows easier
  * porting from older nanopb versions.
  */
-#define PB_API_VERSION_v1_0 10
-#define PB_API_VERSION_v0_4  4
+#define PB_API_VERSION_v1_0 100
+#define PB_API_VERSION_v0_4  40
 #define PB_API_VERSION_LATEST PB_API_VERSION_v1_0
 #define PB_API_VERSION_DEFAULT PB_API_VERSION_v0_4
 
