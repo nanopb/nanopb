@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include "test_helpers.h"
 #include "cyclic_callback.pb.h"
 
 static char *find_end_of_item(char *p)
@@ -150,6 +151,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     
+    SET_BINARY_MODE(stdout);
     fwrite(buffer, 1, stream.bytes_written, stdout);
     return 0;
 }
