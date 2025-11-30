@@ -1,0 +1,18 @@
+# Test deep static message structure
+
+Import("env")
+
+env.NanopbProto(["deep"])
+
+enc = env.Program(["encode_deep.c", "deep.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+dec = env.Program(["decode_deep.c", "deep.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+
+# Same output is expected, no matter if stream is written
+# out directly or through a memory buffer.
+env.RunTest('encode_deep.output0', [enc], ARGS = ['0'])
+env.RunTest('encode_deep.output1', [enc], ARGS = ['1'])
+env.Compare(['encode_deep.output0', 'encode_deep.output1'])
+
+# Similarly, decoding should work the same both ways
+env.RunTest("decode_deep.output0", [dec, 'encode_deep.output0'], ARGS = ['0'])
+env.RunTest("decode_deep.output1", [dec, 'encode_deep.output1'], ARGS = ['1'])

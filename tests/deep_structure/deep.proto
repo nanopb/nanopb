@@ -1,0 +1,34 @@
+// Message structure with deep nesting
+
+syntax = "proto2";
+import "nanopb.proto";
+
+message FinalSubMessage {
+    required string strval = 1 [(nanopb).max_length = 10];
+    required int32 intval = 2;
+}
+
+message Deep001 { required FinalSubMessage m = 1; }
+message Deep002 { required Deep001 m = 2; }
+message Deep003 { required Deep002 m = 3; }
+message Deep004 { required Deep003 m = 4; }
+message Deep005 { required Deep004 m = 5; }
+message Deep006 { required Deep005 m = 6; }
+message Deep007 { required Deep006 m = 7; }
+message Deep008 { required Deep007 m = 8; }
+message Deep009 { required Deep008 m = 9; }
+message Deep010 { required Deep009 m = 10; }
+message Deep011 { required Deep010 m = 11; }
+message Deep012 { required Deep011 m = 12; }
+message Deep013 { required Deep012 m = 13; }
+message Deep014 { required Deep013 m = 14; }
+message Deep015 { required Deep014 m = 15; }
+message Deep016 { required Deep015 m = 16; }
+message Deep017 { required Deep016 m = 17; }
+message Deep018 { required Deep017 m = 18; }
+
+message DeepMessage {
+    required int32 first = 1;
+    required Deep018 m = 19;
+    required int32 last = 99;
+}
