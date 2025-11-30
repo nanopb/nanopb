@@ -31,7 +31,7 @@ int main(int argc, const char **argv)
         stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
     }
 
-    DeepMessage msg = DeepMessage_init_zero;
+    DeepMessage msg = {0};
     strcpy(msg.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.strval, "abcd");
     msg.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.m.intval = 987654321;
     msg.first = 888;
