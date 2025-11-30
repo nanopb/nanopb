@@ -24,7 +24,7 @@ bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 
 bool check_message(pb_istream_t *stream)
 {
-    DeepMessage msg = DeepMessage_init_zero;
+    DeepMessage msg = {0};
 
     if (!pb_decode(stream, DeepMessage_fields, &msg))
         return false;
