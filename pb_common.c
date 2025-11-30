@@ -386,15 +386,19 @@ bool pb_walk(pb_walk_state_t *state)
     char *storage = aligned_storage.buf;
     pb_walk_stacksize_t pos = PB_WALK_STACK_SIZE;
 
-    // Allocate first frame
-    state->stacksize = ALIGN_BYTES(state->next_stacksize);
-    if (state->stacksize > pos) PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
-    pos -= state->stacksize;
-    state->stack = &storage[pos];
-    memset(&storage[pos], 0, state->stacksize);
+    // Check if this is recursive pb_walk() call
+    if (state->retval != PB_WALK_IN)
+    {
+        // Allocate first frame
+        state->stacksize = ALIGN_BYTES(state->next_stacksize);
+        if (state->stacksize > pos) PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
+        pos -= state->stacksize;
+        state->stack = &storage[pos];
+        memset(&storage[pos], 0, state->stacksize);
 
-    // Invoke the first callback
-    state->retval = state->callback(state);
+        // Invoke the first callback
+        state->retval = state->callback(state);
+    }
 
     while (state->retval > 0)
     {
@@ -402,44 +406,48 @@ bool pb_walk(pb_walk_state_t *state)
         {
             /* Enter into a submessage */
 
-            if (state->depth >= state->max_depth)
-            {
-                PB_RETURN_ERROR(state, "max_depth exceeded");
-            }
-            state->depth++;
-
             pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->next_stacksize);
             pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
 
             if (pos < cb_stacksize + our_stacksize)
             {
-                /* Not enough space for new stackframe */
+                /* Not enough space for new stackframe.
+                 * Use recursion to allocate more stack.
+                 */
 #ifndef PB_NO_RECURSION
                 if (!pb_walk(state)) return false;
-                continue;
+                state->stack = &storage[pos];
 #else
                 PB_RETURN_ERROR(state, "recursion disabled");
 #endif
             }
+            else
+            {
+                if (state->depth >= state->max_depth)
+                {
+                    PB_RETURN_ERROR(state, "max_depth exceeded");
+                }
+                state->depth++;
 
-            // Store iterator state so that we can restore it after return
-            pos -= our_stacksize;
-            pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)&storage[pos];
-            frame->descriptor = state->iter.descriptor;
-            frame->message = state->iter.message;
-            frame->index = state->iter.index;
-            frame->required_field_index = state->iter.required_field_index;
-            frame->submessage_index = state->iter.submessage_index;
-            frame->prev_stacksize = state->stacksize;
+                // Store iterator state so that we can restore it after return
+                pos -= our_stacksize;
+                pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)&storage[pos];
+                frame->descriptor = state->iter.descriptor;
+                frame->message = state->iter.message;
+                frame->index = state->iter.index;
+                frame->required_field_index = state->iter.required_field_index;
+                frame->submessage_index = state->iter.submessage_index;
+                frame->prev_stacksize = state->stacksize;
 
-            // Setup stack frame for callback
-            state->stacksize = cb_stacksize;
-            pos -= cb_stacksize;
-            state->stack = &storage[pos];
-            memset(&storage[pos], 0, cb_stacksize);
+                // Setup stack frame for callback
+                state->stacksize = cb_stacksize;
+                pos -= cb_stacksize;
+                state->stack = &storage[pos];
+                memset(&storage[pos], 0, cb_stacksize);
 
-            // Reset iterator to submessage
-            (void)pb_field_iter_begin(&state->iter, state->iter.submsg_desc, state->iter.pData);
+                // Reset iterator to submessage
+                (void)pb_field_iter_begin(&state->iter, state->iter.submsg_desc, state->iter.pData);
+            }
         }
         else if (state->retval == PB_WALK_OUT)
         {
@@ -468,6 +476,12 @@ bool pb_walk(pb_walk_state_t *state)
             state->stacksize = frame->prev_stacksize;
             pos += ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
             state->stack = &storage[pos];
+
+            if (pos >= PB_WALK_STACK_SIZE)
+            {
+                // Exit from recursion
+                return true;
+            }
         }
         else
         {
