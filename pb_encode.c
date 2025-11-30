@@ -503,10 +503,6 @@ static bool field_present(const pb_field_iter_t *field)
  *********************/
 
 typedef struct {
-#ifndef PB_NO_EXTENSIONS
-    pb_extension_t *extension;
-#endif
-
     size_t msg_start_pos;
     pb_size_t array_idx;
     uint16_t flags;
@@ -533,29 +529,33 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
         if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
             // Extensions are stored as a linked list.
-            // frame->extension is used to store the point in the list we are going at.
+            // frame->array_idx is used to store the point in the list we are going at.
             pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
 
-            if (!frame->extension)
+            pb_size_t idx = 0;
+            if (iter->data_size != sizeof(pb_extension_t*))
             {
-                // First extension field
-                if (iter->data_size == sizeof(pb_extension_t*))
-                    frame->extension = *(pb_extension_t* const *)iter->pData;
-            }
-            else
-            {
-                // Next extension field
-                frame->extension = frame->extension->next;
+                PB_SET_ERROR(ctx, "invalid extension");
+                return PB_WALK_EXIT_ERR;
             }
 
-            if (frame->extension)
+            // First extension field
+            pb_extension_t* extension = *(pb_extension_t* const *)iter->pData;
+            while (extension != NULL && idx < frame->array_idx)
+            {
+                extension = extension->next;
+                idx++;
+            }
+
+            if (extension)
             {
                 // Descend into extension
-                iter->submsg_desc = frame->extension->type;
-                iter->pData = pb_get_extension_data_ptr(frame->extension);
+                iter->submsg_desc = extension->type;
+                iter->pData = pb_get_extension_data_ptr(extension);
                 return PB_WALK_IN;
             }
 
+            frame->array_idx = 0;
             continue;
         }
 
@@ -646,7 +646,8 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         }
         else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
-            // Extensions have their own loop mechanism
+            // Extensions have their own loop mechanism in encode_all_fields()
+            frame->array_idx++;
         }
         else
         {
