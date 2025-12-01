@@ -404,6 +404,18 @@ int main()
         TEST(pb_encode(&s, StringMessage_fields, &msg));
         TEST(s.bytes_written == StringMessage_size);
     }
+
+    {
+        uint8_t buffer[StringMessage_size];
+        pb_ostream_t s;
+        StringMessage msg = {"0123456789"};
+
+        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+
+        COMMENT("Testing wrong message type detection")
+        TEST(!pb_encode(&s, IntegerContainer_fields, &msg));
+        TEST(strcmp(s.errmsg, "struct_size mismatch") == 0);
+    }
     
     {
         uint8_t buffer[128];

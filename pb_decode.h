@@ -35,6 +35,24 @@ typedef const int* pb_decode_ctx_read_callback_t;
 typedef bool (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 #endif
 
+/* Flags for decode context state */
+typedef uint16_t pb_decode_ctx_flags_t;
+
+// PB_DECODE_CTX_FLAG_NOINIT: Do not initialize fields before decoding.
+// This is slightly faster if you do not need the default values and instead
+// initialize the structure to 0 using e.g. memset(). This can also be used
+// for merging two messages, i.e. combine already existing data with new
+// values.
+#define PB_DECODE_CTX_FLAG_NOINIT            (pb_decode_ctx_flags_t)(1 << 0)
+
+// PB_DECODE_CTX_FLAG_DELIMITED: Read varint length prefix before message.
+// Corresponds to parseDelimitedFrom() in Google's protobuf API.
+#define PB_DECODE_CTX_FLAG_DELIMITED         (pb_decode_ctx_flags_t)(1 << 1)
+
+// PB_DECODE_CTX_FLAG_NULLTERMINATED: Terminate decoding on zero tag number.
+// NOTE: This behavior is not supported in most other protobuf implementations.
+#define PB_DECODE_CTX_FLAG_NULLTERMINATED    (pb_decode_ctx_flags_t)(1 << 2)
+
 /* Structure containing the state associated with message decoding.
  * For the common case of message coming from a memory buffer, this
  * is initialized with pb_init_decode_ctx_for_buffer().
@@ -60,18 +78,29 @@ struct pb_decode_ctx_s
     /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
+
+    pb_decode_ctx_flags_t flags;
 };
 
 #ifndef PB_NO_ERRMSG
-#define PB_ISTREAM_EMPTY {0,0,0,0}
+#define PB_ISTREAM_EMPTY {0,0,0,0,0}
 #else
-#define PB_ISTREAM_EMPTY {0,0,0}
+#define PB_ISTREAM_EMPTY {0,0,0,0}
 #endif
 
 /***************************
  * Main decoding functions *
  ***************************/
  
+/* Prefer using pb_decode() macro instead of these functions.
+ * The macro passes struct_size automatically, giving some amount
+ * of type safety of pb_msgdesc_t pointer vs. wrong struct type.
+ */
+bool pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                 void *dest_struct, size_t struct_size);
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                  void *dest_struct, size_t struct_size);
+
 /* Decode a single protocol buffers message from input stream into a C structure.
  * Returns true on success, false on any failure.
  * The actual struct pointed to by dest must match the description in fields.
@@ -88,41 +117,15 @@ struct pb_decode_ctx_s
  *    pb_init_decode_ctx_for_buffer(&ctx, buffer, count);
  *    pb_decode(&ctx, MyMessage_fields, &msg);
  */
-bool pb_decode(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct);
-
-/* Extended version of pb_decode, with several options to control
- * the decoding process:
- *
- * PB_DECODE_NOINIT:         Do not initialize the fields to default values.
- *                           This is slightly faster if you do not need the default
- *                           values and instead initialize the structure to 0 using
- *                           e.g. memset(). This can also be used for merging two
- *                           messages, i.e. combine already existing data with new
- *                           values.
- *
- * PB_DECODE_DELIMITED:      Input message starts with the message size as varint.
- *                           Corresponds to parseDelimitedFrom() in Google's
- *                           protobuf API.
- *
- * PB_DECODE_NULLTERMINATED: Stop reading when field tag is read as 0. This allows
- *                           reading null terminated messages.
- *                           NOTE: Until nanopb-0.4.0, pb_decode() also allows
- *                           null-termination. This behaviour is not supported in
- *                           most other protobuf implementations, so PB_DECODE_DELIMITED
- *                           is a better option for compatibility.
- *
- * Multiple flags can be combined with bitwise or (| operator)
- */
-#define PB_DECODE_NOINIT          0x01U
-#define PB_DECODE_DELIMITED       0x02U
-#define PB_DECODE_NULLTERMINATED  0x04U
-bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags);
+#define pb_decode(ctx, fields, dest_struct) pb_decode_s(ctx, fields, dest_struct, sizeof(*dest_struct))
 
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If
- * pb_decode() returns with an error, the message is already released.
+ * pb_decode() returns with an error, the message is automatically released.
+ *
+ * If ctx is not NULL, releasing uses the allocator defined in the context.
  */
-void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
+#define pb_release(ctx, fields, dest_struct) pb_release_s(ctx, fields, dest_struct, sizeof(*dest_struct))
 
 /**************************************
  * Functions for manipulating streams *
@@ -232,6 +235,54 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
     *stream = *substream;
     return pb_decode_close_substream(stream, old_length);
 }
+
+/* Extended version of pb_decode, with several options to control
+ * the decoding process:
+ *
+ * PB_DECODE_NOINIT:         Do not initialize the fields to default values.
+ *                           This is slightly faster if you do not need the default
+ *                           values and instead initialize the structure to 0 using
+ *                           e.g. memset(). This can also be used for merging two
+ *                           messages, i.e. combine already existing data with new
+ *                           values.
+ *
+ * PB_DECODE_DELIMITED:      Input message starts with the message size as varint.
+ *                           Corresponds to parseDelimitedFrom() in Google's
+ *                           protobuf API.
+ *
+ * PB_DECODE_NULLTERMINATED: Stop reading when field tag is read as 0. This allows
+ *                           reading null terminated messages.
+ *                           NOTE: Until nanopb-0.4.0, pb_decode() also allows
+ *                           null-termination. This behaviour is not supported in
+ *                           most other protobuf implementations, so PB_DECODE_DELIMITED
+ *                           is a better option for compatibility.
+ *
+ * Multiple flags can be combined with bitwise or (| operator)
+ */
+static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                                void *dest_struct, pb_decode_ctx_flags_t flags)
+{
+    pb_decode_ctx_flags_t old_flags = ctx->flags;
+    ctx->flags |= flags;
+    bool status = pb_decode_s(ctx, fields, dest_struct, 0);
+    ctx->flags = old_flags;
+    return status;
+}
+#define PB_DECODE_NOINIT          PB_DECODE_CTX_FLAG_NOINIT
+#define PB_DECODE_DELIMITED       PB_DECODE_CTX_FLAG_DELIMITED
+#define PB_DECODE_NULLTERMINATED  PB_DECODE_CTX_FLAG_NULLTERMINATED
+
+#undef pb_release
+/* Compatibility macro for old prototype of pb_release() that didn't take context argument.
+ * This can be called as either
+ *        pb_release(fields, dest_struct);       (old API, uses default allocator)
+ * or
+ *        pb_release(ctx, fields, dest_struct);  (new API, ctx can be NULL)
+ */
+#define pb_release(...) PB_EXPAND(pb_release_varmacro(__VA_ARGS__, pb_release3, pb_release2)(__VA_ARGS__))
+#define pb_release_varmacro(PB_ARG1, PB_ARG2, PB_ARG3, PB_MACRONAME, ...) PB_MACRONAME
+#define pb_release2(fields, dest_struct) pb_release_s(NULL, fields, dest_struct, sizeof(*dest_struct))
+#define pb_release3(ctx, fields, dest_struct) pb_release_s(ctx, fields, dest_struct, sizeof(*dest_struct))
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)

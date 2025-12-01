@@ -39,7 +39,17 @@ typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_by
 
 /* Flags for encode context state */
 typedef uint16_t pb_encode_ctx_flags_t;
-#define PB_ENCODE_CTX_FLAG_SIZING (pb_encode_ctx_flags_t)(1 << 0)
+
+// PB_ENCODE_CTX_FLAG_SIZING: Don't write output data, just compute size
+#define PB_ENCODE_CTX_FLAG_SIZING            (pb_encode_ctx_flags_t)(1 << 0)
+
+// PB_ENCODE_CTX_FLAG_DELIMITED: Write data length as varint before the main message.
+// Corresponds to writeDelimitedTo() in Google's protobuf API.
+#define PB_ENCODE_CTX_FLAG_DELIMITED         (pb_encode_ctx_flags_t)(1 << 1)
+
+// PB_ENCODE_CTX_FLAG_NULLTERMINATED: Append a null byte after the message for termination.
+// NOTE: This behavior is not supported in most other protobuf implementations.
+#define PB_ENCODE_CTX_FLAG_NULLTERMINATED    (pb_encode_ctx_flags_t)(1 << 2)
 
 /* Structure containing the state associated with message encoding.
  * For the common case of writing a message to a memory buffer, this
@@ -73,6 +83,17 @@ struct pb_encode_ctx_s
  * Main encoding functions *
  ***************************/
 
+/* Prefer using pb_encode() macro instead of these functions.
+ * The macro passes struct_size automatically, giving some amount
+ * of type safety of pb_msgdesc_t pointer vs. wrong struct type.
+ * If you need to handle void pointers without knowing the size,
+ * you can call pb_encode_s() directly with struct_size = 0.
+ */
+bool pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                 const void *src_struct, size_t struct_size);
+bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
+                           const void *src_struct, size_t struct_size);
+
 /* Encode a single protocol buffers message from C structure into a stream.
  * Returns true on success, false on any failure.
  * The actual struct pointed to by src_struct must match the description in fields.
@@ -87,27 +108,11 @@ struct pb_encode_ctx_s
  *    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
  *    pb_encode(&stream, MyMessage_fields, &msg);
  */
-bool pb_encode(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct);
-
-/* Extended version of pb_encode, with several options to control the
- * encoding process:
- *
- * PB_ENCODE_DELIMITED:      Prepend the length of message as a varint.
- *                           Corresponds to writeDelimitedTo() in Google's
- *                           protobuf API.
- *
- * PB_ENCODE_NULLTERMINATED: Append a null byte to the message for termination.
- *                           NOTE: This behaviour is not supported in most other
- *                           protobuf implementations, so PB_ENCODE_DELIMITED
- *                           is a better option for compatibility.
- */
-#define PB_ENCODE_DELIMITED       0x02U
-#define PB_ENCODE_NULLTERMINATED  0x04U
-bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags);
+#define pb_encode(ctx, fields, src_struct) pb_encode_s(ctx, fields, src_struct, sizeof(*src_struct))
 
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
-bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct);
+#define pb_get_encoded_size(size, fields, src_struct) pb_get_encoded_size_s(size, fields, src_struct, sizeof(*src_struct))
 
 /**************************************
  * Functions for manipulating streams *
@@ -206,6 +211,30 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
     pb_ostream_t ctx;
     (void)pb_init_encode_ctx_for_buffer(&ctx, buf, bufsize);
     return ctx;
+}
+
+/* Extended version of pb_encode, with several options to control the
+ * encoding process:
+ *
+ * PB_ENCODE_DELIMITED:      Prepend the length of message as a varint.
+ *                           Corresponds to writeDelimitedTo() in Google's
+ *                           protobuf API.
+ *
+ * PB_ENCODE_NULLTERMINATED: Append a null byte to the message for termination.
+ *                           NOTE: This behaviour is not supported in most other
+ *                           protobuf implementations, so PB_ENCODE_DELIMITED
+ *                           is a better option for compatibility.
+ */
+#define PB_ENCODE_DELIMITED       PB_ENCODE_CTX_FLAG_DELIMITED
+#define PB_ENCODE_NULLTERMINATED  PB_ENCODE_CTX_FLAG_NULLTERMINATED
+static inline bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+    const void *src_struct, pb_encode_ctx_flags_t flags)
+{
+    pb_encode_ctx_flags_t old_flags = ctx->flags;
+    ctx->flags |= flags;
+    bool status = pb_encode_s(ctx, fields, src_struct, 0);
+    ctx->flags = old_flags;
+    return status;
 }
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
