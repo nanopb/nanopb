@@ -45,6 +45,23 @@ in functionality with the new context-based callback mechanism that will be adde
 
 **Required actions:** **TODO:** Document how to migrate to new context callback.
 
+### Structure size check in functions
+
+**Rationale:** A common mistake has been a mismatch between the `fields` and `struct`
+parameters given to encoding and decoding functions. This can result in access out of
+bounds of the structure, or just garbage data. Same problem can occur if compilation
+options differ between the `.pb.c` and user code files.
+
+**Changes:** The functions that take a `pb_msgdesc_t *fields` arguments have been wrapped
+into macros, which pass `sizeof(struct)` as the last argument. The function itself then
+compares the argument to the size defined in the `fields`, and returns error if they differ.
+
+**Required actions:** Most code works without changes. Problems occur if the type of the
+structure is not known at the callsite and `void*` is used instead. To resolve this, call
+the underlying function (e.g. `pb_decode_s`) with the size argument set to 0.
+
+**Error indications:** *"invalid application of ‘sizeof’ to a void type"* or *"you cannot dereference an operand of type 'void'"*
+
 ### Remove Python 2 support
 
 **Rationale:** Python 2 interpreter was deprecated in 2020. For backward
