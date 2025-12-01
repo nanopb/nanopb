@@ -409,6 +409,15 @@ int main()
 
     {
         pb_istream_t s;
+        IntegerArray dest;
+
+        COMMENT("Testing wrong message type detection")
+        TEST((s = S("\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"), !pb_decode(&s, CallbackArray_fields, &dest)));
+        TEST(strcmp(s.errmsg, "struct_size mismatch") == 0);
+    }
+
+    {
+        pb_istream_t s;
         IntegerContainer dest = {{0}};
 
         COMMENT("Testing pb_decode_delimited")

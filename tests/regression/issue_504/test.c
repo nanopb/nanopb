@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
         msg.bar = 0xFFFFFFFF;
 
-        if (!pb_encode(&ostream, MyMessage_fields, &msg)) {
+        if (!pb_encode(&ostream, MyMessage_fields, &msg.msg)) {
             fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&ostream));
             return 1;
         }

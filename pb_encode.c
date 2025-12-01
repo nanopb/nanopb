@@ -460,44 +460,6 @@ static bool field_present(const pb_field_iter_t *field)
     return true;
 }
 
-/* Default handler for extension fields. Expects to have a pb_msgdesc_t
- * pointer in the extension->type->arg field, pointing to a message with
- * only one field in it.  */
-// static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension)
-// {
-//     pb_field_iter_t iter;
-
-//     if (!pb_field_iter_begin_extension_const(&iter, extension))
-//         PB_RETURN_ERROR(ctx, "invalid extension");
-
-//     return false; // FIXME
-//     //return encode_field(ctx, &iter);
-// }
-
-
-/* Walk through all the registered extensions and give them a chance
- * to encode themselves. */
-// static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-// {
-//     const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
-
-//     while (extension)
-//     {
-//         bool status;
-//         if (extension->type->encode)
-//             status = extension->type->encode(ctx, extension);
-//         else
-//             status = default_extension_encoder(ctx, extension);
-
-//         if (!status)
-//             return false;
-        
-//         extension = extension->next;
-//     }
-    
-//     return true;
-// }
-
 /*********************
  * Encode all fields *
  *********************/
@@ -505,12 +467,13 @@ static bool field_present(const pb_field_iter_t *field)
 typedef struct {
     size_t msg_start_pos;
     pb_size_t array_idx;
-    uint16_t flags;
+    uint_least16_t flags;
 } pb_encode_walk_stackframe_t;
 
-#define PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG 1
-#define PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG 1
-#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY 2
+#define PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG      (uint_least16_t)1
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1         (uint_least16_t)1
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY  (uint_least16_t)2
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2      (uint_least16_t)4
 
 /* Loop through all fields in the message and encode them.
  * If a submessage is encoutered, return to pb_walk().
@@ -618,13 +581,13 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
         {
             // We are inside another submessage which is being sized
-            frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG |
+            frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1 |
                             PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY;
         }
         else
         {
             // Start sizing the submessage
-            frame->flags = PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG;
+            frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1;
             ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
         }
     }
@@ -663,7 +626,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
     pb_walk_retval_t retval = encode_all_fields(ctx, state);
 
     if (retval == PB_WALK_OUT &&
-        (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_IS_SUBMSG) != 0)
+        (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1) != 0)
     {
         // End of sizing pass.
         size_t submsgsize = ctx->bytes_written - frame->msg_start_pos;
@@ -682,63 +645,77 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             // the actual message data.
             ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags & ~PB_ENCODE_CTX_FLAG_SIZING);
             ctx->bytes_written = frame->msg_start_pos;
-            frame->flags = 0;
+            frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2;
 
             if (!pb_encode_varint(ctx, (pb_uint64_t)submsgsize))
                 return PB_WALK_EXIT_ERR;
 
+            // Store expected end position of message
+            frame->msg_start_pos = ctx->bytes_written + submsgsize;
+
+            // Do the encoding and write output data
             (void)pb_field_iter_reset(iter);
             retval = encode_all_fields(ctx, state);
+        }
+    }
+
+    if (retval == PB_WALK_OUT &&
+        (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2) != 0)
+    {
+        // End of writeout pass, make sure size matched
+        frame->flags = 0;
+        if (ctx->bytes_written != frame->msg_start_pos)
+        {
+            PB_SET_ERROR(ctx, "submsg size changed");
+            return PB_WALK_EXIT_ERR;
         }
     }
     
     return retval;
 }
 
-bool checkreturn pb_encode(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
+bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                             const void *src_struct, size_t struct_size)
 {
-    pb_walk_state_t state;
+    // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
+    // or by it having different compilation options.
+    // NOTE: On GCC, sizeof(*(void*)) == 1
+    if (fields->struct_size != struct_size && struct_size > 1)
+        PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
-    if (!pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb))
-        return true; /* Empty message type */
+    pb_walk_state_t state;
+    (void)pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb);
 
     state.ctx = ctx;
     state.next_stacksize = sizeof(pb_encode_walk_stackframe_t);
+
+    if (ctx->flags & PB_ENCODE_CTX_FLAG_DELIMITED)
+    {
+        // Act as if the top level message is a submessage
+        state.flags |= PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
+    }
 
     if (!pb_walk(&state))
     {
         PB_RETURN_ERROR(ctx, state.errmsg);
     }
 
+    if (ctx->flags & PB_ENCODE_CTX_FLAG_NULLTERMINATED)
+    {
+        const pb_byte_t zero = 0;
+        if (!pb_write(ctx, &zero, 1))
+            return false;
+    }
+
     return true;
 }
 
-bool checkreturn pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct, unsigned int flags)
-{
-  if ((flags & PB_ENCODE_DELIMITED) != 0)
-  {
-    return pb_encode_submessage(ctx, fields, src_struct);
-  }
-  else if ((flags & PB_ENCODE_NULLTERMINATED) != 0)
-  {
-    const pb_byte_t zero = 0;
-
-    if (!pb_encode(ctx, fields, src_struct))
-        return false;
-
-    return pb_write(ctx, &zero, 1);
-  }
-  else
-  {
-    return pb_encode(ctx, fields, src_struct);
-  }
-}
-
-bool pb_get_encoded_size(size_t *size, const pb_msgdesc_t *fields, const void *src_struct)
+bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
+                const void *src_struct, size_t struct_size)
 {
     pb_ostream_t stream = PB_OSTREAM_SIZING;
     
-    if (!pb_encode(&stream, fields, src_struct))
+    if (!pb_encode_s(&stream, fields, src_struct, struct_size))
         return false;
     
     *size = stream.bytes_written;
@@ -903,44 +880,10 @@ bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer,
 
 bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
 {
-    /* First calculate the message size using a non-writing context variant. */
-    pb_encode_ctx_write_callback_t old_callback = ctx->callback;
-    size_t old_written = ctx->bytes_written;
-
-    ctx->bytes_written = 0;
-    ctx->callback = NULL;
-    
-    bool status = pb_encode(ctx, fields, src_struct);
-    size_t size = ctx->bytes_written;
-    
-    ctx->bytes_written = old_written;
-    ctx->callback = old_callback;
-
-    if (!status)
-        return false;
-
-    if (!pb_encode_varint(ctx, (pb_uint64_t)size))
-        return false;
-    
-    if (ctx->callback == NULL)
-        return pb_write(ctx, NULL, size); /* Just sizing */
-    
-    if (ctx->bytes_written + size > ctx->max_size)
-        PB_RETURN_ERROR(ctx, "stream full");
-        
-    /* Limit the stream length to verify that a callback doesn't
-       write more than what it did the first time. */
-    size_t old_max = ctx->max_size;
-    old_written = ctx->bytes_written;
-    ctx->max_size = ctx->bytes_written + size;
-    
-    status = pb_encode(ctx, fields, src_struct);
-    
-    ctx->max_size = old_max;
-    
-    if (ctx->bytes_written != old_written + size)
-        PB_RETURN_ERROR(ctx, "submsg size changed");
-
+    pb_encode_ctx_flags_t old_flags = ctx->flags;
+    ctx->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
+    bool status = pb_encode_s(ctx, fields, src_struct, 0);
+    ctx->flags = old_flags;
     return status;
 }
 
@@ -1099,25 +1042,6 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
 
     return pb_encode_string(ctx, (const pb_byte_t*)str, size);
 }
-
-// static bool checkreturn pb_enc_submessage(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-// {
-//     if (field->submsg_desc == NULL)
-//         PB_RETURN_ERROR(ctx, "invalid field descriptor");
-
-//     if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
-//     {
-//         // Message callback is stored right before pSize.
-//         pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
-//         if (callback->funcs.encode)
-//         {
-//             if (!callback->funcs.encode(ctx, field, &callback->arg))
-//                 return false;
-//         }
-//     }
-    
-//     return pb_encode_submessage(ctx, field->submsg_desc, field->pData);
-// }
 
 static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {

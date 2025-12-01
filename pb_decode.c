@@ -46,7 +46,7 @@ static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t data_size, size_t array_size);
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field);
 static bool checkreturn pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
-static void pb_release_single_field(pb_field_iter_t *field);
+static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 #endif
 
 #ifdef PB_WITHOUT_64BIT
@@ -159,6 +159,7 @@ bool pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, s
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
+    ctx->flags = 0;
     return true;
 }
 
@@ -655,7 +656,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
             {
                 /* Duplicate field, have to release the old allocation first. */
                 /* FIXME: Does this work correctly for oneofs? */
-                pb_release_single_field(field);
+                pb_release_single_field(ctx, field);
             }
         
             if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
@@ -1046,7 +1047,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
  * Decode all fields *
  *********************/
 
-static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
+static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
 {
     /* If the message contains extension fields, the extension handlers
      * are called when tag number is >= extension_range_start. This precheck
@@ -1077,7 +1078,7 @@ static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t
 
     if (pb_field_iter_begin(&iter, fields, dest_struct))
     {
-        if ((flags & PB_DECODE_NOINIT) == 0)
+        if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
         {
             if (!pb_message_set_to_defaults(&iter))
                 PB_RETURN_ERROR(ctx, "failed to set defaults");
@@ -1088,7 +1089,7 @@ static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t
     {
         if (tag == 0)
         {
-          if (flags & PB_DECODE_NULLTERMINATED)
+          if (ctx->flags & PB_DECODE_CTX_FLAG_NULLTERMINATED)
           {
             eof = true;
             break;
@@ -1217,13 +1218,20 @@ static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t
     return true;
 }
 
-bool checkreturn pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
+bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                             void *dest_struct, size_t struct_size)
 {
+    // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
+    // or by it having different compilation options.
+    // NOTE: On GCC, sizeof(*(void*)) == 1
+    if (fields->struct_size != struct_size && struct_size > 1)
+        PB_RETURN_ERROR(ctx, "struct_size mismatch");
+
     bool status;
 
-    if ((flags & PB_DECODE_DELIMITED) == 0)
+    if ((ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED) == 0)
     {
-      status = pb_decode_inner(ctx, fields, dest_struct, flags);
+      status = pb_decode_inner(ctx, fields, dest_struct);
     }
     else
     {
@@ -1231,7 +1239,7 @@ bool checkreturn pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, 
       if (!pb_decode_open_substream(ctx, &old_length))
         return false;
 
-      status = pb_decode_inner(ctx, fields, dest_struct, flags);
+      status = pb_decode_inner(ctx, fields, dest_struct);
 
       if (!pb_decode_close_substream(ctx, old_length))
         status = false;
@@ -1239,15 +1247,10 @@ bool checkreturn pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, 
     
 #ifdef PB_ENABLE_MALLOC
     if (!status)
-        pb_release(fields, dest_struct);
+        pb_release_s(ctx, fields, dest_struct, struct_size);
 #endif
     
     return status;
-}
-
-bool checkreturn pb_decode(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
-{
-    return pb_decode_ex(ctx, fields, dest_struct, 0);
 }
 
 #ifdef PB_ENABLE_MALLOC
@@ -1270,7 +1273,7 @@ static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
     if (!pb_field_iter_find(&old_field, old_tag))
         PB_RETURN_ERROR(ctx, "invalid union tag");
 
-    pb_release_single_field(&old_field);
+    pb_release_single_field(ctx, &old_field);
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
@@ -1283,7 +1286,7 @@ static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
     return true;
 }
 
-static void pb_release_single_field(pb_field_iter_t *field)
+static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 {
     pb_type_t type;
     type = field->type;
@@ -1306,7 +1309,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
             pb_field_iter_t ext_iter;
             if (pb_field_iter_begin_extension(&ext_iter, ext))
             {
-                pb_release_single_field(&ext_iter);
+                pb_release_single_field(ctx, &ext_iter);
             }
             ext = ext->next;
         }
@@ -1340,7 +1343,7 @@ static void pb_release_single_field(pb_field_iter_t *field)
         {
             for (; count > 0; count--)
             {
-                pb_release(field->submsg_desc, field->pData);
+                pb_release_s(ctx, field->submsg_desc, field->pData, field->data_size);
                 field->pData = (char*)field->pData + field->data_size;
             }
         }
@@ -1374,27 +1377,43 @@ static void pb_release_single_field(pb_field_iter_t *field)
     }
 }
 
-void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
 {
     pb_field_iter_t iter;
+
+    if (fields->struct_size != struct_size && struct_size > 1)
+    {
+        if (ctx) PB_SET_ERROR(ctx, "struct_size mismatch");
+        return false;
+    }
     
     if (!dest_struct)
-        return; /* Ignore NULL pointers, similar to free() */
+        return true; /* Ignore NULL pointers, similar to free() */
 
     if (!pb_field_iter_begin(&iter, fields, dest_struct))
-        return; /* Empty message type */
+        return true; /* Empty message type */
     
     do
     {
-        pb_release_single_field(&iter);
+        pb_release_single_field(ctx, &iter);
     } while (pb_field_iter_next(&iter));
+
+    return true;
 }
 #else
-void pb_release(const pb_msgdesc_t *fields, void *dest_struct)
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
 {
     /* Nothing to release without PB_ENABLE_MALLOC. */
-    PB_UNUSED(fields);
+    PB_UNUSED(ctx);
     PB_UNUSED(dest_struct);
+
+    if (fields->struct_size != struct_size && struct_size > 1)
+    {
+        if (ctx) PB_SET_ERROR(ctx, "struct_size mismatch");
+        return false;
+    }
+
+    return true;
 }
 #endif
 
@@ -1674,17 +1693,18 @@ static bool checkreturn pb_dec_submessage(pb_decode_ctx_t *ctx, const pb_field_i
     /* Now decode the submessage contents */
     if (status && !submsg_consumed)
     {
-        unsigned int flags = 0;
+        pb_decode_ctx_flags_t old_flags = ctx->flags;
 
         /* Static required/optional fields are already initialized by top-level
          * pb_decode(), no need to initialize them again. */
         if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
             PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
         {
-            flags = PB_DECODE_NOINIT;
+            ctx->flags |= PB_DECODE_CTX_FLAG_NOINIT;
         }
 
-        status = pb_decode_inner(ctx, field->submsg_desc, field->pData, flags);
+        status = pb_decode_inner(ctx, field->submsg_desc, field->pData);
+        ctx->flags = old_flags;
     }
     
     if (!pb_decode_close_substream(ctx, old_length))
