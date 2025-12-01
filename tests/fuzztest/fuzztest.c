@@ -105,7 +105,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     if (status)
     {
         /* On error return, pb_release() should be called automatically. */
-        pb_release(msgtype, msg);
+        pb_release_s(&stream, msgtype, msg, structsize);
     }
 
     free_with_check(msg);
@@ -141,7 +141,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     if (status)
     {
         /* On error return, pb_release() should be called automatically. */
-        pb_release(msgtype, msg);
+        pb_release_s(&stream.stream, msgtype, msg, structsize);
     }
 
     free_with_check(msg);
@@ -240,7 +240,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
         pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
-        status = pb_decode_s(&stream, msgtype, msg, 0);
+        status = pb_decode_s(&stream, msgtype, msg, structsize);
         if (!status) fprintf(stderr, "pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
 
@@ -249,7 +249,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
-        status = pb_encode_s(&stream, msgtype, msg, 0);
+        status = pb_encode_s(&stream, msgtype, msg, structsize);
 
         /* Some messages expand when re-encoding and might no longer fit
          * in the buffer. */
@@ -263,7 +263,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
         checksum2 = xor32_checksum(buf2, msglen2);
     }
     
-    pb_release(msgtype, msg);
+    pb_release_s(NULL, msgtype, msg, structsize);
 
     /* Then decode from canonical format and re-encode. Result should remain the same. */
     if (status)
@@ -271,7 +271,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
         pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
-        status = pb_decode(&stream, msgtype, msg);
+        status = pb_decode_s(&stream, msgtype, msg, structsize);
         if (!status) fprintf(stderr, "pb_decode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
 
@@ -281,7 +281,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     if (status)
     {
         pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
-        status = pb_encode(&stream, msgtype, msg);
+        status = pb_encode_s(&stream, msgtype, msg, structsize);
         if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
         msglen3 = stream.bytes_written;
@@ -291,7 +291,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
         assert(checksum2 == checksum3);
     }
     
-    pb_release(msgtype, msg);
+    pb_release_s(NULL, msgtype, msg, structsize);
     free_with_check(msg);
     free_with_check(buf2);
 }
