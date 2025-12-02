@@ -51,16 +51,21 @@ typedef enum {
     PB_WALK_EXIT_OK = 0,
     PB_WALK_EXIT_ERR = -1,
 
-    // Move iterator to next field in the message.
-    // At the end of message, iter->tag is set to 0.
-    PB_WALK_NEXT = 1,
-
     // Go into submessage defined by iter->pData and iter->submsg_desc
     // Reserves new stack frame with state->next_stacksize bytes
-    PB_WALK_IN = 2,
+    PB_WALK_IN = 1,
 
     // Return from the submessage and restore previous stack frame
-    PB_WALK_OUT = 3,
+    PB_WALK_OUT = 2,
+
+    // Move iterator to next item in repeated field or extension.
+    // If at last item, move to next field.
+    // If at the end of message, iter->tag is set to 0.
+    PB_WALK_NEXT_ITEM = 3,
+
+    // Move iterator to next field in the message.
+    // At the end of message, iter->tag is set to 0.
+    PB_WALK_NEXT_FIELD = 4,
 } pb_walk_retval_t;
 
 typedef struct pb_walk_state_s pb_walk_state_t;
@@ -122,9 +127,11 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
 /* Perform a recursive tree walking operation.
  * Each time the callback is called it returns a direction:
  *
- * PB_WALK_EXIT:     Exit completely from pb_walk().
- * PB_WALK_IN:       Go into submessage.
- * PB_WALK_OUT:      Return out of submessage.
+ * PB_WALK_EXIT:        Exit completely from pb_walk().
+ * PB_WALK_IN:          Go into submessage.
+ * PB_WALK_OUT:         Return out of submessage.
+ * PB_WALK_NEXT_ITEM:   Go to next array item or extension, at end go to next field
+ * PB_WALK_NEXT_FIELD:  Go to next field, at end set tag to 0
  *
  * For the submessage hierarchy, each level has its own stackframe with adjustable size.
  * This allows precise control over what to preserve, to limit stack usage in recursive
