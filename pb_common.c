@@ -518,7 +518,7 @@ bool pb_walk(pb_walk_state_t *state)
             pos += ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
             state->stack = &storage[pos];
 
-            if (pos >= PB_WALK_STACK_SIZE)
+            if (pos >= PB_WALK_STACK_SIZE && state->depth > 0)
             {
                 // Exit from recursion
                 return true;

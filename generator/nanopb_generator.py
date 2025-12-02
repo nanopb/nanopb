@@ -1515,7 +1515,7 @@ class Message(ProtoElement):
             flags.add('PB_MSGFLAG_R_HAS_DEFVAL')
 
         for f in self.fields:
-            if f.allocation == 'POINTER':
+            if f.allocation in ['POINTER', 'CALLBACK'] or f.pbtype in ['EXTENSION', 'MSG_W_CB']:
                 flags.add('PB_MSGFLAG_R_HAS_PTRS')
 
             if f.pbtype == 'EXTENSION':

@@ -481,7 +481,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
 {
     pb_field_iter_t *iter = &state->iter;
 
-    if (iter->tag == 0)
+    if (iter->tag == 0 || iter->message == NULL)
     {
         // End of message or empty message
         return PB_WALK_OUT;

@@ -31,8 +31,7 @@ static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type
 static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn default_extension_decoder(pb_decode_ctx_t *ctx, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
 static bool checkreturn decode_extension(pb_decode_ctx_t *ctx, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
-static bool pb_field_set_to_default(pb_field_iter_t *field);
-static bool pb_message_set_to_defaults(pb_field_iter_t *iter);
+static bool checkreturn pb_message_set_to_defaults(const pb_msgdesc_t *fields, void *dest_struct);
 static bool checkreturn pb_dec_bool(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -409,6 +408,165 @@ bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length)
 }
 
 /*************************
+ * Field initialization  *
+ *************************/
+
+// Initialize statically allocated fields, possibly descending
+// into submessages.
+static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
+{
+    pb_field_iter_t *iter = &state->iter;
+
+    bool init_data = true;
+    if (PB_HTYPE(iter->type) == PB_HTYPE_OPTIONAL && iter->pSize != NULL)
+    {
+        /* Set has_field to false. Still initialize the optional field itself also. */
+        *(bool*)iter->pSize = false;
+    }
+    else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED && iter->pSize != &iter->array_size)
+    {
+        /* REPEATED: Set array count to 0, no need to initialize contents. */
+        *(pb_size_t*)iter->pSize = 0;
+        init_data = false;
+    }
+    else if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+    {
+        /* ONEOF: Set which_field to 0. */
+        *(pb_tag_t*)iter->pSize = 0;
+        init_data = false;
+    }
+
+    if (init_data)
+    {
+        // Submessage needs recursive initialization if it has pointers
+        // or submessages with default values. Otherwise it can be memset
+        // to 0, which is faster.
+        pb_msgflag_t init_flags = (PB_MSGFLAG_EXTENSIBLE |
+                                   PB_MSGFLAG_R_HAS_PTRS |
+                                   PB_MSGFLAG_R_HAS_DEFVAL);
+        if (PB_LTYPE_IS_SUBMSG(iter->type) &&
+            (iter->submsg_desc->msg_flags & init_flags) != 0)
+        {
+            return PB_WALK_IN;
+        }
+        else
+        {
+            /* Initialize to zeros */
+            memset(iter->pData, 0, (size_t)iter->data_size);
+        }
+    }
+
+    return PB_WALK_NEXT_FIELD;
+}
+
+//  Initialize message fields to default values, recursively
+static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
+{
+    pb_field_iter_t *iter = &state->iter;
+
+    if (iter->tag == 0 || iter->message == NULL)
+    {
+        // End of message or empty message
+        return PB_WALK_OUT;
+    }
+
+    if (state->retval == PB_WALK_OUT)
+    {
+        // End of submessage or extension
+        return PB_WALK_NEXT_ITEM;
+    }
+
+    pb_decode_ctx_t defctx = PB_ISTREAM_EMPTY;
+    uint32_t tag = 0;
+    pb_wire_type_t wire_type = PB_WT_VARINT;
+    bool eof;
+
+    if (iter->descriptor->default_value)
+    {
+        // Field default values are stored as a protobuf stream
+        if (!pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, (size_t)-1) ||
+            !pb_decode_tag(&defctx, &wire_type, &tag, &eof))
+        {
+            return PB_WALK_EXIT_ERR;
+        }
+
+        // Seek to current field
+        while (tag != 0 && iter->tag > tag)
+        {
+            if (!pb_skip_field(&defctx, wire_type) ||
+                !pb_decode_tag(&defctx, &wire_type, &tag, &eof))
+            {
+                return PB_WALK_EXIT_ERR;
+            }
+        }
+    }
+
+    do
+    {
+        if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+        {
+            pb_extension_t* extension = *(pb_extension_t**)iter->pData;
+            if (extension)
+            {
+                // Descend into extension
+                iter->submsg_desc = extension->type;
+                iter->pData = pb_get_extension_data_ptr(extension);
+                return PB_WALK_IN;
+            }
+        }
+        else if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+        {
+            /* Initialize the pointer to NULL. */
+            *(void**)iter->pField = NULL;
+
+            /* Initialize array count to 0. */
+            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+            {
+                *(pb_size_t*)iter->pSize = 0;
+            }
+            else if(PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+            {
+                *(pb_tag_t*)iter->pSize = 0;
+            }
+        }
+        else if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
+        {
+            /* Don't overwrite callback */
+            continue;
+        }
+        else if (PB_ATYPE(iter->type) == PB_ATYPE_STATIC)
+        {
+            pb_walk_retval_t retval = pb_init_static_field(state);
+            if (retval == PB_WALK_IN)
+                return retval;
+        }
+
+        if (iter->tag == tag)
+        {
+            /* We have a default value for this field, read it out and read the next tag. */
+            if (!decode_field(&defctx, wire_type, iter))
+                return PB_WALK_EXIT_ERR;
+
+            if (!pb_decode_tag(&defctx, &wire_type, &tag, &eof))
+                return PB_WALK_EXIT_ERR;
+
+            if (PB_HTYPE(iter->type) == PB_HTYPE_OPTIONAL && iter->pSize != NULL)
+                *(bool*)iter->pSize = false;
+        }
+    } while (pb_field_iter_next(iter));
+
+    return PB_WALK_OUT;
+}
+
+static bool pb_message_set_to_defaults(const pb_msgdesc_t *fields, void *dest_struct)
+{
+    pb_walk_state_t state;
+    (void)pb_walk_init(&state, fields, dest_struct, pb_defaults_walk_cb);
+
+    return pb_walk(&state);
+}
+
+/*************************
  * Decode a single field *
  *************************/
 
@@ -545,23 +703,16 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
                 /* We memset to zero so that any callbacks are set to NULL.
                  * This is because the callbacks might otherwise have values
                  * from some other union field.
-                 * If callbacks are needed inside oneof field, use .proto
-                 * option submsg_callback to have a separate callback function
-                 * that can set the fields before submessage is decoded.
-                 * pb_dec_submessage() will set any default values. */
+                 * If callbacks are needed inside oneof field, use context
+                 * or function name bound callbacks.
+                 */
                 memset(field->pData, 0, (size_t)field->data_size);
 
                 /* Set default values for the submessage fields. */
-                if (field->submsg_desc->default_value != NULL ||
-                    field->submsg_desc->field_callback != NULL ||
-                    field->submsg_desc->submsg_info[0] != NULL)
+                if (field->submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_DEFVAL)
                 {
-                    pb_field_iter_t submsg_iter;
-                    if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
-                    {
-                        if (!pb_message_set_to_defaults(&submsg_iter))
-                            PB_RETURN_ERROR(ctx, "failed to set defaults");
-                    }
+                    if (!pb_message_set_to_defaults(field->submsg_desc, field->pData))
+                        PB_RETURN_ERROR(ctx, "failed to set defaults");
                 }
             }
             *(pb_tag_t*)field->pSize = field->tag;
@@ -914,135 +1065,6 @@ static bool checkreturn decode_extension(pb_decode_ctx_t *ctx,
     return true;
 }
 
-/* Initialize message fields to default values, recursively */
-static bool pb_field_set_to_default(pb_field_iter_t *field)
-{
-    pb_type_t type;
-    type = field->type;
-
-    if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
-    {
-        pb_extension_t *ext = *(pb_extension_t* const *)field->pData;
-        while (ext != NULL)
-        {
-            pb_field_iter_t ext_iter;
-            if (pb_field_iter_begin_extension(&ext_iter, ext))
-            {
-                ext->found = false;
-                if (!pb_message_set_to_defaults(&ext_iter))
-                    return false;
-            }
-            ext = ext->next;
-        }
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_STATIC)
-    {
-        bool init_data = true;
-        if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->pSize != NULL)
-        {
-            /* Set has_field to false. Still initialize the optional field
-             * itself also. */
-            *(bool*)field->pSize = false;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-        {
-            /* REPEATED: Set array count to 0, no need to initialize contents. */
-            *(pb_size_t*)field->pSize = 0;
-            init_data = false;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
-        {
-            /* ONEOF: Set which_field to 0. */
-            *(pb_tag_t*)field->pSize = 0;
-            init_data = false;
-        }
-
-        if (init_data)
-        {
-            if (PB_LTYPE_IS_SUBMSG(field->type) &&
-                (field->submsg_desc->default_value != NULL ||
-                 field->submsg_desc->field_callback != NULL ||
-                 field->submsg_desc->submsg_info[0] != NULL))
-            {
-                /* Initialize submessage to defaults.
-                 * Only needed if it has default values
-                 * or callback/submessage fields. */
-                pb_field_iter_t submsg_iter;
-                if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
-                {
-                    if (!pb_message_set_to_defaults(&submsg_iter))
-                        return false;
-                }
-            }
-            else
-            {
-                /* Initialize to zeros */
-                memset(field->pData, 0, (size_t)field->data_size);
-            }
-        }
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
-    {
-        /* Initialize the pointer to NULL. */
-        *(void**)field->pField = NULL;
-
-        /* Initialize array count to 0. */
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-        {
-            *(pb_size_t*)field->pSize = 0;
-        }
-        else if(PB_HTYPE(type) == PB_HTYPE_ONEOF)
-        {
-            *(pb_tag_t*)field->pSize = 0;
-        }
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
-    {
-        /* Don't overwrite callback */
-    }
-
-    return true;
-}
-
-static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
-{
-    pb_decode_ctx_t defctx = PB_ISTREAM_EMPTY;
-    uint32_t tag = 0;
-    pb_wire_type_t wire_type = PB_WT_VARINT;
-    bool eof;
-
-    if (iter->descriptor->default_value)
-    {
-        // Start decoding default values from the protobuf stream stored
-        // as part of the message descriptor.
-        if (!pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, (size_t)-1) ||
-            !pb_decode_tag(&defctx, &wire_type, &tag, &eof))
-        {
-            return false;
-        }
-    }
-
-    do
-    {
-        if (!pb_field_set_to_default(iter))
-            return false;
-
-        if (tag != 0 && iter->tag == tag)
-        {
-            /* We have a default value for this field, read it out and read the next tag. */
-            if (!decode_field(&defctx, wire_type, iter))
-                return false;
-            if (!pb_decode_tag(&defctx, &wire_type, &tag, &eof))
-                return false;
-
-            if (iter->pSize)
-                *(bool*)iter->pSize = false;
-        }
-    } while (pb_field_iter_next(iter));
-
-    return true;
-}
-
 /*********************
  * Decode all fields *
  *********************/
@@ -1073,17 +1095,15 @@ static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t
     pb_fields_seen_t fields_seen = {{0, 0}};
     const uint32_t allbits = ~(uint32_t)0;
 
+    if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
+    {
+        if (!pb_message_set_to_defaults(fields, dest_struct))
+            PB_RETURN_ERROR(ctx, "failed to set defaults");
+    }
+
     /* Descriptor for the structure field matching the tag decoded from stream */
     pb_field_iter_t iter;
-
-    if (pb_field_iter_begin(&iter, fields, dest_struct))
-    {
-        if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
-        {
-            if (!pb_message_set_to_defaults(&iter))
-                PB_RETURN_ERROR(ctx, "failed to set defaults");
-        }
-    }
+    (void)pb_field_iter_begin(&iter, fields, dest_struct);
 
     while (pb_decode_tag(ctx, &wire_type, &tag, &eof))
     {
