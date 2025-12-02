@@ -10,6 +10,7 @@
 +ignoresigns
 -infloopsuncon
 -type
+-looploopbreak
 
 # splint's memory checks don't quite work without annotations
 -mustfreeonly

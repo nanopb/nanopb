@@ -466,7 +466,6 @@ static bool field_present(const pb_field_iter_t *field)
 
 typedef struct {
     size_t msg_start_pos;
-    pb_size_t array_idx;
     uint_least16_t flags;
 } pb_encode_walk_stackframe_t;
 
@@ -491,25 +490,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
     do {
         if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
-            // Extensions are stored as a linked list.
-            // frame->array_idx is used to store the point in the list we are going at.
-            pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
-
-            pb_size_t idx = 0;
-            if (iter->data_size != sizeof(pb_extension_t*))
-            {
-                PB_SET_ERROR(ctx, "invalid extension");
-                return PB_WALK_EXIT_ERR;
-            }
-
-            // First extension field
-            pb_extension_t* extension = *(pb_extension_t* const *)iter->pData;
-            while (extension != NULL && idx < frame->array_idx)
-            {
-                extension = extension->next;
-                idx++;
-            }
-
+            pb_extension_t* extension = *(pb_extension_t**)iter->pData;
             if (extension)
             {
                 // Descend into extension
@@ -517,8 +498,6 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
                 iter->pData = pb_get_extension_data_ptr(extension);
                 return PB_WALK_IN;
             }
-
-            frame->array_idx = 0;
             continue;
         }
 
@@ -593,34 +572,8 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
     }
     else if (state->retval == PB_WALK_OUT)
     {
-        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
-            frame->array_idx + 1 < *(pb_size_t*)iter->pSize)
-        {
-            if (PB_ATYPE(iter->type) != PB_ATYPE_POINTER &&
-                *(pb_size_t*)iter->pSize > iter->array_size)
-            {
-                PB_SET_ERROR(ctx, "array max size exceeded");
-                return PB_WALK_EXIT_ERR;
-            }
-
-            // Go to next array item
-            frame->array_idx++;
-            iter->pData = (char*)iter->pData + frame->array_idx * iter->data_size;
-        }
-        else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
-        {
-            // Extensions have their own loop mechanism in encode_all_fields()
-            frame->array_idx++;
-        }
-        else
-        {
-            // Go to next field
-            frame->array_idx = 0;
-            if (!pb_field_iter_next(&state->iter))
-            {
-                iter->tag = 0; // End of message
-            }
-        }
+        // Submessage is done, go to next array item or field
+        return PB_WALK_NEXT_ITEM;
     }
 
     pb_walk_retval_t retval = encode_all_fields(ctx, state);

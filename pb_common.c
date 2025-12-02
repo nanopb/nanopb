@@ -5,6 +5,20 @@
 
 #include "pb_common.h"
 
+// Get the pointer to start of data, based on if the field is a pointer
+static inline void* field_data_base_ptr(const pb_field_iter_t *iter)
+{
+    if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+    {
+        return *(void**)iter->pField;
+    }
+    else
+    {
+        return iter->pField;
+    }
+}
+
+// Load field iterator values from the descriptor array and setup pointers
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     if (iter->index >= iter->descriptor->field_count)
@@ -51,6 +65,16 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         size_offset = (pb_size_t)((word1 >> 12) & 0xFFF);
     }
 
+    // Get pointer to submessage type
+    if (PB_LTYPE_IS_SUBMSG(iter->type))
+    {
+        iter->submsg_desc = iter->descriptor->submsg_info[iter->submessage_index];
+    }
+    else
+    {
+        iter->submsg_desc = NULL;
+    }
+
     // Calculate pField and pSize pointers from the offsets given by descriptor
     if (!iter->message)
     {
@@ -79,23 +103,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
             iter->pSize = NULL;
         }
 
-        if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER && iter->pField != NULL)
-        {
-            iter->pData = *(void**)iter->pField;
-        }
-        else
-        {
-            iter->pData = iter->pField;
-        }
-    }
-
-    if (PB_LTYPE_IS_SUBMSG(iter->type))
-    {
-        iter->submsg_desc = iter->descriptor->submsg_info[iter->submessage_index];
-    }
-    else
-    {
-        iter->submsg_desc = NULL;
+        iter->pData = field_data_base_ptr(iter);
     }
 
     return true;
@@ -402,6 +410,8 @@ bool pb_walk(pb_walk_state_t *state)
 
     while (state->retval > 0)
     {
+        pb_field_iter_t *iter = &state->iter;
+
         if (state->retval == PB_WALK_IN)
         {
             /* Enter into a submessage */
@@ -432,11 +442,11 @@ bool pb_walk(pb_walk_state_t *state)
                 // Store iterator state so that we can restore it after return
                 pos -= our_stacksize;
                 pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)&storage[pos];
-                frame->descriptor = state->iter.descriptor;
-                frame->message = state->iter.message;
-                frame->index = state->iter.index;
-                frame->required_field_index = state->iter.required_field_index;
-                frame->submessage_index = state->iter.submessage_index;
+                frame->descriptor = iter->descriptor;
+                frame->message = iter->message;
+                frame->index = iter->index;
+                frame->required_field_index = iter->required_field_index;
+                frame->submessage_index = iter->submessage_index;
                 frame->prev_stacksize = state->stacksize;
 
                 // Setup stack frame for callback
@@ -446,7 +456,7 @@ bool pb_walk(pb_walk_state_t *state)
                 memset(&storage[pos], 0, cb_stacksize);
 
                 // Reset iterator to submessage
-                (void)pb_field_iter_begin(&state->iter, state->iter.submsg_desc, state->iter.pData);
+                (void)pb_field_iter_begin(&state->iter, iter->submsg_desc, iter->pData);
             }
         }
         else if (state->retval == PB_WALK_OUT)
@@ -463,14 +473,45 @@ bool pb_walk(pb_walk_state_t *state)
 
             // Restore iterator state
             pos += state->stacksize;
+            const void *old_desc = iter->descriptor;
+            void *old_msg = iter->message;
             const pb_walk_stackframe_t *frame = (const pb_walk_stackframe_t*)&storage[pos];
-            state->iter.descriptor = frame->descriptor;
-            state->iter.message = frame->message;
-            state->iter.index = frame->index;
-            state->iter.required_field_index = frame->required_field_index;
-            state->iter.submessage_index = frame->submessage_index;
-            state->iter.field_info_index = descsize(&state->iter) * frame->index;
+            iter->descriptor = frame->descriptor;
+            iter->message = frame->message;
+            iter->index = frame->index;
+            iter->required_field_index = frame->required_field_index;
+            iter->submessage_index = frame->submessage_index;
+            iter->field_info_index = descsize(&state->iter) * frame->index;
             (void)load_descriptor_values(&state->iter);
+
+            // Restore pData value for PB_WALK_NEXT_ITEM to work
+            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+            {
+                iter->pData = old_msg;
+            }
+            else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+            {
+                // Find extension that contained this dest
+                // Both type and data pointer need to match
+                pb_extension_t **ext = (pb_extension_t**)iter->pData;
+
+                while (ext != NULL && *ext != NULL)
+                {
+                    if ((*ext)->type == old_desc)
+                    {
+                        if ((*ext)->dest == old_msg || &(*ext)->dest == old_msg)
+                        {
+                            break; // Found the matching extension
+                        }
+                    }
+                    ext = &(*ext)->next;
+                }
+
+                if (ext)
+                    iter->pData = ext;
+                else
+                    iter->pData = NULL;
+            }
 
             // Restore previous stack frame
             state->stacksize = frame->prev_stacksize;
@@ -485,9 +526,54 @@ bool pb_walk(pb_walk_state_t *state)
         }
         else
         {
-            // Go to next field, do not wrap at the end of message
-            advance_iterator(&state->iter, false);
-            (void)load_descriptor_values(&state->iter);
+            bool go_next_field = true;
+
+            if (state->retval == PB_WALK_NEXT_ITEM)
+            {
+                if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+                {
+                    pb_size_t count = *(pb_size_t*)iter->pSize;
+                    if (count > iter->array_size && PB_ATYPE(iter->type) != PB_ATYPE_POINTER)
+                    {
+                        PB_RETURN_ERROR(state, "array max size exceeded");
+                    }
+
+                    // Check that old pData is within the array bounds and that
+                    // new pointer is not past the end.
+                    char *baseptr = (char*)field_data_base_ptr(iter);
+                    char *oldptr = (char*)iter->pData;
+                    char *newptr = oldptr + iter->data_size;
+                    char *endptr = baseptr + iter->data_size * count;
+
+                    if (oldptr >= baseptr && newptr < endptr)
+                    {
+                        iter->pData = newptr;
+                        go_next_field = false;
+                    }
+                }
+                else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+                {
+                    if (iter->data_size != sizeof(pb_extension_t*))
+                    {
+                        PB_RETURN_ERROR(state, "invalid extension");
+                    }
+
+                    // Go to next linked list node
+                    pb_extension_t *ext = *(pb_extension_t**)iter->pData;
+                    if (ext)
+                    {
+                        iter->pData = &ext->next;
+                        go_next_field = false;
+                    }
+                }
+            }
+
+            if (go_next_field)
+            {
+                // Go to next field, do not wrap at the end of message
+                advance_iterator(&state->iter, false);
+                (void)load_descriptor_values(&state->iter);
+            }
         }
 
         state->retval = state->callback(state);
