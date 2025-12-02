@@ -359,7 +359,7 @@ typedef PB_WALK_STACK_ALIGN_OVERRIDE pb_walk_stack_align_t;
 #define PB_WALK_ALIGNSIZE sizeof(pb_walk_stack_align_t)
 
 // Round byte count upwards to a multiple of sizeof(void*) to retain alignment
-#define ALIGN_BYTES(x) (pb_walk_stacksize_t)((((x) - 1) / PB_WALK_ALIGNSIZE + 1) * PB_WALK_ALIGNSIZE)
+#define ALIGN_BYTES(x) (pb_walk_stacksize_t)(((x) + PB_WALK_ALIGNSIZE - 1) / PB_WALK_ALIGNSIZE * PB_WALK_ALIGNSIZE)
 
 // Configured stack size must also be divisible by alignment requirement
 PB_STATIC_ASSERT(ALIGN_BYTES(PB_WALK_STACK_SIZE) == PB_WALK_STACK_SIZE, PB_WALK_STACK_SIZE_not_aligned)
