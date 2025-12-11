@@ -29,14 +29,11 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn default_extension_decoder(pb_decode_ctx_t *ctx, pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type);
-static bool checkreturn decode_extension(pb_decode_ctx_t *ctx, uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension);
 static bool checkreturn pb_message_set_to_defaults(const pb_msgdesc_t *fields, void *dest_struct);
 static bool checkreturn pb_dec_bool(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_dec_submessage(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
 static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
@@ -623,13 +620,6 @@ static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t 
 
             return pb_dec_string(ctx, field);
 
-        case PB_LTYPE_SUBMESSAGE:
-        case PB_LTYPE_SUBMSG_W_CB:
-            if (wire_type != PB_WT_STRING)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
-            return pb_dec_submessage(ctx, field);
-
         case PB_LTYPE_FIXED_LENGTH_BYTES:
             if (wire_type != PB_WT_STRING)
                 PB_RETURN_ERROR(ctx, "wrong wire type");
@@ -774,19 +764,13 @@ static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t
     return true;
 }
 
-/* Clear a newly allocated item in case it contains a pointer, or is a submessage. */
+/* Clear a newly allocated item in case it contains a pointer. */
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
 {
     if (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
         PB_LTYPE(field->type) == PB_LTYPE_BYTES)
     {
         *(void**)pItem = NULL;
-    }
-    else if (PB_LTYPE_IS_SUBMSG(field->type))
-    {
-        /* We memset to zero so that any callbacks are set to NULL.
-         * Default values will be set by pb_dec_submessage(). */
-        memset(pItem, 0, field->data_size);
     }
 }
 #endif
@@ -1023,219 +1007,373 @@ static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_t
     }
 }
 
-/* Default handler for extension fields. Expects to have a pb_msgdesc_t
- * pointer in the extension->type->arg field, pointing to a message with
- * only one field in it.  */
-static bool checkreturn default_extension_decoder(pb_decode_ctx_t *ctx,
-    pb_extension_t *extension, uint32_t tag, pb_wire_type_t wire_type)
-{
-    pb_field_iter_t iter;
-
-    if (!pb_field_iter_begin_extension(&iter, extension))
-        PB_RETURN_ERROR(ctx, "invalid extension");
-
-    if (iter.tag != tag || !iter.message)
-        return true;
-
-    extension->found = true;
-    return decode_field(ctx, wire_type, &iter);
-}
-
-/* Try to decode an unknown field as an extension field. Tries each extension
- * decoder in turn, until one of them handles the field or loop ends. */
-static bool checkreturn decode_extension(pb_decode_ctx_t *ctx,
-    uint32_t tag, pb_wire_type_t wire_type, pb_extension_t *extension)
-{
-    size_t pos = ctx->bytes_left;
-    
-    while (extension != NULL && pos == ctx->bytes_left)
-    {
-        bool status;
-        // if (extension->type->decode)
-        //     status = extension->type->decode(ctx, extension, tag, wire_type);
-        // else
-            status = default_extension_decoder(ctx, extension, tag, wire_type);
-
-        if (!status)
-            return false;
-        
-        extension = extension->next;
-    }
-    
-    return true;
-}
-
 /*********************
  * Decode all fields *
  *********************/
 
-static bool checkreturn pb_decode_inner(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
+typedef struct {
+    // Parent stream length that gets stored when
+    // pb_decode_open_substream() is called.
+    size_t old_length;
+
+    // Flags for this recursion level
+    uint_least16_t flags;
+
+    // Tracking for fixed count repeated fields.
+    // This can handle at most one fixarray that is unpacked and
+    // unordered among other (non-fixarray) fields.
+    // During field processing fixarray_count contains the number
+    // of items decoded so far. Otherwise it contains the number
+    // of items remaining.
+    pb_tag_t fixarray_tag;
+    pb_size_t fixarray_count;
+
+    // Array of (descriptor->required_field_count / 8) bytes is stored
+    // after the end of this structure. It is equivalent to a flexible
+    // array member, but because of lack of C++ standardization, manual
+    // pointer arithmetic is used to access it.
+} pb_decode_walk_stackframe_t;
+
+#define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
+#define PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS      (uint_least16_t)1
+
+static pb_walk_stacksize_t stacksize_for_msg(const pb_msgdesc_t *msgdesc)
 {
-    /* If the message contains extension fields, the extension handlers
-     * are called when tag number is >= extension_range_start. This precheck
-     * is just for speed, and the handlers will check for precise match.
-     */
-    uint32_t extension_range_start = 0;
-    pb_extension_t *extensions = NULL;
+    // Round upwards the needed number of bytes to store required_field_count bits
+    pb_walk_stacksize_t stacksize = sizeof(pb_decode_walk_stackframe_t);
+    stacksize += (pb_walk_stacksize_t)((msgdesc->required_field_count + CHAR_BIT - 1) / CHAR_BIT);
+    return stacksize;
+}
 
-    /* 'fixed_count_field' and 'fixed_count_size' track position of a repeated fixed
-     * count field. This can only handle _one_ repeated fixed count field that
-     * is unpacked and unordered among other (non repeated fixed count) fields.
-     */
-    pb_size_t fixed_count_field = PB_SIZE_MAX;
-    pb_size_t fixed_count_size = 0;
-    pb_size_t fixed_count_total_size = 0;
+static void set_required_field_present(pb_walk_state_t *state)
+{
+    unsigned char *req_array = (unsigned char*)state->stack + sizeof(pb_decode_walk_stackframe_t);
+    pb_fieldidx_t idx = state->iter.required_field_index;
+    req_array[idx / CHAR_BIT] |= (1 << (idx % CHAR_BIT));
+}
 
-    /* Tag and wire type of next field from the input stream */
-    uint32_t tag;
-    pb_wire_type_t wire_type;
-    bool eof;
+static bool check_all_required_fields_present(pb_walk_state_t *state)
+{
+    unsigned char *req_array = (unsigned char*)state->stack + sizeof(pb_decode_walk_stackframe_t);
+    pb_fieldidx_t count = state->iter.descriptor->required_field_count;
 
-    /* Track presence of required fields */
-    pb_fields_seen_t fields_seen = {{0, 0}};
-    const uint32_t allbits = ~(uint32_t)0;
-
-    if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
+    while (count >= CHAR_BIT)
     {
-        if (!pb_message_set_to_defaults(fields, dest_struct))
-            PB_RETURN_ERROR(ctx, "failed to set defaults");
-    }
-
-    /* Descriptor for the structure field matching the tag decoded from stream */
-    pb_field_iter_t iter;
-    (void)pb_field_iter_begin(&iter, fields, dest_struct);
-
-    while (pb_decode_tag(ctx, &wire_type, &tag, &eof))
-    {
-        if (tag == 0)
+        unsigned char inverted_bits = ~(*req_array++);
+        count -= 8;
+        if (inverted_bits != 0)
         {
-          if (ctx->flags & PB_DECODE_CTX_FLAG_NULLTERMINATED)
-          {
-            eof = true;
-            break;
-          }
-          else
-          {
-            PB_RETURN_ERROR(ctx, "zero tag");
-          }
-        }
-
-        if (!pb_field_iter_find(&iter, tag) || PB_LTYPE(iter.type) == PB_LTYPE_EXTENSION)
-        {
-            /* No match found, check if it matches an extension. */
-            if (extension_range_start == 0)
-            {
-                if (pb_field_iter_find_extension(&iter))
-                {
-                    extensions = *(pb_extension_t* const *)iter.pData;
-                    extension_range_start = iter.tag;
-                }
-
-                if (!extensions)
-                {
-                    extension_range_start = (uint32_t)-1;
-                }
-            }
-
-            if (tag >= extension_range_start)
-            {
-                size_t pos = ctx->bytes_left;
-
-                if (!decode_extension(ctx, tag, wire_type, extensions))
-                    return false;
-
-                if (pos != ctx->bytes_left)
-                {
-                    /* The field was handled */
-                    continue;
-                }
-            }
-
-            /* No match found, skip data */
-            if (!pb_skip_field(ctx, wire_type))
-                return false;
-            continue;
-        }
-
-        /* If a repeated fixed count field was found, get size from
-         * 'fixed_count_field' as there is no counter contained in the struct.
-         */
-        if (PB_HTYPE(iter.type) == PB_HTYPE_REPEATED && iter.pSize == &iter.array_size)
-        {
-            if (fixed_count_field != iter.index) {
-                /* If the new fixed count field does not match the previous one,
-                 * check that the previous one is NULL or that it finished
-                 * receiving all the expected data.
-                 */
-                if (fixed_count_field != PB_SIZE_MAX &&
-                    fixed_count_size != fixed_count_total_size)
-                {
-                    PB_RETURN_ERROR(ctx, "wrong size for fixed count field");
-                }
-
-                fixed_count_field = iter.index;
-                fixed_count_size = 0;
-                fixed_count_total_size = iter.array_size;
-            }
-
-            iter.pSize = &fixed_count_size;
-        }
-
-        if (PB_HTYPE(iter.type) == PB_HTYPE_REQUIRED
-            && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
-        {
-            uint32_t tmp = ((uint32_t)1 << (iter.required_field_index & 31));
-            fields_seen.bitfield[iter.required_field_index >> 5] |= tmp;
-        }
-
-        if (!decode_field(ctx, wire_type, &iter))
+            // At least one bit is zero
             return false;
+        }
     }
 
-    if (!eof)
+    if (count > 0)
     {
-        /* pb_decode_tag() returned error before end of stream */
-        return false;
-    }
-
-    /* Check that all elements of the last decoded fixed count field were present. */
-    if (fixed_count_field != PB_SIZE_MAX &&
-        fixed_count_size != fixed_count_total_size)
-    {
-        PB_RETURN_ERROR(ctx, "wrong size for fixed count field");
-    }
-
-    /* Check that all required fields were present. */
-    {
-        pb_size_t req_field_count = iter.descriptor->required_field_count;
-
-        if (req_field_count > 0)
+        unsigned char inverted_bits = ~(*req_array++);
+        unsigned char mask = (unsigned char)((1 << count) - 1);
+        if ((inverted_bits & mask) != 0)
         {
-            pb_size_t i;
-
-            if (req_field_count > PB_MAX_REQUIRED_FIELDS)
-                req_field_count = PB_MAX_REQUIRED_FIELDS;
-
-            /* Check the whole words */
-            for (i = 0; i < (req_field_count >> 5); i++)
-            {
-                if (fields_seen.bitfield[i] != allbits)
-                    PB_RETURN_ERROR(ctx, "missing required field");
-            }
-
-            /* Check the remaining bits (if any) */
-            if ((req_field_count & 31) != 0)
-            {
-                if (fields_seen.bitfield[req_field_count >> 5] !=
-                    (allbits >> (uint_least8_t)(32 - (req_field_count & 31))))
-                {
-                    PB_RETURN_ERROR(ctx, "missing required field");
-                }
-            }
+            // There is zero bit among the lowest 'count' bits
+            return false;
         }
     }
 
     return true;
+}
+
+static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *state)
+{
+    pb_field_iter_t *field = &state->iter;
+    pb_decode_walk_stackframe_t *frame = (pb_decode_walk_stackframe_t*)state->stack;
+
+    if (field->submsg_desc == NULL)
+    {
+        PB_SET_ERROR(ctx, "invalid field descriptor");
+        return PB_WALK_EXIT_ERR;
+    }
+
+    if (!pb_decode_open_substream(ctx, &frame->old_length))
+        return PB_WALK_EXIT_ERR;
+
+    bool need_init = false;
+
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+#ifdef PB_ENABLE_MALLOC
+        // Allocate memory for a pointer field
+        if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
+        {
+            pb_size_t *size = (pb_size_t*)field->pSize;
+
+            if (!allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
+                return PB_WALK_EXIT_ERR;
+
+            field->pData = *(char**)field->pField + field->data_size * (*size);
+            *size += 1;
+            need_init = true;
+        }
+        else if (!field->pData)
+        {
+            if (!allocate_field(ctx, field->pField, field->data_size, 1))
+                return PB_WALK_EXIT_ERR;
+
+            field->pData = *(void**)field->pField;
+            need_init = true;
+        }
+#else
+        PB_SET_ERROR(ctx, "no malloc support");
+        return PB_WALK_EXIT_ERR;
+#endif
+    }
+    else if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
+    {
+        // Increment count of a repeated field
+        pb_size_t *size = (pb_size_t*)field->pSize;
+        if (*size >= field->array_size)
+        {
+            PB_SET_ERROR(ctx, "array overflow");
+            return PB_WALK_EXIT_ERR;
+        }
+
+        field->pData = (char*)field->pField + field->data_size * (*size);
+        *size += 1;
+        need_init = true;
+    }
+
+    if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL && field->pSize != NULL)
+    {
+        *(bool*)field->pSize = true;
+    }
+    else if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
+    {
+        pb_tag_t *which_field = (pb_tag_t*)field->pSize;
+        if (*which_field != field->tag)
+        {
+            need_init = true;
+            *which_field = field->tag;
+        }
+    }
+
+    if (need_init)
+    {
+        // First clear the submessage to zeros
+        memset(field->pData, 0, field->data_size);
+
+        // Check if it has default values to apply
+        // The default values will get applied recursively, and normal
+        // decoding resumes when WALK_OUT is returned to this frame.
+        if (field->submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_DEFVAL)
+        {
+            state->flags |= PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS;
+            frame->flags |= PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS;
+        }
+    }
+
+    /* Submessages can have a separate message-level callback that is called
+     * before decoding the message. Typically it is used to set callback fields
+     * inside oneofs. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+    {
+        /* Message callback is stored right before pSize. */
+        pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
+        bool status = true;
+        if (callback->funcs.decode)
+        {
+            status = callback->funcs.decode(ctx, field, &callback->arg);
+        }
+
+        if (!status || ctx->bytes_left == 0)
+        {
+            status &= pb_decode_close_substream(ctx, frame->old_length);
+
+            if (status)
+                return PB_WALK_NEXT_ITEM;
+            else
+                return PB_WALK_EXIT_ERR;
+        }
+    }
+
+    /* Descend to iterate through submessage fields */
+    state->next_stacksize = stacksize_for_msg(field->submsg_desc);
+    return PB_WALK_IN;
+}
+
+static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
+{
+    pb_field_iter_t *iter = &state->iter;
+    pb_decode_ctx_t *ctx = (pb_decode_ctx_t*)state->ctx;
+    pb_decode_walk_stackframe_t *frame = (pb_decode_walk_stackframe_t*)state->stack;
+
+    if (state->flags & PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS)
+    {
+        if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS)
+        {
+            // Setting defaults finished, now proceed to decoding
+            frame->flags = 0;
+            state->flags = 0;
+            return PB_WALK_IN;
+        }
+        else
+        {
+            // We are setting default values for a new submessage
+            return pb_defaults_walk_cb(state);
+        }
+    }
+
+    if (state->retval == PB_WALK_OUT)
+    {
+        // Close the substream opened for the submessage
+        if (!pb_decode_close_substream(ctx, frame->old_length))
+            return PB_WALK_EXIT_ERR;
+    }
+
+    if (state->stacksize < stacksize_for_msg(iter->descriptor))
+    {
+        PB_SET_ERROR(ctx, "walk state corrupted");
+        return PB_WALK_EXIT_ERR;
+    }
+
+    // Tag and wire type of next field from the input stream
+    uint32_t tag;
+    pb_wire_type_t wire_type;
+    bool eof;
+
+    // Each loop iteration reads one field tag from the input stream
+    while (pb_decode_tag(ctx, &wire_type, &tag, &eof))
+    {
+        // Check for the optional zero tag termination
+        if (tag == 0)
+        {
+            if (ctx->flags & PB_DECODE_CTX_FLAG_NULLTERMINATED)
+            {
+                eof = true;
+                break;
+            }
+            else
+            {
+                PB_SET_ERROR(ctx, "zero tag");
+                return PB_WALK_EXIT_ERR;
+            }
+        }
+
+        // Find the descriptor for this field
+        // Usually fields are encoded in numeric order so the search only
+        // needs to advance by one field.
+        pb_extension_t *extension = NULL;
+        if (!pb_field_iter_find(iter, tag, &extension))
+        {
+            // Discard the input data for this field
+            if (!pb_skip_field(ctx, wire_type))
+            {
+                return PB_WALK_EXIT_ERR;
+            }
+
+            continue;
+        }
+
+        if (extension)
+        {
+            // Load iterator information for the extension field contents.
+            // Iterator will resume in the parent message after the extension
+            // is done.
+            if (!pb_field_iter_load_extension(iter, extension))
+            {
+                PB_SET_ERROR(ctx, "invalid extension");
+                return PB_WALK_EXIT_ERR;
+            }
+
+            extension->found = true;
+        }
+        else if (PB_HTYPE(iter->type) == PB_HTYPE_REQUIRED)
+        {
+            set_required_field_present(state);
+        }
+        else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+                 (iter->pSize == &iter->array_size || iter->pSize == &frame->fixarray_count))
+        {
+            // This is a fixed count array
+            // There is no count field in the message structure, so the count is tracked
+            // as part of our stackframe.
+            if (iter->tag != frame->fixarray_tag)
+            {
+                if (frame->fixarray_count > 0)
+                {
+                    PB_SET_ERROR(ctx, "wrong size for fixed count field");
+                    return PB_WALK_EXIT_ERR;
+                }
+
+                frame->fixarray_tag = iter->tag;
+                frame->fixarray_count = 0;
+            }
+            else
+            {
+                // fixarray_count is switched between "items decoded" and "items remaining"
+                // This permits verifying the total count without reseeking the iterator.
+                frame->fixarray_count = iter->array_size - frame->fixarray_count;
+            }
+
+            iter->pSize = &frame->fixarray_count;
+        }
+
+        pb_walk_retval_t retval = PB_WALK_NEXT_ITEM;
+
+        if (PB_LTYPE_IS_SUBMSG(iter->type) && PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
+        {
+            // Descend into submessage decoding
+            if (wire_type != PB_WT_STRING)
+            {
+                PB_SET_ERROR(ctx, "wrong wire type");
+                return PB_WALK_EXIT_ERR;
+            }
+
+#ifdef PB_ENABLE_MALLOC
+            if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+            {
+                // TODO: reuse the same pb_walk context for doing pb_release()
+                if (!pb_release_union_field(ctx, iter))
+                    return PB_WALK_EXIT_ERR;
+            }
+#endif
+
+            retval = decode_submsg(ctx, state);
+        }
+        else
+        {
+            if (!decode_field(ctx, wire_type, iter))
+                return PB_WALK_EXIT_ERR;
+        }
+
+        if (iter->pSize == &frame->fixarray_count)
+        {
+            frame->fixarray_count = iter->array_size - frame->fixarray_count;
+        }
+
+        if (retval != PB_WALK_NEXT_ITEM)
+        {
+            return retval;
+        }
+    }
+
+    if (!eof)
+    {
+        // pb_decode_tag() returned error before end of stream
+        return PB_WALK_EXIT_ERR;
+    }
+
+    if (!check_all_required_fields_present(state))
+    {
+        PB_SET_ERROR(ctx, "missing required field");
+        return PB_WALK_EXIT_ERR;
+    }
+
+    if (frame->fixarray_count > 0)
+    {
+        PB_SET_ERROR(ctx, "wrong size for fixed count field");
+        return PB_WALK_EXIT_ERR;
+    }
+
+    return PB_WALK_OUT;
 }
 
 bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
@@ -1247,22 +1385,42 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
     if (fields->struct_size != struct_size && struct_size > 1)
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
-    bool status;
+    bool status = true;
+    size_t old_length = 0;
 
-    if ((ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED) == 0)
+    pb_walk_state_t state;
+
+    /* Set default values, if needed */
+    if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
-      status = pb_decode_inner(ctx, fields, dest_struct);
+        (void)pb_walk_init(&state, fields, dest_struct, pb_defaults_walk_cb);
+        if (!pb_walk(&state))
+        {
+            PB_RETURN_ERROR(ctx, "failed to set defaults");
+        }
     }
-    else
+
+    if (ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED)
     {
-      size_t old_length;
-      if (!pb_decode_open_substream(ctx, &old_length))
-        return false;
+        if (!pb_decode_open_substream(ctx, &old_length))
+            return false;
+    }
 
-      status = pb_decode_inner(ctx, fields, dest_struct);
+    /* Decode the message */
+    (void)pb_walk_init(&state, fields, dest_struct, pb_decode_walk_cb);
+    state.ctx = ctx;
+    state.next_stacksize = stacksize_for_msg(fields);
 
-      if (!pb_decode_close_substream(ctx, old_length))
+    if (!pb_walk(&state))
+    {
+        PB_SET_ERROR(ctx, state.errmsg);
         status = false;
+    }
+
+    if (ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED)
+    {
+        if (!pb_decode_close_substream(ctx, old_length))
+            status = false;
     }
     
 #ifdef PB_ENABLE_MALLOC
@@ -1290,7 +1448,7 @@ static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 
     /* Release old data. The find can fail if the message struct contains
      * invalid data. */
-    if (!pb_field_iter_find(&old_field, old_tag))
+    if (!pb_field_iter_find(&old_field, old_tag, NULL))
         PB_RETURN_ERROR(ctx, "invalid union tag");
 
     pb_release_single_field(ctx, &old_field);
@@ -1678,59 +1836,6 @@ static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_
 #endif
 
     return true;
-}
-
-static bool checkreturn pb_dec_submessage(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    bool status = true;
-    bool submsg_consumed = false;
-    size_t old_length;
-
-    if (field->submsg_desc == NULL)
-        PB_RETURN_ERROR(ctx, "invalid field descriptor");
-
-    if (!pb_decode_open_substream(ctx, &old_length))
-        return false;
-    
-    /* Submessages can have a separate message-level callback that is called
-     * before decoding the message. Typically it is used to set callback fields
-     * inside oneofs. */
-    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
-    {
-        /* Message callback is stored right before pSize. */
-        pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;
-        if (callback->funcs.decode)
-        {
-            status = callback->funcs.decode(ctx, field, &callback->arg);
-
-            if (ctx->bytes_left == 0)
-            {
-                submsg_consumed = true;
-            }
-        }
-    }
-
-    /* Now decode the submessage contents */
-    if (status && !submsg_consumed)
-    {
-        pb_decode_ctx_flags_t old_flags = ctx->flags;
-
-        /* Static required/optional fields are already initialized by top-level
-         * pb_decode(), no need to initialize them again. */
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-            PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
-        {
-            ctx->flags |= PB_DECODE_CTX_FLAG_NOINIT;
-        }
-
-        status = pb_decode_inner(ctx, field->submsg_desc, field->pData);
-        ctx->flags = old_flags;
-    }
-    
-    if (!pb_decode_close_substream(ctx, old_length))
-        return false;
-
-    return status;
 }
 
 static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
