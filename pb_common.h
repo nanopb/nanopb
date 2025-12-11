@@ -18,6 +18,12 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 /* Get a field iterator for extension field. */
 bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension);
 
+/* Load field iterator values from an extension
+ * After next pb_field_iter_next(), the iterator
+ * continues from beginning of the parent message.
+ */
+bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension);
+
 /* Get pointer to the destination data for an extension field */
 void *pb_get_extension_data_ptr(pb_extension_t *extension);
 
@@ -37,12 +43,14 @@ bool pb_field_iter_reset(pb_field_iter_t *iter);
 bool pb_field_iter_next(pb_field_iter_t *iter);
 
 /* Advance the iterator until it points at a field with the given tag.
- * Returns false if no such field exists. */
-bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag);
-
-/* Find a field with type PB_LTYPE_EXTENSION, or return false if not found.
- * There can be only one extension range field per message. */
-bool pb_field_iter_find_extension(pb_field_iter_t *iter);
+ * Returns false if no matching field exists.
+ *
+ * If ext is not NULL, checks for match in the linked list of extensions
+ * in the message. If matching extension is found, pointer to it is written
+ * in ext. Note that field iterator does not necessarily point to the extension
+ * field in this case, as all normal fields are searched through first.
+ */
+bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ext);
 
 // Return value type for pb_walk() callback function
 typedef enum {
