@@ -29,7 +29,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         iter->tag = 0;
         iter->type = 0;
         iter->data_size = iter->array_size = 0;
-        iter->pData = iter->pField = iter->pSize = 0;
+        iter->pData = iter->pField = iter->pSize = NULL;
         return false;
     }
 
@@ -110,18 +110,19 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 }
 
 // Get field type without loading rest of the descriptor
-static inline pb_type_t get_type_quick(const uint32_t *field_info)
+// All field info formats have type in highest 8 bits of second word
+static inline pb_type_t get_type_quick(const pb_msgdesc_t *descriptor, pb_fieldidx_t field_info_index)
 {
-    uint32_t word1 = PB_PROGMEM_READU32(field_info[1]);
+    uint32_t word1 = PB_PROGMEM_READU32(descriptor->field_info[field_info_index + 1]);
     return (pb_type_t)(word1 >> 24);
 }
 
 // Get field tag without loading rest of the descriptor
-static inline pb_tag_t get_tag_quick(const pb_field_iter_t *iter)
+static inline pb_tag_t get_tag_quick(const pb_msgdesc_t *descriptor, pb_fieldidx_t field_info_index)
 {
-    uint32_t word0 = PB_PROGMEM_READU32(iter->descriptor->field_info[iter->field_info_index]);
+    uint32_t word0 = PB_PROGMEM_READU32(descriptor->field_info[field_info_index]);
 
-    if (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
+    if (descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
         return (pb_tag_t)(word0 & 0x1FFFFFFF);
     else
         return (pb_tag_t)(word0 & 0xFFF);
@@ -145,17 +146,10 @@ static void advance_iterator(pb_field_iter_t *iter, bool wrap)
     }
     else
     {
-        /* Increment indexes based on previous field type.
-         * All field info formats have the following fields:
-         * - lowest 12 bits of the first word contain the tag number
-         * - highest 8 bits of the second word contain the field type
-         */
-        pb_type_t prev_type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
-
-        /* Add to fields.
-         * The cast to pb_fieldidx_t is needed to avoid -Wconversion warning.
-         * Because the data is is constants from generator, there is no danger of overflow.
-         */
+        // Increment indexes based on previous field type.
+        // The cast to pb_fieldidx_t is needed to avoid -Wconversion warning.
+        // Because the data is is constants from generator, there is no danger of overflow.
+        pb_type_t prev_type = get_type_quick(iter->descriptor, iter->field_info_index);
         iter->field_info_index = (pb_fieldidx_t)(iter->field_info_index + descsize(iter));
         iter->required_field_index = (pb_fieldidx_t)(iter->required_field_index + (PB_HTYPE(prev_type) == PB_HTYPE_REQUIRED));
         iter->submessage_index = (pb_fieldidx_t)(iter->submessage_index + PB_LTYPE_IS_SUBMSG(prev_type));
@@ -174,12 +168,32 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 
 bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension)
 {
-    const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type;
-    bool status;
-
     void *data = pb_get_extension_data_ptr(extension);
-    status = pb_field_iter_begin(iter, msg, data);
+    bool status = pb_field_iter_begin(iter, extension->type, data);
     iter->pSize = &extension->found;
+    return status;
+}
+
+bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension)
+{
+    const pb_msgdesc_t *old_msgdesc = iter->descriptor;
+    void *old_msg = iter->message;
+
+    // Load field information from the extension descriptor
+    iter->descriptor = extension->type;
+    iter->message = pb_get_extension_data_ptr(extension);
+    iter->index = 0;
+    iter->required_field_index = 0;
+    iter->submessage_index = 0;
+    iter->field_info_index = 0;
+    bool status = load_descriptor_values(iter);
+
+    // Restore descriptor pointer so that further iteration
+    // will continue from the beginning of the parent message.
+    iter->descriptor = old_msgdesc;
+    iter->message = old_msg;
+    iter->index = old_msgdesc->field_count;
+
     return status;
 }
 
@@ -187,7 +201,7 @@ void *pb_get_extension_data_ptr(pb_extension_t *extension)
 {
     const pb_msgdesc_t *msg = (const pb_msgdesc_t*)extension->type;
 
-    pb_type_t type = get_type_quick(msg->field_info);
+    pb_type_t type = get_type_quick(msg, 0);
     if (PB_ATYPE(type) == PB_ATYPE_POINTER)
     {
         /* For pointer extensions, the pointer is stored directly
@@ -217,75 +231,94 @@ bool pb_field_iter_next(pb_field_iter_t *iter)
     return iter->index != 0;
 }
 
-bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag)
+bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ext)
 {
+    if (ext) *ext = NULL;
+
     if (iter->tag == tag)
     {
-        return true; /* Nothing to do, correct field already. */
+        return true; // Nothing to do, correct field already.
     }
-    else if (tag > iter->descriptor->largest_tag)
-    {
-        return false;
-    }
-    else
-    {
-        pb_fieldidx_t field_count = iter->descriptor->field_count;
 
-        if (tag < iter->tag)
+    if (tag > iter->descriptor->largest_tag &&
+        (iter->descriptor->msg_flags & PB_MSGFLAG_EXTENSIBLE) == 0)
+    {
+        return false; // Tag is beyond last field of the message
+    }
+
+    pb_fieldidx_t field_count = iter->descriptor->field_count;
+
+    if (tag < iter->tag)
+    {
+        // Fields are in tag number order, so we know that tag is between
+        // 0 and our start position. Setting index to end forces
+        // advance_iterator() call below to restart from beginning.
+        iter->index = field_count;
+    }
+
+    bool seek_extension = (ext != NULL && (iter->descriptor->msg_flags & PB_MSGFLAG_EXTENSIBLE) != 0);
+    pb_extension_t *extensions = NULL;
+    pb_tag_t itertag = 0;
+    do
+    {
+        // Advance iterator but don't load values yet
+        advance_iterator(iter, true);
+
+        // Compare tag and load values if match
+        itertag = get_tag_quick(iter->descriptor, iter->field_info_index);
+
+        if (itertag == tag)
         {
-            /* Fields are in tag number order, so we know that tag is between
-             * 0 and our start position. Setting index to end forces
-             * advance_iterator() call below to restart from beginning. */
-            iter->index = field_count;
+            (void)load_descriptor_values(iter);
+            if (PB_LTYPE(iter->type) != PB_LTYPE_EXTENSION)
+            {
+                // Matching normal field was found
+                return true;
+            }
         }
 
-        pb_tag_t itertag = 0;
-        do
+        if (tag >= itertag && seek_extension)
         {
-            /* Advance iterator but don't load values yet */
-            advance_iterator(iter, true);
+            // Store info for extension fields
+            pb_type_t type = get_type_quick(iter->descriptor, iter->field_info_index);
 
-            /* Compare tag and load values if match */
-            itertag = get_tag_quick(iter);
-            if (itertag == tag)
-            {
-                return load_descriptor_values(iter);
-            }
-        } while (itertag < tag && iter->index < field_count - 1);
-
-        /* Searched until first tag number beyond, and found nothing. */
-        (void)load_descriptor_values(iter);
-        return false;
-    }
-}
-
-bool pb_field_iter_find_extension(pb_field_iter_t *iter)
-{
-    if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
-    {
-        return true;
-    }
-    else
-    {
-        pb_size_t start = iter->index;
-
-        do
-        {
-            /* Advance iterator but don't load values yet */
-            advance_iterator(iter, true);
-
-            /* Do fast check for field type */
-            pb_type_t type = get_type_quick(&iter->descriptor->field_info[iter->field_info_index]);
             if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
             {
-                return load_descriptor_values(iter);
+                (void)load_descriptor_values(iter);
+                if (iter->data_size == sizeof(pb_extension_t*))
+                {
+                    // Store the extension pointer, but we will only
+                    // check it if a matching normal field is not found.
+                    extensions = *(pb_extension_t**)iter->pData;
+                    seek_extension = false;
+                }
             }
-        } while (iter->index != start);
+        }
+    } while (tag > itertag && iter->index < field_count - 1);
 
-        /* Searched all the way back to start, and found nothing. */
-        (void)load_descriptor_values(iter);
-        return false;
+    // Restore iterator to valid state after failed search
+    (void)load_descriptor_values(iter);
+
+    // No match found, check if there is a matching extension
+    if (ext != NULL)
+    {
+        while (extensions != NULL)
+        {
+            const pb_msgdesc_t *ext_type = extensions->type;
+            pb_tag_t ext_tag = get_tag_quick(ext_type, 0);
+
+            if (ext_tag == tag)
+            {
+                // Found a match
+                *ext = extensions;
+                return true;
+            }
+
+            extensions = extensions->next;
+        }
     }
+
+    return false;
 }
 
 static void *pb_const_cast(const void *p)
@@ -332,7 +365,6 @@ bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx,
     }
 
     return true; /* Success, but didn't do anything */
-
 }
 
 /* Information stored internally by pb_walk() for each submessage level. */
@@ -454,6 +486,11 @@ bool pb_walk(pb_walk_state_t *state)
                 pos -= cb_stacksize;
                 state->stack = &storage[pos];
                 memset(&storage[pos], 0, cb_stacksize);
+
+                if (!iter->submsg_desc)
+                {
+                    PB_RETURN_ERROR(state, "null descriptor");
+                }
 
                 // Reset iterator to submessage
                 (void)pb_field_iter_begin(&state->iter, iter->submsg_desc, iter->pData);
