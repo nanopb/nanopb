@@ -168,9 +168,13 @@ extern "C" {
 #endif
 #endif
 
-/* Detect endianness */
+/* Detect endianness and size of char type */
 #if !defined(CHAR_BIT) && defined(__CHAR_BIT__)
 #define CHAR_BIT __CHAR_BIT__
+#endif
+
+#ifndef CHAR_BIT
+#define CHAR_BIT 8
 #endif
 
 #ifndef PB_LITTLE_ENDIAN_8BIT
@@ -504,6 +508,11 @@ typedef pb_field_iter_t pb_field_t;
 PB_STATIC_ASSERT(sizeof(int64_t) == 2 * sizeof(int32_t), INT64_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(uint64_t) == 2 * sizeof(uint32_t), UINT64_T_WRONG_SIZE)
 #endif
+
+/* Make sure CHAR_BIT is set correctly */
+PB_STATIC_ASSERT(CHAR_BIT >= 8 &&
+    (((unsigned char)-1) >> (CHAR_BIT - 1)) == 1,
+    CHAR_BIT_IS_WRONG)
 
 /* This structure is used for 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.

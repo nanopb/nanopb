@@ -1049,7 +1049,7 @@ static void set_required_field_present(pb_walk_state_t *state)
 {
     unsigned char *req_array = (unsigned char*)state->stack + sizeof(pb_decode_walk_stackframe_t);
     pb_fieldidx_t idx = state->iter.required_field_index;
-    req_array[idx / CHAR_BIT] |= (1 << (idx % CHAR_BIT));
+    req_array[idx / CHAR_BIT] = (unsigned char)(req_array[idx / CHAR_BIT] | (1 << (idx % CHAR_BIT)));
 }
 
 static bool check_all_required_fields_present(pb_walk_state_t *state)
@@ -1059,7 +1059,7 @@ static bool check_all_required_fields_present(pb_walk_state_t *state)
 
     while (count >= CHAR_BIT)
     {
-        unsigned char inverted_bits = ~(*req_array++);
+        unsigned char inverted_bits = (unsigned char)(~(*req_array++));
         count -= 8;
         if (inverted_bits != 0)
         {
@@ -1070,7 +1070,7 @@ static bool check_all_required_fields_present(pb_walk_state_t *state)
 
     if (count > 0)
     {
-        unsigned char inverted_bits = ~(*req_array++);
+        unsigned char inverted_bits = (unsigned char)(~(*req_array++));
         unsigned char mask = (unsigned char)((1 << count) - 1);
         if ((inverted_bits & mask) != 0)
         {
@@ -1346,6 +1346,14 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 
         if (iter->pSize == &frame->fixarray_count)
         {
+            if (frame->fixarray_count > iter->array_size)
+            {
+                // This can occur for dynamically allocated fixarrays.
+                // It would be better to detect this before the unnecessary memory allocation.
+                PB_SET_ERROR(ctx, "wrong size for fixed count field");
+                return PB_WALK_EXIT_ERR;
+            }
+
             frame->fixarray_count = iter->array_size - frame->fixarray_count;
         }
 
