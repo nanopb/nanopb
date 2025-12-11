@@ -43,7 +43,7 @@ static bool decode_treenode(pb_istream_t *stream, const pb_field_t *field, void 
     
     if (node.has_leaf)
     {
-        printf("%d", node.leaf);
+        printf("%d", (int)node.leaf);
     }
 
     if (field && field->tag == TreeNode_left_tag)
@@ -79,7 +79,7 @@ static bool decode_dictionary(pb_istream_t *stream, const pb_field_t *field, voi
             if (!pb_decode_varint32(stream, (uint32_t*)&val))
                 return false;
             
-            printf("%d", val);
+            printf("%d", (int)val);
         }
         else if (tag == KeyValuePair_dictValue_tag)
         {

@@ -62,6 +62,13 @@ the underlying function (e.g. `pb_decode_s`) with the size argument set to 0.
 
 **Error indications:** *"invalid application of ‘sizeof’ to a void type"* or *"you cannot dereference an operand of type 'void'"*
 
+### Changes to field iterator utility functions
+
+**Rationale:** The functions defined in `pb_common.h` are rarely used in user code.
+Their APIs have seen small changes to better accommodate other changes in the codebase.
+
+**Changes:** `pb_field_iter_find()` takes a third argument, which can be given as `NULL`.
+
 ### Remove Python 2 support
 
 **Rationale:** Python 2 interpreter was deprecated in 2020. For backward

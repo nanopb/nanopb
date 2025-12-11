@@ -27,7 +27,7 @@ const pb_msgdesc_t* decode_unionmessage_type(pb_istream_t *stream)
         {
             pb_field_iter_t iter;
             if (pb_field_iter_begin(&iter, UnionMessage_fields, NULL) &&
-                pb_field_iter_find(&iter, tag))
+                pb_field_iter_find(&iter, tag, NULL))
             {
                 /* Found our field. */
                 return iter.submsg_desc;

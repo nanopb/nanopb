@@ -39,5 +39,5 @@
 -usedef
 -fcnuse
 
-# Splint doesn't support C11
--DPB_C99_STATIC_ASSERT
+# Avoid false errors from static asserts
+-DPB_NO_STATIC_ASSERT
