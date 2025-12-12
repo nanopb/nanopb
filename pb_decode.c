@@ -29,7 +29,6 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn pb_message_set_to_defaults(const pb_msgdesc_t *fields, void *dest_struct);
 static bool checkreturn pb_dec_bool(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -43,6 +42,7 @@ static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field);
 static bool checkreturn pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
+static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #endif
 
 #ifdef PB_WITHOUT_64BIT
@@ -555,14 +555,6 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     return PB_WALK_OUT;
 }
 
-static bool pb_message_set_to_defaults(const pb_msgdesc_t *fields, void *dest_struct)
-{
-    pb_walk_state_t state;
-    (void)pb_walk_init(&state, fields, dest_struct, pb_defaults_walk_cb);
-
-    return pb_walk(&state);
-}
-
 /*************************
  * Decode a single field *
  *************************/
@@ -687,26 +679,7 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
             }
 
         case PB_HTYPE_ONEOF:
-            if (PB_LTYPE_IS_SUBMSG(field->type) &&
-                *(pb_tag_t*)field->pSize != field->tag)
-            {
-                /* We memset to zero so that any callbacks are set to NULL.
-                 * This is because the callbacks might otherwise have values
-                 * from some other union field.
-                 * If callbacks are needed inside oneof field, use context
-                 * or function name bound callbacks.
-                 */
-                memset(field->pData, 0, (size_t)field->data_size);
-
-                /* Set default values for the submessage fields. */
-                if (field->submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_DEFVAL)
-                {
-                    if (!pb_message_set_to_defaults(field->submsg_desc, field->pData))
-                        PB_RETURN_ERROR(ctx, "failed to set defaults");
-                }
-            }
             *(pb_tag_t*)field->pSize = field->tag;
-
             return decode_basic_field(ctx, wire_type, field);
 
         default:
@@ -787,16 +760,14 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
         case PB_HTYPE_ONEOF:
-            if (PB_LTYPE_IS_SUBMSG(field->type) && *(void**)field->pField != NULL)
+
+
+            if (PB_HTYPE(field->type) != PB_HTYPE_ONEOF &&
+                PB_LTYPE_IS_SUBMSG(field->type) &&
+                *(void**)field->pField != NULL)
             {
                 /* Duplicate field, have to release the old allocation first. */
-                /* FIXME: Does this work correctly for oneofs? */
                 pb_release_single_field(ctx, field);
-            }
-        
-            if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-            {
-                *(pb_tag_t*)field->pSize = field->tag;
             }
 
             if (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
@@ -813,6 +784,13 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                 
                 field->pData = *(void**)field->pField;
                 initialize_pointer_field(field->pData, field);
+
+                if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
+                {
+                    /* Note: pb_release_union_field has already been called in decode_field(). */
+                    *(pb_tag_t*)field->pSize = field->tag;
+                }
+
                 return decode_basic_field(ctx, wire_type, field);
             }
     
@@ -1035,7 +1013,9 @@ typedef struct {
 } pb_decode_walk_stackframe_t;
 
 #define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
+#define PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD     (uint_least16_t)2
 #define PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS      (uint_least16_t)1
+#define PB_DECODE_WALK_FRAME_FLAG_END_RELEASE       (uint_least16_t)2
 
 static pb_walk_stacksize_t stacksize_for_msg(const pb_msgdesc_t *msgdesc)
 {
@@ -1440,6 +1420,43 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
 }
 
 #ifdef PB_ENABLE_MALLOC
+
+// TODO: refactor pb_release_union_field() so that recursion here is not needed
+static void recursive_release(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
+{
+    /* Release fields in submessage or submsg array */
+    pb_size_t count = 1;
+
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        field->pData = *(void**)field->pField;
+    }
+    else
+    {
+        field->pData = field->pField;
+    }
+
+    if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
+    {
+        count = *(pb_size_t*)field->pSize;
+
+        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC && count > field->array_size)
+        {
+            /* Protect against corrupted _count fields */
+            count = field->array_size;
+        }
+    }
+
+    if (field->pData)
+    {
+        for (; count > 0; count--)
+        {
+            pb_release_s(ctx, field->submsg_desc, field->pData, field->data_size);
+            field->pData = (char*)field->pData + field->data_size;
+        }
+    }
+}
+
 /* Given an oneof field, if there has already been a field inside this oneof,
  * release it before overwriting with a different one. */
 static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
@@ -1459,13 +1476,21 @@ static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
     if (!pb_field_iter_find(&old_field, old_tag, NULL))
         PB_RETURN_ERROR(ctx, "invalid union tag");
 
+    pb_type_t type = old_field.type;
+    if (PB_LTYPE_IS_SUBMSG(type) && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
+    {
+        if (old_field.submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_PTRS)
+        {
+            recursive_release(ctx, &old_field);
+        }
+    }
+
     pb_release_single_field(ctx, &old_field);
+
+    *(pb_tag_t*)field->pSize = 0;
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
-        /* Initialize the pointer to NULL to make sure it is valid
-         * even in case of error return. */
-        *(void**)field->pField = NULL;
         field->pData = NULL;
     }
 
@@ -1477,63 +1502,7 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
     pb_type_t type;
     type = field->type;
 
-    if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
-    {
-        if (*(pb_tag_t*)field->pSize != field->tag)
-            return; /* This is not the current field in the union */
-    }
-
-    /* Release anything contained inside an extension or submsg.
-     * This has to be done even if the submsg itself is statically
-     * allocated. */
-    if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
-    {
-        /* Release fields from all extensions in the linked list */
-        pb_extension_t *ext = *(pb_extension_t**)field->pData;
-        while (ext != NULL)
-        {
-            pb_field_iter_t ext_iter;
-            if (pb_field_iter_begin_extension(&ext_iter, ext))
-            {
-                pb_release_single_field(ctx, &ext_iter);
-            }
-            ext = ext->next;
-        }
-    }
-    else if (PB_LTYPE_IS_SUBMSG(type) && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
-    {
-        /* Release fields in submessage or submsg array */
-        pb_size_t count = 1;
-        
-        if (PB_ATYPE(type) == PB_ATYPE_POINTER)
-        {
-            field->pData = *(void**)field->pField;
-        }
-        else
-        {
-            field->pData = field->pField;
-        }
-        
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-        {
-            count = *(pb_size_t*)field->pSize;
-
-            if (PB_ATYPE(type) == PB_ATYPE_STATIC && count > field->array_size)
-            {
-                /* Protect against corrupted _count fields */
-                count = field->array_size;
-            }
-        }
-        
-        if (field->pData)
-        {
-            for (; count > 0; count--)
-            {
-                pb_release_s(ctx, field->submsg_desc, field->pData, field->data_size);
-                field->pData = (char*)field->pData + field->data_size;
-            }
-        }
-    }
+    PB_UNUSED(ctx);
     
     if (PB_ATYPE(type) == PB_ATYPE_POINTER)
     {
@@ -1557,34 +1526,128 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
             *(pb_size_t*)field->pSize = 0;
         }
         
+        if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        {
+            *(pb_tag_t*)field->pSize = 0;
+        }
+
         /* Release main pointer */
         pb_free(*(void**)field->pField);
         *(void**)field->pField = NULL;
+        field->pData = NULL;
     }
+}
+
+static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
+{
+    pb_field_iter_t *iter = &state->iter;
+    pb_decode_ctx_t *ctx = (pb_decode_ctx_t *)state->ctx;
+
+    // Check the previous action
+    if (state->retval == PB_WALK_OUT)
+    {
+        // Submessage is done, release it (if pointer) and go to
+        // next array item or field.
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+        {
+            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+            {
+                char *array_start = *(char**)iter->pField;
+                char *array_end = array_start + iter->data_size * *(pb_size_t*)iter->pSize;
+                char *position = (char*)iter->pData;
+                if (position >= array_start && position + iter->data_size < array_end)
+                {
+                    // More array items remain before we can release the array itself
+                    return PB_WALK_NEXT_ITEM;
+                }
+
+                // All of the repeated submessages have been released
+                *(pb_size_t*)iter->pSize = 0;
+            }
+
+            pb_release_single_field(ctx, iter);
+        }
+
+        return PB_WALK_NEXT_ITEM;
+    }
+
+    do {
+        if (iter->pData == NULL)
+        {
+            // Pointer is already null
+            continue;
+        }
+
+        if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+        {
+            pb_extension_t* extension = *(pb_extension_t**)iter->pData;
+            if (extension)
+            {
+                // Descend into extension
+                iter->submsg_desc = extension->type;
+                iter->pData = pb_get_extension_data_ptr(extension);
+                return PB_WALK_IN;
+            }
+            continue;
+        }
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
+        {
+            // Nothing to do for callback fields
+            continue;
+        }
+
+        if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF &&
+            *(pb_tag_t*)iter->pSize != iter->tag)
+        {
+            // This is not the currently present field in the union
+            continue;
+        }
+
+        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+            *(pb_size_t*)iter->pSize == 0)
+        {
+            // Empty array
+            if (iter->pData != NULL && PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+            {
+                pb_free(iter->pData);
+                *(void**)iter->pField = NULL;
+            }
+            continue;
+        }
+
+        if (PB_LTYPE_IS_SUBMSG(iter->type) &&
+            (iter->submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_PTRS) != 0)
+        {
+            // Descend into submessage
+            return PB_WALK_IN;
+        }
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
+        {
+            pb_release_single_field(ctx, iter);
+        }
+    } while (pb_field_iter_next(iter));
+
+    return PB_WALK_OUT;
 }
 
 bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
 {
-    pb_field_iter_t iter;
-
     if (fields->struct_size != struct_size && struct_size > 1)
     {
         if (ctx) PB_SET_ERROR(ctx, "struct_size mismatch");
         return false;
     }
-    
+
     if (!dest_struct)
         return true; /* Ignore NULL pointers, similar to free() */
 
-    if (!pb_field_iter_begin(&iter, fields, dest_struct))
-        return true; /* Empty message type */
-    
-    do
-    {
-        pb_release_single_field(ctx, &iter);
-    } while (pb_field_iter_next(&iter));
+    pb_walk_state_t state;
+    (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
 
-    return true;
+    return pb_walk(&state);
 }
 #else
 bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
