@@ -18,6 +18,46 @@ static inline void* field_data_base_ptr(const pb_field_iter_t *iter)
     }
 }
 
+// Check that the pointer is valid pointer to data in the field
+static bool validate_data_pointer(pb_field_iter_t *iter, void *ptr)
+{
+    char *queryptr = (char*)ptr;
+    char *baseptr = (char*)field_data_base_ptr(iter);
+
+    if (!queryptr || !baseptr)
+        return false; // Null pointer
+
+    if (queryptr == baseptr)
+        return true; // Base pointer is always valid
+
+    if (PB_HTYPE(iter->type) != PB_HTYPE_REPEATED)
+        return false; // Only base pointer is valid for non-repeated fields
+
+    if (queryptr < baseptr)
+        return false; // Pointer points before start of field
+
+    pb_size_t count = *(pb_size_t*)iter->pSize;
+    if (count > iter->array_size &&
+        PB_ATYPE(iter->type) != PB_ATYPE_POINTER)
+    {
+        count = iter->array_size;
+    }
+
+    if (iter->data_size == 0)
+        return false; // Invalid iterator state
+
+    if (queryptr >= baseptr + iter->data_size * count)
+        return false; // Past the end of the field
+
+#ifndef PB_NO_DIVISION
+    pb_size_t offset = (pb_size_t)(queryptr - baseptr);
+    if (offset % iter->data_size != 0)
+        return false; // Not aligned
+#endif
+
+    return true;
+}
+
 // Load field iterator values from the descriptor array and setup pointers
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
@@ -522,9 +562,17 @@ bool pb_walk(pb_walk_state_t *state)
             (void)load_descriptor_values(&state->iter);
 
             // Restore pData value for PB_WALK_NEXT_ITEM to work
-            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+                PB_LTYPE(iter->type) == PB_LTYPE_SUBMESSAGE &&
+                PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
             {
-                iter->pData = old_msg;
+                // Only restore the pointer value if it is within the bounds of the
+                // array. The callback is free to modify the iterator so pData could
+                // have been e.g. NULL instead.
+                if (validate_data_pointer(iter, old_msg))
+                {
+                    iter->pData = old_msg;
+                }
             }
             else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
             {
@@ -565,7 +613,7 @@ bool pb_walk(pb_walk_state_t *state)
         {
             bool go_next_field = true;
 
-            if (state->retval == PB_WALK_NEXT_ITEM)
+            if (state->retval == PB_WALK_NEXT_ITEM && iter->pData != NULL)
             {
                 if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
                 {
@@ -575,14 +623,8 @@ bool pb_walk(pb_walk_state_t *state)
                         PB_RETURN_ERROR(state, "array max size exceeded");
                     }
 
-                    // Check that old pData is within the array bounds and that
-                    // new pointer is not past the end.
-                    char *baseptr = (char*)field_data_base_ptr(iter);
-                    char *oldptr = (char*)iter->pData;
-                    char *newptr = oldptr + iter->data_size;
-                    char *endptr = baseptr + iter->data_size * count;
-
-                    if (oldptr >= baseptr && newptr < endptr)
+                    char *newptr = (char*)iter->pData + iter->data_size;
+                    if (validate_data_pointer(iter, newptr))
                     {
                         iter->pData = newptr;
                         go_next_field = false;
