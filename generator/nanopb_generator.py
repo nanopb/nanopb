@@ -1744,7 +1744,7 @@ class Message(ProtoElement):
         for field in reversed(list(optional_only.field)):
             field.ClearField(str('extendee'))
             parsed_field = self.field_for_tag(field.number)
-            if not parsed_field.has_default_value(dependencies):
+            if not parsed_field or not parsed_field.has_default_value(dependencies):
                 optional_only.field.remove(field)
 
             elif field.type == FieldD.TYPE_ENUM:
