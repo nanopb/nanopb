@@ -206,6 +206,19 @@ extern "C" {
 #endif
 #endif
 
+/* Optional run-time assertions.
+ * These are mainly to more easily catch bugs during development.
+ * They can be disabled for small amount of code size saving.
+ */
+#ifndef PB_OPT_ASSERT
+# ifdef PB_NO_OPT_ASSERT
+#  define PB_OPT_ASSERT(ignore) ((void)0)
+# else
+#  include <assert.h>
+#  define PB_OPT_ASSERT(cond) assert(cond)
+# endif
+#endif
+
 /* Compile-time assertion, used for checking compatible compilation options.
  * If this does not work properly on your compiler, use
  * #define PB_NO_STATIC_ASSERT to disable it.
