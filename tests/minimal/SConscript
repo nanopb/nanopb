@@ -1,0 +1,32 @@
+# Run the alltypes test case, but with all optional features disabled
+
+Import("env")
+
+# Take copy of the files for custom build.
+c = Copy("$TARGET", "$SOURCE")
+env.Command("alltypes.proto", "$BUILD/alltypes/alltypes.proto", c)
+env.Command("encode_alltypes.c", "$BUILD/alltypes/encode_alltypes.c", c)
+env.Command("decode_alltypes.c", "$BUILD/alltypes/decode_alltypes.c", c)
+
+# Define the compilation options
+opts = env.Clone()
+opts.Append(CPPDEFINES = {
+    'PB_NO_ERRMSG': 1,
+    'PB_NO_LARGEMSG': 1,
+    'PB_BUFFER_ONLY': 1,
+})
+
+# Build new version of core
+strict = opts.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_minimal.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_minimal.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_minimal.o", "$NANOPB/pb_common.c")
+
+# Now build and run the test normally.
+opts.NanopbProto(["alltypes", "alltypes.options"])
+enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_minimal.o", "pb_common_minimal.o"])
+dec = opts.Program(["decode_alltypes.c", "alltypes.pb.c", "pb_decode_minimal.o", "pb_common_minimal.o"])
+
+env.RunTest(enc)
+env.RunTest([dec, "encode_alltypes.output"])

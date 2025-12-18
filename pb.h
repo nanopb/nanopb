@@ -660,8 +660,14 @@ struct pb_extension_s {
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
+#ifndef PB_NO_LARGEMSG
 #define PB_MSGFLAG_DESCWIDTH_S 0
 #define PB_MSGFLAG_DESCWIDTH_L PB_MSGFLAG_LARGEDESC
+#else
+#define PB_MSGFLAG_DESCWIDTH_S 0
+#define PB_MSGFLAG_DESCWIDTH_L 0
+#endif
+
 #define PB_GEN_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) +1
 #define PB_GEN_REQ_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) \
     + (PB_HTYPE_ ## htype == PB_HTYPE_REQUIRED)
@@ -678,6 +684,7 @@ struct pb_extension_s {
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
+#ifndef PB_NO_LARGEMSG
 #define PB_GEN_FIELD_INFO_L(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_L( \
                    tag, \
@@ -686,9 +693,18 @@ struct pb_extension_s {
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
+#else
+#define PB_GEN_FIELD_INFO_L PB_GEN_FIELD_INFO_S
+#endif
 
 /* X-macro for generating asserts that entries fit in struct_field_info[] array.
  * This must match the GEN_FIELD_INFO macros above.
+ *
+ * If you get static assertion failure here, it probably means you have defined
+ * PB_NO_LARGEMSG, which limits fields to max. 4096 tag/size.
+ *
+ * Otherwise errors here indicate a bug in the generator. It may be possible to
+ * work around it by setting '(nanopb).descriptorsize = DS_LARGE' on the field.
  */
 #define PB_GEN_FIELD_INFO_ASSERT_S(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_ASSERT_S( \
@@ -699,6 +715,7 @@ struct pb_extension_s {
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
+#ifndef PB_NO_LARGEMSG
 #define PB_GEN_FIELD_INFO_ASSERT_L(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_ASSERT_L( \
                    tag, \
@@ -707,6 +724,9 @@ struct pb_extension_s {
                    PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
+#else
+#define PB_GEN_FIELD_INFO_ASSERT_L PB_GEN_FIELD_INFO_ASSERT_S
+#endif
 
 /* The macros below handle different data storage formats (static/callback/ptr) and
  * handle the collecting of struct field properties for them.
