@@ -40,7 +40,6 @@ static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 #ifdef PB_ENABLE_MALLOC
 static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t data_size, size_t array_size);
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field);
-static bool checkreturn pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #endif
@@ -760,16 +759,6 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
         case PB_HTYPE_ONEOF:
-
-
-            if (PB_HTYPE(field->type) != PB_HTYPE_ONEOF &&
-                PB_LTYPE_IS_SUBMSG(field->type) &&
-                *(void**)field->pField != NULL)
-            {
-                /* Duplicate field, have to release the old allocation first. */
-                pb_release_single_field(ctx, field);
-            }
-
             if (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
                 PB_LTYPE(field->type) == PB_LTYPE_BYTES)
             {
@@ -787,7 +776,6 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
 
                 if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
                 {
-                    /* Note: pb_release_union_field has already been called in decode_field(). */
                     *(pb_tag_t*)field->pSize = field->tag;
                 }
 
@@ -959,16 +947,6 @@ static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type
 
 static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
-#ifdef PB_ENABLE_MALLOC
-    /* When decoding an oneof field, check if there is old data that must be
-     * released first. */
-    if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-    {
-        if (!pb_release_union_field(ctx, field))
-            return false;
-    }
-#endif
-
     switch (PB_ATYPE(field->type))
     {
         case PB_ATYPE_STATIC:
@@ -990,8 +968,8 @@ static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_t
  *********************/
 
 typedef struct {
-    // Parent stream length that gets stored when
-    // pb_decode_open_substream() is called.
+    // Parent stream length that gets stored when pb_decode_open_substream() is called.
+    // It's also used to store wire type when oneof release is done.
     size_t old_length;
 
     // Flags for this recursion level
@@ -1012,12 +990,14 @@ typedef struct {
     // pointer arithmetic is used to access it.
 } pb_decode_walk_stackframe_t;
 
+// State flags apply to all recursion levels.
+// Frame flags apply to single level, and are used for unsetting state flags.
 #define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
 #define PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD     (uint_least16_t)2
 #define PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS      (uint_least16_t)1
 #define PB_DECODE_WALK_FRAME_FLAG_END_RELEASE       (uint_least16_t)2
 
-static pb_walk_stacksize_t stacksize_for_msg(const pb_msgdesc_t *msgdesc)
+static inline pb_walk_stacksize_t stacksize_for_msg(const pb_msgdesc_t *msgdesc)
 {
     // Round upwards the needed number of bytes to store required_field_count bits
     pb_walk_stacksize_t stacksize = sizeof(pb_decode_walk_stackframe_t);
@@ -1061,6 +1041,60 @@ static bool check_all_required_fields_present(pb_walk_state_t *state)
 
     return true;
 }
+
+#ifdef PB_ENABLE_MALLOC
+
+// Check if there is old data in the oneof union that needs to be released
+// prior to replacing it with a new value.
+// Return value:
+//   PB_WALK_NEXT_ITEM => ok, released or no release needed
+//   PB_WALK_IN => release requires recursion, field->pData has been adjusted to the old field
+//   PB_WALK_EXIT_ERR => release failed
+static pb_walk_retval_t release_oneof(pb_decode_ctx_t *ctx, pb_field_iter_t *field, bool submsg_released)
+{
+    pb_field_iter_t old_field = *field;
+    pb_tag_t old_tag = *(pb_tag_t*)field->pSize; /* Previous which_ value */
+    pb_tag_t new_tag = field->tag; /* New which_ value */
+
+    if (old_tag == 0)
+        return PB_WALK_NEXT_ITEM; /* Ok, no old data in union */
+
+    if (old_tag == new_tag)
+        return PB_WALK_NEXT_ITEM; /* Ok, old data is of same type => merge */
+
+    /* Release old data. The find can fail if the message struct contains
+     * invalid data. */
+    if (!pb_field_iter_find(&old_field, old_tag, NULL))
+    {
+        PB_SET_ERROR(ctx, "invalid union tag");
+        return PB_WALK_EXIT_ERR;
+    }
+
+    pb_type_t type = old_field.type;
+    if (PB_LTYPE_IS_SUBMSG(type) && PB_ATYPE(type) != PB_ATYPE_CALLBACK && !submsg_released)
+    {
+        if (old_field.submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_PTRS)
+        {
+            // Recurse into the *old* submessage.
+            // After it's done, pb_walk() restores iterator to point to the new field type
+            field->pData = old_field.pData;
+            field->submsg_desc = old_field.submsg_desc;
+            return PB_WALK_IN;
+        }
+    }
+
+    pb_release_single_field(ctx, &old_field);
+
+    *(pb_tag_t*)field->pSize = 0;
+
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        field->pData = NULL;
+    }
+
+    return PB_WALK_NEXT_ITEM;
+}
+#endif
 
 static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *state)
 {
@@ -1185,6 +1219,12 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
     pb_decode_ctx_t *ctx = (pb_decode_ctx_t*)state->ctx;
     pb_decode_walk_stackframe_t *frame = (pb_decode_walk_stackframe_t*)state->stack;
 
+    // Tag and wire type of next field from the input stream
+    uint32_t tag = 0;
+    pb_wire_type_t wire_type = PB_WT_VARINT;
+    bool eof = false;
+    bool skip_decode_tag = false;
+
     if (state->flags & PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS)
     {
         if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS)
@@ -1200,28 +1240,44 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             return pb_defaults_walk_cb(state);
         }
     }
+#ifdef PB_ENABLE_MALLOC
+    else if (state->flags & PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD)
+    {
+        if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_RELEASE)
+        {
+            // Old oneof field has been released, proceed to decoding
+            // the new one. This will happen through the loop below.
+            // Tag of the new field has already been read.
+            frame->flags = 0;
+            state->flags = 0;
+            tag = iter->tag;
+            wire_type = (pb_wire_type_t)frame->old_length;
+            skip_decode_tag = true;
+            frame->old_length = 0;
 
-    if (state->retval == PB_WALK_OUT)
+            // Still need to release the top-level pointer
+            release_oneof(ctx, iter, true);
+        }
+        else
+        {
+            return pb_release_walk_cb(state);
+        }
+    }
+#endif
+    else if (state->retval == PB_WALK_OUT)
     {
         // Close the substream opened for the submessage
         if (!pb_decode_close_substream(ctx, frame->old_length))
             return PB_WALK_EXIT_ERR;
     }
 
-    if (state->stacksize < stacksize_for_msg(iter->descriptor))
-    {
-        PB_SET_ERROR(ctx, "walk state corrupted");
-        return PB_WALK_EXIT_ERR;
-    }
-
-    // Tag and wire type of next field from the input stream
-    uint32_t tag;
-    pb_wire_type_t wire_type;
-    bool eof;
+    PB_OPT_ASSERT(state->stacksize >= stacksize_for_msg(iter->descriptor));
 
     // Each loop iteration reads one field tag from the input stream
-    while (pb_decode_tag(ctx, &wire_type, &tag, &eof))
+    while (skip_decode_tag || pb_decode_tag(ctx, &wire_type, &tag, &eof))
     {
+        skip_decode_tag = false;
+
         // Check for the optional zero tag termination
         if (tag == 0)
         {
@@ -1295,6 +1351,23 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 
             iter->pSize = &frame->fixarray_count;
         }
+        else if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+        {
+            // Release old value of the oneof field
+#ifdef PB_ENABLE_MALLOC
+            pb_walk_retval_t retval = release_oneof(ctx, iter, false);
+            if (retval != PB_WALK_NEXT_ITEM)
+            {
+                if (retval == PB_WALK_IN)
+                {
+                    state->flags |= PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD;
+                    frame->flags |= PB_DECODE_WALK_FRAME_FLAG_END_RELEASE;
+                    frame->old_length = (size_t)wire_type;
+                }
+                return retval;
+            }
+#endif
+        }
 
         pb_walk_retval_t retval = PB_WALK_NEXT_ITEM;
 
@@ -1306,15 +1379,6 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
                 PB_SET_ERROR(ctx, "wrong wire type");
                 return PB_WALK_EXIT_ERR;
             }
-
-#ifdef PB_ENABLE_MALLOC
-            if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
-            {
-                // TODO: reuse the same pb_walk context for doing pb_release()
-                if (!pb_release_union_field(ctx, iter))
-                    return PB_WALK_EXIT_ERR;
-            }
-#endif
 
             retval = decode_submsg(ctx, state);
         }
@@ -1421,82 +1485,6 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
 
 #ifdef PB_ENABLE_MALLOC
 
-// TODO: refactor pb_release_union_field() so that recursion here is not needed
-static void recursive_release(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
-{
-    /* Release fields in submessage or submsg array */
-    pb_size_t count = 1;
-
-    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-    {
-        field->pData = *(void**)field->pField;
-    }
-    else
-    {
-        field->pData = field->pField;
-    }
-
-    if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-    {
-        count = *(pb_size_t*)field->pSize;
-
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC && count > field->array_size)
-        {
-            /* Protect against corrupted _count fields */
-            count = field->array_size;
-        }
-    }
-
-    if (field->pData)
-    {
-        for (; count > 0; count--)
-        {
-            pb_release_s(ctx, field->submsg_desc, field->pData, field->data_size);
-            field->pData = (char*)field->pData + field->data_size;
-        }
-    }
-}
-
-/* Given an oneof field, if there has already been a field inside this oneof,
- * release it before overwriting with a different one. */
-static bool pb_release_union_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
-{
-    pb_field_iter_t old_field = *field;
-    pb_tag_t old_tag = *(pb_tag_t*)field->pSize; /* Previous which_ value */
-    pb_tag_t new_tag = field->tag; /* New which_ value */
-
-    if (old_tag == 0)
-        return true; /* Ok, no old data in union */
-
-    if (old_tag == new_tag)
-        return true; /* Ok, old data is of same type => merge */
-
-    /* Release old data. The find can fail if the message struct contains
-     * invalid data. */
-    if (!pb_field_iter_find(&old_field, old_tag, NULL))
-        PB_RETURN_ERROR(ctx, "invalid union tag");
-
-    pb_type_t type = old_field.type;
-    if (PB_LTYPE_IS_SUBMSG(type) && PB_ATYPE(type) != PB_ATYPE_CALLBACK)
-    {
-        if (old_field.submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_PTRS)
-        {
-            recursive_release(ctx, &old_field);
-        }
-    }
-
-    pb_release_single_field(ctx, &old_field);
-
-    *(pb_tag_t*)field->pSize = 0;
-
-    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
-    {
-        field->pData = NULL;
-    }
-
-    return true;
-}
-
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 {
     pb_type_t type;
@@ -1525,9 +1513,9 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
             /* We are going to release the array, so set the size to 0 */
             *(pb_size_t*)field->pSize = 0;
         }
-        
-        if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
+        else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
         {
+            /* Set oneof which_field to 0 */
             *(pb_tag_t*)field->pSize = 0;
         }
 
