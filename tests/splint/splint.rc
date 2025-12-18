@@ -41,3 +41,4 @@
 
 # Avoid false errors from static asserts
 -DPB_NO_STATIC_ASSERT
+-DPB_NO_OPT_ASSERT
