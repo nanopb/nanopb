@@ -28,9 +28,6 @@
 /* Disable support for error messages in order to save some code space. */
 /* #define PB_NO_ERRMSG 1 */
 
-/* Disable checks to ensure sub-message encoded size is consistent when re-run. */
-/* #define PB_NO_ENCODE_SIZE_CHECK 1 */
-
 /* Disable support for custom streams (support only memory buffers). */
 /* #define PB_BUFFER_ONLY 1 */
 
