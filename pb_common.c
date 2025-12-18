@@ -49,11 +49,8 @@ static bool validate_data_pointer(pb_field_iter_t *iter, void *ptr)
     if (queryptr >= baseptr + iter->data_size * count)
         return false; // Past the end of the field
 
-#ifndef PB_NO_DIVISION
-    pb_size_t offset = (pb_size_t)(queryptr - baseptr);
-    if (offset % iter->data_size != 0)
-        return false; // Not aligned
-#endif
+    // Alignment should always be correct if pointer is otherwise valid
+    PB_OPT_ASSERT((pb_size_t)(queryptr - baseptr) % iter->data_size == 0);
 
     return true;
 }
