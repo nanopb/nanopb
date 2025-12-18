@@ -434,12 +434,12 @@ static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
 
     if (init_data)
     {
-        // Submessage needs recursive initialization if it has pointers
-        // or submessages with default values. Otherwise it can be memset
-        // to 0, which is faster.
-        pb_msgflag_t init_flags = (PB_MSGFLAG_EXTENSIBLE |
-                                   PB_MSGFLAG_R_HAS_PTRS |
-                                   PB_MSGFLAG_R_HAS_DEFVAL);
+        // Submessage needs recursive initialization if it has callbacks
+        // that must be skipped or fields with default values.
+        // Otherwise it can be memset to 0, which is faster.
+        pb_msgflag_t init_flags = (PB_MSGFLAG_R_HAS_DEFVAL |
+                                   PB_MSGFLAG_R_HAS_CBS |
+                                   PB_MSGFLAG_R_HAS_EXTS);
         if (PB_LTYPE_IS_SUBMSG(iter->type) &&
             (iter->submsg_desc->msg_flags & init_flags) != 0)
         {

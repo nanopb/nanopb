@@ -451,6 +451,8 @@ typedef uint16_t pb_msgflag_t;
 #define PB_MSGFLAG_EXTENSIBLE     ((pb_msgflag_t)1 << 1)
 #define PB_MSGFLAG_R_HAS_PTRS     ((pb_msgflag_t)1 << 8)
 #define PB_MSGFLAG_R_HAS_DEFVAL   ((pb_msgflag_t)1 << 9)
+#define PB_MSGFLAG_R_HAS_CBS      ((pb_msgflag_t)1 << 10)
+#define PB_MSGFLAG_R_HAS_EXTS     ((pb_msgflag_t)1 << 11)
 
 /* Collect recursive flags from submessages */
 #define PB_MSGFLAG_COLLECT(x)     ((x) & 0xFF00)
@@ -620,7 +622,7 @@ struct pb_extension_s {
 #endif
 
 /* This is used to inform about need to regenerate .pb.h/.pb.c files. */
-#define PB_PROTO_HEADER_VERSION 92
+#define PB_PROTO_HEADER_VERSION 93
 
 /* These macros are used to declare pb_field_t's in the constant array. */
 /* Size of a structure member, in bytes. */

@@ -5,7 +5,7 @@
 #define PB_ALLTYPES_LEGACY_H_INCLUDED
 #include <pb.h>
 
-#if PB_PROTO_HEADER_VERSION != 92
+#if PB_PROTO_HEADER_VERSION != 93
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
@@ -329,7 +329,7 @@ X(a, STATIC,   REQUIRED, INT32,    end,              99) \
 X(a, CALLBACK, OPTIONAL, EXTENSION, extensions,      200)
 #define AllTypes_CALLBACK pb_default_field_callback
 #define AllTypes_DEFAULT (const pb_byte_t*)"\xc8\x02\xc9\x1f\xd0\x02\xca\x1f\xd8\x02\xcb\x1f\xe0\x02\xcc\x1f\xe8\x02\x9a\x3f\xf0\x02\x9c\x3f\xf8\x02\x00\x85\x03\xd0\x0f\x00\x00\x8d\x03\xd1\x0f\x00\x00\x95\x03\x00\x20\x7d\x45\x99\x03\xd3\x0f\x00\x00\x00\x00\x00\x00\xa1\x03\xd4\x0f\x00\x00\x00\x00\x00\x00\xa9\x03\x00\x00\x00\x00\x00\xaa\xaf\x40\xb2\x03\x04\x34\x30\x35\x34\xba\x03\x04\x34\x30\x35\x35\xc8\x03\x02\x00"
-#define AllTypes_FLAGS (PB_MSGFLAG_EXTENSIBLE | PB_MSGFLAG_R_HAS_DEFVAL)
+#define AllTypes_FLAGS (PB_MSGFLAG_EXTENSIBLE | PB_MSGFLAG_R_HAS_CBS | PB_MSGFLAG_R_HAS_DEFVAL | PB_MSGFLAG_R_HAS_EXTS)
 #define AllTypes_req_submsg_MSGTYPE SubMessage
 #define AllTypes_rep_submsg_MSGTYPE SubMessage
 #define AllTypes_opt_submsg_MSGTYPE SubMessage
