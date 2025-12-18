@@ -1515,11 +1515,15 @@ class Message(ProtoElement):
             flags.add('PB_MSGFLAG_R_HAS_DEFVAL')
 
         for f in self.fields:
-            if f.allocation in ['POINTER', 'CALLBACK'] or f.pbtype in ['EXTENSION', 'MSG_W_CB']:
+            if f.allocation == 'POINTER':
                 flags.add('PB_MSGFLAG_R_HAS_PTRS')
+
+            if f.allocation == 'CALLBACK' or f.pbtype == 'MSG_W_CB':
+                flags.add('PB_MSGFLAG_R_HAS_CBS')
 
             if f.pbtype == 'EXTENSION':
                 flags.add('PB_MSGFLAG_EXTENSIBLE')
+                flags.add('PB_MSGFLAG_R_HAS_EXTS')
 
             if f.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 submsg = dependencies.get(str(f.submsgname))
@@ -2169,7 +2173,7 @@ class ProtoFile:
 
         yield '\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 92\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 93\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
@@ -2366,7 +2370,7 @@ class ProtoFile:
         if Globals.protoc_insertion_points:
             yield '/* @@protoc_insertion_point(includes) */\n'
 
-        yield '#if PB_PROTO_HEADER_VERSION != 92\n'
+        yield '#if PB_PROTO_HEADER_VERSION != 93\n'
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
