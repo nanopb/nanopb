@@ -305,7 +305,18 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
         return false;
     }
     
+#ifdef PB_NO_LARGEMSG
+    // Range of tags in messages is limited to 4096,
+    // make sure large tag numbers are not confused
+    // after truncation to pb_tag_t.
+    pb_tag_t tag_val = (pb_tag_t)(temp >> 3);
+    if (tag_val != (temp >> 3))
+        tag_val = 65535;
+    *tag = tag_val;
+#else
     *tag = temp >> 3;
+#endif
+
     *wire_type = (pb_wire_type_t)(temp & 7);
     return true;
 }
@@ -473,7 +484,7 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     }
 
     pb_decode_ctx_t defctx = PB_ISTREAM_EMPTY;
-    uint32_t tag = 0;
+    pb_tag_t tag = 0;
     pb_wire_type_t wire_type = PB_WT_VARINT;
     bool eof;
 
@@ -1220,7 +1231,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
     pb_decode_walk_stackframe_t *frame = (pb_decode_walk_stackframe_t*)state->stack;
 
     // Tag and wire type of next field from the input stream
-    uint32_t tag = 0;
+    pb_tag_t tag = 0;
     pb_wire_type_t wire_type = PB_WT_VARINT;
     bool eof = false;
     bool skip_decode_tag = false;

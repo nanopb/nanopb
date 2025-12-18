@@ -144,6 +144,8 @@ message AllTypes {
     required IntSizes req_intsizes = 96;
 
     // Check support for 8-word descriptors
+    // No longer relevant with nanopb 1.0, but retained so that
+    // test case output can be compared between versions.
     required DescriptorSize8 req_ds8 = 97;
 
     // Check that extreme integer values are handled correctly

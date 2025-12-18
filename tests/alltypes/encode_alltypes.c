@@ -86,10 +86,16 @@ int main(int argc, char **argv)
         alltypes.req_limits.uint64_max = UINT64_MAX;
         alltypes.req_limits.enum_min   = HugeEnum_Negative;
         alltypes.req_limits.enum_max   = HugeEnum_Positive;
+
+#ifndef PB_NO_LARGEMSG
         alltypes.req_limits.largetag   = 1001;
+#endif
 
         alltypes.req_ds8.first = 9991;
+
+#ifndef PB_NO_LARGEMSG
         alltypes.req_ds8.second = 9992;
+#endif
 
         alltypes.req_intsizes.req_int8 = -128;
         alltypes.req_intsizes.req_uint8 = 255;
