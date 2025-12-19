@@ -139,7 +139,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * Alternatively, you can use a custom stream that reads directly from e.g.
  * a file or a network socket.
  */
-bool pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen);
+void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen);
 
 /* Function to read from the stream associated with decode context. You can use this if you need to
  * read some custom header data, or to read data in field callbacks.
@@ -214,7 +214,7 @@ bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length);
 static inline pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
 {
     pb_istream_t ctx;
-    (void)pb_init_decode_ctx_for_buffer(&ctx, buf, msglen);
+    pb_init_decode_ctx_for_buffer(&ctx, buf, msglen);
     return ctx;
 }
 
