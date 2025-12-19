@@ -126,22 +126,10 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  * Alternatively, you can use a custom stream that writes directly to e.g.
  * a file or a network socket.
  */
-bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize);
+void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize);
 
-/* Pseudo-stream for measuring the size of a message without actually storing
- * the encoded data.
- * 
- * Example usage:
- *    MyMessage msg = {};
- *    pb_ostream_t stream = PB_OSTREAM_SIZING;
- *    pb_encode(&stream, MyMessage_fields, &msg);
- *    printf("Message size is %d\n", stream.bytes_written);
- */
-#ifndef PB_NO_ERRMSG
-#define PB_OSTREAM_SIZING {0,0,0,0,0,0}
-#else
-#define PB_OSTREAM_SIZING {0,0,0,0,0}
-#endif
+/* Create encode context that writes nothing, just computes the size */
+void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx);
 
 /* Function to write into a pb_ostream_t stream. You can use this if you need
  * to append or prepend some custom headers to the message.
@@ -209,9 +197,16 @@ bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, cons
 static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
 {
     pb_ostream_t ctx;
-    (void)pb_init_encode_ctx_for_buffer(&ctx, buf, bufsize);
+    pb_init_encode_ctx_for_buffer(&ctx, buf, bufsize);
     return ctx;
 }
+
+/* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
+#ifndef PB_NO_ERRMSG
+#define PB_OSTREAM_SIZING {0,0,0,0,0,0}
+#else
+#define PB_OSTREAM_SIZING {0,0,0,0,0}
+#endif
 
 /* Extended version of pb_encode, with several options to control the
  * encoding process:

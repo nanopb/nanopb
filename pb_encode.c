@@ -58,7 +58,7 @@ static bool checkreturn buf_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, si
     return true;
 }
 
-bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize)
+void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize)
 {
     ctx->flags = 0;
 #ifdef PB_BUFFER_ONLY
@@ -76,7 +76,17 @@ bool pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
-    return true;
+}
+
+void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
+{
+    ctx->flags = PB_ENCODE_CTX_FLAG_SIZING;
+    ctx->callback = 0;
+    ctx->max_size = PB_SIZE_MAX;
+    ctx->bytes_written = 0;
+#ifndef PB_NO_ERRMSG
+    ctx->errmsg = NULL;
+#endif
 }
 
 bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
@@ -157,17 +167,22 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
             size = 8 * (size_t)count;
         }
         else
-        { 
-            pb_ostream_t sizestream = PB_OSTREAM_SIZING;
+        {
+            pb_encode_ctx_flags_t flags_orig = ctx->flags;
+            size_t size_orig = ctx->bytes_written;
+            ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+
             void *pData_orig = field->pData;
             for (i = 0; i < count; i++)
             {
-                if (!pb_enc_varint(&sizestream, field))
-                    PB_RETURN_ERROR(ctx, PB_GET_ERROR(&sizestream));
+                if (!pb_enc_varint(ctx, field))
+                    return false;
                 field->pData = (char*)field->pData + field->data_size;
             }
             field->pData = pData_orig;
-            size = sizestream.bytes_written;
+            size = ctx->bytes_written - size_orig;
+            ctx->bytes_written = size_orig;
+            ctx->flags = flags_orig;
         }
         
         if (!pb_encode_varint(ctx, (pb_uint64_t)size))
@@ -666,12 +681,13 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
 bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
                 const void *src_struct, size_t struct_size)
 {
-    pb_ostream_t stream = PB_OSTREAM_SIZING;
+    pb_encode_ctx_t ctx;
+    pb_init_encode_ctx_sizing(&ctx);
     
-    if (!pb_encode_s(&stream, fields, src_struct, struct_size))
+    if (!pb_encode_s(&ctx, fields, src_struct, struct_size))
         return false;
     
-    *size = stream.bytes_written;
+    *size = ctx.bytes_written;
     return true;
 }
 

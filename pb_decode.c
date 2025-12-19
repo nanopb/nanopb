@@ -134,7 +134,7 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
     return true;    
 }
 
-bool pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen)
+void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen)
 {
     /* Cast away the const from buf without a compiler error.  We are
      * careful to use it only in a const manner in the callbacks.
@@ -155,7 +155,6 @@ bool pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, s
     ctx->errmsg = NULL;
 #endif
     ctx->flags = 0;
-    return true;
 }
 
 
@@ -491,8 +490,8 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     if (iter->descriptor->default_value)
     {
         // Field default values are stored as a protobuf stream
-        if (!pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, (size_t)-1) ||
-            !pb_decode_tag(&defctx, &wire_type, &tag, &eof))
+        pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, (size_t)-1);
+        if (!pb_decode_tag(&defctx, &wire_type, &tag, &eof))
         {
             return PB_WALK_EXIT_ERR;
         }
@@ -939,18 +938,18 @@ static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type
         // Call the field callback with a length-limited buffer
         // substream context.
         // This is a manual version of pb_decode_open_substream().
+        pb_decode_ctx_flags_t old_flags = ctx->flags;
         size_t old_length = ctx->bytes_left;
         void *old_state = ctx->state;
         pb_decode_ctx_read_callback_t old_callback = ctx->callback;
 
-        if (!pb_init_decode_ctx_for_buffer(ctx, buffer, size))
-            return false;
-        
+        pb_init_decode_ctx_for_buffer(ctx, buffer, size);
         bool status = field->descriptor->field_callback(ctx, NULL, field);
 
         ctx->bytes_left = old_length;
         ctx->state = old_state;
         ctx->callback = old_callback;
+        ctx->flags = old_flags;
 
         return status;
     }
