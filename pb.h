@@ -146,6 +146,11 @@ extern "C" {
 #   define pb_packed
 #endif
 
+/* Old name for PB_NO_STREAM_CALLBACK */
+#ifdef PB_BUFFER_ONLY
+#define PB_NO_STREAM_CALLBACK
+#endif
+
 /* Define for explicitly not inlining a given function */
 #ifndef pb_noinline
 #if defined(__GNUC__) || defined(__clang__)

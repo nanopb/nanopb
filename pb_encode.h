@@ -12,15 +12,7 @@
 extern "C" {
 #endif
 
-#ifdef PB_BUFFER_ONLY
-/* Callback pointer is not used in buffer-only configuration.
- * Having an int pointer here allows binary compatibility but
- * gives an error if someone tries to assign callback function.
- * Also, NULL pointer marks a 'sizing stream' that does not
- * write anything.
- */
-typedef const int* pb_encode_ctx_write_callback_t;
-#else
+#ifndef PB_NO_STREAM_CALLBACK
 /* Callback pointer for custom stream types. This can write the
  * bytes directly to your storage, which can be for example
  * a file or a network socket.
@@ -41,6 +33,7 @@ typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_by
 typedef uint16_t pb_encode_ctx_flags_t;
 
 // PB_ENCODE_CTX_FLAG_SIZING: Don't write output data, just compute size
+// When this flag is set, only bytes_written is modified.
 #define PB_ENCODE_CTX_FLAG_SIZING            (pb_encode_ctx_flags_t)(1 << 0)
 
 // PB_ENCODE_CTX_FLAG_DELIMITED: Write data length as varint before the main message.
@@ -57,18 +50,19 @@ typedef uint16_t pb_encode_ctx_flags_t;
  */
 struct pb_encode_ctx_s
 {
+#ifndef PB_NO_STREAM_CALLBACK
+    // Optional callback function for writing to output directly, instead
+    // of the memory buffer. State is a free field for use by the callback.
+    // It's also allowed to extend the pb_encode_ctx_t struct with your own
+    // fields by sub-structing it.
     pb_encode_ctx_write_callback_t callback;
-
-    /* state is a free field for use of the callback function defined above.
-     * Note that when pb_ostream_from_buffer() is used, it reserves this field
-     * for its own use.
-     */
     void *state;
+#endif
 
-    /* Limit number of output bytes written. Can be set to SIZE_MAX. */
+    // Limit number of output bytes written. Can be set to SIZE_MAX.
     size_t max_size;
 
-    /* Number of bytes written so far. */
+    // Number of bytes written so far.
     size_t bytes_written;
     
 #ifndef PB_NO_ERRMSG
@@ -76,7 +70,22 @@ struct pb_encode_ctx_s
     const char *errmsg;
 #endif
 
+    // Flags that affect encoding behavior, combination of PB_ENCODE_CTX_FLAG_*
     pb_encode_ctx_flags_t flags;
+
+    // Memory buffer used to store encoded data.
+    // If callback is provided, this is optional and used as cache.
+    pb_byte_t *buffer;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    // Total size of memory buffer
+    // If callback is not used, this is equal to max_size.
+    size_t buffer_size;
+
+    // Number of bytes currently in memory buffer
+    // If callback is not used, this is equal to bytes_written.
+    size_t buffer_count;
+#endif
 };
 
 /***************************
@@ -128,14 +137,26 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  */
 void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize);
 
+#ifndef PB_NO_STREAM_CALLBACK
+/* Create encode context for a stream with a callback function.
+ * State is a free pointer for use by the callback.
+ * A memory buffer can optionally be provided for caching.
+ */
+void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
+    pb_encode_ctx_write_callback_t callback, void *state,
+    size_t max_size, pb_byte_t *buf, size_t bufsize);
+#endif
+
+
 /* Create encode context that writes nothing, just computes the size */
 void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx);
 
 /* Function to write into a pb_ostream_t stream. You can use this if you need
  * to append or prepend some custom headers to the message.
+ *
+ * If stream callback is used, this pushes all buffered data to the callback.
  */
 bool pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
-
 
 /************************************************
  * Helper functions for writing field callbacks *
@@ -202,10 +223,18 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 }
 
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
-#ifndef PB_NO_ERRMSG
-#define PB_OSTREAM_SIZING {0,0,0,0,0,0}
+#ifndef PB_NO_STREAM_CALLBACK
+# ifndef PB_NO_ERRMSG
+#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0}
+# else
+#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0}
+# endif
 #else
-#define PB_OSTREAM_SIZING {0,0,0,0,0}
+# ifndef PB_NO_ERRMSG
+#  define PB_OSTREAM_SIZING {0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL}
+# else
+#  define PB_OSTREAM_SIZING {0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL}
+# endif
 #endif
 
 /* Extended version of pb_encode, with several options to control the
