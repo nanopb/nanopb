@@ -12,13 +12,7 @@
 extern "C" {
 #endif
 
-#ifdef PB_BUFFER_ONLY
-/* Callback pointer is not used in buffer-only configuration.
- * Having an int pointer here allows binary compatibility but
- * gives an error if someone tries to assign callback function.
- */
-typedef const int* pb_decode_ctx_read_callback_t;
-#else
+#ifndef PB_NO_STREAM_CALLBACK
 /* Callback pointer for custom stream types. This can read the
  * bytes directly from your storage, which can be for example
  * a file or a network socket.
@@ -59,34 +53,42 @@ typedef uint16_t pb_decode_ctx_flags_t;
  */
 struct pb_decode_ctx_s
 {
+#ifndef PB_NO_STREAM_CALLBACK
+    // Optional callback for reading from input directly, instead
+    // of the memory buffer. State is a free field for use by the callback.
+    // It's also allowed to extend the pb_encode_ctx_t struct with your own
+    // fields by wrapping it.
     pb_decode_ctx_read_callback_t callback;
-
-    /* state is a free field for use of the callback function defined above.
-     * Note that when pb_istream_from_buffer() is used, it reserves this field
-     * for its own use.
-     */
     void *state;
+#endif
 
-    /* Maximum number of bytes left in this stream. Callback can report
-     * EOF before this limit is reached. Setting a limit is recommended
-     * when decoding directly from file or network streams to avoid
-     * denial-of-service by excessively long messages.
-     */
+    // Maximum number of bytes left in this stream. Callback can report
+    // EOF before this limit is reached. Setting a limit is recommended
+    // when decoding directly from file or network streams to avoid
+    // denial-of-service by excessively long messages.
     size_t bytes_left;
     
 #ifndef PB_NO_ERRMSG
-    /* Pointer to constant (ROM) string when decoding function returns error */
+    // Pointer to constant (ROM) string when decoding function returns error
     const char *errmsg;
 #endif
 
+    // Flags that affect decoding behavior, combination of PB_DECODE_CTX_FLAG_*
     pb_decode_ctx_flags_t flags;
-};
 
-#ifndef PB_NO_ERRMSG
-#define PB_ISTREAM_EMPTY {0,0,0,0,0}
-#else
-#define PB_ISTREAM_EMPTY {0,0,0,0}
+    // Memory buffer with the data to decode.
+    // The pointer is advanced when data has been read
+    const pb_byte_t *rdpos;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    // Pointer to the beginning of the memory buffer usable as cache
+    // Bytes are stored aligned to the end of the buffer.
+    pb_byte_t *buffer;
+
+    // Total size of the cache buffer
+    size_t buffer_size;
 #endif
+};
 
 /***************************
  * Main decoding functions *
@@ -140,6 +142,16 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * a file or a network socket.
  */
 void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen);
+
+#ifndef PB_NO_STREAM_CALLBACK
+/* Create encode context for a stream with a callback function.
+ * State is a free pointer for use by the callback.
+ * A memory buffer can optionally be provided for caching.
+ */
+void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
+    pb_decode_ctx_read_callback_t callback, void *state,
+    size_t msglen, pb_byte_t *buf, size_t bufsize);
+#endif
 
 /* Function to read from the stream associated with decode context. You can use this if you need to
  * read some custom header data, or to read data in field callbacks.
@@ -235,6 +247,22 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
     *stream = *substream;
     return pb_decode_close_substream(stream, old_length);
 }
+
+// PB_ISTREAM_EMPTY has been replaced by pb_init_decode_ctx_buffer() function
+// called with zero length.
+#ifndef PB_NO_STREAM_CALLBACK
+# ifndef PB_NO_ERRMSG
+#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, NULL, 0, NULL, NULL, 0}
+# else
+#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, 0, NULL, NULL, 0}
+# endif
+#else
+# ifndef PB_NO_ERRMSG
+#  define PB_ISTREAM_EMPTY {0, NULL, 0, NULL}
+# else
+#  define PB_ISTREAM_EMPTY {0, 0, NULL}
+# endif
+#endif
 
 /* Extended version of pb_decode, with several options to control
  * the decoding process:

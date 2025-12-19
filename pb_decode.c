@@ -22,7 +22,6 @@
  * Declarations internal to this file *
  **************************************/
 
-static bool checkreturn buf_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 static bool checkreturn read_raw_value(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
 static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
@@ -52,6 +51,14 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #define pb_uint64_t uint64_t
 #endif
 
+#ifndef PB_NO_ERRMSG
+#ifndef PB_NO_STREAM_CALLBACK
+// This is used in pb_decode_tag() to workaround corner case
+// in EOF detection with input stream callbacks.
+static const char c_errmsg_io_error[] = "io error";
+#endif
+#endif
+
 typedef struct {
     uint32_t bitfield[(PB_MAX_REQUIRED_FIELDS + 31) / 32];
 } pb_fields_seen_t;
@@ -60,56 +67,77 @@ typedef struct {
  * pb_istream_t implementation *
  *******************************/
 
-static bool checkreturn buf_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count)
-{
-    const pb_byte_t *source = (const pb_byte_t*)ctx->state;
-    ctx->state = (pb_byte_t*)ctx->state + count;
-    
-    if (buf != NULL)
-    {
-        memcpy(buf, source, count * sizeof(pb_byte_t));
-    }
-    
-    return true;
-}
-
 bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count)
 {
     if (count == 0)
         return true;
 
-#ifndef PB_BUFFER_ONLY
-	if (buf == NULL && ctx->callback != buf_read)
-	{
-		/* Skip input bytes */
-		pb_byte_t tmp[16];
-		while (count > 16)
-		{
-			if (!pb_read(ctx, tmp, 16))
-				return false;
-			
-			count -= 16;
-		}
-		
-		return pb_read(ctx, tmp, count);
-	}
-#endif
-
     if (ctx->bytes_left < count)
         PB_RETURN_ERROR(ctx, "end-of-stream");
+
+    size_t bufcount = 0;
     
-#ifndef PB_BUFFER_ONLY
-    if (!ctx->callback(ctx, buf, count))
-        PB_RETURN_ERROR(ctx, "io error");
-#else
-    if (!buf_read(ctx, buf, count))
-        return false;
+    if (ctx->rdpos)
+    {
+        bufcount = count;
+
+#ifndef PB_NO_STREAM_CALLBACK
+        // Check how much data is available from cache
+        if (ctx->buffer_size > 0)
+        {
+            PB_OPT_ASSERT(ctx->rdpos >= ctx->buffer &&
+                        ctx->rdpos <= ctx->buffer + ctx->buffer_size);
+
+            size_t buf_remain = ctx->buffer_size - (size_t)(ctx->rdpos - ctx->buffer);
+            if (bufcount > buf_remain)
+            {
+                bufcount = buf_remain;
+            }
+        }
 #endif
     
-    if (ctx->bytes_left < count)
-        ctx->bytes_left = 0;
-    else
-        ctx->bytes_left -= count;
+        if (buf != NULL)
+        {
+            memcpy(buf, ctx->rdpos, bufcount);
+        }
+
+        ctx->rdpos += bufcount;
+        ctx->bytes_left -= bufcount;
+    }
+
+#ifndef PB_NO_STREAM_CALLBACK
+    if (ctx->callback != NULL && bufcount < count)
+    {
+        // Read rest of the data directly from callback
+        size_t cbcount = count - bufcount;
+        ctx->rdpos = NULL;
+
+        if (buf != NULL)
+        {
+            if (!ctx->callback(ctx, buf + bufcount, cbcount))
+                PB_RETURN_ERROR(ctx, c_errmsg_io_error);
+        }
+        else
+        {
+            // Discard bytes coming from the callback
+            pb_byte_t tmp[16];
+            size_t remain = cbcount;
+            while (remain > 0)
+            {
+                size_t block = (remain > sizeof(tmp)) ? sizeof(tmp) : remain;
+                if (!ctx->callback(ctx, tmp, block))
+                    PB_RETURN_ERROR(ctx, c_errmsg_io_error);
+
+                remain -= block;
+            }
+        }
+
+        if (ctx->bytes_left < cbcount)
+            ctx->bytes_left = 0;
+        else
+            ctx->bytes_left -= cbcount;
+    }
+#endif
 
     return true;
 }
@@ -121,14 +149,20 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
     if (ctx->bytes_left == 0)
         PB_RETURN_ERROR(ctx, "end-of-stream");
 
-#ifndef PB_BUFFER_ONLY
-    if (!ctx->callback(ctx, buf, 1))
-        PB_RETURN_ERROR(ctx, "io error");
-#else
-    *buf = *(const pb_byte_t*)ctx->state;
-    ctx->state = (pb_byte_t*)ctx->state + 1;
+#ifndef PB_NO_STREAM_CALLBACK
+    if (!ctx->rdpos ||
+        (ctx->buffer_size > 0 && ctx->rdpos >= ctx->buffer + ctx->buffer_size))
+    {
+        // No more data in cache, read directly from callback
+        ctx->rdpos = NULL;
+        ctx->bytes_left--;
+        if (!ctx->callback(ctx, buf, 1))
+            PB_RETURN_ERROR(ctx, c_errmsg_io_error);
+        return true;
+    }
 #endif
 
+    *buf = *ctx->rdpos++;
     ctx->bytes_left--;
     
     return true;    
@@ -136,27 +170,52 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
 
 void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen)
 {
-    /* Cast away the const from buf without a compiler error.  We are
-     * careful to use it only in a const manner in the callbacks.
-     */
-    union {
-        void *state;
-        const void *c_state;
-    } state;
-#ifdef PB_BUFFER_ONLY
-    ctx->callback = NULL;
-#else
-    ctx->callback = &buf_read;
-#endif
-    state.c_state = buf;
-    ctx->state = state.state;
+    ctx->flags = 0;
     ctx->bytes_left = msglen;
+    ctx->rdpos = buf;
+
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
-    ctx->flags = 0;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    ctx->callback = NULL;
+    ctx->state = NULL;
+    ctx->buffer = NULL;
+    ctx->buffer_size = 0;
+#endif
 }
 
+#ifndef PB_NO_STREAM_CALLBACK
+void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
+    pb_decode_ctx_read_callback_t callback, void *state,
+    size_t msglen, pb_byte_t *buf, size_t bufsize)
+{
+    ctx->flags = 0;
+    ctx->bytes_left = msglen;
+    ctx->rdpos = NULL;
+
+    ctx->callback = callback;
+    ctx->state = state;
+
+    if (bufsize >= 10)
+    {
+        // We need at least one 64-bit varint worth of buffer
+        // for it to be useful.
+        ctx->buffer = buf;
+        ctx->buffer_size = bufsize;
+    }
+    else
+    {
+        ctx->buffer = NULL;
+        ctx->buffer_size = 0;
+    }
+
+#ifndef PB_NO_ERRMSG
+    ctx->errmsg = NULL;
+#endif
+}
+#endif
 
 /********************
  * Helper functions *
@@ -284,18 +343,14 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
 
     if (!pb_decode_varint32(ctx, &temp))
     {
-#ifndef PB_BUFFER_ONLY
-        /* Workaround for issue #1017
-         *
-         * Callback streams don't set bytes_left to 0 on eof until after being called by pb_decode_varint32,
-         * which results in "io error" being raised. This contrasts the behavior of buffer streams who raise
-         * no error on eof as bytes_left is already 0 on entry. This causes legitimate errors (e.g. missing
-         * required fields) to be incorrectly reported by callback streams.
-         */
-        if (ctx->callback != buf_read && ctx->bytes_left == 0)
+#ifndef PB_NO_STREAM_CALLBACK
+        // Callbacks might detect eof only after first unsuccessful read
+        if (ctx->callback != NULL && ctx->bytes_left == 0)
         {
 #ifndef PB_NO_ERRMSG
-            if (strcmp(ctx->errmsg, "io error") == 0)
+            // Workaround issue #1017 where the "io error" message set by pb_readbyte()
+            // will cause other error messages to be overridden later.
+            if (ctx->errmsg == c_errmsg_io_error)
                 ctx->errmsg = NULL;
 #endif
             *eof = true;
@@ -925,31 +980,35 @@ static bool checkreturn decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type
     }
     else
     {
-        /* Copy the single scalar value to stack.
-         * This is required so that we can limit the stream length,
-         * which in turn allows to use same callback for packed and
-         * not-packed fields. */
+        // We need to store a single scalar value in a buffer so that we
+        // know its length before passing it to the callback.
         pb_byte_t buffer[10];
         size_t size = sizeof(buffer);
         
         if (!read_raw_value(ctx, wire_type, buffer, &size))
             return false;
 
-        // Call the field callback with a length-limited buffer
-        // substream context.
-        // This is a manual version of pb_decode_open_substream().
-        pb_decode_ctx_flags_t old_flags = ctx->flags;
-        size_t old_length = ctx->bytes_left;
-        void *old_state = ctx->state;
-        pb_decode_ctx_read_callback_t old_callback = ctx->callback;
+        const pb_byte_t *old_rdpos = ctx->rdpos;
+        size_t old_bytes_left = ctx->bytes_left;
+        ctx->rdpos = buffer;
+        ctx->bytes_left = size;
 
-        pb_init_decode_ctx_for_buffer(ctx, buffer, size);
+#ifndef PB_NO_STREAM_CALLBACK
+        pb_byte_t *old_buffer = ctx->buffer;
+        size_t old_buffer_size = ctx->buffer_size;
+        ctx->buffer = buffer;
+        ctx->buffer_size = size;
+#endif
+
         bool status = field->descriptor->field_callback(ctx, NULL, field);
 
-        ctx->bytes_left = old_length;
-        ctx->state = old_state;
-        ctx->callback = old_callback;
-        ctx->flags = old_flags;
+        ctx->rdpos = old_rdpos;
+        ctx->bytes_left = old_bytes_left;
+
+#ifndef PB_NO_STREAM_CALLBACK
+        ctx->buffer = old_buffer;
+        ctx->buffer_size = old_buffer_size;
+#endif
 
         return status;
     }
