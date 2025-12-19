@@ -54,7 +54,7 @@ struct pb_encode_ctx_s
     // Optional callback function for writing to output directly, instead
     // of the memory buffer. State is a free field for use by the callback.
     // It's also allowed to extend the pb_encode_ctx_t struct with your own
-    // fields by sub-structing it.
+    // fields by wrapping it.
     pb_encode_ctx_write_callback_t callback;
     void *state;
 #endif
