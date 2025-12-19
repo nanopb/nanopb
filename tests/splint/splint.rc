@@ -38,6 +38,7 @@
 -noeffect
 -usedef
 -fcnuse
+-mayaliasunique
 
 # Avoid false errors from static asserts
 -DPB_NO_STATIC_ASSERT

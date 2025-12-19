@@ -21,13 +21,10 @@
 /**************************************
  * Declarations internal to this file *
  **************************************/
-static bool checkreturn buf_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
 static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-// static pb_noinline bool checkreturn encode_extension_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-// static bool checkreturn default_extension_encoder(pb_encode_ctx_t *ctx, const pb_extension_t *extension);
 static bool checkreturn pb_encode_varint_32(pb_encode_ctx_t *ctx, uint32_t low, uint32_t high);
 static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -48,31 +45,20 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb
  * pb_ostream_t implementation *
  *******************************/
 
-static bool checkreturn buf_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
-{
-    pb_byte_t *dest = (pb_byte_t*)ctx->state;
-    ctx->state = dest + count;
-    
-    memcpy(dest, buf, count * sizeof(pb_byte_t));
-    
-    return true;
-}
-
 void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize)
 {
     ctx->flags = 0;
-#ifdef PB_BUFFER_ONLY
-    /* In PB_BUFFER_ONLY configuration the callback pointer is just int*.
-     * NULL pointer marks a sizing field, so put a non-NULL value to mark a buffer stream.
-     */
-    static const int marker = 0;
-    ctx->callback = &marker;
-#else
-    ctx->callback = &buf_write;
-#endif
-    ctx->state = buf;
+    ctx->buffer = buf;
     ctx->max_size = bufsize;
     ctx->bytes_written = 0;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    ctx->callback = NULL;
+    ctx->state = NULL;
+    ctx->buffer_size = bufsize;
+    ctx->buffer_count = 0;
+#endif
+
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
@@ -81,18 +67,48 @@ void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
 void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 {
     ctx->flags = PB_ENCODE_CTX_FLAG_SIZING;
-    ctx->callback = 0;
+    ctx->buffer = NULL;
     ctx->max_size = PB_SIZE_MAX;
     ctx->bytes_written = 0;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    ctx->callback = NULL;
+    ctx->state = NULL;
+    ctx->buffer_size = 0;
+    ctx->buffer_count = 0;
+#endif
+
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 }
 
+#ifndef PB_NO_STREAM_CALLBACK
+void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
+    pb_encode_ctx_write_callback_t callback, void *state,
+    size_t max_size, pb_byte_t *buf, size_t bufsize)
+{
+    ctx->flags = 0;
+    ctx->callback = callback;
+    ctx->state = state;
+
+    ctx->max_size = max_size;
+    ctx->bytes_written = 0;
+
+    ctx->buffer = buf;
+
+    ctx->buffer_size = bufsize;
+    ctx->buffer_count = 0;
+
+#ifndef PB_NO_ERRMSG
+    ctx->errmsg = NULL;
+#endif
+}
+#endif
+
 bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
 {
-    if (count > 0 && ctx->callback != NULL &&
-        (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING) == 0)
+    if (count > 0 && (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING) == 0)
     {
         if (ctx->bytes_written + count < ctx->bytes_written ||
             ctx->bytes_written + count > ctx->max_size)
@@ -100,15 +116,37 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
             PB_RETURN_ERROR(ctx, "stream full");
         }
 
-#ifdef PB_BUFFER_ONLY
-        if (!buf_write(ctx, buf, count))
-            PB_RETURN_ERROR(ctx, "io error");
-#else        
-        if (!ctx->callback(ctx, buf, count))
-            PB_RETURN_ERROR(ctx, "io error");
+#ifndef PB_NO_STREAM_CALLBACK
+        if (ctx->callback)
+        {
+            if (ctx->buffer_count > 0)
+            {
+                // Flush preceding data
+                if (!ctx->callback(ctx, ctx->buffer, ctx->buffer_count))
+                    PB_RETURN_ERROR(ctx, "io error");
+
+                ctx->buffer_count = 0;
+            }
+
+            // Write to output callback
+            if (!ctx->callback(ctx, buf, count))
+                PB_RETURN_ERROR(ctx, "io error");
+        }
+        else
+        {
+            if (ctx->buffer_count + count > ctx->buffer_size)
+            {
+                PB_RETURN_ERROR(ctx, "stream full");
+            }
+
+            memcpy(ctx->buffer + ctx->buffer_count, buf, count * sizeof(pb_byte_t));
+            ctx->buffer_count += count;
+        }
+#else
+        memcpy(ctx->buffer + ctx->bytes_written, buf, count * sizeof(pb_byte_t));
 #endif
     }
-    
+
     ctx->bytes_written += count;
     return true;
 }
@@ -188,7 +226,7 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
         if (!pb_encode_varint(ctx, (pb_uint64_t)size))
             return false;
         
-        if (ctx->callback == NULL)
+        if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
             return pb_write(ctx, NULL, size); /* Just sizing.. */
         
         /* Write the data */
