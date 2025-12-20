@@ -21,18 +21,6 @@
 /**************************************
  * Declarations internal to this file *
  **************************************/
-static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
-static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
-static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_encode_varint_32(pb_encode_ctx_t *ctx, uint32_t low, uint32_t high);
-static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-
 #ifdef PB_WITHOUT_64BIT
 #define pb_int64_t int32_t
 #define pb_uint64_t uint32_t
@@ -40,6 +28,20 @@ static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb
 #define pb_int64_t int64_t
 #define pb_uint64_t uint64_t
 #endif
+
+static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
+static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
+static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value);
+static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value);
+static inline bool safe_read_bool(const void *pSize);
+static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 
 /*******************************
  * pb_ostream_t implementation *
@@ -228,16 +230,24 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
  * is invalid. See issue #434 and
  * https://stackoverflow.com/questions/27661768/weird-results-for-conditional
  */
-static bool safe_read_bool(const void *pSize)
+static inline bool safe_read_bool(const void *pSize)
 {
-    const char *p = (const char *)pSize;
-    size_t i;
-    for (i = 0; i < sizeof(bool); i++)
+    if (sizeof(bool) == 1)
     {
-        if (p[i] != 0)
-            return true;
+        return *(const char*)pSize != 0;
     }
-    return false;
+    else if (sizeof(bool) == 2)
+    {
+        return *(const uint16_t*)pSize != 0;
+    }
+    else if (sizeof(bool) == 4)
+    {
+        return *(const uint32_t*)pSize != 0;
+    }
+    else if (sizeof(bool) == 8)
+    {
+        return *(const pb_uint64_t*)pSize != 0;
+    }
 }
 
 /* Encode a static array. Handles the size calculations and possible packing. */
@@ -246,7 +256,7 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
     pb_size_t i;
     pb_size_t count;
 #ifndef PB_ENCODE_ARRAYS_UNPACKED
-    size_t size;
+    pb_size_t size;
 #endif
 
     count = *(pb_size_t*)field->pSize;
@@ -267,11 +277,11 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
         /* Determine the total size of packed array. */
         if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
         {
-            size = 4 * (size_t)count;
+            size = 4 * count;
         }
         else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
         {
-            size = 8 * (size_t)count;
+            size = 8 * count;
         }
         else
         {
@@ -287,12 +297,12 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
                 field->pData = (char*)field->pData + field->data_size;
             }
             field->pData = pData_orig;
-            size = ctx->bytes_written - size_orig;
+            size = (pb_size_t)(ctx->bytes_written - size_orig);
             ctx->bytes_written = size_orig;
             ctx->flags = flags_orig;
         }
         
-        if (!pb_encode_varint(ctx, (pb_uint64_t)size))
+        if (!pb_encode_varint32(ctx, (uint32_t)size))
             return false;
         
         if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
@@ -336,7 +346,7 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
                 {
                     /* Null pointer in array is treated as empty string / bytes */
                     status = pb_encode_tag_for_field(ctx, field) &&
-                             pb_encode_varint(ctx, 0);
+                             pb_encode_varint32(ctx, 0);
                 }
                 else
                 {
@@ -711,7 +721,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             // This was part of upper level sizing pass,
             // we can just add the size of the length prefix now.
             frame->flags = 0;
-            if (!pb_encode_varint(ctx, (pb_uint64_t)submsgsize))
+            if (!pb_encode_varint32(ctx, (uint32_t)submsgsize))
                 return PB_WALK_EXIT_ERR;
         }
         else
@@ -722,7 +732,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             ctx->bytes_written = frame->msg_start_pos;
             frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2;
 
-            if (!pb_encode_varint(ctx, (pb_uint64_t)submsgsize))
+            if (!pb_encode_varint32(ctx, (uint32_t)submsgsize))
                 return PB_WALK_EXIT_ERR;
 
             // Store expected end position of message
@@ -802,58 +812,113 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  * Helper functions *
  ********************/
 
-/* This function avoids 64-bit shifts as they are quite slow on many platforms. */
-static bool checkreturn pb_encode_varint_32(pb_encode_ctx_t *ctx, uint32_t low, uint32_t high)
+// Encode unsigned varint of max. 32 bits to buffer that has at least 5 bytes space.
+// Returns number of bytes written.
+static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value)
 {
-    size_t i = 0;
-    pb_byte_t buffer[10];
-    pb_byte_t byte = (pb_byte_t)(low & 0x7F);
-    low >>= 7;
+    uint_fast8_t len = 0;
 
-    while (i < 4 && (low != 0 || high != 0))
+    if (value <= 0x7F)
     {
-        byte |= 0x80;
-        buffer[i++] = byte;
-        byte = (pb_byte_t)(low & 0x7F);
-        low >>= 7;
+        buffer[0] = (pb_byte_t)value;
+        return 1;
     }
 
-    if (high)
+    do
     {
-        byte = (pb_byte_t)(byte | ((high & 0x07) << 4));
-        high >>= 3;
+        buffer[len++] = (pb_byte_t)((value & 0x7F) | 0x80);
+        value >>= 7;
+    } while (value > 0x7F);
 
-        while (high)
-        {
-            byte |= 0x80;
-            buffer[i++] = byte;
-            byte = (pb_byte_t)(high & 0x7F);
-            high >>= 7;
-        }
+    buffer[len++] = (pb_byte_t)value;
+
+    return len;
+}
+
+static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value)
+{
+    pb_byte_t tmpbuf[5];
+    pb_byte_t *buffer = pb_bufwrite_start(ctx, 5);
+    if (!buffer) buffer = tmpbuf;
+
+    uint_fast8_t len = pb_encode_buffer_varint32(buffer, value);
+
+    if (buffer == tmpbuf)
+    {
+        return pb_write(ctx, buffer, len);
     }
-
-    buffer[i++] = byte;
-
-    return pb_write(ctx, buffer, i);
+    else
+    {
+        pb_bufwrite_done(ctx, len);
+        return true;
+    }
 }
 
 bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 {
-    if (value <= 0x7F)
+    // Write either directly to stream or to tmpbuf
+    pb_byte_t tmpbuf[10];
+    pb_byte_t *buffer = pb_bufwrite_start(ctx, 10);
+    if (!buffer) buffer = tmpbuf;
+
+    uint_fast8_t len = 0;
+
+    do
     {
-        /* Fast path: single byte */
-        pb_byte_t byte = (pb_byte_t)value;
-        return pb_write(ctx, &byte, 1);
+        uint32_t lowval = (uint32_t)value & 0xFFFFFFF; // 28 lowest bits
+        value >>= 28;
+
+        if (value != 0)
+        {
+            len += pb_encode_buffer_varint32(buffer + len, lowval | (1 << 29));
+            len -= 1;
+        }
+        else
+        {
+            len += pb_encode_buffer_varint32(buffer + len, lowval);
+        }
+    } while (value != 0);
+
+    if (buffer == tmpbuf)
+    {
+        return pb_write(ctx, buffer, len);
     }
     else
     {
-#ifdef PB_WITHOUT_64BIT
-        return pb_encode_varint_32(ctx, value, 0);
-#else
-        return pb_encode_varint_32(ctx, (uint32_t)value, (uint32_t)(value >> 32));
-#endif
+        pb_bufwrite_done(ctx, len);
+        return true;
     }
 }
+
+#ifdef PB_WITHOUT_64BIT
+// When 64-bit datatypes are not available, negative int32_t values still
+// need to be encoded as-if they were 64-bit.
+static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t value)
+{
+    pb_byte_t tmpbuf[10];
+    pb_byte_t *buffer = pb_bufwrite_start(ctx, 10);
+    if (!buffer) buffer = tmpbuf;
+
+    PB_OPT_ASSERT(value < 0);
+    pb_encode_buffer_varint32(buffer, (uint32_t)value);
+    buffer[4] |= 0xF8;
+    buffer[5] = 0xFF;
+    buffer[6] = 0xFF;
+    buffer[7] = 0xFF;
+    buffer[8] = 0xFF;
+    buffer[9] = 0x01;
+
+    if (buffer == tmpbuf)
+    {
+        return pb_write(ctx, buffer, 10);
+    }
+    else
+    {
+        pb_bufwrite_done(ctx, 10);
+        return true;
+    }
+}
+#endif
 
 bool checkreturn pb_encode_svarint(pb_encode_ctx_t *ctx, pb_int64_t value)
 {
@@ -907,48 +972,41 @@ bool checkreturn pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value)
 
 bool checkreturn pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field_number)
 {
-    pb_uint64_t tag = ((pb_uint64_t)field_number << 3) | wiretype;
-    return pb_encode_varint(ctx, tag);
+    return pb_encode_varint32(ctx, (field_number << 3) | wiretype);
 }
 
 bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
 {
-    pb_wire_type_t wiretype;
-    switch (PB_LTYPE(field->type))
-    {
-        case PB_LTYPE_BOOL:
-        case PB_LTYPE_VARINT:
-        case PB_LTYPE_UVARINT:
-        case PB_LTYPE_SVARINT:
-            wiretype = PB_WT_VARINT;
-            break;
-        
-        case PB_LTYPE_FIXED32:
-            wiretype = PB_WT_32BIT;
-            break;
-        
-        case PB_LTYPE_FIXED64:
-            wiretype = PB_WT_64BIT;
-            break;
-        
-        case PB_LTYPE_BYTES:
-        case PB_LTYPE_STRING:
-        case PB_LTYPE_SUBMESSAGE:
-        case PB_LTYPE_SUBMSG_W_CB:
-        case PB_LTYPE_FIXED_LENGTH_BYTES:
-            wiretype = PB_WT_STRING;
-            break;
-        
-        default:
-            PB_RETURN_ERROR(ctx, "invalid field type");
-    }
-    
-    return pb_encode_tag(ctx, wiretype, field->tag);
+    // Note: the order of this array must match PB_LTYPE numeric values
+    static const pb_wire_type_t wiretypes[16] = {
+        PB_WT_VARINT,  //  0: PB_LTYPE_BOOL
+        PB_WT_VARINT,  //  1: PB_LTYPE_VARINT
+        PB_WT_VARINT,  //  2: PB_LTYPE_UVARINT
+        PB_WT_VARINT,  //  3: PB_LTYPE_SVARINT
+        PB_WT_32BIT,   //  4: PB_LTYPE_FIXED32
+        PB_WT_64BIT,   //  5: PB_LTYPE_FIXED64
+        PB_WT_STRING,  //  6: PB_LTYPE_BYTES
+        PB_WT_STRING,  //  7: PB_LTYPE_STRING
+        PB_WT_STRING,  //  8: PB_LTYPE_SUBMESSAGE
+        PB_WT_STRING,  //  9: PB_LTYPE_SUBMSG_W_CB
+        PB_WT_INVALID, // 10: PB_LTYPE_EXTENSION
+        PB_WT_STRING,  // 11: PB_LTYPE_FIXED_LENGTH_BYTES
+        PB_WT_INVALID, // 12: Reserved
+        PB_WT_INVALID, // 13: Reserved
+        PB_WT_INVALID, // 14: Reserved
+        PB_WT_INVALID, // 15: Reserved
+    };
+
+    pb_wire_type_t wiretype = wiretypes[PB_LTYPE(field->type)];
+    if (wiretype == PB_WT_INVALID)
+        PB_RETURN_ERROR(ctx, "invalid field type");
+
+    return pb_encode_varint32(ctx, (field->tag << 3) | wiretype);
 }
 
 bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, size_t size)
 {
-    if (!pb_encode_varint(ctx, (pb_uint64_t)size))
+    if (!pb_encode_varint32(ctx, (uint32_t)size))
         return false;
     
     return pb_write(ctx, buffer, size);
@@ -967,9 +1025,9 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
 
 static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    uint32_t value = safe_read_bool(field->pData) ? 1 : 0;
+    pb_byte_t byte = safe_read_bool(field->pData) ? 1 : 0;
     PB_UNUSED(field);
-    return pb_encode_varint(ctx, value);
+    return pb_write(ctx, &byte, 1);
 }
 
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
@@ -1012,7 +1070,7 @@ static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_
             return pb_encode_svarint(ctx, value);
 #ifdef PB_WITHOUT_64BIT
         else if (value < 0)
-            return pb_encode_varint_32(ctx, (uint32_t)value, (uint32_t)-1);
+            return pb_encode_negative_varint(ctx, value);
 #endif
         else
             return pb_encode_varint(ctx, (pb_uint64_t)value);
