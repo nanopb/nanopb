@@ -106,49 +106,118 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
 }
 #endif
 
-bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
-{
-    if (count > 0 && (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING) == 0)
-    {
-        if (ctx->bytes_written + count < ctx->bytes_written ||
-            ctx->bytes_written + count > ctx->max_size)
-        {
-            PB_RETURN_ERROR(ctx, "stream full");
-        }
-
 #ifndef PB_NO_STREAM_CALLBACK
-        if (ctx->callback)
-        {
-            if (ctx->buffer_count > 0)
-            {
-                // Flush preceding data
-                if (!ctx->callback(ctx, ctx->buffer, ctx->buffer_count))
-                    PB_RETURN_ERROR(ctx, "io error");
+// Flush any buffered data to callback
+inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
+{
+    if (ctx->callback != NULL && ctx->buffer_count > 0)
+    {
+        if (!ctx->callback(ctx, ctx->buffer, ctx->buffer_count))
+            PB_RETURN_ERROR(ctx, "io error");
 
-                ctx->buffer_count = 0;
-            }
-
-            // Write to output callback
-            if (!ctx->callback(ctx, buf, count))
-                PB_RETURN_ERROR(ctx, "io error");
-        }
-        else
-        {
-            if (ctx->buffer_count + count > ctx->buffer_size)
-            {
-                PB_RETURN_ERROR(ctx, "stream full");
-            }
-
-            memcpy(ctx->buffer + ctx->buffer_count, buf, count * sizeof(pb_byte_t));
-            ctx->buffer_count += count;
-        }
-#else
-        memcpy(ctx->buffer + ctx->bytes_written, buf, count * sizeof(pb_byte_t));
-#endif
+        ctx->buffer_count = 0;
     }
 
-    ctx->bytes_written += count;
     return true;
+}
+#else
+inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
+{
+    PB_UNUSED(ctx);
+    return true;
+}
+#endif
+
+// Get pointer for directly writing up to max_bytes data.
+// Returns NULL if not enough space.
+static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, size_t max_bytes)
+{
+    if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
+        return NULL;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    if (ctx->bytes_written + max_bytes <= ctx->max_size)
+    {
+        if (ctx->buffer_count + max_bytes <= ctx->buffer_size)
+        {
+            if (max_bytes > ctx->buffer_size)
+            {
+                return NULL; // Buffer is just too small
+            }
+            else
+            {
+                // Flush buffer to release space
+                if (!pb_flush_write_buffer(ctx))
+                    return NULL; // Error will be returned when caller resorts to pb_write().
+            }
+        }
+
+        return ctx->buffer + ctx->buffer_count;
+    }
+    else
+    {
+        return NULL;
+    }
+#else
+    if (ctx->bytes_written + max_bytes <= ctx->max_size)
+        return ctx->buffer + ctx->bytes_written;
+    else
+        return NULL;
+#endif
+}
+
+// Finish write to buffer previously obtained from pb_get_wrptr().
+static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, size_t bytes_written)
+{
+#ifndef PB_NO_STREAM_CALLBACK
+    ctx->bytes_written += bytes_written;
+    ctx->buffer_count += bytes_written;
+#else
+    ctx->bytes_written += bytes_written;
+#endif
+}
+
+// Write bytes to stream by copying them from source buffer.
+bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
+{
+    if (count == 0)
+        return true;
+
+    if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
+    {
+        ctx->bytes_written += count;
+        return true;
+    }
+
+    if (ctx->bytes_written + count < ctx->bytes_written ||
+        ctx->bytes_written + count > ctx->max_size)
+    {
+        PB_RETURN_ERROR(ctx, "stream full");
+    }
+
+    pb_byte_t *target = pb_bufwrite_start(ctx, count);
+    if (target)
+    {
+        memcpy(target, buf, count * sizeof(pb_byte_t));
+        pb_bufwrite_done(ctx, count);
+        return true;
+    }
+
+#ifndef PB_NO_STREAM_CALLBACK
+    if (ctx->callback)
+    {
+        // Flush any preceding data and write to output callback directly
+        if (pb_flush_write_buffer(ctx) &&
+            ctx->callback(ctx, buf, count))
+        {
+            ctx->bytes_written += count;
+            return true;
+        }
+    }
+#endif
+
+    // For non-callback streams, pb_bufwrite_start() should have given non-NULL pointer
+    PB_RETURN_ERROR(ctx, "io error");
 }
 
 /*************************
@@ -713,7 +782,7 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
             return false;
     }
 
-    return true;
+    return pb_flush_write_buffer(ctx);
 }
 
 bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
