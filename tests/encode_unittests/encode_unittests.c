@@ -44,7 +44,8 @@ memset(buffer, 0xAA, sizeof(buffer)), \
 s = pb_ostream_from_buffer(buffer, sizeof(buffer)), \
 (x) && \
 memcmp(buffer, y, sizeof(y) - 1) == 0 && \
-buffer[sizeof(y) - 1] == 0xAA
+buffer[sizeof(y) - 1] == 0xAA && \
+s.bytes_written == sizeof(y) - 1
 
 int main()
 {

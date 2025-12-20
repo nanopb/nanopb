@@ -9,6 +9,7 @@
 #include <pb_encode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
+#include "stream_helpers.h"
 
 static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {
@@ -472,19 +473,20 @@ int main(int argc, char **argv)
     alltypes.end.arg = (void*)1099;
     
     {
-        uint8_t buffer[2048];
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        /* Write directly to stdout */
+        pb_encode_ctx_t ctx;
+        pb_byte_t tmpbuf[32];
+        SET_BINARY_MODE(stdout);
+        init_encode_ctx_for_stdio(&ctx, stdout, 2048, tmpbuf, sizeof(tmpbuf));
         
         /* Now encode it and check if we succeeded. */
-        if (pb_encode(&stream, AllTypes_fields, &alltypes))
+        if (pb_encode(&ctx, AllTypes_fields, &alltypes))
         {
-            SET_BINARY_MODE(stdout);
-            fwrite(buffer, 1, stream.bytes_written, stdout);
             return 0; /* Success */
         }
         else
         {
-            fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
+            fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&ctx));
             return 1; /* Failure */
         }
     }
