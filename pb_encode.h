@@ -151,10 +151,15 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
 /* Create encode context that writes nothing, just computes the size */
 void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx);
 
+/* When using callback stream with a memory buffer, the writes might not be
+ * immediately flushed to the callback. pb_encode() automatically flushes
+ * the buffer at the end of encoding. If you use pb_write() manually, call
+ * pb_flush_write_buffer() afterwards.
+ */
+bool pb_flush_write_buffer(pb_encode_ctx_t *ctx);
+
 /* Function to write into a pb_ostream_t stream. You can use this if you need
  * to append or prepend some custom headers to the message.
- *
- * If stream callback is used, this pushes all buffered data to the callback.
  */
 bool pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
 
