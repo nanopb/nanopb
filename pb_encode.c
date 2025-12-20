@@ -227,26 +227,19 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
  *************************/
 
 /* Read a bool value without causing undefined behavior even if the value
- * is invalid. See issue #434 and
+ * is invalid. The goal of this is to gracefully handle conditions where the
+ * structure is uninitialized or otherwise corrupted. See issue #434 and
  * https://stackoverflow.com/questions/27661768/weird-results-for-conditional
  */
 static inline bool safe_read_bool(const void *pSize)
 {
-    if (sizeof(bool) == 1)
+    switch (sizeof(bool))
     {
-        return *(const char*)pSize != 0;
-    }
-    else if (sizeof(bool) == 2)
-    {
-        return *(const uint16_t*)pSize != 0;
-    }
-    else if (sizeof(bool) == 4)
-    {
-        return *(const uint32_t*)pSize != 0;
-    }
-    else if (sizeof(bool) == 8)
-    {
-        return *(const pb_uint64_t*)pSize != 0;
+        case 1: return *(const char*)pSize != 0;
+        case 2: return *(const uint16_t*)pSize != 0;
+        case 4: return *(const uint32_t*)pSize != 0;
+        case 8: return *(const pb_uint64_t*)pSize != 0;
+        default: return *(const bool*)pSize;
     }
 }
 
@@ -1026,7 +1019,6 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
 static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
     pb_byte_t byte = safe_read_bool(field->pData) ? 1 : 0;
-    PB_UNUSED(field);
     return pb_write(ctx, &byte, 1);
 }
 
