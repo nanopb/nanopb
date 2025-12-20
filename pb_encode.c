@@ -140,7 +140,7 @@ static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, size_t max_byte
 #ifndef PB_NO_STREAM_CALLBACK
     if (ctx->bytes_written + max_bytes <= ctx->max_size)
     {
-        if (ctx->buffer_count + max_bytes <= ctx->buffer_size)
+        if (ctx->buffer_count + max_bytes > ctx->buffer_size)
         {
             if (max_bytes > ctx->buffer_size)
             {
