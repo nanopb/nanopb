@@ -13,7 +13,7 @@ static size_t g_msglen;
  * finding the lowest location that has been modified.
  * Currently this assumes that the platform uses a descending stack.
  */
-#define MAX_STACK_ENTRIES 1024
+#define MAX_STACK_ENTRIES 512
 static uint32_t g_stackbuf[MAX_STACK_ENTRIES];
 static volatile uint32_t *g_stackptr;
 
@@ -74,14 +74,31 @@ void do_decode()
     assert(msg.settings.begin.properties[0].field.DeviceA_Mode == 2);
 }
 
+void clear_stack()
+{
+    volatile uint32_t alloc[MAX_STACK_ENTRIES];
+    for (int i = 0; i < MAX_STACK_ENTRIES; i++)
+    {
+        alloc[i] = 0xDEADBEEF;
+    }
+    (void)alloc;
+}
+
 int main()
 {
     int stack_encode, stack_decode;
 
+    // Run both functions once to preload any dynamic
+    // libraries etc. when running on PC.
+    do_encode();
+    do_decode();
+
+    clear_stack();
     start_stack_measuring();
     do_encode();
     stack_encode = end_stack_measuring();
 
+    clear_stack();
     start_stack_measuring();
     do_decode();
     stack_decode = end_stack_measuring();
