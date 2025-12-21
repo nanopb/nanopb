@@ -48,6 +48,9 @@ class TSRule:
 
     To find out node names, use tree-sitter command line tool:
     tree-sitter parse --cst --no-ranges file.c
+
+    or the online tool:
+    https://tree-sitter.github.io/tree-sitter/7-playground.html
     '''
     
     def __init__(self, query, replacement):

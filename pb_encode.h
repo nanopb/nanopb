@@ -44,6 +44,12 @@ typedef uint16_t pb_encode_ctx_flags_t;
 // NOTE: This behavior is not supported in most other protobuf implementations.
 #define PB_ENCODE_CTX_FLAG_NULLTERMINATED    (pb_encode_ctx_flags_t)(1 << 2)
 
+// PB_ENCODE_CTX_FLAG_ONEPASS_SIZING: Write output data normally, but if
+// callback would get invoked, switch to SIZING mode instead. Has no effect
+// for memory buffer streams. This flag is used internally to optimize encoding
+// performance.
+#define PB_ENCODE_CTX_FLAG_ONEPASS_SIZING    (pb_encode_ctx_flags_t)(1 << 3)
+
 /* Structure containing the state associated with message encoding.
  * For the common case of writing a message to a memory buffer, this
  * is initialized with pb_init_encode_ctx_for_buffer().
