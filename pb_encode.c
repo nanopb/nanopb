@@ -714,7 +714,7 @@ static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, size_
         uint_fast8_t prefixlen = pb_encode_buffer_varint32(tmpbuf, (uint32_t)submsgsize);
 
         // First allocate dummy space at end of the stream
-        if (!pb_write(ctx, tmpbuf, prefixlen - 1))
+        if (!pb_write(ctx, tmpbuf, (size_t)(prefixlen - 1)))
             return false;
 
         // If memory buffer filled up, it may convert back to sizing, in which case we are done.
@@ -1023,12 +1023,14 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 
         if (value != 0)
         {
-            len += pb_encode_buffer_varint32(buffer + len, lowval | (1 << 29));
-            len -= 1;
+            // Encode 28 bits and force the last byte to be a continuation
+            lowval |= ((uint32_t)1 << 29);
+            len = (uint_fast8_t)(len + pb_encode_buffer_varint32(buffer + len, lowval) - 1);
         }
         else
         {
-            len += pb_encode_buffer_varint32(buffer + len, lowval);
+            // Encode last max. 28 bits of the varint
+            len = (uint_fast8_t)(len + pb_encode_buffer_varint32(buffer + len, lowval));
         }
     } while (value != 0);
 
