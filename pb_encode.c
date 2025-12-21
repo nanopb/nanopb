@@ -965,7 +965,7 @@ bool checkreturn pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value)
 
 bool checkreturn pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field_number)
 {
-    return pb_encode_varint32(ctx, (field_number << 3) | wiretype);
+    return pb_encode_varint32(ctx, (((uint32_t)field_number << 3) | wiretype));
 }
 
 bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
@@ -994,7 +994,7 @@ bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
     if (wiretype == PB_WT_INVALID)
         PB_RETURN_ERROR(ctx, "invalid field type");
 
-    return pb_encode_varint32(ctx, (field->tag << 3) | wiretype);
+    return pb_encode_varint32(ctx, (((uint32_t)field->tag << 3) | wiretype));
 }
 
 bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, size_t size)
