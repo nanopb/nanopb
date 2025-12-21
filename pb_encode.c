@@ -34,18 +34,6 @@
 #define PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE 16
 #endif
 
-// Helper macros for accessing encode ctx parameters,
-// which are not present when callbacks are disabled.
-#ifndef PB_NO_STREAM_CALLBACK
-#define CTX_BUFFER_SIZE(ctx) ((ctx)->buffer_size)
-#define CTX_BUFFER_COUNT(ctx) ((ctx)->buffer_count)
-#define CTX_CALLBACK(ctx) ((ctx)->callback)
-#else
-#define CTX_BUFFER_SIZE(ctx) ((ctx)->max_size)
-#define CTX_BUFFER_COUNT(ctx) ((ctx)->bytes_written)
-#define CTX_CALLBACK(ctx) (NULL)
-#endif
-
 static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -773,8 +761,16 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
                 if (!pb_write(ctx, &dummy, 1))
                     return PB_WALK_EXIT_ERR;
             }
-            else if (CTX_CALLBACK(ctx) == NULL ||
-                     CTX_BUFFER_SIZE(ctx) >= PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
+#ifndef PB_NO_STREAM_CALLBACK
+            else if (ctx->callback != NULL && ctx->buffer_size < PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
+            {
+                // Buffer is too small for one-pass sizing, do it with two passes.
+                // Message data will be encoded after the size is known.
+                ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+                frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1;
+            }
+#endif
+            else
             {
                 // Try to do encoding and size calculation in one pass.
                 // One byte is reserved for the message size, and if more
@@ -789,13 +785,6 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
                 ctx->flags |= PB_ENCODE_CTX_FLAG_ONEPASS_SIZING;
                 frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1 |
                                 PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED;
-            }
-            else
-            {
-                // Start two-pass sizing the message.
-                // It will be encoded after the size is known.
-                ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
-                frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1;
             }
         }
 
@@ -834,7 +823,11 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         else if (onepass_size && !size_only)
         {
             // Onepass sizing was successful, message data is now in buffer.
-            pb_byte_t *msgstart = ctx->buffer + CTX_BUFFER_COUNT(ctx) - submsgsize;
+#ifndef PB_NO_STREAM_CALLBACK
+            pb_byte_t *msgstart = ctx->buffer + ctx->buffer_count - submsgsize;
+#else
+            pb_byte_t *msgstart = ctx->buffer + ctx->bytes_written - submsgsize;
+#endif
 
             if (!nested)
             {
