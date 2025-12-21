@@ -29,6 +29,23 @@
 #define pb_uint64_t uint64_t
 #endif
 
+// It doesn't make sense to try onepass encoding if the buffer is very small.
+#ifndef PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE
+#define PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE 16
+#endif
+
+// Helper macros for accessing encode ctx parameters,
+// which are not present when callbacks are disabled.
+#ifndef PB_NO_STREAM_CALLBACK
+#define CTX_BUFFER_SIZE(ctx) ((ctx)->buffer_size)
+#define CTX_BUFFER_COUNT(ctx) ((ctx)->buffer_count)
+#define CTX_CALLBACK(ctx) ((ctx)->callback)
+#else
+#define CTX_BUFFER_SIZE(ctx) ((ctx)->max_size)
+#define CTX_BUFFER_COUNT(ctx) ((ctx)->bytes_written)
+#define CTX_CALLBACK(ctx) (NULL)
+#endif
+
 static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -114,6 +131,12 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
 {
     if (ctx->callback != NULL && ctx->buffer_count > 0)
     {
+        if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
+        {
+            // We can't flush yet because sizing pass is not finished
+            PB_RETURN_ERROR(ctx, "onepass flush");
+        }
+
         if (!ctx->callback(ctx, ctx->buffer, ctx->buffer_count))
             PB_RETURN_ERROR(ctx, "io error");
 
@@ -145,6 +168,10 @@ static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, size_t max_byte
             if (max_bytes > ctx->buffer_size)
             {
                 return NULL; // Buffer is just too small
+            }
+            else if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
+            {
+                return NULL; // pb_write() will convert this to sizing stream
             }
             else
             {
@@ -197,6 +224,7 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
         PB_RETURN_ERROR(ctx, "stream full");
     }
 
+#ifndef PB_NO_STREAM_CALLBACK
     pb_byte_t *target = pb_bufwrite_start(ctx, count);
     if (target)
     {
@@ -204,8 +232,14 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
         pb_bufwrite_done(ctx, count);
         return true;
     }
+    else if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
+    {
+        // Memory buffer is full, convert to sizing stream
+        ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+        ctx->bytes_written += count;
+        return true;
+    }
 
-#ifndef PB_NO_STREAM_CALLBACK
     if (ctx->callback)
     {
         // Flush any preceding data and write to output callback directly
@@ -216,10 +250,15 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
             return true;
         }
     }
-#endif
 
-    // For non-callback streams, pb_bufwrite_start() should have given non-NULL pointer
+    // If we get this far, the callback failed.
+    // pb_bufwrite_start() should return non-NULL for memory streams.
     PB_RETURN_ERROR(ctx, "io error");
+#else
+    memcpy(ctx->buffer + ctx->bytes_written, buf, count);
+    ctx->bytes_written += count;
+    return true;
+#endif
 }
 
 /*************************
@@ -595,9 +634,10 @@ typedef struct {
 } pb_encode_walk_stackframe_t;
 
 #define PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG      (uint_least16_t)1
-#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1         (uint_least16_t)1
-#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY  (uint_least16_t)2
-#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2      (uint_least16_t)4
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1      (uint_least16_t)1
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED     (uint_least16_t)2
+#define PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED     (uint_least16_t)4
+#define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2      (uint_least16_t)8
 
 /* Loop through all fields in the message and encode them.
  * If a submessage is encoutered, return to pb_walk().
@@ -668,6 +708,38 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
     return PB_WALK_OUT;
 }
 
+// After a submessage has been encoded on ONEPASS_SIZING mode, we need to patch
+// the message size to the memory buffer. One byte is already reserved for it,
+// but more can be added using memmove().
+static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, size_t submsgsize)
+{
+    if (submsgsize < 0x7F)
+    {
+        // Length fits in the one byte we reserved
+        *(msgstart - 1) = (pb_byte_t)submsgsize;
+        return true;
+    }
+    else
+    {
+        // Message data has to be moved, more space is needed
+        pb_byte_t tmpbuf[5];
+        uint_fast8_t prefixlen = pb_encode_buffer_varint32(tmpbuf, (uint32_t)submsgsize);
+
+        // First allocate dummy space at end of the stream
+        if (!pb_write(ctx, tmpbuf, prefixlen - 1))
+            return false;
+
+        // If memory buffer filled up, it may convert back to sizing, in which case we are done.
+        if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
+            return true;
+
+        // Move the data around
+        memmove(msgstart + prefixlen - 1, msgstart, submsgsize);
+        memcpy(msgstart - 1, tmpbuf, prefixlen);
+        return true;
+    }
+}
+
 static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 {
     pb_field_iter_t *iter = &state->iter;
@@ -680,20 +752,54 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         // This is the beginning of a submessage
         // We need to start by calculating the submessage size
         state->flags = 0;
-        frame->msg_start_pos = ctx->bytes_written;
 
         if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
         {
             // We are inside another submessage which is being sized
             frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1 |
-                            PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY;
+                            PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED;
         }
         else
         {
-            // Start sizing the submessage
-            frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1;
-            ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+            if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
+            {
+                // We are inside another submessage that is being written
+                // out and sized in one pass.
+                frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1 |
+                                PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED |
+                                PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED;
+
+                pb_byte_t dummy = 0;
+                if (!pb_write(ctx, &dummy, 1))
+                    return PB_WALK_EXIT_ERR;
+            }
+            else if (CTX_CALLBACK(ctx) == NULL ||
+                     CTX_BUFFER_SIZE(ctx) >= PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
+            {
+                // Try to do encoding and size calculation in one pass.
+                // One byte is reserved for the message size, and if more
+                // is needed, memmove() is used to patch it.
+                // For callback streams, if the memory buffer fills up,
+                // the stream reverts to normal sizing mode.
+                pb_byte_t dummy = 0;
+                if (!pb_flush_write_buffer(ctx) ||
+                    !pb_write(ctx, &dummy, 1))
+                    return PB_WALK_EXIT_ERR;
+
+                ctx->flags |= PB_ENCODE_CTX_FLAG_ONEPASS_SIZING;
+                frame->flags |= PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1 |
+                                PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED;
+            }
+            else
+            {
+                // Start two-pass sizing the message.
+                // It will be encoded after the size is known.
+                ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+                frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1;
+            }
         }
+
+        frame->msg_start_pos = ctx->bytes_written;
     }
     else if (state->retval == PB_WALK_OUT)
     {
@@ -709,21 +815,82 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         // End of sizing pass.
         size_t submsgsize = ctx->bytes_written - frame->msg_start_pos;
 
-        if (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_SIZE_ONLY)
+        bool nested = (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED);
+        bool byte_reserved = (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED);
+        bool size_only = (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING);
+        bool onepass_size = (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING);
+
+        if (nested && size_only)
         {
             // This was part of upper level sizing pass,
             // we can just add the size of the length prefix now.
             frame->flags = 0;
             if (!pb_encode_varint32(ctx, (uint32_t)submsgsize))
                 return PB_WALK_EXIT_ERR;
+
+            if (byte_reserved)
+                ctx->bytes_written--;
+        }
+        else if (onepass_size && !size_only)
+        {
+            // Onepass sizing was successful, message data is now in buffer.
+            pb_byte_t *msgstart = ctx->buffer + CTX_BUFFER_COUNT(ctx) - submsgsize;
+
+            if (!nested)
+            {
+                // Onepass sizing ends at this level
+                ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags & ~PB_ENCODE_CTX_FLAG_ONEPASS_SIZING);
+            }
+
+#ifndef PB_NO_STREAM_CALLBACK
+            if (!nested && ctx->callback != NULL)
+            {
+                // We can write the size to callback directly.
+                pb_byte_t tmpbuf[5];
+                uint_fast8_t prefixlen = pb_encode_buffer_varint32(tmpbuf, (uint32_t)submsgsize);
+
+                ctx->buffer_count = 0;
+
+                if (!ctx->callback(ctx, tmpbuf, prefixlen) ||
+                    !ctx->callback(ctx, msgstart, submsgsize))
+                {
+                    return PB_WALK_EXIT_ERR;
+                }
+            }
+            else
+#endif
+            {
+                // Patch the size to memory buffer
+                if (!update_message_size(ctx, msgstart, submsgsize))
+                {
+                    return PB_WALK_EXIT_ERR;
+                }
+            }
         }
         else
         {
-            // We started this sizing pass, we can now write out
-            // the actual message data.
-            ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags & ~PB_ENCODE_CTX_FLAG_SIZING);
-            ctx->bytes_written = frame->msg_start_pos;
+            // Submessage size is now known.
+            // Encode again to write out the message data.
+            ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags &
+                    ~(PB_ENCODE_CTX_FLAG_SIZING | PB_ENCODE_CTX_FLAG_ONEPASS_SIZING));
             frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2;
+
+            // Return the stream to the state it was before the sizing pass started.
+            if (byte_reserved)
+            {
+                ctx->bytes_written = frame->msg_start_pos - 1;
+
+#ifndef PB_NO_STREAM_CALLBACK
+                if (ctx->callback != NULL)
+                    ctx->buffer_count = 0; // Buffer was flushed before sizing
+                else
+                    ctx->buffer_count = ctx->bytes_written;
+#endif
+            }
+            else
+            {
+                ctx->bytes_written = frame->msg_start_pos;
+            }
 
             if (!pb_encode_varint32(ctx, (uint32_t)submsgsize))
                 return PB_WALK_EXIT_ERR;
