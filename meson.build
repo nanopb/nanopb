@@ -3,7 +3,7 @@ project(
     'c',
     license: 'zlib',
     version: '1.0.0',
-    meson_version: '>=1.4.0'
+    meson_version: '>=1.3.0'
 )
 
 c_args = []
