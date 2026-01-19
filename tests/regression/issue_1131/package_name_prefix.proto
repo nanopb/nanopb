@@ -1,6 +1,4 @@
 // A very simple protocol definition to show the usage of the 'packet' option.
-//
-// See also the nanopb-specific options in packetproto.options.
 
 syntax = "proto2";
 
