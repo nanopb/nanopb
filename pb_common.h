@@ -100,6 +100,14 @@ struct pb_walk_state_s {
     void *stack;
     pb_walk_stacksize_t stacksize;
 
+    // Total number of bytes remaining below 'stack' pointer.
+    // This can be initialized by caller if it provides stack
+    // space. Otherwise recursion stack is allocated from C stack
+    // by pb_walk(). Note that when initializing stack_remain,
+    // the 'stack' pointer should be initialized to the end of
+    // the provided stack buffer.
+    pb_walk_stacksize_t stack_remain;
+
     // Amount of bytes to reserve for next stack level when
     // callback returns PB_WALK_IN.
     // Can be modified by callback.
@@ -148,6 +156,11 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
  *
  * The created stack frame is zeroed on PB_WALK_IN command.
  * Stack frames are aligned to sizeof(void*).
+ *
+ * It is recommended that caller initializes a stack and sets its top pointer in
+ * state->stack and size in state->stack_remain. If stack is not provided and
+ * PB_NO_RECURSE is not defined, recursive C call will be used to allocate a buffer
+ * on the C function stack.
  *
  * Callback is allowed to do advance and find operations on the iterator.
  *
