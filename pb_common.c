@@ -371,27 +371,14 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
     return false;
 }
 
-static void *pb_const_cast(const void *p)
-{
-    /* Note: this casts away const, in order to use the common field iterator
-     * logic for both encoding and decoding. The cast is done using union
-     * to avoid spurious compiler warnings. */
-    union {
-        void *p1;
-        const void *p2;
-    } t;
-    t.p2 = p;
-    return t.p1;
-}
-
 bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
 {
-    return pb_field_iter_begin(iter, desc, pb_const_cast(message));
+    return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
 }
 
 bool pb_field_iter_begin_extension_const(pb_field_iter_t *iter, const pb_extension_t *extension)
 {
-    return pb_field_iter_begin_extension(iter, (pb_extension_t*)pb_const_cast(extension));
+    return pb_field_iter_begin_extension(iter, (pb_extension_t*)PB_CONST_CAST(extension));
 }
 
 bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
