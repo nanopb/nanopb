@@ -452,9 +452,14 @@ static bool alloc_stackframe(pb_walk_state_t *state, pb_walk_stacksize_t size)
     }
 
     state->stacksize = size;
-    state->stack_remain -= state->stacksize;
-    state->stack = (char*)state->stack - state->stacksize;
-    memset(state->stack, 0, state->stacksize);
+
+    if (size > 0)
+    {
+        state->stack_remain -= state->stacksize;
+        state->stack = (char*)state->stack - state->stacksize;
+        memset(state->stack, 0, state->stacksize);
+    }
+
     return true;
 }
 

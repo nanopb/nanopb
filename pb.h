@@ -662,6 +662,8 @@ typedef uint_least16_t pb_walk_stacksize_t;
 typedef PB_WALK_STACKSIZE_TYPE_OVERRIDE pb_walk_stacksize_t;
 #endif
 
+typedef struct pb_walk_state_s pb_walk_state_t;
+
 /* This structure is used by pb_walk() for storing information
  * for each submessage level. It shouldn't be directly accessed
  * by user code, but the definition is provided so that sizeof()
