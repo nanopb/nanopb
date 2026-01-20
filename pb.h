@@ -273,7 +273,9 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 #error You should not lower PB_MAX_REQUIRED_FIELDS from the default value (64).
 #endif
 
-/* Number of nested messages to prepare stack space for in single recursion level */
+/* Number of nested messages to reserve stack space for
+ * in encode/decode calls.
+ */
 #ifndef PB_MESSAGE_NESTING
 #define PB_MESSAGE_NESTING 8
 #endif
@@ -283,9 +285,11 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 #define PB_MESSAGE_NESTING_MAX 100
 #endif
 
-/* Number of bytes of stack space to reserve per recursion level */
+/* Number of bytes of stack space to reserve per recursion level
+ * in pb_walk(), if the initial stack reservation runs out.
+ */
 #ifndef PB_WALK_STACK_SIZE
-#define PB_WALK_STACK_SIZE (PB_MESSAGE_NESTING * 32)
+#define PB_WALK_STACK_SIZE 256
 #endif
 
 #ifdef PB_WITHOUT_64BIT
@@ -294,6 +298,30 @@ PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 #undef PB_CONVERT_DOUBLE_FLOAT
 #endif
 #endif
+
+/* Stack alignment used by pb_walk(). */
+#ifndef PB_WALK_STACK_ALIGN_TYPE_OVERRIDE
+typedef void* pb_walk_stack_align_t;
+#else
+typedef PB_WALK_STACK_ALIGN_TYPE_OVERRIDE pb_walk_stack_align_t;
+#endif
+
+// Round byte count upwards to a multiple of sizeof(void*) to retain alignment
+#define PB_WALK_ALIGNSIZE sizeof(pb_walk_stack_align_t)
+#define PB_WALK_ALIGN(size) (pb_walk_stacksize_t)(((size) + PB_WALK_ALIGNSIZE - 1) / PB_WALK_ALIGNSIZE * PB_WALK_ALIGNSIZE)
+
+// Size of internal stack frame in pb_walk().
+// This is the overhead per message recursion level.
+#define PB_WALK_STACKFRAME_SIZE PB_WALK_ALIGN(sizeof(pb_walk_stackframe_t))
+
+// Declare stack buffer storage for pb_walk() function
+#define PB_WALK_DECLARE_STACKBUF(size_) \
+    struct {pb_walk_stack_align_t buf[PB_WALK_ALIGN(size_) / sizeof(pb_walk_stack_align_t)];}
+
+// Apply previously declared stack buffer to pb_walk_state_t
+#define PB_WALK_SET_STACKBUF(state_, stackbuf_) \
+    ((state_)->stack = (char*)&stackbuf_ + sizeof(stackbuf_), \
+    (state_)->stack_remain = sizeof(stackbuf_))
 
 /* Data type for storing encoded data and other byte streams.
  * This typedef exists to support platforms where uint8_t does not exist.
@@ -623,6 +651,35 @@ struct pb_extension_s {
 #       define pb_free(ptr) free(ptr)
 #   endif
 #endif
+
+// Type used to store stack sizes internally in pb_walk().
+// By default up to 64 kB can be allocated per recursion level,
+// which is enough for about 1000 nested messages. Protobuf standard
+// generally recommends a maximum of 100 nested messages.
+#ifndef PB_WALK_STACKSIZE_TYPE_OVERRIDE
+typedef uint_least16_t pb_walk_stacksize_t;
+#else
+typedef PB_WALK_STACKSIZE_TYPE_OVERRIDE pb_walk_stacksize_t;
+#endif
+
+/* This structure is used by pb_walk() for storing information
+ * for each submessage level. It shouldn't be directly accessed
+ * by user code, but the definition is provided so that sizeof()
+ * can by used in PB_WALK_STACKFRAME_SIZE definition.
+ */
+typedef struct {
+    /* Message descriptor and structure */
+    const pb_msgdesc_t *descriptor;
+    void *message;
+
+    /* pb_field_iter_t state */
+    pb_fieldidx_t index;
+    pb_fieldidx_t required_field_index;
+    pb_fieldidx_t submessage_index;
+
+    /* Size of the previous user stackframe */
+    pb_walk_stacksize_t prev_stacksize;
+} pb_walk_stackframe_t;
 
 /* This is used to inform about need to regenerate .pb.h/.pb.c files. */
 #define PB_PROTO_HEADER_VERSION 93

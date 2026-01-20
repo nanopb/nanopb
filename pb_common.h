@@ -77,7 +77,6 @@ typedef enum {
 } pb_walk_retval_t;
 
 typedef struct pb_walk_state_s pb_walk_state_t;
-typedef uint_least16_t pb_walk_stacksize_t;
 
 // Callback function type that is called by pb_walk()
 typedef pb_walk_retval_t (*pb_walk_cb_t)(pb_walk_state_t *state);

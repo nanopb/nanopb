@@ -34,6 +34,20 @@
 #define PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE 16
 #endif
 
+// Information that is needed per each message level during encoding
+typedef struct {
+    size_t msg_start_pos;
+    uint_least16_t flags;
+} pb_encode_walk_stackframe_t;
+
+// Amount of stack initially allocated for encoding.
+// pb_walk() will allocate more automatically unless recursion is disabled.
+#ifndef PB_ENCODE_INITIAL_STACKSIZE
+#define PB_ENCODE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * \
+    (PB_WALK_STACKFRAME_SIZE + PB_WALK_ALIGN(sizeof(pb_encode_walk_stackframe_t))) \
+)
+#endif
+
 static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -616,12 +630,12 @@ static bool field_present(const pb_field_iter_t *field)
  * Encode all fields *
  *********************/
 
-typedef struct {
-    size_t msg_start_pos;
-    uint_least16_t flags;
-} pb_encode_walk_stackframe_t;
-
+// State flags are stored in pb_walk_state_t and persist across
+// message tree levels.
 #define PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG      (uint_least16_t)1
+
+// Frame flags are stored in pb_encode_walk_stackframe_t and
+// apply only to a single level.
 #define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1      (uint_least16_t)1
 #define PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED     (uint_least16_t)2
 #define PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED     (uint_least16_t)4
@@ -922,7 +936,10 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
     pb_walk_state_t state;
+    PB_WALK_DECLARE_STACKBUF(PB_ENCODE_INITIAL_STACKSIZE) stackbuf;
+
     (void)pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb);
+    PB_WALK_SET_STACKBUF(&state, stackbuf);
 
     state.ctx = ctx;
     state.next_stacksize = sizeof(pb_encode_walk_stackframe_t);

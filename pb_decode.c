@@ -59,6 +59,39 @@ static const char c_errmsg_io_error[] = "io error";
 #endif
 #endif
 
+// Structure used to store information per each message level
+// during the decoding operation.
+typedef struct {
+    // Parent stream length that gets stored when pb_decode_open_substream() is called.
+    // It's also used to store wire type when oneof release is done.
+    size_t old_length;
+
+    // Flags for this recursion level
+    uint_least16_t flags;
+
+    // Tracking for fixed count repeated fields.
+    // This can handle at most one fixarray that is unpacked and
+    // unordered among other (non-fixarray) fields.
+    // During field processing fixarray_count contains the number
+    // of items decoded so far. Otherwise it contains the number
+    // of items remaining.
+    pb_tag_t fixarray_tag;
+    pb_size_t fixarray_count;
+
+    // Array of (descriptor->required_field_count / 8) bytes is stored
+    // after the end of this structure. It is equivalent to a flexible
+    // array member, but because of lack of C++ standardization, manual
+    // pointer arithmetic is used to access it.
+} pb_decode_walk_stackframe_t;
+
+// Amount of stack initially allocated for decoding.
+// pb_walk() will allocate more automatically unless recursion is disabled.
+#ifndef PB_DECODE_INITIAL_STACKSIZE
+#define PB_DECODE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * \
+    (PB_WALK_STACKFRAME_SIZE + PB_WALK_ALIGN(sizeof(pb_decode_walk_stackframe_t) + PB_MAX_REQUIRED_FIELDS / 8)) \
+)
+#endif
+
 typedef struct {
     uint32_t bitfield[(PB_MAX_REQUIRED_FIELDS + 31) / 32];
 } pb_fields_seen_t;
@@ -1036,33 +1069,11 @@ static bool checkreturn decode_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_t
  * Decode all fields *
  *********************/
 
-typedef struct {
-    // Parent stream length that gets stored when pb_decode_open_substream() is called.
-    // It's also used to store wire type when oneof release is done.
-    size_t old_length;
-
-    // Flags for this recursion level
-    uint_least16_t flags;
-
-    // Tracking for fixed count repeated fields.
-    // This can handle at most one fixarray that is unpacked and
-    // unordered among other (non-fixarray) fields.
-    // During field processing fixarray_count contains the number
-    // of items decoded so far. Otherwise it contains the number
-    // of items remaining.
-    pb_tag_t fixarray_tag;
-    pb_size_t fixarray_count;
-
-    // Array of (descriptor->required_field_count / 8) bytes is stored
-    // after the end of this structure. It is equivalent to a flexible
-    // array member, but because of lack of C++ standardization, manual
-    // pointer arithmetic is used to access it.
-} pb_decode_walk_stackframe_t;
-
 // State flags apply to all recursion levels.
-// Frame flags apply to single level, and are used for unsetting state flags.
 #define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
 #define PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD     (uint_least16_t)2
+
+// Frame flags apply to single level, and are used for unsetting state flags.
 #define PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS      (uint_least16_t)1
 #define PB_DECODE_WALK_FRAME_FLAG_END_RELEASE       (uint_least16_t)2
 
@@ -1510,11 +1521,13 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
     size_t old_length = 0;
 
     pb_walk_state_t state;
+    PB_WALK_DECLARE_STACKBUF(PB_DECODE_INITIAL_STACKSIZE) stackbuf;
 
     /* Set default values, if needed */
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
         (void)pb_walk_init(&state, fields, dest_struct, pb_defaults_walk_cb);
+        PB_WALK_SET_STACKBUF(&state, stackbuf);
         if (!pb_walk(&state))
         {
             PB_RETURN_ERROR(ctx, "failed to set defaults");
@@ -1529,6 +1542,7 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
 
     /* Decode the message */
     (void)pb_walk_init(&state, fields, dest_struct, pb_decode_walk_cb);
+    PB_WALK_SET_STACKBUF(&state, stackbuf);
     state.ctx = ctx;
     state.next_stacksize = stacksize_for_msg(fields);
 
