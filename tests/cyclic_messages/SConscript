@@ -9,13 +9,26 @@ env.NanopbProto(["cyclic_callback", "cyclic_callback.options"])
 enc_callback = env.Program(["encode_cyclic_callback.c", "cyclic_callback.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
 dec_callback = env.Program(["decode_cyclic_callback.c", "cyclic_callback.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
 
-# Test encoding using callbacks
-env.RunTest('encode_cyclic_callback.output', [enc_callback, 'testmessage.txt'])
-env.Decode('encode_cyclic_callback.output.decoded', ['encode_cyclic_callback.output', 'cyclic.proto'], MESSAGE='Dictionary')
-env.Encode('expected.pb', ['expected.txt', 'cyclic.proto'], MESSAGE='Dictionary')
-env.Compare(['encode_cyclic_callback.output', 'expected.pb'])
+if env.get('EMBEDDED') != 'AVR':
+    # The main test case contains a deep recursion, which would overflow
+    # AVR stack. For AVRs only run the short message test case.
 
-# Test decoding using callbacks
-env.RunTest('decode_cyclic_callback.output', [dec_callback, 'encode_cyclic_callback.output'])
-env.RunTest('decode_cyclic_callback.output.pb', [enc_callback, 'decode_cyclic_callback.output'])
-env.Compare(['decode_cyclic_callback.output.pb', 'encode_cyclic_callback.output'])
+    # Test encoding using callbacks
+    env.RunTest('encode_cyclic_callback.output', [enc_callback, 'testmessage.txt'])
+    env.Decode('encode_cyclic_callback.output.decoded', ['encode_cyclic_callback.output', 'cyclic.proto'], MESSAGE='Dictionary')
+    env.Encode('expected.pb', ['expected.txt', 'cyclic.proto'], MESSAGE='Dictionary')
+    env.Compare(['encode_cyclic_callback.output', 'expected.pb'])
+
+    # Test decoding using callbacks
+    env.RunTest('decode_cyclic_callback.output', [dec_callback, 'encode_cyclic_callback.output'])
+    env.RunTest('decode_cyclic_callback.output.pb', [enc_callback, 'decode_cyclic_callback.output'])
+    env.Compare(['decode_cyclic_callback.output.pb', 'encode_cyclic_callback.output'])
+
+# Test with shorter message
+env.RunTest('encode_cyclic_callback.short', [enc_callback, 'testmessage_short.txt'])
+env.Decode('encode_cyclic_callback.short.decoded', ['encode_cyclic_callback.short', 'cyclic.proto'], MESSAGE='Dictionary')
+env.Encode('expected_short.pb', ['expected_short.txt', 'cyclic.proto'], MESSAGE='Dictionary')
+env.Compare('encode_cyclick_callback.short.equal', ['encode_cyclic_callback.short', 'expected_short.pb'])
+env.RunTest('decode_cyclic_callback.short', [dec_callback, 'encode_cyclic_callback.short'])
+env.RunTest('decode_cyclic_callback.short.pb', [enc_callback, 'decode_cyclic_callback.short'])
+env.Compare('decode_cyclic_callback.short.pb.equal', ['decode_cyclic_callback.short.pb', 'encode_cyclic_callback.short'])
