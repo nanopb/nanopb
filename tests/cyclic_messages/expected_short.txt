@@ -1,0 +1,66 @@
+dictItem {
+  key: "foobar"
+  intValue: 1234
+}
+dictItem {
+  key: "xyz"
+  stringValue: "abc"
+}
+dictItem {
+  key: "dict"
+  dictValue {
+    dictItem {
+      key: "a"
+      intValue: 1
+    }
+    dictItem {
+      key: "b"
+      intValue: 2
+    }
+  }
+}
+dictItem {
+  key: "tree"
+  treeValue {
+    left {
+      left {
+        left {
+          leaf: 1
+        }
+        right {
+          leaf: 2
+        }
+      }
+      right {
+        leaf: 3
+      }
+    }
+    right {
+      left {
+        leaf: 4
+      }
+      right {
+        leaf: 5
+      }
+    }
+  }
+}
+dictItem {
+  key: "deep"
+  dictValue {
+    dictItem {
+      key: "a"
+      dictValue {
+        dictItem {
+          key: "a"
+          dictValue {
+            dictItem {
+              key: "a"
+              intValue: 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
