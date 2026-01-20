@@ -88,6 +88,10 @@ struct pb_decode_ctx_s
     // Total size of the cache buffer
     size_t buffer_size;
 #endif
+
+    // Outer pb_walk() stackframe, used for memory usage optimizations during
+    // callback handling. This is initialized to NULL and later set by pb_encode().
+    pb_walk_state_t *walk_state;
 };
 
 /***************************
@@ -97,6 +101,10 @@ struct pb_decode_ctx_s
 /* Prefer using pb_decode() macro instead of these functions.
  * The macro passes struct_size automatically, giving some amount
  * of type safety of pb_msgdesc_t pointer vs. wrong struct type.
+ *
+ * If you don't know the structure size, you can pass 0 as the struct_size
+ * and the check will be skipped. The actual object at dest_struct must
+ * still match the field descriptor.
  */
 bool pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
                  void *dest_struct, size_t struct_size);
@@ -252,15 +260,15 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
 // called with zero length.
 #ifndef PB_NO_STREAM_CALLBACK
 # ifndef PB_NO_ERRMSG
-#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, NULL, 0, NULL, NULL, 0}
+#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, NULL, 0, NULL, NULL, 0, NULL}
 # else
-#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, 0, NULL, NULL, 0}
+#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, 0, NULL, NULL, 0, NULL}
 # endif
 #else
 # ifndef PB_NO_ERRMSG
-#  define PB_ISTREAM_EMPTY {0, NULL, 0, NULL}
+#  define PB_ISTREAM_EMPTY {0, NULL, 0, NULL, NULL}
 # else
-#  define PB_ISTREAM_EMPTY {0, 0, NULL}
+#  define PB_ISTREAM_EMPTY {0, 0, NULL, NULL}
 # endif
 #endif
 
