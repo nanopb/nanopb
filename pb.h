@@ -695,6 +695,12 @@ typedef struct {
 /* Force expansion of macro value */
 #define PB_EXPAND(x) x
 
+/* Cast away const from pointer type.
+ * This is used so that the same iterator logic can be used for both encoding
+ * and decoding functions.
+ */
+#define PB_CONST_CAST(x) ((void*)(uintptr_t)(x))
+
 /* Binding of a message field set into a specific structure
  * This calls the other macros to generate a pb_msgdesc_t.
  */
