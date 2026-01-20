@@ -417,35 +417,6 @@ bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx,
     return true; /* Success, but didn't do anything */
 }
 
-/* Information stored internally by pb_walk() for each submessage level. */
-typedef struct {
-    /* Message descriptor and structure */
-    const pb_msgdesc_t *descriptor;
-    void *message;
-
-    /* pb_field_iter_t state */
-    pb_fieldidx_t index;
-    pb_fieldidx_t required_field_index;
-    pb_fieldidx_t submessage_index;
-
-    /* Size of the previous user stackframe */
-    pb_walk_stacksize_t prev_stacksize;
-} pb_walk_stackframe_t;
-
-#ifndef PB_WALK_STACK_ALIGN_OVERRIDE
-typedef void* pb_walk_stack_align_t;
-#else
-typedef PB_WALK_STACK_ALIGN_OVERRIDE pb_walk_stack_align_t;
-#endif
-
-#define PB_WALK_ALIGNSIZE sizeof(pb_walk_stack_align_t)
-
-// Round byte count upwards to a multiple of sizeof(void*) to retain alignment
-#define ALIGN_BYTES(x) (pb_walk_stacksize_t)(((x) + PB_WALK_ALIGNSIZE - 1) / PB_WALK_ALIGNSIZE * PB_WALK_ALIGNSIZE)
-
-// Configured stack size must also be divisible by alignment requirement
-PB_STATIC_ASSERT(ALIGN_BYTES(PB_WALK_STACK_SIZE) == PB_WALK_STACK_SIZE, PB_WALK_STACK_SIZE_not_aligned)
-
 bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback)
 {
     state->callback = callback;
@@ -472,14 +443,10 @@ static bool pb_walk_recurse(pb_walk_state_t *state)
     void *old_stack = state->stack;
     pb_walk_stacksize_t old_stack_remain = state->stack_remain;
 
-    union {
-        pb_walk_stack_align_t alignment;
-        char buf[PB_WALK_STACK_SIZE];
-    } aligned_storage;
-
-    state->stack = aligned_storage.buf + PB_WALK_STACK_SIZE;
-    state->stack_remain = PB_WALK_STACK_SIZE;
+    PB_WALK_DECLARE_STACKBUF(PB_WALK_STACK_SIZE) stackbuf;
+    PB_WALK_SET_STACKBUF(state, stackbuf);
     bool status = pb_walk(state);
+
     state->stack = old_stack;
     state->stack_remain = old_stack_remain;
     return status;
@@ -513,7 +480,7 @@ bool pb_walk(pb_walk_state_t *state)
     if (state->retval != PB_WALK_IN)
     {
         // Allocate stack for first message level
-        if (!alloc_stackframe(state, ALIGN_BYTES(state->next_stacksize)))
+        if (!alloc_stackframe(state, PB_WALK_ALIGN(state->next_stacksize)))
         {
             if (state->stacksize > PB_WALK_STACK_SIZE)
                 PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
@@ -533,8 +500,8 @@ bool pb_walk(pb_walk_state_t *state)
         {
             /* Enter into a submessage */
 
-            pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->next_stacksize);
-            pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+            pb_walk_stacksize_t cb_stacksize = PB_WALK_ALIGN(state->next_stacksize);
+            pb_walk_stacksize_t our_stacksize = PB_WALK_ALIGN(sizeof(pb_walk_stackframe_t));
             pb_walk_stacksize_t prev_stacksize = state->stacksize;
 
             if (!alloc_stackframe(state, cb_stacksize + our_stacksize))
@@ -593,8 +560,8 @@ bool pb_walk(pb_walk_state_t *state)
             state->depth--;
 
             // Restore previous stack frame
-            pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->stacksize);
-            pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+            pb_walk_stacksize_t cb_stacksize = PB_WALK_ALIGN(state->stacksize);
+            pb_walk_stacksize_t our_stacksize = PB_WALK_ALIGN(sizeof(pb_walk_stackframe_t));
             pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)((char*)state->stack + cb_stacksize);
             state->stack = (char*)state->stack + cb_stacksize + our_stacksize;
             state->stack_remain = (pb_walk_stacksize_t)(state->stack_remain + cb_stacksize + our_stacksize);
