@@ -1,0 +1,7 @@
+# Regression test for #1131:
+# Name mangling of inner types can be broken when only defining package in options file.
+
+Import("env")
+
+env.NanopbProto(["package_name_prefix.proto", "package_name_prefix.options"])
+env.Object("package_name_prefix.pb.c")
