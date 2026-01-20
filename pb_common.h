@@ -76,8 +76,6 @@ typedef enum {
     PB_WALK_NEXT_FIELD = 4,
 } pb_walk_retval_t;
 
-typedef struct pb_walk_state_s pb_walk_state_t;
-
 // Callback function type that is called by pb_walk()
 typedef pb_walk_retval_t (*pb_walk_cb_t)(pb_walk_state_t *state);
 
@@ -136,6 +134,7 @@ struct pb_walk_state_s {
 
 /* Initialize state for pb_walk() function.
  * After this the caller can modify fields in state before calling pb_walk().
+ * Returns false for empty message types.
  */
 bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback);
 

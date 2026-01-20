@@ -83,6 +83,8 @@ void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
+
+    ctx->walk_state = NULL;
 }
 
 void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
@@ -102,6 +104,8 @@ void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
+
+    ctx->walk_state = NULL;
 }
 
 #ifndef PB_NO_STREAM_CALLBACK
@@ -124,6 +128,8 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
+
+    ctx->walk_state = NULL;
 }
 #endif
 
@@ -878,8 +884,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         {
             // Submessage size is now known.
             // Encode again to write out the message data.
-            ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags &
-                    ~(PB_ENCODE_CTX_FLAG_SIZING | PB_ENCODE_CTX_FLAG_ONEPASS_SIZING));
+            ctx->flags &= (pb_encode_ctx_flags_t)~(PB_ENCODE_CTX_FLAG_SIZING | PB_ENCODE_CTX_FLAG_ONEPASS_SIZING);
             frame->flags = PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2;
 
             // Return the stream to the state it was before the sizing pass started.
@@ -936,13 +941,10 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
     pb_walk_state_t state;
-    PB_WALK_DECLARE_STACKBUF(PB_ENCODE_INITIAL_STACKSIZE) stackbuf;
-
     (void)pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb);
-    PB_WALK_SET_STACKBUF(&state, stackbuf);
 
-    state.ctx = ctx;
-    state.next_stacksize = sizeof(pb_encode_walk_stackframe_t);
+    PB_WALK_DECLARE_STACKBUF(PB_ENCODE_INITIAL_STACKSIZE) stackbuf;
+    PB_WALK_SET_STACKBUF(&state, stackbuf);
 
     if (ctx->flags & PB_ENCODE_CTX_FLAG_DELIMITED)
     {
@@ -950,7 +952,25 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
         state.flags |= PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
     }
 
-    if (!pb_walk(&state))
+    state.ctx = ctx;
+    state.next_stacksize = sizeof(pb_encode_walk_stackframe_t);
+
+    // Top level flags shouldn't be applied to any recursive pb_encode() calls from
+    // user callbacks, so unset them.
+    pb_encode_ctx_flags_t old_flags = ctx->flags;
+    ctx->flags &= (pb_encode_ctx_flags_t)~(PB_ENCODE_CTX_FLAG_DELIMITED | PB_ENCODE_CTX_FLAG_NULLTERMINATED);
+
+    // Store pointer to the walk state so that it can be reused by pb_encode_submessage()
+    // when called from user callbacks.
+    pb_walk_state_t *old_walkstate = ctx->walk_state;
+    ctx->walk_state = &state;
+
+    bool status = pb_walk(&state);
+
+    ctx->walk_state = old_walkstate;
+    ctx->flags = old_flags;
+
+    if (!status)
     {
         PB_RETURN_ERROR(ctx, state.errmsg);
     }
@@ -1186,10 +1206,41 @@ bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer,
 
 bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
 {
-    pb_encode_ctx_flags_t old_flags = ctx->flags;
-    ctx->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
-    bool status = pb_encode_s(ctx, fields, src_struct, 0);
-    ctx->flags = old_flags;
+    bool status;
+
+    if (ctx->walk_state != NULL &&
+        ctx->walk_state->callback == pb_encode_walk_cb &&
+        ctx->walk_state->ctx == ctx)
+    {
+        // Reuse existing walk state variable to conserve stack space
+        pb_walk_state_t *state = ctx->walk_state;
+        uint32_t old_flags = state->flags;
+        state->flags = PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
+        state->iter.pData = PB_CONST_CAST(src_struct);
+        state->iter.submsg_desc = fields;
+        state->retval = PB_WALK_IN;
+        state->depth += 1;
+        state->next_stacksize = sizeof(pb_encode_walk_stackframe_t);
+
+        status = pb_walk(state);
+
+        state->flags = old_flags;
+        state->depth -= 1;
+
+        if (!status)
+        {
+            PB_SET_ERROR(ctx, state->errmsg);
+        }
+    }
+    else
+    {
+        // Go through normal pb_encode() to allocate a new walk state
+        pb_encode_ctx_flags_t old_flags = ctx->flags;
+        ctx->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
+        status = pb_encode_s(ctx, fields, src_struct, 0);
+        ctx->flags = old_flags;
+    }
+
     return status;
 }
 

@@ -92,6 +92,10 @@ struct pb_encode_ctx_s
     // If callback is not used, this is equal to bytes_written.
     size_t buffer_count;
 #endif
+
+    // Outer pb_walk() stackframe, used for memory usage optimizations during
+    // callback handling. This is initialized to NULL and later set by pb_encode().
+    pb_walk_state_t *walk_state;
 };
 
 /***************************
@@ -236,15 +240,15 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
 #ifndef PB_NO_STREAM_CALLBACK
 # ifndef PB_NO_ERRMSG
-#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0}
+#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
 # else
-#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0}
+#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
 # endif
 #else
 # ifndef PB_NO_ERRMSG
-#  define PB_OSTREAM_SIZING {0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL}
+#  define PB_OSTREAM_SIZING {0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}
 # else
-#  define PB_OSTREAM_SIZING {0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL}
+#  define PB_OSTREAM_SIZING {0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}
 # endif
 #endif
 
