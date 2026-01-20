@@ -1,0 +1,13 @@
+// A very simple protocol definition to show the usage of the 'packet' option.
+
+syntax = "proto2";
+
+enum ErrorCode {
+    UNKNOWN = 0;
+    SPECIFIC = 1;
+}
+
+message Error {
+    required ErrorCode code = 1;
+    optional string description = 2;
+}

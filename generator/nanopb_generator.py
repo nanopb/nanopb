@@ -1886,7 +1886,7 @@ class MangleNames:
             return "." + typename.split(".")[-1]
 
         canonical_mangled_typename = str(Names(typename.strip(".").split(".")))
-        if not canonical_mangled_typename.startswith(str(self.canonical_base) + "_"):
+        if not canonical_mangled_typename.startswith(str(self.canonical_base) + "_") and self.canonical_base != Names():
             return typename
 
         if self.strip_prefix is not None and typename.startswith(self.strip_prefix):
