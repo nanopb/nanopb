@@ -217,6 +217,8 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, s
     ctx->buffer = NULL;
     ctx->buffer_size = 0;
 #endif
+
+    ctx->walk_state = NULL;
 }
 
 #ifndef PB_NO_STREAM_CALLBACK
@@ -247,6 +249,8 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
 #ifndef PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
+
+    ctx->walk_state = NULL;
 }
 #endif
 
@@ -1508,18 +1512,9 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
     return PB_WALK_OUT;
 }
 
-bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
-                             void *dest_struct, size_t struct_size)
+// Allocate stack buffer and run pb_walk() for decoding the message
+static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
 {
-    // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
-    // or by it having different compilation options.
-    // NOTE: On GCC, sizeof(*(void*)) == 1
-    if (fields->struct_size != struct_size && struct_size > 1)
-        PB_RETURN_ERROR(ctx, "struct_size mismatch");
-
-    bool status = true;
-    size_t old_length = 0;
-
     pb_walk_state_t state;
     PB_WALK_DECLARE_STACKBUF(PB_DECODE_INITIAL_STACKSIZE) stackbuf;
 
@@ -1534,12 +1529,6 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
         }
     }
 
-    if (ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED)
-    {
-        if (!pb_decode_open_substream(ctx, &old_length))
-            return false;
-    }
-
     /* Decode the message */
     (void)pb_walk_init(&state, fields, dest_struct, pb_decode_walk_cb);
     PB_WALK_SET_STACKBUF(&state, stackbuf);
@@ -1549,19 +1538,124 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
     if (!pb_walk(&state))
     {
         PB_SET_ERROR(ctx, state.errmsg);
-        status = false;
+
+#ifdef PB_ENABLE_MALLOC
+        (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
+        (void)pb_walk(&state);
+#endif
+
+        return false;
     }
 
+    return true;
+}
+
+// Reuse already allocated pb_walk_state_t and decode the message
+static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
+{
+    bool status = true;
+    pb_walk_state_t *state = ctx->walk_state;
+    uint32_t old_flags = state->flags;
+    state->depth += 1;
+
+    /* Set default values, if needed */
+    if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
+    {
+        state->flags = 0;
+        state->iter.pData = dest_struct;
+        state->iter.submsg_desc = fields;
+        state->retval = PB_WALK_IN;
+        state->callback = pb_defaults_walk_cb;
+        state->next_stacksize = 0;
+        if (!pb_walk(state))
+        {
+            PB_SET_ERROR(ctx, "failed to set defaults");
+            status = false;
+        }
+        state->callback = pb_decode_walk_cb;
+    }
+
+    /* Decode message contents */
+    if (status)
+    {
+        state->flags = 0;
+        state->iter.pData = dest_struct;
+        state->iter.submsg_desc = fields;
+        state->retval = PB_WALK_IN;
+        state->next_stacksize = stacksize_for_msg(fields);
+        status = pb_walk(state);
+
+        if (!pb_walk(state))
+        {
+            PB_SET_ERROR(ctx, state->errmsg);
+            status = false;
+        }
+    }
+
+    /* Release allocations on failure*/
+#ifdef PB_ENABLE_MALLOC
+    if (!status)
+    {
+        state->flags = 0;
+        state->iter.pData = dest_struct;
+        state->iter.submsg_desc = fields;
+        state->retval = PB_WALK_IN;
+        state->callback = pb_release_walk_cb;
+        state->next_stacksize = 0;
+        (void)pb_walk(state);
+        state->callback = pb_decode_walk_cb;
+    }
+#endif
+
+    state->flags = old_flags;
+    state->depth -= 1;
+
+    return status;
+}
+
+
+bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+                             void *dest_struct, size_t struct_size)
+{
+    // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
+    // or by it having different compilation options.
+    // NOTE: On GCC, sizeof(*(void*)) == 1
+    if (fields->struct_size != struct_size && struct_size > 1)
+        PB_RETURN_ERROR(ctx, "struct_size mismatch");
+
+    bool status = true;
+    pb_decode_ctx_flags_t orig_flags = ctx->flags;
+    size_t old_length = 0;
+
+    if (ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED)
+    {
+        if (!pb_decode_open_substream(ctx, &old_length))
+            return false;
+
+        // Make sure the flag doesn't accidentally apply to recursive calls
+        // from user callbacks.
+        ctx->flags &= (pb_decode_ctx_flags_t)~PB_DECODE_CTX_FLAG_DELIMITED;
+    }
+
+    if (ctx->walk_state != NULL &&
+        ctx->walk_state->callback == pb_decode_walk_cb &&
+        ctx->walk_state->ctx == ctx)
+    {
+        // Reuse existing walk state variable to conserve stack space
+        status = pb_decode_walk_reuse(ctx, fields, dest_struct);
+    }
+    else
+    {
+        // Allocate new walk state on stack
+        status = pb_decode_walk_begin(ctx, fields, dest_struct);
+    }
+
+    ctx->flags = orig_flags;
     if (ctx->flags & PB_DECODE_CTX_FLAG_DELIMITED)
     {
         if (!pb_decode_close_substream(ctx, old_length))
             status = false;
     }
-    
-#ifdef PB_ENABLE_MALLOC
-    if (!status)
-        pb_release_s(ctx, fields, dest_struct, struct_size);
-#endif
     
     return status;
 }
