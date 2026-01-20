@@ -451,6 +451,7 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
     state->callback = callback;
     state->stack = NULL;
     state->stacksize = 0;
+    state->stack_remain = 0;
     state->next_stacksize = 0;
     state->ctx = NULL;
     state->flags = 0;
@@ -465,26 +466,60 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
     return pb_field_iter_begin_const(&state->iter, desc, message);
 }
 
-bool pb_walk(pb_walk_state_t *state)
+static bool pb_walk_recurse(pb_walk_state_t *state)
 {
-    // Manually managed stack for storing only the necessary data for
-    // walking the message tree.
+#ifndef PB_NO_RECURSION
+    void *old_stack = state->stack;
+    pb_walk_stacksize_t old_stack_remain = state->stack_remain;
+
     union {
         pb_walk_stack_align_t alignment;
         char buf[PB_WALK_STACK_SIZE];
     } aligned_storage;
-    char *storage = aligned_storage.buf;
-    pb_walk_stacksize_t pos = PB_WALK_STACK_SIZE;
 
-    // Check if this is recursive pb_walk() call
+    state->stack = aligned_storage.buf + PB_WALK_STACK_SIZE;
+    state->stack_remain = PB_WALK_STACK_SIZE;
+    bool status = pb_walk(state);
+    state->stack = old_stack;
+    state->stack_remain = old_stack_remain;
+    return status;
+#else
+    PB_RETURN_ERROR(state, "recursion disabled");
+#endif
+}
+
+// Allocates a frame from the software-based stack and memsets it to 0.
+// If there is not enough space, returns false.
+static bool alloc_stackframe(pb_walk_state_t *state, pb_walk_stacksize_t size)
+{
+    if (state->stack_remain < size)
+    {
+        return false;
+    }
+
+    state->stacksize = size;
+    state->stack_remain -= state->stacksize;
+    state->stack = (char*)state->stack - state->stacksize;
+    memset(state->stack, 0, state->stacksize);
+    return true;
+}
+
+bool pb_walk(pb_walk_state_t *state)
+{
+    pb_walk_stacksize_t stack_remain_initial = state->stack_remain;
+
+    // Check whether pb_walk() was called recursively by itself or
+    // if we are the first level.
     if (state->retval != PB_WALK_IN)
     {
-        // Allocate first frame
-        state->stacksize = ALIGN_BYTES(state->next_stacksize);
-        if (state->stacksize > pos) PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
-        pos -= state->stacksize;
-        state->stack = &storage[pos];
-        memset(&storage[pos], 0, state->stacksize);
+        // Allocate stack for first message level
+        if (!alloc_stackframe(state, ALIGN_BYTES(state->next_stacksize)))
+        {
+            if (state->stacksize > PB_WALK_STACK_SIZE)
+                PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
+
+            return pb_walk_recurse(state);
+        }
 
         // Invoke the first callback
         state->retval = state->callback(state);
@@ -500,18 +535,22 @@ bool pb_walk(pb_walk_state_t *state)
 
             pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->next_stacksize);
             pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+            pb_walk_stacksize_t prev_stacksize = state->stacksize;
 
-            if (pos < cb_stacksize + our_stacksize)
+            if (!alloc_stackframe(state, cb_stacksize + our_stacksize))
             {
                 /* Not enough space for new stackframe.
                  * Use recursion to allocate more stack.
                  */
-#ifndef PB_NO_RECURSION
-                if (!pb_walk(state)) return false;
-                state->stack = &storage[pos];
-#else
-                PB_RETURN_ERROR(state, "recursion disabled");
-#endif
+                if (!pb_walk_recurse(state))
+                {
+                    return false;
+                }
+
+                if (state->retval <= 0)
+                {
+                    break;
+                }
             }
             else
             {
@@ -521,21 +560,16 @@ bool pb_walk(pb_walk_state_t *state)
                 }
                 state->depth++;
 
-                // Store iterator state so that we can restore it after return
-                pos -= our_stacksize;
-                pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)&storage[pos];
+                // Store iterator state in area above the callback stack reservation.
+                // It gets restored on PB_WALK_OUT.
+                state->stacksize -= our_stacksize;
+                pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)((char*)state->stack + state->stacksize);
                 frame->descriptor = iter->descriptor;
                 frame->message = iter->message;
                 frame->index = iter->index;
                 frame->required_field_index = iter->required_field_index;
                 frame->submessage_index = iter->submessage_index;
-                frame->prev_stacksize = state->stacksize;
-
-                // Setup stack frame for callback
-                state->stacksize = cb_stacksize;
-                pos -= cb_stacksize;
-                state->stack = &storage[pos];
-                memset(&storage[pos], 0, cb_stacksize);
+                frame->prev_stacksize = prev_stacksize;
 
                 if (!iter->submsg_desc)
                 {
@@ -558,11 +592,17 @@ bool pb_walk(pb_walk_state_t *state)
             }
             state->depth--;
 
+            // Restore previous stack frame
+            pb_walk_stacksize_t cb_stacksize = ALIGN_BYTES(state->stacksize);
+            pb_walk_stacksize_t our_stacksize = ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
+            pb_walk_stackframe_t *frame = (pb_walk_stackframe_t*)((char*)state->stack + cb_stacksize);
+            state->stack = (char*)state->stack + cb_stacksize + our_stacksize;
+            state->stack_remain = (pb_walk_stacksize_t)(state->stack_remain + cb_stacksize + our_stacksize);
+            state->stacksize = frame->prev_stacksize;
+
             // Restore iterator state
-            pos += state->stacksize;
             const void *old_desc = iter->descriptor;
             void *old_msg = iter->message;
-            const pb_walk_stackframe_t *frame = (const pb_walk_stackframe_t*)&storage[pos];
             iter->descriptor = frame->descriptor;
             iter->message = frame->message;
             iter->index = frame->index;
@@ -608,14 +648,9 @@ bool pb_walk(pb_walk_state_t *state)
                     iter->pData = NULL;
             }
 
-            // Restore previous stack frame
-            state->stacksize = frame->prev_stacksize;
-            pos += ALIGN_BYTES(sizeof(pb_walk_stackframe_t));
-            state->stack = &storage[pos];
-
-            if (pos >= PB_WALK_STACK_SIZE && state->depth > 0)
+            if (state->stack_remain >= stack_remain_initial && state->depth > 0)
             {
-                // Exit from recursion
+                // Exit to pb_walk_recurse().
                 return true;
             }
         }
