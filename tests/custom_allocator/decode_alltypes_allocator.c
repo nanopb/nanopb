@@ -1,10 +1,16 @@
+/* This is similar to decode_alltypes_pointer test case but uses
+ * a custom arena allocator instead.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pb_decode.h>
 #include "alltypes.pb.h"
+#include "arena_allocator.h"
 #include "test_helpers.h"
 #include "unittests.h"
+
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
@@ -168,10 +174,12 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
     TEST(alltypes.end && *alltypes.end == 1099);
 
-    pb_release(AllTypes_fields, &alltypes);
+    pb_release(stream, AllTypes_fields, &alltypes);
 
     return status == 0;
 }
+
+static char arena_buffer[2048];
 
 int main(int argc, char **argv)
 {
@@ -188,6 +196,11 @@ int main(int argc, char **argv)
     
     /* Construct a pb_istream_t for reading from the buffer */
     stream = pb_istream_from_buffer(buffer, count);
+
+    /* Use arena allocator for memory */
+    arena_allocator_t allocator;
+    arena_allocator_init(&allocator, arena_buffer, sizeof(arena_buffer));
+    stream.allocator = &allocator.allocator;
     
     /* Decode and verify the message */
     if (!check_alltypes(&stream, mode))
@@ -195,8 +208,18 @@ int main(int argc, char **argv)
         fprintf(stderr, "Test failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
     }
-    else
+    
+    if (allocator.total_alloc_count != 0)
     {
-        return 0;
+        fprintf(stderr, "Unreleased allocations remain\n");
+        return 2;
     }
+
+    if (allocator.total_alloc_size < 10)
+    {
+        fprintf(stderr, "Allocator was not used\n");
+        return 3;
+    }
+
+    return 0;
 }

@@ -1,0 +1,26 @@
+# Decode AllTypes message using a custom allocator
+
+Import("malloc_env")
+env = malloc_env
+
+c = Copy("$TARGET", "$SOURCE")
+env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
+
+env.NanopbProto(["alltypes", "alltypes.options"])
+dec = env.Program(["decode_alltypes_allocator.c",
+                   "arena_allocator.c",
+                   "alltypes.pb.c",
+                   "$COMMON/pb_decode_with_malloc.o",
+                   "$COMMON/pb_common_with_malloc.o",
+                   "$COMMON/malloc_wrappers.o"])
+
+# Decode (under valgrind if available)
+kwargs = {}
+if env.get("VALGRIND"):
+    kwargs['COMMAND'] = env['VALGRIND']
+    kwargs['ARGS'] = ["-q", "--error-exitcode=99", dec[0].abspath]
+
+env.RunTest("decode_alltypes.output", [dec, "$BUILD/alltypes/encode_alltypes.output"], **kwargs)
+
+kwargs['ARGS'] = kwargs.get('ARGS', []) + ['1']
+env.RunTest("optionals.decout", [dec, "$BUILD/alltypes/optionals.output"], **kwargs)
