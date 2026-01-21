@@ -641,16 +641,41 @@ struct pb_extension_s {
 
 #define pb_extension_init_zero {NULL,NULL,NULL,false}
 
-/* Memory allocation functions to use. You can define pb_realloc and
- * pb_free to custom functions if you want. */
 #ifdef PB_ENABLE_MALLOC
+# ifndef PB_NO_CONTEXT_ALLOCATOR
+/* Memory allocator can be defined individually per each decoding
+ * context using this structure. User implementation can extend
+ * the state structure by wrapping it in another struct.
+ */
+typedef struct pb_allocator_s pb_allocator_t;
+struct pb_allocator_s {
+    // Allocate or reallocate memory.
+    // If ptr is NULL, make a new allocation of 'size' bytes.
+    // If ptr is not NULL, adjust the size of the old allocation,
+    // or make a new one and copy the old data.
+    // On failed allocation, return NULL.
+    void* (*realloc)(pb_allocator_t *ctx, void *ptr, size_t size);
+
+    // Release previously allocated memory
+    void (*free)(pb_allocator_t *ctx, void *ptr);
+
+    // Free pointer that can be used by realloc/free implementation
+    void *ctx;
+};
+# endif /* PB_NO_CONTEXT_ALLOCATOR */
+
+# ifndef PB_NO_DEFAULT_ALLOCATOR
+/* Memory allocation functions to use if context-based allocator
+ * is not given. You can define pb_realloc and pb_free to custom
+ * functions if you want. */
 #   ifndef pb_realloc
 #       define pb_realloc(ptr, size) realloc(ptr, size)
 #   endif
 #   ifndef pb_free
 #       define pb_free(ptr) free(ptr)
 #   endif
-#endif
+# endif /* PB_NO_DEFAULT_ALLOCATOR */
+#endif /* PB_ENABLE_MALLOC */
 
 // Type used to store stack sizes internally in pb_walk().
 // By default up to 64 kB can be allocated per recursion level,

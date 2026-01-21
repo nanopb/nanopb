@@ -1,6 +1,7 @@
 # Simulate io errors when encoding and decoding
 
-Import("env", "malloc_env")
+Import("malloc_env")
+env = malloc_env
 
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
