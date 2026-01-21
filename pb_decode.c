@@ -1705,34 +1705,28 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, size_t data_size, size_
 
 /* Release storage previously allocated by pb_allocate_field().
  * Uses either the allocator defined by ctx or the default allocator.
- *
- * Pointer to the memory is taken from '*ptr', and NULL is written to it.
  */
-void pb_release_field(pb_decode_ctx_t *ctx, void **ptr)
+void pb_release_field(pb_decode_ctx_t *ctx, void *ptr)
 {
-    PB_OPT_ASSERT(ptr != NULL);
-
 #ifdef PB_NO_DEFAULT_ALLOCATOR
     PB_OPT_ASSERT(ctx != NULL);
 #endif
 
-    if (*ptr == NULL)
+    if (ptr == NULL)
         return; // Nothing to do
 
 #ifndef PB_NO_CONTEXT_ALLOCATOR
     if (ctx != NULL && ctx->allocator)
     {
-        ctx->allocator->free(ctx->allocator, *ptr);
+        ctx->allocator->free(ctx->allocator, ptr);
     }
     else
 #endif
     {
 #ifndef PB_NO_DEFAULT_ALLOCATOR
-        pb_free(*ptr);
+        pb_free(ptr);
 #endif
     }
-
-    *ptr = NULL;
 }
 
 /* Release a single structure field based on its field_iter information. */
@@ -1754,7 +1748,8 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
             pb_size_t count = *(pb_size_t*)field->pSize;
             for (pb_size_t i = 0; i < count; i++)
             {
-                pb_release_field(ctx, &pItem[i]);
+                pb_release_field(ctx, pItem[i]);
+                pItem[i] = NULL;
             }
         }
         
@@ -1770,8 +1765,8 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
         }
 
         /* Release main pointer */
-        pb_release_field(ctx, (void**)field->pField);
-        field->pData = NULL;
+        pb_release_field(ctx, *(void**)field->pField);
+        *(void**)field->pField = field->pData = NULL;
     }
 }
 
@@ -1848,7 +1843,8 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             // Empty array
             if (iter->pData != NULL && PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
             {
-                pb_release_field(ctx, iter->pField);
+                pb_release_field(ctx, *(void**)iter->pField);
+                *(void**)iter->pField = iter->pData = NULL;
             }
             continue;
         }
