@@ -188,10 +188,8 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, size_t data_size, size_
 
 /* Release storage previously allocated by pb_allocate_field().
  * Uses either the allocator defined by ctx or the default allocator.
- *
- * Pointer to the memory is taken from '*ptr', and NULL is written to it.
  */
-void pb_release_field(pb_decode_ctx_t *ctx, void **ptr);
+void pb_release_field(pb_decode_ctx_t *ctx, void *ptr);
 
 #endif
 
