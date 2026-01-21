@@ -37,7 +37,6 @@ static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
 static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 
 #ifdef PB_ENABLE_MALLOC
-static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t data_size, size_t array_size);
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field);
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
@@ -90,6 +89,10 @@ typedef struct {
 #define PB_DECODE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * \
     (PB_WALK_STACKFRAME_SIZE + PB_WALK_ALIGN(sizeof(pb_decode_walk_stackframe_t) + PB_MAX_REQUIRED_FIELDS / 8)) \
 )
+#endif
+
+#ifndef PB_RELEASE_INITIAL_STACKSIZE
+#define PB_RELEASE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * PB_WALK_STACKFRAME_SIZE)
 #endif
 
 typedef struct {
@@ -219,6 +222,10 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, s
 #endif
 
     ctx->walk_state = NULL;
+
+#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+    ctx->allocator = NULL;
+#endif
 }
 
 #ifndef PB_NO_STREAM_CALLBACK
@@ -251,6 +258,10 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
 #endif
 
     ctx->walk_state = NULL;
+
+#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+    ctx->allocator = NULL;
+#endif
 }
 #endif
 
@@ -574,7 +585,7 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
         return PB_WALK_NEXT_ITEM;
     }
 
-    pb_decode_ctx_t defctx = PB_ISTREAM_EMPTY;
+    pb_decode_ctx_t defctx;
     pb_tag_t tag = 0;
     pb_wire_type_t wire_type = PB_WT_VARINT;
     bool eof;
@@ -597,6 +608,10 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
                 return PB_WALK_EXIT_ERR;
             }
         }
+    }
+    else
+    {
+        pb_init_decode_ctx_for_buffer(&defctx, NULL, 0);
     }
 
     do
@@ -789,55 +804,6 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 }
 
 #ifdef PB_ENABLE_MALLOC
-/* Allocate storage for the field and store the pointer at iter->pData.
- * array_size is the number of entries to reserve in an array.
- * Zero size is not allowed, use pb_free() for releasing.
- */
-static bool checkreturn allocate_field(pb_decode_ctx_t *ctx, void *pData, size_t data_size, size_t array_size)
-{    
-    void *ptr = *(void**)pData;
-    
-    if (data_size == 0 || array_size == 0)
-        PB_RETURN_ERROR(ctx, "invalid size");
-    
-#ifdef __AVR__
-    /* Workaround for AVR libc bug 53284: http://savannah.nongnu.org/bugs/?53284
-     * Realloc to size of 1 byte can cause corruption of the malloc structures.
-     */
-    if (data_size == 1 && array_size == 1)
-    {
-        data_size = 2;
-    }
-#endif
-
-    /* Check for multiplication overflows.
-     * This code avoids the costly division if the sizes are small enough.
-     * Multiplication is safe as long as only half of bits are set
-     * in either multiplicand.
-     */
-    {
-        const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
-        if (data_size >= check_limit || array_size >= check_limit)
-        {
-            const size_t size_max = (size_t)-1;
-            if (size_max / array_size < data_size)
-            {
-                PB_RETURN_ERROR(ctx, "size too large");
-            }
-        }
-    }
-    
-    /* Allocate new or expand previous allocation */
-    /* Note: on failure the old pointer will remain in the structure,
-     * the message must be freed by caller also on error return. */
-    ptr = pb_realloc(ptr, array_size * data_size);
-    if (ptr == NULL)
-        PB_RETURN_ERROR(ctx, "realloc failed");
-    
-    *(void**)pData = ptr;
-    return true;
-}
-
 /* Clear a newly allocated item in case it contains a pointer. */
 static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
 {
@@ -870,7 +836,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
             }
             else
             {
-                if (!allocate_field(ctx, field->pField, field->data_size, 1))
+                if (!pb_allocate_field(ctx, field->pField, field->data_size, 1))
                     return false;
                 
                 field->pData = *(void**)field->pField;
@@ -891,19 +857,17 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                 /* Packed array, multiple items come in at once. */
                 bool status = true;
                 pb_size_t *size = (pb_size_t*)field->pSize;
+                size_t old_length;
                 size_t allocated_size = *size;
-                pb_istream_t substream;
                 
-                if (!pb_make_string_substream(ctx, &substream))
+                if (!pb_decode_open_substream(ctx, &old_length))
                     return false;
                 
-                while (substream.bytes_left)
+                while (ctx->bytes_left)
                 {
                     if (*size == PB_SIZE_MAX)
                     {
-#ifndef PB_NO_ERRMSG
-                        ctx->errmsg = "too many array entries";
-#endif
+                        PB_SET_ERROR(ctx, "too many array entries");
                         status = false;
                         break;
                     }
@@ -913,13 +877,13 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                         /* Allocate more storage. This tries to guess the
                          * number of remaining entries. Round the division
                          * upwards. */
-                        size_t remain = (substream.bytes_left - 1) / field->data_size + 1;
+                        size_t remain = (ctx->bytes_left - 1) / field->data_size + 1;
                         if (remain < PB_SIZE_MAX - allocated_size)
                             allocated_size += remain;
                         else
                             allocated_size += 1;
                         
-                        if (!allocate_field(&substream, field->pField, field->data_size, allocated_size))
+                        if (!pb_allocate_field(ctx, field->pField, field->data_size, allocated_size))
                         {
                             status = false;
                             break;
@@ -935,7 +899,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                         break;
                     }
                     initialize_pointer_field(field->pData, field);
-                    if (!decode_basic_field(&substream, PB_WT_PACKED, field))
+                    if (!decode_basic_field(ctx, PB_WT_PACKED, field))
                     {
                         status = false;
                         break;
@@ -943,7 +907,8 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     
                     (*size)++;
                 }
-                if (!pb_close_string_substream(ctx, &substream))
+
+                if (!pb_decode_close_substream(ctx, old_length))
                     return false;
                 
                 return status;
@@ -956,7 +921,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                 if (*size == PB_SIZE_MAX)
                     PB_RETURN_ERROR(ctx, "too many array entries");
                 
-                if (!allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
+                if (!pb_allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
                     return false;
             
                 field->pData = *(char**)field->pField + field->data_size * (*size);
@@ -1204,7 +1169,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
         {
             pb_size_t *size = (pb_size_t*)field->pSize;
 
-            if (!allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
+            if (!pb_allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
                 return PB_WALK_EXIT_ERR;
 
             field->pData = *(char**)field->pField + field->data_size * (*size);
@@ -1213,7 +1178,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
         }
         else if (!field->pData)
         {
-            if (!allocate_field(ctx, field->pField, field->data_size, 1))
+            if (!pb_allocate_field(ctx, field->pField, field->data_size, 1))
                 return PB_WALK_EXIT_ERR;
 
             field->pData = *(void**)field->pField;
@@ -1541,6 +1506,8 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
 
 #ifdef PB_ENABLE_MALLOC
         (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
+        PB_WALK_SET_STACKBUF(&state, stackbuf);
+        state.ctx = ctx;
         (void)pb_walk(&state);
 #endif
 
@@ -1660,8 +1627,115 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
     return status;
 }
 
+/*********************************
+ * Memory allocation and release *
+ *********************************/
+
 #ifdef PB_ENABLE_MALLOC
 
+/* Allocate storage for 'array_size' entries each of 'data_size' bytes.
+ * Uses either the allocator defined by ctx or the default allocator.
+ * Pointer to allocate memory is stored in '*ptr'.
+ *
+ * If old value of '*ptr' is not NULL, realloc is done to expand the allocation.
+ * During realloc, the value of '*ptr' may change (old data is copied to new storage).
+ *
+ * On failure, false is returned and '*ptr' remains unchanged.
+ */
+bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, size_t data_size, size_t array_size)
+{
+    PB_OPT_ASSERT(ptr != NULL);
+
+    if (data_size == 0 || array_size == 0)
+        PB_RETURN_ERROR(ctx, "invalid size");
+
+#ifdef __AVR__
+    /* Workaround for AVR libc bug 53284: http://savannah.nongnu.org/bugs/?53284
+     * Realloc to size of 1 byte can cause corruption of the malloc structures.
+     */
+    if (data_size == 1 && array_size == 1)
+    {
+        data_size = 2;
+    }
+#endif
+
+    /* Check for multiplication overflows.
+     * This code avoids the costly division if the sizes are small enough.
+     * Multiplication is safe as long as only half of bits are set
+     * in either multiplicand.
+     */
+    {
+        const size_t check_limit = (size_t)1 << (sizeof(size_t) * 4);
+        if (data_size >= check_limit || array_size >= check_limit)
+        {
+            const size_t size_max = (size_t)-1;
+            if (size_max / array_size < data_size)
+            {
+                PB_RETURN_ERROR(ctx, "size too large");
+            }
+        }
+    }
+
+    size_t bytes = array_size * data_size;
+    void *new_ptr = NULL;
+
+#ifndef PB_NO_CONTEXT_ALLOCATOR
+    if (ctx != NULL && ctx->allocator)
+    {
+        new_ptr = ctx->allocator->realloc(ctx->allocator, *ptr, bytes);
+    }
+    else
+#endif
+#ifndef PB_NO_DEFAULT_ALLOCATOR
+    {
+        new_ptr = pb_realloc(*ptr, bytes);
+    }
+#else
+    {
+        PB_RETURN_ERROR(ctx, "no allocator");
+    }
+#endif
+
+    if (new_ptr == NULL)
+        PB_RETURN_ERROR(ctx, "realloc failed");
+
+    *ptr = new_ptr;
+    return true;
+}
+
+/* Release storage previously allocated by pb_allocate_field().
+ * Uses either the allocator defined by ctx or the default allocator.
+ *
+ * Pointer to the memory is taken from '*ptr', and NULL is written to it.
+ */
+void pb_release_field(pb_decode_ctx_t *ctx, void **ptr)
+{
+    PB_OPT_ASSERT(ptr != NULL);
+
+#ifdef PB_NO_DEFAULT_ALLOCATOR
+    PB_OPT_ASSERT(ctx != NULL);
+#endif
+
+    if (*ptr == NULL)
+        return; // Nothing to do
+
+#ifndef PB_NO_CONTEXT_ALLOCATOR
+    if (ctx != NULL && ctx->allocator)
+    {
+        ctx->allocator->free(ctx->allocator, *ptr);
+    }
+    else
+#endif
+    {
+#ifndef PB_NO_DEFAULT_ALLOCATOR
+        pb_free(*ptr);
+#endif
+    }
+
+    *ptr = NULL;
+}
+
+/* Release a single structure field based on its field_iter information. */
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 {
     pb_type_t type;
@@ -1678,10 +1752,9 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
             /* Release entries in repeated string or bytes array */
             void **pItem = *(void***)field->pField;
             pb_size_t count = *(pb_size_t*)field->pSize;
-            for (; count > 0; count--)
+            for (pb_size_t i = 0; i < count; i++)
             {
-                pb_free(*pItem);
-                *pItem++ = NULL;
+                pb_release_field(ctx, &pItem[i]);
             }
         }
         
@@ -1697,8 +1770,7 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
         }
 
         /* Release main pointer */
-        pb_free(*(void**)field->pField);
-        *(void**)field->pField = NULL;
+        pb_release_field(ctx, (void**)field->pField);
         field->pData = NULL;
     }
 }
@@ -1776,8 +1848,7 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             // Empty array
             if (iter->pData != NULL && PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
             {
-                pb_free(iter->pData);
-                *(void**)iter->pField = NULL;
+                pb_release_field(ctx, iter->pField);
             }
             continue;
         }
@@ -1810,7 +1881,11 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_s
         return true; /* Ignore NULL pointers, similar to free() */
 
     pb_walk_state_t state;
+    PB_WALK_DECLARE_STACKBUF(PB_RELEASE_INITIAL_STACKSIZE) stackbuf;
+
     (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
+    PB_WALK_SET_STACKBUF(&state, stackbuf);
+    state.ctx = ctx;
 
     return pb_walk(&state);
 }
@@ -2008,7 +2083,7 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
         if (ctx->bytes_left < size)
             PB_RETURN_ERROR(ctx, "end-of-stream");
 
-        if (!allocate_field(ctx, field->pData, alloc_size, 1))
+        if (!pb_allocate_field(ctx, field->pData, alloc_size, 1))
             return false;
         dest = *(pb_bytes_array_t**)field->pData;
 #endif
@@ -2050,7 +2125,7 @@ static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_
         if (ctx->bytes_left < size)
             PB_RETURN_ERROR(ctx, "end-of-stream");
 
-        if (!allocate_field(ctx, field->pData, alloc_size, 1))
+        if (!pb_allocate_field(ctx, field->pData, alloc_size, 1))
             return false;
         dest = *(pb_byte_t**)field->pData;
 #endif

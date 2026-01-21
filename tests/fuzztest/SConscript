@@ -41,7 +41,6 @@ env.NanopbProto(["alltypes_callback", "alltypes_callback.options"])
 
 common_objs = [env.Object("random_data.c"),
                env.Object("validation.c"),
-               env.Object("flakystream.c"),
                env.Object("alltypes_pointer.pb.c"),
                env.Object("alltypes_static.pb.c"),
                env.Object("alltypes_callback.pb.c"),
@@ -50,10 +49,12 @@ common_objs = [env.Object("random_data.c"),
                 "$COMMON/malloc_wrappers.o"]
 objs_malloc = ["$COMMON/pb_encode_with_malloc.o",
                "$COMMON/pb_decode_with_malloc.o",
-               "$COMMON/pb_common_with_malloc.o"] + common_objs
+               "$COMMON/pb_common_with_malloc.o",
+               malloc_env.Object("flakystream_malloc.o", "flakystream.c")] + common_objs
 objs_static = ["$COMMON/pb_encode.o",
                "$COMMON/pb_decode.o",
-               "$COMMON/pb_common.o"] + common_objs
+               "$COMMON/pb_common.o",
+               env.Object("flakystream.c")] + common_objs
 
 fuzz = malloc_env.Program(["fuzztest.c"] + objs_malloc)
 

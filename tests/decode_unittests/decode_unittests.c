@@ -430,9 +430,9 @@ int main()
         pb_istream_t s = {0};
         void *data = NULL;
 
-        COMMENT("Testing allocate_field")
-        TEST(allocate_field(&s, &data, 10, 10) && data != NULL);
-        TEST(allocate_field(&s, &data, 10, 20) && data != NULL);
+        COMMENT("Testing pb_allocate_field")
+        TEST(pb_allocate_field(&s, &data, 10, 10) && data != NULL);
+        TEST(pb_allocate_field(&s, &data, 10, 20) && data != NULL);
 
         {
             void *oldvalue = data;
@@ -440,12 +440,12 @@ int main()
             size_t somewhat_big = very_big / 2 + 1;
             size_t not_so_big = (size_t)1 << (4 * sizeof(size_t));
 
-            TEST(!allocate_field(&s, &data, very_big, 2) && data == oldvalue);
-            TEST(!allocate_field(&s, &data, somewhat_big, 2) && data == oldvalue);
-            TEST(!allocate_field(&s, &data, not_so_big, not_so_big) && data == oldvalue);
+            TEST(!pb_allocate_field(&s, &data, very_big, 2) && data == oldvalue);
+            TEST(!pb_allocate_field(&s, &data, somewhat_big, 2) && data == oldvalue);
+            TEST(!pb_allocate_field(&s, &data, not_so_big, not_so_big) && data == oldvalue);
         }
 
-        pb_free(data);
+        pb_release_field(&s, data);
     }
 
     if (status != 0)

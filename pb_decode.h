@@ -92,6 +92,10 @@ struct pb_decode_ctx_s
     // Outer pb_walk() stackframe, used for memory usage optimizations during
     // callback handling. This is initialized to NULL and later set by pb_encode().
     pb_walk_state_t *walk_state;
+
+#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+    pb_allocator_t *allocator;
+#endif
 };
 
 /***************************
@@ -166,6 +170,30 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
  */
 bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 
+#ifdef PB_ENABLE_MALLOC
+/******************************************
+ * Helper functions for memory allocation *
+ ******************************************/
+
+/* Allocate storage for 'array_size' entries each of 'data_size' bytes.
+ * Uses either the allocator defined by ctx or the default allocator.
+ * Pointer to allocate memory is stored in '*ptr'.
+ *
+ * If old value of '*ptr' is not NULL, realloc is done to expand the allocation.
+ * During realloc, the value of '*ptr' may change (old data is copied to new storage).
+ *
+ * On failure, false is returned and '*ptr' remains unchanged.
+ */
+bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, size_t data_size, size_t array_size);
+
+/* Release storage previously allocated by pb_allocate_field().
+ * Uses either the allocator defined by ctx or the default allocator.
+ *
+ * Pointer to the memory is taken from '*ptr', and NULL is written to it.
+ */
+void pb_release_field(pb_decode_ctx_t *ctx, void **ptr);
+
+#endif
 
 /************************************************
  * Helper functions for writing field callbacks *
@@ -258,19 +286,7 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
 
 // PB_ISTREAM_EMPTY has been replaced by pb_init_decode_ctx_buffer() function
 // called with zero length.
-#ifndef PB_NO_STREAM_CALLBACK
-# ifndef PB_NO_ERRMSG
-#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, NULL, 0, NULL, NULL, 0, NULL}
-# else
-#  define PB_ISTREAM_EMPTY {NULL, NULL, 0, 0, NULL, NULL, 0, NULL}
-# endif
-#else
-# ifndef PB_NO_ERRMSG
-#  define PB_ISTREAM_EMPTY {0, NULL, 0, NULL, NULL}
-# else
-#  define PB_ISTREAM_EMPTY {0, 0, NULL, NULL}
-# endif
-#endif
+#define PB_ISTREAM_EMPTY {0}
 
 /* Extended version of pb_decode, with several options to control
  * the decoding process:
