@@ -1,7 +1,8 @@
 # Regression test for #647:
 # Ill-formed oneof message leads to calling free on an arbitrary pointer
 
-Import("env")
+Import("malloc_env")
+env = malloc_env
 
 env.NanopbProto("repro.proto")
 
