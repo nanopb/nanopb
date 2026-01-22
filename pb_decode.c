@@ -37,7 +37,6 @@ static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
 static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 
 #ifdef PB_ENABLE_MALLOC
-static void initialize_pointer_field(void *pItem, pb_field_iter_t *field);
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #endif
@@ -629,9 +628,6 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
         {
-            /* Initialize the pointer to NULL. */
-            *(void**)iter->pField = NULL;
-
             /* Initialize array count to 0. */
             if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
             {
@@ -640,6 +636,21 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
             else if(PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
             {
                 *(pb_tag_t*)iter->pSize = 0;
+            }
+
+            if (PB_LTYPE(iter->type) == PB_LTYPE_BYTES &&
+                PB_HTYPE(iter->type) != PB_HTYPE_REPEATED)
+            {
+                /* Initialize a singular pointer-type bytes field to zero length */
+                PB_OPT_ASSERT(iter->data_size == sizeof(pb_bytes_t));
+                pb_bytes_t *bytes = (pb_bytes_t*)iter->pData;
+                bytes->size = 0;
+                bytes->bytes = NULL;
+            }
+            else
+            {
+                /* Initialize the pointer to NULL. */
+                *(void**)iter->pField = NULL;
             }
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
@@ -803,18 +814,6 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
     }
 }
 
-#ifdef PB_ENABLE_MALLOC
-/* Clear a newly allocated item in case it contains a pointer. */
-static void initialize_pointer_field(void *pItem, pb_field_iter_t *field)
-{
-    if (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
-        PB_LTYPE(field->type) == PB_LTYPE_BYTES)
-    {
-        *(void**)pItem = NULL;
-    }
-}
-#endif
-
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
 #ifndef PB_ENABLE_MALLOC
@@ -840,8 +839,6 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     return false;
                 
                 field->pData = *(void**)field->pField;
-                initialize_pointer_field(field->pData, field);
-
                 if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
                 {
                     *(pb_tag_t*)field->pSize = field->tag;
@@ -898,7 +895,8 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                         status = false;
                         break;
                     }
-                    initialize_pointer_field(field->pData, field);
+
+                    memset(field->pData, 0, field->data_size);
                     if (!decode_basic_field(ctx, PB_WT_PACKED, field))
                     {
                         status = false;
@@ -926,7 +924,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
             
                 field->pData = *(char**)field->pField + field->data_size * (*size);
                 (*size)++;
-                initialize_pointer_field(field->pData, field);
+                memset(field->pData, 0, field->data_size);
                 return decode_basic_field(ctx, wire_type, field);
             }
 
@@ -1735,16 +1733,52 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
     pb_type_t type;
     type = field->type;
 
-    PB_UNUSED(ctx);
+    if (PB_ATYPE(type) != PB_ATYPE_POINTER)
+        return;
     
-    if (PB_ATYPE(type) == PB_ATYPE_POINTER)
+    if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
     {
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
-            (PB_LTYPE(type) == PB_LTYPE_STRING ||
-             PB_LTYPE(type) == PB_LTYPE_BYTES))
+        /* Set oneof which_field to 0 */
+        PB_OPT_ASSERT(*(pb_tag_t*)field->pSize == field->tag);
+        *(pb_tag_t*)field->pSize = 0;
+    }
+
+    if (PB_LTYPE(type) == PB_LTYPE_BYTES)
+    {
+        // Pointer-type bytes fields store the pointer inside pb_bytes_t
+        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
         {
-            /* Release entries in repeated string or bytes array */
-            void **pItem = *(void***)field->pField;
+            /* Release entries in repeated bytes array */
+            pb_bytes_t *pItem = *(pb_bytes_t**)field->pField;
+            pb_size_t count = *(pb_size_t*)field->pSize;
+            for (pb_size_t i = 0; i < count; i++)
+            {
+                pb_release_field(ctx, pItem[i].bytes);
+                pItem[i].size = 0;
+                pItem[i].bytes = NULL;
+            }
+
+            /* Release the array itself */
+            *(pb_size_t*)field->pSize = 0;
+            pb_release_field(ctx, *(void**)field->pField);
+            *(void**)field->pField = field->pData = NULL;
+        }
+        else
+        {
+            /* Release pointer stored inside the struct */
+            PB_OPT_ASSERT(field->data_size == sizeof(pb_bytes_t));
+            pb_bytes_t *bytes = (pb_bytes_t*)field->pData;
+            pb_release_field(ctx, bytes->bytes);
+            bytes->size = 0;
+            bytes->bytes = NULL;
+        }
+    }
+    else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
+    {
+        if (PB_LTYPE(type) == PB_LTYPE_STRING)
+        {
+            /* Release entries in repeated string array */
+            char **pItem = *(char***)field->pField;
             pb_size_t count = *(pb_size_t*)field->pSize;
             for (pb_size_t i = 0; i < count; i++)
             {
@@ -1752,19 +1786,15 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
                 pItem[i] = NULL;
             }
         }
-        
-        if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-        {
-            /* We are going to release the array, so set the size to 0 */
-            *(pb_size_t*)field->pSize = 0;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
-        {
-            /* Set oneof which_field to 0 */
-            *(pb_tag_t*)field->pSize = 0;
-        }
 
-        /* Release main pointer */
+        /* Release the array itself */
+        *(pb_size_t*)field->pSize = 0;
+        pb_release_field(ctx, *(void**)field->pField);
+        *(void**)field->pField = field->pData = NULL;
+    }
+    else
+    {
+        /* Just a single item to release */
         pb_release_field(ctx, *(void**)field->pField);
         *(void**)field->pField = field->pData = NULL;
     }
@@ -2058,8 +2088,7 @@ static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
     uint32_t size;
-    size_t alloc_size;
-    pb_bytes_array_t *dest;
+    pb_byte_t *dest;
     
     if (!pb_decode_varint32(ctx, &size))
         return false;
@@ -2067,32 +2096,37 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     if ((pb_size_t)size != size)
         PB_RETURN_ERROR(ctx, "bytes overflow");
     
-    alloc_size = PB_BYTES_ARRAY_T_ALLOCSIZE(size);
-    if (size > alloc_size)
-        PB_RETURN_ERROR(ctx, "size too large");
+    if (ctx->bytes_left < size)
+        PB_RETURN_ERROR(ctx, "end-of-stream");
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
 #ifndef PB_ENABLE_MALLOC
         PB_RETURN_ERROR(ctx, "no malloc support");
 #else
-        if (ctx->bytes_left < size)
-            PB_RETURN_ERROR(ctx, "end-of-stream");
 
-        if (!pb_allocate_field(ctx, field->pData, alloc_size, 1))
+        PB_OPT_ASSERT(field->data_size == sizeof(pb_bytes_t));
+        pb_bytes_t *bytes = (pb_bytes_t*)field->pData;
+        bytes->size = (pb_size_t)size;
+
+        void *alloc = bytes->bytes;
+        if (size > 0 && !pb_allocate_field(ctx, &alloc, size, 1))
             return false;
-        dest = *(pb_bytes_array_t**)field->pData;
+        dest = bytes->bytes = alloc;
 #endif
     }
     else
     {
+        size_t alloc_size = PB_BYTES_ARRAY_T_ALLOCSIZE(size);
         if (alloc_size > field->data_size)
             PB_RETURN_ERROR(ctx, "bytes overflow");
-        dest = (pb_bytes_array_t*)field->pData;
+
+        pb_bytes_array_t *bytes = (pb_bytes_array_t*)field->pData;
+        bytes->size = (pb_size_t)size;
+        dest = bytes->bytes;
     }
 
-    dest->size = (pb_size_t)size;
-    return pb_read(ctx, dest->bytes, (size_t)size);
+    return pb_read(ctx, dest, (size_t)size);
 }
 
 static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)

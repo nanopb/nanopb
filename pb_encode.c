@@ -370,39 +370,8 @@ static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *fiel
     {
         for (i = 0; i < count; i++)
         {
-            /* Normally the data is stored directly in the array entries, but
-             * for pointer-type string and bytes fields, the array entries are
-             * actually pointers themselves also. So we have to dereference once
-             * more to get to the actual data. */
-            if (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
-                (PB_LTYPE(field->type) == PB_LTYPE_STRING ||
-                 PB_LTYPE(field->type) == PB_LTYPE_BYTES))
-            {
-                bool status;
-                void *pData_orig = field->pData;
-                field->pData = *(void* const*)field->pData;
-
-                if (!field->pData)
-                {
-                    /* Null pointer in array is treated as empty string / bytes */
-                    status = pb_encode_tag_for_field(ctx, field) &&
-                             pb_encode_varint32(ctx, 0);
-                }
-                else
-                {
-                    status = encode_basic_field(ctx, field);
-                }
-
-                field->pData = pData_orig;
-
-                if (!status)
-                    return false;
-            }
-            else
-            {
-                if (!encode_basic_field(ctx, field))
-                    return false;
-            }
+            if (!encode_basic_field(ctx, field))
+                return false;
             field->pData = (char*)field->pData + field->data_size;
         }
     }
@@ -502,6 +471,12 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
             }
             return true;
         }
+    }
+    else if (PB_ATYPE(type) == PB_ATYPE_POINTER &&
+             PB_LTYPE(type) == PB_LTYPE_BYTES &&
+             PB_HTYPE(type) != PB_HTYPE_REPEATED)
+    {
+        return ((pb_bytes_t*)field->pData)->size != 0;
     }
     else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
     {
@@ -609,6 +584,12 @@ static bool field_present(const pb_field_iter_t *field)
             /* Proto3 singular field */
             if (pb_check_proto3_default_value(field))
                 return false;
+        }
+        else if (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
+                 PB_LTYPE(field->type) == PB_LTYPE_BYTES)
+        {
+            const pb_bytes_t *bytes = (const pb_bytes_t*)field->pData;
+            return bytes->size != 0;
         }
     }
     else if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
@@ -1327,34 +1308,52 @@ static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t
 
 static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    const pb_bytes_array_t *bytes = NULL;
+    if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        PB_OPT_ASSERT(field->data_size == sizeof(pb_bytes_t));
+        const pb_bytes_t *bytes = (const pb_bytes_t*)field->pData;
 
-    bytes = (const pb_bytes_array_t*)field->pData;
-    
-    if (bytes == NULL)
-    {
-        /* Treat null pointer as an empty bytes field */
-        return pb_encode_string(ctx, NULL, 0);
+        if (bytes->bytes == NULL)
+        {
+            /* Treat null pointer as an empty bytes field */
+            return pb_encode_string(ctx, NULL, 0);
+        }
+
+        return pb_encode_string(ctx, bytes->bytes, (size_t)bytes->size);
     }
-    
-    if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-        bytes->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
+    else
     {
-        PB_RETURN_ERROR(ctx, "bytes size exceeded");
-    }
+        const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)field->pData;
+
+        if (bytes->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
+        {
+            PB_RETURN_ERROR(ctx, "bytes size exceeded");
+        }
     
-    return pb_encode_string(ctx, bytes->bytes, (size_t)bytes->size);
+        return pb_encode_string(ctx, bytes->bytes, (size_t)bytes->size);
+    }
 }
 
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
     size_t size = 0;
     size_t max_size = (size_t)field->data_size;
-    const char *str = (const char*)field->pData;
+    const char *str = NULL;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
         max_size = (size_t)-1;
+
+        if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
+        {
+            // In pointer-type string arrays, the array entries are themselves
+            // pointers. Therefore we have to dereference twice.
+            str = *(const char**)field->pData;
+        }
+        else
+        {
+            str = (const char*)field->pData;
+        }
     }
     else
     {
@@ -1367,8 +1366,8 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
             PB_RETURN_ERROR(ctx, "zero-length string");
 
         max_size -= 1;
+        str = (const char*)field->pData;
     }
-
 
     if (str == NULL)
     {

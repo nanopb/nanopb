@@ -27,4 +27,5 @@ message SubMessage {
 message Message4 {
   repeated SubMessage submsgs = 1 [(nanopb).type = FT_POINTER, (nanopb).max_count = 5, (nanopb).fixed_count = true];
   repeated string strings = 2 [(nanopb).type = FT_POINTER, (nanopb).max_count = 4, (nanopb).fixed_count = true];
+  repeated bytes bytes = 3 [(nanopb).type = FT_POINTER, (nanopb).max_count = 3, (nanopb).fixed_count = true];
 }

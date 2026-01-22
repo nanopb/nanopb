@@ -726,12 +726,14 @@ class Field(ProtoElement):
 
                 self.ctype = 'pb_byte_t'
                 self.array_decl += '[%d]' % self.max_size
+            elif self.allocation == 'STATIC':
+                self.pbtype = 'BYTES'
+                self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
             else:
                 self.pbtype = 'BYTES'
-                self.ctype = 'pb_bytes_array_t'
-                if self.allocation == 'STATIC':
-                    self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
-            if self.can_be_static:
+                self.ctype = 'pb_bytes_t'
+
+            if self.max_size is not None:
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
@@ -768,15 +770,18 @@ class Field(ProtoElement):
                     result += '    pb_callback_t cb_' + var_name + ';\n'
                 result += '    pb_size_t ' + var_name + '_count;\n'
 
-            if self.rules == 'FIXARRAY' and self.pbtype in ['STRING', 'BYTES']:
+            if self.rules == 'REPEATED' and self.pbtype == 'STRING':
+                # String arrays need to be defined as pointers to pointers
+                result += '    %s **%s;' % (type_name, var_name)
+            elif self.rules == 'FIXARRAY' and self.pbtype == 'STRING':
                 # Pointer to fixed size array of pointers
                 result += '    %s* (*%s)%s;' % (type_name, var_name, self.array_decl)
             elif self.pbtype == 'FIXED_LENGTH_BYTES' or self.rules == 'FIXARRAY':
                 # Pointer to fixed size array of items
                 result += '    %s (*%s)%s;' % (type_name, var_name, self.array_decl)
-            elif self.rules == 'REPEATED' and self.pbtype in ['STRING', 'BYTES']:
-                # String/bytes arrays need to be defined as pointers to pointers
-                result += '    %s **%s;' % (type_name, var_name)
+            elif self.rules != 'REPEATED' and self.pbtype == 'BYTES':
+                # For non-repeated bytes pointers, the pointer is inside pb_bytes_t structure
+                result += '    %s %s;' % (type_name, var_name)
             elif self.pbtype in ['MESSAGE', 'MSG_W_CB']:
                 # Use struct definition, so recursive submessages are possible
                 result += '    struct %s *%s;' % (Globals.naming_style.struct_name(self.ctype), var_name)
@@ -936,6 +941,10 @@ class Field(ProtoElement):
         elif self.allocation == 'POINTER':
             if self.rules == 'REPEATED':
                 outer_init = '0, NULL'
+            elif self.rules == 'FIXARRAY':
+                outer_init = 'NULL'
+            elif self.pbtype == 'BYTES':
+                outer_init = '{0, NULL}'
             else:
                 outer_init = 'NULL'
         elif self.allocation == 'CALLBACK':
