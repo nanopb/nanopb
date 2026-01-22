@@ -72,8 +72,10 @@ void* malloc_with_check(size_t size)
 
         g_alloc_count++;
         g_alloc_bytes += size;
-        if (DEBUG_MALLOC) fprintf(stderr, "Alloc 0x%04x/%u\n", (unsigned)(uintptr_t)(buf + PREFIX_SIZE), (unsigned)size);
-        return buf + PREFIX_SIZE;
+
+        void *result = buf + PREFIX_SIZE;
+        if (DEBUG_MALLOC) fprintf(stderr, "%4d Alloc 0x%04x/%u\n", (int)g_alloc_count, (unsigned)(uintptr_t)result, (unsigned)size);
+        return result;
     }
     else
     {
@@ -90,7 +92,7 @@ void free_with_check(void *mem)
         char *buf = (char*)mem - PREFIX_SIZE;
         size_t check2 = 0;
         size_t size = ((size_t*)buf)[0];
-        if (DEBUG_MALLOC) fprintf(stderr, "Release 0x%04x/%u\n", (unsigned)(uintptr_t)mem, (unsigned)size);
+        if (DEBUG_MALLOC) fprintf(stderr, "%4d Release 0x%04x/%u\n", (int)g_alloc_count - 1, (unsigned)(uintptr_t)mem, (unsigned)size);
         assert(((size_t*)buf)[1] == CHECK1);
         memcpy(&check2, buf + PREFIX_SIZE + size, sizeof(check2));
         assert(check2 == CHECK2);
@@ -177,6 +179,7 @@ size_t get_alloc_count()
 size_t get_allocation_size(const void *mem)
 {
     char *buf = (char*)mem - PREFIX_SIZE;
+    assert(((size_t*)buf)[1] == CHECK1);
     return ((size_t*)buf)[0];
 }
 
