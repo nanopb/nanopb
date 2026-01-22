@@ -559,7 +559,7 @@ PB_STATIC_ASSERT(CHAR_BIT >= 8 &&
     (((unsigned char)-1) >> (CHAR_BIT - 1)) == 1,
     CHAR_BIT_IS_WRONG)
 
-/* This structure is used for 'bytes' arrays.
+/* This structure is used for statically allocated 'bytes' arrays.
  * It has the number of bytes in the beginning, and after that an array.
  * Note that actual structs used will have a different length of bytes array.
  */
@@ -571,6 +571,16 @@ struct pb_bytes_array_s {
     pb_byte_t bytes[1];
 };
 typedef struct pb_bytes_array_s pb_bytes_array_t;
+
+/* This structure is used for pointer-type bytes fields.
+ * The length of the bytes field is stored statically in the structure,
+ * and the payload pointer points to the raw bytes.
+ */
+struct pb_bytes_s {
+    pb_size_t size;
+    pb_byte_t *bytes;
+};
+typedef struct pb_bytes_s pb_bytes_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
@@ -776,7 +786,7 @@ typedef struct {
                    tag, \
                    PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
-                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
+                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
@@ -786,7 +796,7 @@ typedef struct {
                    tag, \
                    PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
-                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
+                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 #else
@@ -807,7 +817,7 @@ typedef struct {
                    tag, \
                    PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
-                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
+                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
@@ -817,7 +827,7 @@ typedef struct {
                    tag, \
                    PB_ATYPE_ ## atype | PB_HTYPE_ ## htype | PB_LTYPE_MAP_ ## ltype, \
                    PB_DATA_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
-                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
+                   PB_DATA_SIZE_ ## atype(_PB_HTYPE_ ## htype, _PB_LTYPE_ ## ltype, structname, fieldname), \
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 #else
@@ -883,27 +893,51 @@ typedef struct {
 #define PB_AS_PTR_PB_HTYPE_FIXARRAY(structname, fieldname) pb_arraysize(structname, fieldname[0])
 
 /* Data size of the field */
-#define PB_DATA_SIZE_STATIC(htype, structname, fieldname) PB_DS ## htype(structname, fieldname)
-#define PB_DATA_SIZE_POINTER(htype, structname, fieldname) PB_DS_PTR ## htype(structname, fieldname)
-#define PB_DATA_SIZE_CALLBACK(htype, structname, fieldname) PB_DS_CB ## htype(structname, fieldname)
+#define PB_DATA_SIZE_STATIC(htype, ltype, structname, fieldname) PB_DS ## htype(structname, fieldname)
+#define PB_DATA_SIZE_POINTER(htype, ltype, structname, fieldname) PB_DS_PTR ## htype(ltype, structname, fieldname)
+#define PB_DATA_SIZE_CALLBACK(htype, ltype, structname, fieldname) PB_DS_CB ## htype(structname, fieldname)
 #define PB_DS_PB_HTYPE_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_PB_HTYPE_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_PB_HTYPE_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_PB_HTYPE_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname))
 #define PB_DS_PB_HTYPE_REPEATED(structname, fieldname) pb_membersize(structname, fieldname[0])
 #define PB_DS_PB_HTYPE_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DS_PTR_PB_HTYPE_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DS_PTR_PB_HTYPE_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DS_PTR_PB_HTYPE_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DS_PTR_PB_HTYPE_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname)[0])
-#define PB_DS_PTR_PB_HTYPE_REPEATED(structname, fieldname) pb_membersize(structname, fieldname[0])
-#define PB_DS_PTR_PB_HTYPE_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname[0][0])
+#define PB_DS_PTR_PB_HTYPE_REQUIRED(ltype, structname, fieldname) PB_DS_PTR ## ltype(structname, fieldname)
+#define PB_DS_PTR_PB_HTYPE_SINGULAR(ltype, structname, fieldname) PB_DS_PTR ## ltype(structname, fieldname)
+#define PB_DS_PTR_PB_HTYPE_OPTIONAL(ltype, structname, fieldname) PB_DS_PTR ## ltype(structname, fieldname)
+#define PB_DS_PTR_PB_HTYPE_ONEOF(ltype, structname, fieldname) PB_DS_PTR ## ltype(structname, PB_ONEOF_NAME(FULL, fieldname))
+#define PB_DS_PTR_PB_HTYPE_REPEATED(ltype, structname, fieldname) pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_HTYPE_FIXARRAY(ltype, structname, fieldname) pb_membersize(structname, fieldname[0][0])
 #define PB_DS_CB_PB_HTYPE_REQUIRED(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_CB_PB_HTYPE_SINGULAR(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_CB_PB_HTYPE_OPTIONAL(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_CB_PB_HTYPE_ONEOF(structname, fieldname) pb_membersize(structname, PB_ONEOF_NAME(FULL, fieldname))
 #define PB_DS_CB_PB_HTYPE_REPEATED(structname, fieldname) pb_membersize(structname, fieldname)
 #define PB_DS_CB_PB_HTYPE_FIXARRAY(structname, fieldname) pb_membersize(structname, fieldname)
+
+/* Because PB_LTYPE_BYTES with pointer allocation uses a special wrapper struct,
+ * we need to specialize the data size based on LTYPE */
+#define PB_DS_PTR_PB_LTYPE_BOOL(structname, fieldname)               pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_BYTES(structname, fieldname)              pb_membersize(structname, fieldname)
+#define PB_DS_PTR_PB_LTYPE_DOUBLE(structname, fieldname)             pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_ENUM(structname, fieldname)               pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_UENUM(structname, fieldname)              pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_FIXED32(structname, fieldname)            pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_FIXED64(structname, fieldname)            pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_FLOAT(structname, fieldname)              pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_INT32(structname, fieldname)              pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_INT64(structname, fieldname)              pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_MESSAGE(structname, fieldname)            pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_MSG_W_CB(structname, fieldname)           pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_SFIXED32(structname, fieldname)           pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_SFIXED64(structname, fieldname)           pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_SINT32(structname, fieldname)             pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_SINT64(structname, fieldname)             pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_STRING(structname, fieldname)             pb_membersize(structname, fieldname)
+#define PB_DS_PTR_PB_LTYPE_UINT32(structname, fieldname)             pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_UINT64(structname, fieldname)             pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_EXTENSION(structname, fieldname)          pb_membersize(structname, fieldname[0])
+#define PB_DS_PTR_PB_LTYPE_FIXED_LENGTH_BYTES(structname, fieldname) pb_membersize(structname, fieldname[0])
 
 /* Oneof names are given as a tuple of (unionname, membername, fullname)
  * These macros allow to access the members.

@@ -156,8 +156,12 @@ int main()
       char abc[5] = "abc";
       char *strings[pb_arraysize(Message4, strings[0])] = {a, b, abc};
 
+      pb_byte_t bytes3[3] = {1, 2, 3};
+      pb_bytes_t bytes[pb_arraysize(Message4, bytes[0])] = {{0, NULL}, {0, NULL}, {3, bytes3}};
+
       msg_a.submsgs = &submsgs;
       msg_a.strings = &strings;
+      msg_a.bytes = &bytes;
 
       ostream = pb_ostream_from_buffer(buffer, Message3_size);
       TEST(pb_encode(&ostream, Message4_fields, &msg_a));
@@ -177,6 +181,10 @@ int main()
       TEST(strcmp((*msg_b.strings)[0], "a") == 0);
       TEST(strcmp((*msg_b.strings)[1], "b") == 0);
       TEST(strcmp((*msg_b.strings)[2], "abc") == 0);
+
+      TEST((*msg_b.bytes)[0].size == 0 && (*msg_b.bytes)[0].bytes == NULL);
+      TEST((*msg_b.bytes)[1].size == 0 && (*msg_b.bytes)[1].bytes == NULL);
+      TEST((*msg_b.bytes)[2].size == 3 && memcmp((*msg_b.bytes)[2].bytes, bytes3, 3) == 0);
 
       pb_release(Message4_fields, &msg_b);
 

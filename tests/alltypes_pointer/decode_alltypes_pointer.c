@@ -39,8 +39,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.req_double    && *alltypes.req_double        == 1013.0f);
     
     TEST(alltypes.req_string    && strcmp(alltypes.req_string, "1014") == 0);
-    TEST(alltypes.req_bytes     && alltypes.req_bytes->size == 4);
-    TEST(alltypes.req_bytes     && memcmp(&alltypes.req_bytes->bytes, "1015", 4) == 0);
+    TEST(alltypes.req_bytes.size == 4);
+    TEST(alltypes.req_bytes.bytes && memcmp(alltypes.req_bytes.bytes, "1015", 4) == 0);
     TEST(alltypes.req_submsg    && strcmp(alltypes.req_submsg->substuff1, "1016") == 0);
     TEST(alltypes.req_submsg    && alltypes.req_submsg->substuff2
                                 && *alltypes.req_submsg->substuff2 == 1016);
@@ -64,8 +64,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     TEST(alltypes.rep_double_count == 5 && alltypes.rep_double[4] == 2013.0 && alltypes.rep_double[0] == 0.0);
     
     TEST(alltypes.rep_string_count == 5 && strcmp(alltypes.rep_string[4], "2014") == 0 && alltypes.rep_string[0][0] == '\0');
-    TEST(alltypes.rep_bytes_count == 5 && alltypes.rep_bytes[4]->size == 4 && alltypes.rep_bytes[0]->size == 0);
-    TEST(memcmp(&alltypes.rep_bytes[4]->bytes, "2015", 4) == 0);
+    TEST(alltypes.rep_bytes_count == 5 && alltypes.rep_bytes[4].size == 4 && alltypes.rep_bytes[0].size == 0);
+    TEST(alltypes.rep_bytes[4].bytes && memcmp(alltypes.rep_bytes[4].bytes, "2015", 4) == 0);
 
     TEST(alltypes.rep_submsg_count == 5);
     TEST(strcmp(alltypes.rep_submsg[4].substuff1, "2016") == 0 && alltypes.rep_submsg[0].substuff1[0] == '\0');
@@ -99,7 +99,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_double        == NULL);
         
         TEST(alltypes.opt_string        == NULL);
-        TEST(alltypes.opt_bytes         == NULL);
+        TEST(alltypes.opt_bytes.size == 0 && alltypes.opt_bytes.bytes == NULL);
         TEST(alltypes.opt_submsg        == NULL);
         TEST(alltypes.opt_enum          == NULL);
         TEST(alltypes.opt_fbytes        == NULL);
@@ -127,8 +127,8 @@ bool check_alltypes(pb_istream_t *stream, int mode)
         TEST(alltypes.opt_double && *alltypes.opt_double    == 3053.0);
         
         TEST(alltypes.opt_string && strcmp(alltypes.opt_string, "3054") == 0);
-        TEST(alltypes.opt_bytes && alltypes.opt_bytes->size == 4);
-        TEST(alltypes.opt_bytes && memcmp(&alltypes.opt_bytes->bytes, "3055", 4) == 0);
+        TEST(alltypes.opt_bytes.size == 4);
+        TEST(alltypes.opt_bytes.bytes && memcmp(alltypes.opt_bytes.bytes, "3055", 4) == 0);
         TEST(alltypes.opt_submsg && strcmp(alltypes.opt_submsg->substuff1, "3056") == 0);
         TEST(alltypes.opt_submsg && *alltypes.opt_submsg->substuff2 == 3056);
         TEST(alltypes.opt_enum && *alltypes.opt_enum == MyEnum_Truth);

@@ -10,7 +10,18 @@ static inline void* field_data_base_ptr(const pb_field_iter_t *iter)
 {
     if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
     {
-        return *(void**)iter->pField;
+        if (PB_HTYPE(iter->type) != PB_HTYPE_REPEATED &&
+            PB_LTYPE(iter->type) == PB_LTYPE_BYTES)
+        {
+            // Pointer-type bytes field store the size in the main structure
+            // and have pointer only for the data.
+            return iter->pField;
+        }
+        else
+        {
+            // Other pointer types are directly a pointer in the structure
+            return *(void**)iter->pField;
+        }
     }
     else
     {

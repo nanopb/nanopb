@@ -118,15 +118,12 @@ void validate_pointer(pb_field_iter_t *iter)
         else if (PB_LTYPE(iter->type) == PB_LTYPE_BYTES)
         {
             /* Bytes length must be at most statically allocated size */
-            const pb_bytes_array_t *bytes = pData;
+            const pb_bytes_t *bytes = (const pb_bytes_t*)iter->pData + i;
 
-            if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+            if (bytes->size > 0)
             {
-                /* Bytes arrays are stored as array of pointers */
-                bytes = ((const pb_bytes_array_t**)iter->pData)[i];
+                assert(bytes->size <= get_allocation_size(bytes->bytes));
             }
-
-            assert(PB_BYTES_ARRAY_T_ALLOCSIZE(bytes->size) <= get_allocation_size(bytes));
         }
         else if (PB_LTYPE(iter->type) == PB_LTYPE_BOOL)
         {

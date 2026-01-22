@@ -62,6 +62,16 @@ the underlying function (e.g. `pb_decode_s`) with the size argument set to 0.
 
 **Error indications:** *"invalid application of ‘sizeof’ to a void type"* or *"you cannot dereference an operand of type 'void'"*
 
+### Change layout of pointer-type bytes fields
+
+**Rationale:** Previously pointer-type `bytes` fields stored the length of the value in front of the data.
+This made it unsuitable for pointing to a block of raw bytes without length prefix.
+
+**Changes:** Now instead of a direct pointer, there is `pb_bytes_t` structure.
+This contains the size and a pointer to raw byte array.
+
+**Error indications:** Type mismatch compilation errors involving `pb_bytes_t`.
+
 ### Changes to field iterator utility functions
 
 **Rationale:** The functions defined in `pb_common.h` are rarely used in user code.
