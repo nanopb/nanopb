@@ -90,7 +90,7 @@ struct pb_decode_ctx_s
 #endif
 
     // Outer pb_walk() stackframe, used for memory usage optimizations during
-    // callback handling. This is initialized to NULL and later set by pb_encode().
+    // callback handling. This is initialized to NULL and later set by pb_decode().
     pb_walk_state_t *walk_state;
 
 #if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)

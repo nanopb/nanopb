@@ -112,6 +112,65 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
  * pb_istream_t implementation *
  *******************************/
 
+#ifndef PB_NO_STREAM_CALLBACK
+
+// Return how many bytes are available at rdpos
+static inline size_t pb_bytes_available(pb_decode_ctx_t *ctx)
+{
+    if (ctx->rdpos != NULL)
+    {
+        PB_OPT_ASSERT(ctx->rdpos >= ctx->buffer &&
+                      ctx->rdpos <= ctx->buffer + ctx->buffer_size);
+
+        return ctx->buffer_size - (size_t)(ctx->rdpos - ctx->buffer);
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+// Fill up cache buffer that is used for accessing callback streams.
+// This should only be called when the remaining length of message is known.
+static bool checkreturn pb_fill_stream_cache(pb_decode_ctx_t *ctx)
+{
+    if (ctx->callback != NULL && ctx->buffer_size > 0)
+    {
+        // Check how many bytes we can buffer in total
+        size_t total = ctx->buffer_size;
+        if (total > ctx->bytes_left)
+        {
+            total = ctx->bytes_left;
+        }
+
+        // Don't refill if already over half.
+        // There is a memcpy overhead in refilling too often.
+        size_t bytes_in_buf = pb_bytes_available(ctx);
+        if (total > 2 * bytes_in_buf)
+        {
+            // Buffer is always end-aligned
+            pb_byte_t *buf = ctx->buffer + ctx->buffer_size - total;
+
+            // If there is old data, move it into place
+            if (bytes_in_buf > 0)
+            {
+                memmove(buf, ctx->rdpos, bytes_in_buf);
+            }
+
+            ctx->rdpos = buf;
+
+            // Fill buffer with new data
+            if (!ctx->callback(ctx, buf + bytes_in_buf, total - bytes_in_buf))
+            {
+                PB_RETURN_ERROR(ctx, c_errmsg_io_error);
+            }
+        }
+    }
+
+    return true;
+}
+#endif
+
 bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count)
 {
     if (count == 0)
@@ -130,10 +189,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count)
         // Check how much data is available from cache
         if (ctx->buffer_size > 0)
         {
-            PB_OPT_ASSERT(ctx->rdpos >= ctx->buffer &&
-                        ctx->rdpos <= ctx->buffer + ctx->buffer_size);
-
-            size_t buf_remain = ctx->buffer_size - (size_t)(ctx->rdpos - ctx->buffer);
+            size_t buf_remain = pb_bytes_available(ctx);
             if (bufcount > buf_remain)
             {
                 bufcount = buf_remain;
@@ -464,6 +520,13 @@ bool pb_decode_open_substream(pb_decode_ctx_t *ctx, size_t *old_length)
 
     *old_length = (size_t)(ctx->bytes_left - size);
     ctx->bytes_left = (size_t)size;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    // We can prefill stream cache now that we know substream length
+    if (!pb_fill_stream_cache(ctx))
+        return false;
+#endif
+
     return true;
 }
 
@@ -479,20 +542,6 @@ bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length)
     ctx->bytes_left = old_length;
     return true;
 }
-
-// Temporary storage for restoring stream state after a substream has
-// been used for callback invocation.
-typedef struct {
-    size_t bytes_left;
-
-#ifndef PB_NO_STREAM_CALLBACK
-    // We may need a temporary buffer when varint field comes from a stream source
-    const pb_byte_t *rdpos;
-    pb_byte_t *buffer;
-    size_t buffer_size;
-    pb_byte_t varintbuf[10];
-#endif
-} callback_substream_tmp_t;
 
 // Prepare ctx as a substream for invoking a callback.
 // tmp is a buffer for storing the state.
@@ -518,7 +567,8 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
         length = 8;
     }
 #ifndef PB_NO_STREAM_CALLBACK
-    else if (wire_type == PB_WT_VARINT && ctx->callback != NULL)
+    else if (wire_type == PB_WT_VARINT && ctx->callback != NULL &&
+             pb_bytes_available(ctx) < 10)
     {
         // Varint size is not known in advance, we need to read it into a temporary buffer.
         unsigned int i;
@@ -1457,6 +1507,15 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             callback_substream_tmp_t tmp;
             if (!open_callback_substream(ctx, wire_type, &tmp))
                 return PB_WALK_EXIT_ERR;
+
+#ifndef PB_NO_STREAM_CALLBACK
+            if (PB_LTYPE_IS_SUBMSG(iter->type) && ctx->callback != NULL)
+            {
+                // We now know the submessage data length, so preload it into cache.
+                if (!pb_fill_stream_cache(ctx))
+                    return PB_WALK_EXIT_ERR;
+            }
+#endif
 
             /* SUBMSG_W_CB is meant to be used with oneof fields, where it permits
              * configuring fields inside a oneof.
