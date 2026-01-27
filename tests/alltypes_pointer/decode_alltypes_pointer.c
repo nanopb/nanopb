@@ -5,6 +5,7 @@
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 #include "unittests.h"
+#include "stream_helpers.h"
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
@@ -175,22 +176,19 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
 int main(int argc, char **argv)
 {
-    uint8_t buffer[1024];
-    size_t count;
     pb_istream_t stream;
     
     /* Whether to expect the optional values or the default values. */
     int mode = (argc > 1) ? atoi(argv[1]) : 0;
     
-    /* Read the data into buffer */
+    /* Read directly from stdin */
     SET_BINARY_MODE(stdin);
-    count = fread(buffer, 1, sizeof(buffer), stdin);
-    
-    /* Construct a pb_istream_t for reading from the buffer */
-    stream = pb_istream_from_buffer(buffer, count);
-    
+    pb_decode_ctx_t ctx;
+    pb_byte_t tmpbuf[32];
+    init_decode_ctx_for_stdio(&ctx, stdin, 2048, tmpbuf, sizeof(tmpbuf));
+
     /* Decode and verify the message */
-    if (!check_alltypes(&stream, mode))
+    if (!check_alltypes(&ctx, mode))
     {
         fprintf(stderr, "Test failed: %s\n", PB_GET_ERROR(&stream));
         return 1;

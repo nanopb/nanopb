@@ -123,7 +123,9 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     assert(msg);
 
     memset(msg, 0, structsize);
-    flakystream_init(&stream, buffer, msglen, fail_after);
+
+    uint8_t tmpbuf[27];
+    flakystream_init(&stream, buffer, msglen, fail_after, tmpbuf, sizeof(tmpbuf));
     status = pb_decode_ex(&stream.stream, msgtype, msg, flags);
 
     if (status)
