@@ -176,8 +176,6 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
 int main(int argc, char **argv)
 {
-    pb_istream_t stream;
-    
     /* Whether to expect the optional values or the default values. */
     int mode = (argc > 1) ? atoi(argv[1]) : 0;
     
@@ -190,7 +188,7 @@ int main(int argc, char **argv)
     /* Decode and verify the message */
     if (!check_alltypes(&ctx, mode))
     {
-        fprintf(stderr, "Test failed: %s\n", PB_GET_ERROR(&stream));
+        fprintf(stderr, "Test failed: %s\n", PB_GET_ERROR(&ctx));
         return 1;
     }
     else
