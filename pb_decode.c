@@ -25,7 +25,6 @@
 static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn pb_dec_bool(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -803,7 +802,7 @@ static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t 
             if (wire_type != PB_WT_VARINT && wire_type != PB_WT_PACKED)
                 PB_RETURN_ERROR(ctx, "wrong wire type");
 
-            return pb_dec_bool(ctx, field);
+            return pb_decode_bool(ctx, (bool*)field->pData);
 
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
@@ -2074,11 +2073,6 @@ bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest)
     return true;
 }
 #endif
-
-static bool checkreturn pb_dec_bool(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    return pb_decode_bool(ctx, (bool*)field->pData);
-}
 
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
