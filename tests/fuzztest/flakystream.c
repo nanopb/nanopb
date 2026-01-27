@@ -1,9 +1,9 @@
 #include "flakystream.h"
 #include <string.h>
 
-bool flakystream_callback(pb_istream_t *stream, pb_byte_t *buf, size_t count)
+bool flakystream_callback(pb_decode_ctx_t *stream, pb_byte_t *buf, size_t count)
 {
-    flakystream_t *state = stream->state;
+    flakystream_t *state = (flakystream_t*)stream;
 
     if (state->position + count > state->msglen)
     {
@@ -20,12 +20,13 @@ bool flakystream_callback(pb_istream_t *stream, pb_byte_t *buf, size_t count)
     return true;
 }
 
-void flakystream_init(flakystream_t *stream, const uint8_t *buffer, size_t msglen, size_t fail_after)
+void flakystream_init(flakystream_t *stream, const uint8_t *buffer,
+    size_t msglen, size_t fail_after,
+    uint8_t *tmpbuf, size_t tmpbuf_size)
 {
-    memset(stream, 0, sizeof(*stream));
-    stream->stream.callback = flakystream_callback;
-    stream->stream.bytes_left = SIZE_MAX;
-    stream->stream.state = stream;
+    pb_init_decode_ctx_for_callback(&stream->stream, flakystream_callback, NULL,
+        msglen, tmpbuf, tmpbuf_size);
+
     stream->buffer = buffer;
     stream->position = 0;
     stream->msglen = msglen;
