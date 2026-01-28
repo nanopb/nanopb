@@ -48,19 +48,18 @@ typedef struct {
 )
 #endif
 
-static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value);
 static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value);
 static inline bool safe_read_bool(const void *pSize);
-static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
+
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
+static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field, pb_size_t count);
+#endif
 
 /*******************************
  * pb_ostream_t implementation *
@@ -290,94 +289,141 @@ static inline bool safe_read_bool(const void *pSize)
     }
 }
 
-/* Encode a static array. Handles the size calculations and possible packing. */
-static bool checkreturn encode_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field)
+/* Encode a packed array in WT_STRING data. */
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
+static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field, pb_size_t count)
 {
     pb_size_t i;
-    pb_size_t count;
-#ifndef PB_ENCODE_ARRAYS_UNPACKED
     pb_size_t size;
-#endif
 
-    count = *(pb_size_t*)field->pSize;
-
-    if (count == 0)
-        return true;
-
-    if (PB_ATYPE(field->type) != PB_ATYPE_POINTER && count > field->array_size)
-        PB_RETURN_ERROR(ctx, "array max size exceeded");
+    if (!pb_encode_tag(ctx, PB_WT_STRING, field->tag))
+        return false;
     
-#ifndef PB_ENCODE_ARRAYS_UNPACKED
-    /* We always pack arrays if the datatype allows it. */
-    if (PB_LTYPE(field->type) <= PB_LTYPE_LAST_PACKABLE)
+    /* Determine the total size of packed array. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_BOOL)
     {
-        if (!pb_encode_tag(ctx, PB_WT_STRING, field->tag))
-            return false;
-        
-        /* Determine the total size of packed array. */
-        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
-        {
-            size = 4 * count;
-        }
-        else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
-        {
-            size = 8 * count;
-        }
-        else
-        {
-            pb_encode_ctx_flags_t flags_orig = ctx->flags;
-            size_t size_orig = ctx->bytes_written;
-            ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
-
-            void *pData_orig = field->pData;
-            for (i = 0; i < count; i++)
-            {
-                if (!pb_enc_varint(ctx, field))
-                    return false;
-                field->pData = (char*)field->pData + field->data_size;
-            }
-            field->pData = pData_orig;
-            size = (pb_size_t)(ctx->bytes_written - size_orig);
-            ctx->bytes_written = size_orig;
-            ctx->flags = flags_orig;
-        }
-        
-        if (!pb_encode_varint32(ctx, (uint32_t)size))
-            return false;
-        
-        if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
-            return pb_write(ctx, NULL, size); /* Just sizing.. */
-        
-        /* Write the data */
-        for (i = 0; i < count; i++)
-        {
-            if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32 || PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
-            {
-                if (!pb_enc_fixed(ctx, field))
-                    return false;
-            }
-            else
-            {
-                if (!pb_enc_varint(ctx, field))
-                    return false;
-            }
-
-            field->pData = (char*)field->pData + field->data_size;
-        }
+        size = count;
     }
-    else /* Unpacked fields */
-#endif
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
     {
+        size = 4 * count;
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+    {
+        size = 8 * count;
+    }
+    else
+    {
+        pb_encode_ctx_flags_t flags_orig = ctx->flags;
+        size_t size_orig = ctx->bytes_written;
+        ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
+
+        void *pData_orig = field->pData;
         for (i = 0; i < count; i++)
         {
-            if (!encode_basic_field(ctx, field))
+            if (!pb_enc_varint(ctx, field))
                 return false;
             field->pData = (char*)field->pData + field->data_size;
         }
+        field->pData = pData_orig;
+        size = (pb_size_t)(ctx->bytes_written - size_orig);
+        ctx->bytes_written = size_orig;
+        ctx->flags = flags_orig;
     }
-    
-    return true;
+
+    /* Write the size prefix */
+    if (!pb_encode_varint32(ctx, (uint32_t)size))
+        return false;
+
+    if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
+        return pb_write(ctx, NULL, size); /* Just sizing.. */
+
+    /* Write the data */
+    if (PB_LTYPE(field->type) == PB_LTYPE_BOOL)
+    {
+        for (i = 0; i < count; i++)
+        {
+            pb_byte_t byte = safe_read_bool(field->pData) ? 1 : 0;
+            if (!pb_write(ctx, &byte, 1))
+                return false;
+
+            field->pData = (char*)field->pData + field->data_size;
+        }
+
+        return true;
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
+    {
+        PB_OPT_ASSERT(field->data_size == sizeof(uint32_t));
+#if PB_LITTLE_ENDIAN_8BIT
+        // Data can be written directly
+        return pb_write(ctx, (pb_byte_t*)field->pData, size);
+#else
+        // Convert endianess
+        for (i = 0; i < count; i++)
+        {
+            if (!pb_encode_fixed32(ctx, field->pData))
+                return false;
+
+            field->pData = (char*)field->pData + field->data_size;
+        }
+#endif
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+    {
+#ifndef PB_WITHOUT_64BIT
+        if (field->data_size == sizeof(uint64_t))
+        {
+#if PB_LITTLE_ENDIAN_8BIT
+            // Data can be written directly
+            return pb_write(ctx, (pb_byte_t*)field->pData, size);
+#else
+            // Convert endianess
+            for (i = 0; i < count; i++)
+            {
+                if (!pb_encode_fixed64(ctx, field->pData))
+                    return false;
+
+                field->pData = (char*)field->pData + field->data_size;
+            }
+
+            return true;
+#endif /* PB_LITTLE_ENDIAN_8BIT */
+        }
+#endif /* PB_WITHOUT_64BIT */
+
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+        /* On AVR, there is no 64-bit double, but we can convert float */
+        if (field->data_size == sizeof(float))
+        {
+            for (i = 0; i < count; i++)
+            {
+                if (!pb_encode_float_as_double(ctx, *(float*)field->pData))
+                    return false;
+
+                field->pData = (char*)field->pData + field->data_size;
+            }
+
+            return true;
+        }
+#endif /* PB_CONVERT_DOUBLE_FLOAT */
+
+        PB_RETURN_ERROR(ctx, "invalid data_size");
+    }
+    else
+    {
+        for (i = 0; i < count; i++)
+        {
+            if (!pb_enc_varint(ctx, field))
+                return false;
+
+            field->pData = (char*)field->pData + field->data_size;
+        }
+
+        return true;
+    }
 }
+#endif /* PB_ENCODE_ARRAYS_UNPACKED */
 
 /* In proto3, all fields are optional and are only encoded if their value is "non-zero".
  * This function implements the check for the zero value. */
@@ -519,7 +565,10 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
     switch (PB_LTYPE(field->type))
     {
         case PB_LTYPE_BOOL:
-            return pb_enc_bool(ctx, field);
+            {
+                pb_byte_t byte = safe_read_bool(field->pData) ? 1 : 0;
+                return pb_write(ctx, &byte, 1);
+            }
 
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
@@ -527,8 +576,23 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
             return pb_enc_varint(ctx, field);
 
         case PB_LTYPE_FIXED32:
+            PB_OPT_ASSERT(field->data_size == sizeof(uint32_t));
+            return pb_encode_fixed32(ctx, field->pData);
+
         case PB_LTYPE_FIXED64:
-            return pb_enc_fixed(ctx, field);
+#ifndef PB_WITHOUT_64BIT
+            if (field->data_size == sizeof(uint64_t))
+            {
+                return pb_encode_fixed64(ctx, field->pData);
+            }
+#endif
+#ifdef PB_CONVERT_DOUBLE_FLOAT
+            if (field->data_size == sizeof(float) && PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+            {
+                return pb_encode_float_as_double(ctx, *(float*)field->pData);
+            }
+#endif
+            PB_RETURN_ERROR(ctx, "invalid data_size");
 
         case PB_LTYPE_BYTES:
             return pb_enc_bytes(ctx, field);
@@ -537,25 +601,13 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
             return pb_enc_string(ctx, field);
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
-            return pb_enc_fixed_length_bytes(ctx, field);
+            return pb_encode_string(ctx, (const pb_byte_t*)field->pData, (size_t)field->data_size);
 
         case PB_LTYPE_SUBMESSAGE:
         case PB_LTYPE_SUBMSG_W_CB:
         default:
             PB_RETURN_ERROR(ctx, "invalid field type");
     }
-}
-
-/* Encode a field with callback semantics. This means that a user function is
- * called to provide and encode the actual data. */
-static bool checkreturn encode_callback_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    if (field->descriptor->field_callback != NULL)
-    {
-        if (!field->descriptor->field_callback(NULL, ctx, field))
-            PB_RETURN_ERROR(ctx, "callback error");
-    }
-    return true;
 }
 
 /* Check if field is present */
@@ -666,7 +718,19 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
             continue;
         }
 
-        if (PB_LTYPE_IS_SUBMSG(iter->type) && PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
+        if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
+        {
+            // Pass control to a callback function provided by user
+            if (iter->descriptor->field_callback != NULL)
+            {
+                if (!iter->descriptor->field_callback(NULL, ctx, iter))
+                {
+                    PB_SET_ERROR(ctx, "callback error");
+                    return PB_WALK_EXIT_ERR;
+                }
+            }
+        }
+        else if (PB_LTYPE_IS_SUBMSG(iter->type))
         {
             // Encode submessage prefix tag
             if (!pb_encode_tag_for_field(ctx, iter))
@@ -676,16 +740,36 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
             state->flags = PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
             return PB_WALK_IN;
         }
-
-        if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
-        {
-            if (!encode_callback_field(ctx, iter))
-                return PB_WALK_EXIT_ERR;
-        }
         else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
         {
-            if (!encode_array(ctx, iter))
+            pb_size_t count = *(pb_size_t*)iter->pSize;
+
+            if (PB_ATYPE(iter->type) != PB_ATYPE_POINTER && count > iter->array_size)
+            {
+                PB_SET_ERROR(ctx, "array max size exceeded");
                 return PB_WALK_EXIT_ERR;
+            }
+
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
+            if (PB_LTYPE(iter->type) <= PB_LTYPE_LAST_PACKABLE)
+            {
+                // Packed arrays are encoded inside single PB_WT_STRING
+                if (!encode_packed_array(ctx, iter, count))
+                    return PB_WALK_EXIT_ERR;
+            }
+            else
+#endif
+            {
+                // Unpacked arrays are encoded as a sequence of fields
+                pb_size_t i = 0;
+                for (i = 0; i < count; i++)
+                {
+                    if (!encode_basic_field(ctx, iter))
+                        return PB_WALK_EXIT_ERR;
+
+                    iter->pData = (char*)iter->pData + iter->data_size;
+                }
+            }
         }
         else
         {
@@ -1227,12 +1311,6 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
 
 /* Field encoders */
 
-static bool checkreturn pb_enc_bool(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    pb_byte_t byte = safe_read_bool(field->pData) ? 1 : 0;
-    return pb_write(ctx, &byte, 1);
-}
-
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
     if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT)
@@ -1278,31 +1356,6 @@ static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_
         else
             return pb_encode_varint(ctx, (pb_uint64_t)value);
 
-    }
-}
-
-static bool checkreturn pb_enc_fixed(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-#ifdef PB_CONVERT_DOUBLE_FLOAT
-    if (field->data_size == sizeof(float) && PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
-    {
-        return pb_encode_float_as_double(ctx, *(float*)field->pData);
-    }
-#endif
-
-    if (field->data_size == sizeof(uint32_t))
-    {
-        return pb_encode_fixed32(ctx, field->pData);
-    }
-#ifndef PB_WITHOUT_64BIT
-    else if (field->data_size == sizeof(uint64_t))
-    {
-        return pb_encode_fixed64(ctx, field->pData);
-    }
-#endif
-    else
-    {
-        PB_RETURN_ERROR(ctx, "invalid data_size");
     }
 }
 
@@ -1396,11 +1449,6 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
 #endif
 
     return pb_encode_string(ctx, (const pb_byte_t*)str, size);
-}
-
-static bool checkreturn pb_enc_fixed_length_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    return pb_encode_string(ctx, (const pb_byte_t*)field->pData, (size_t)field->data_size);
 }
 
 #ifdef PB_CONVERT_DOUBLE_FLOAT

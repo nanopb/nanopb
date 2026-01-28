@@ -214,27 +214,29 @@ int main()
         double dvalue;
         pb_field_iter_t field;
         
-        COMMENT("Test pb_enc_fixed using float")
+        COMMENT("Test encode_basic_field using float")
+        field.tag = 2;
         field.type = PB_LTYPE_FIXED32;
         field.data_size = sizeof(fvalue);
         field.pData = &fvalue;
         fvalue = 0.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x00\x00\x00\x00"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x15\x00\x00\x00\x00"))
         fvalue = 99.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x00\x00\xc6\x42"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x15\x00\x00\xc6\x42"))
         fvalue = -12345678.0f;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x4e\x61\x3c\xcb"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x15\x4e\x61\x3c\xcb"))
     
-        COMMENT("Test pb_enc_fixed using double")
+        COMMENT("Test encode_basic_field using double")
+        field.tag = 2;
         field.type = PB_LTYPE_FIXED64;
         field.data_size = sizeof(dvalue);
         field.pData = &dvalue;
         dvalue = 0.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x00\x00\x00\x00\x00\x00\x00\x00"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x11\x00\x00\x00\x00\x00\x00\x00\x00"))
         dvalue = 99.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x00\x00\x00\x00\x00\xc0\x58\x40"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x11\x00\x00\x00\x00\x00\xc0\x58\x40"))
         dvalue = -12345678.0;
-        TEST(WRITES(pb_enc_fixed(&s, &field), "\x00\x00\x00\xc0\x29\x8c\x67\xc1"))
+        TEST(WRITES(encode_basic_field(&s, &field), "\x11\x00\x00\x00\xc0\x29\x8c\x67\xc1"))
     }
     
     {
