@@ -521,6 +521,13 @@ bool pb_walk(pb_walk_state_t *state)
                 {
                     break;
                 }
+
+                if (state->stack_remain >= stack_remain_initial && state->depth > 0)
+                {
+                    // Exit to caller from the level we started at
+                    // Used by decode/encode when reusing the walk state across callbacks.
+                    return true;
+                }
             }
             else
             {
@@ -570,6 +577,8 @@ bool pb_walk(pb_walk_state_t *state)
             state->stack_remain = (pb_walk_stacksize_t)(state->stack_remain + cb_stacksize + our_stacksize);
             state->stacksize = frame->prev_stacksize;
 
+            PB_OPT_ASSERT(state->stack_remain <= stack_remain_initial);
+
             // Restore iterator state
             const void *old_desc = iter->descriptor;
             void *old_msg = iter->message;
@@ -584,7 +593,8 @@ bool pb_walk(pb_walk_state_t *state)
             // Restore pData value for PB_WALK_NEXT_ITEM to work
             if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
                 PB_LTYPE(iter->type) == PB_LTYPE_SUBMESSAGE &&
-                PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
+                PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK &&
+                old_desc == iter->submsg_desc)
             {
                 // Only restore the pointer value if it is within the bounds of the
                 // array. The callback is free to modify the iterator so pData could
@@ -620,7 +630,9 @@ bool pb_walk(pb_walk_state_t *state)
 
             if (state->stack_remain >= stack_remain_initial && state->depth > 0)
             {
-                // Exit to pb_walk_recurse().
+                // Exit to caller from the level we started at.
+                // Used by pb_walk_recurse() and by decode/encode when
+                // reusing the walk state across callbacks.
                 return true;
             }
         }
@@ -630,7 +642,8 @@ bool pb_walk(pb_walk_state_t *state)
 
             if (state->retval == PB_WALK_NEXT_ITEM && iter->pData != NULL)
             {
-                if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED)
+                if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+                    PB_ATYPE(iter->type) != PB_ATYPE_CALLBACK)
                 {
                     pb_size_t count = *(pb_size_t*)iter->pSize;
                     if (count > iter->array_size && PB_ATYPE(iter->type) != PB_ATYPE_POINTER)
@@ -674,6 +687,13 @@ bool pb_walk(pb_walk_state_t *state)
     }
 
     return state->retval == PB_WALK_EXIT_OK;
+}
+
+pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message)
+{
+    state->iter.submsg_desc = desc;
+    state->iter.pData = message;
+    return PB_WALK_IN;
 }
 
 #ifdef PB_VALIDATE_UTF8
