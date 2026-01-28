@@ -1756,6 +1756,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
 {
     pb_walk_state_t state;
+    bool status;
     PB_WALK_DECLARE_STACKBUF(PB_DECODE_INITIAL_STACKSIZE) stackbuf;
 
     /* Set default values, if needed */
@@ -1775,7 +1776,12 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     state.ctx = ctx;
     state.next_stacksize = stacksize_for_msg(fields);
 
-    if (!pb_walk(&state))
+    pb_walk_state_t *old_walkstate = ctx->walk_state;
+    ctx->walk_state = &state;
+    status = pb_walk(&state);
+    ctx->walk_state = old_walkstate;
+
+    if (!status)
     {
         PB_SET_ERROR(ctx, state.errmsg);
 
@@ -1825,8 +1831,6 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
         state->iter.submsg_desc = fields;
         state->retval = PB_WALK_IN;
         state->next_stacksize = stacksize_for_msg(fields);
-        status = pb_walk(state);
-
         if (!pb_walk(state))
         {
             PB_SET_ERROR(ctx, state->errmsg);
