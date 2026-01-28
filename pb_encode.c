@@ -700,9 +700,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
             if (extension)
             {
                 // Descend into extension
-                iter->submsg_desc = extension->type;
-                iter->pData = pb_get_extension_data_ptr(extension);
-                return PB_WALK_IN;
+                return pb_walk_into(state, extension->type, pb_get_extension_data_ptr(extension));
             }
             continue;
         }

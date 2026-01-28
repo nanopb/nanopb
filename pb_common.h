@@ -169,6 +169,11 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
  */
 bool pb_walk(pb_walk_state_t *state);
 
+/* Override the message pb_walk() with walk into, when PB_WALK_IN is next returned.
+ * This should only be called from within pb_walk() callback function.
+ */
+pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message);
+
 #ifdef PB_VALIDATE_UTF8
 /* Validate UTF-8 text string */
 bool pb_validate_utf8(const char *s);

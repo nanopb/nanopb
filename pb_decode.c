@@ -891,9 +891,7 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
             if (extension)
             {
                 // Descend into extension
-                iter->submsg_desc = extension->type;
-                iter->pData = pb_get_extension_data_ptr(extension);
-                return PB_WALK_IN;
+                return pb_walk_into(state, extension->type, pb_get_extension_data_ptr(extension));
             }
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
@@ -1313,8 +1311,9 @@ static bool check_all_required_fields_present(pb_walk_state_t *state)
 //   PB_WALK_NEXT_ITEM => ok, released or no release needed
 //   PB_WALK_IN => release requires recursion, field->pData has been adjusted to the old field
 //   PB_WALK_EXIT_ERR => release failed
-static pb_walk_retval_t release_oneof(pb_decode_ctx_t *ctx, pb_field_iter_t *field, bool submsg_released)
+static pb_walk_retval_t release_oneof(pb_walk_state_t *state, pb_field_iter_t *field, bool submsg_released)
 {
+    pb_decode_ctx_t *ctx = (pb_decode_ctx_t*)state->ctx;
     pb_field_iter_t old_field = *field;
     pb_tag_t old_tag = *(pb_tag_t*)field->pSize; /* Previous which_ value */
     pb_tag_t new_tag = field->tag; /* New which_ value */
@@ -1340,9 +1339,7 @@ static pb_walk_retval_t release_oneof(pb_decode_ctx_t *ctx, pb_field_iter_t *fie
         {
             // Recurse into the *old* submessage.
             // After it's done, pb_walk() restores iterator to point to the new field type
-            field->pData = old_field.pData;
-            field->submsg_desc = old_field.submsg_desc;
-            return PB_WALK_IN;
+            return pb_walk_into(state, old_field.submsg_desc, old_field.pData);
         }
     }
 
@@ -1519,7 +1516,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             frame->old_length = 0;
 
             // Still need to release the top-level pointer
-            release_oneof(ctx, iter, true);
+            release_oneof(state, iter, true);
         }
         else
         {
@@ -1618,7 +1615,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
         {
             // Release old value of the oneof field
 #ifdef PB_ENABLE_MALLOC
-            pb_walk_retval_t retval = release_oneof(ctx, iter, false);
+            pb_walk_retval_t retval = release_oneof(state, iter, false);
             if (retval != PB_WALK_NEXT_ITEM)
             {
                 if (retval == PB_WALK_IN)
@@ -2127,9 +2124,7 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             if (extension)
             {
                 // Descend into extension
-                iter->submsg_desc = extension->type;
-                iter->pData = pb_get_extension_data_ptr(extension);
-                return PB_WALK_IN;
+                return pb_walk_into(state, extension->type, pb_get_extension_data_ptr(extension));
             }
             continue;
         }

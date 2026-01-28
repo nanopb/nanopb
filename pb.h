@@ -1079,7 +1079,7 @@ typedef struct {
 #define PB_SET_ERROR(ctx, msg) PB_UNUSED(ctx)
 #define PB_GET_ERROR(ctx) "(errmsg disabled)"
 #else
-#define PB_SET_ERROR(ctx, msg) (ctx->errmsg = (ctx)->errmsg ? (ctx)->errmsg : (msg))
+#define PB_SET_ERROR(ctx, msg) ((ctx)->errmsg = (ctx)->errmsg ? (ctx)->errmsg : (msg))
 #define PB_GET_ERROR(ctx) ((ctx)->errmsg ? (ctx)->errmsg : "(none)")
 #endif
 
