@@ -227,14 +227,6 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
     return load_descriptor_values(iter);
 }
 
-bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension)
-{
-    void *data = pb_get_extension_data_ptr(extension);
-    bool status = pb_field_iter_begin(iter, extension->type, data);
-    iter->pSize = &extension->found;
-    return status;
-}
-
 bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension)
 {
     const pb_msgdesc_t *old_msgdesc = iter->descriptor;
@@ -385,11 +377,6 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
 bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
 {
     return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
-}
-
-bool pb_field_iter_begin_extension_const(pb_field_iter_t *iter, const pb_extension_t *extension)
-{
-    return pb_field_iter_begin_extension(iter, (pb_extension_t*)PB_CONST_CAST(extension));
 }
 
 bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
