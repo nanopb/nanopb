@@ -2,7 +2,7 @@ project(
     'nanopb',
     'c',
     license: 'zlib',
-    version: '1.0.0',
+    version: '1.0.0-dev',
     meson_version: '>=1.4.0'
 )
 
