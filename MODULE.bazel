@@ -1,6 +1,6 @@
 module(
     name = "nanopb",
-    version = "0.4.9",
+    version = "1.0.0-dev",
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")

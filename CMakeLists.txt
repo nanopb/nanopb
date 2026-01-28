@@ -2,10 +2,9 @@ cmake_minimum_required(VERSION 3.14.0)
 
 project(nanopb VERSION 1.0.0 LANGUAGES C)
 
-set(nanopb_VERSION_STRING ${PROJECT_NAME}-${${PROJECT_NAME}_VERSION}-dev)
-set(nanopb_SOVERSION 0)
-
-string(REPLACE "nanopb-" "" nanopb_VERSION ${nanopb_VERSION_STRING})
+set(nanopb_VERSION "1.0.0-dev")
+set(nanopb_VERSION_STRING "nanopb-1.0.0-dev")
+set(nanopb_SOVERSION 1)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(BUILD_STATIC_LIBS "Build static libraries" ON)
