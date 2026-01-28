@@ -187,6 +187,8 @@ extern "C" {
       defined(_M_IX86) || defined(_M_X64) || defined(_M_ARM)) \
      && defined(CHAR_BIT) && CHAR_BIT == 8
 #define PB_LITTLE_ENDIAN_8BIT 1
+#else
+#define PB_LITTLE_ENDIAN_8BIT 0
 #endif
 #endif
 
