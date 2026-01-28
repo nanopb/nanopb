@@ -33,6 +33,9 @@ static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
 static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 
 #ifdef PB_ENABLE_MALLOC
+pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
+pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const pb_field_iter_t *field);
+
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #endif
@@ -115,7 +118,7 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
 #ifndef PB_NO_STREAM_CALLBACK
 
 // Return how many bytes are available at rdpos
-static inline size_t pb_bytes_available(pb_decode_ctx_t *ctx)
+static inline size_t pb_bytes_available(const pb_decode_ctx_t *ctx)
 {
     if (ctx->rdpos != NULL)
     {
@@ -671,6 +674,117 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
     return true;
 }
 
+#ifdef PB_ENABLE_MALLOC
+// Estimate the array allocation size of packed array.
+pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
+{
+    size_t result = 0;
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_BOOL)
+    {
+        result = ctx->bytes_left;
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
+    {
+        result = ctx->bytes_left / 4;
+    }
+    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+    {
+        result = ctx->bytes_left / 8;
+    }
+    else
+    {
+#ifndef PB_NO_STREAM_CALLBACK
+        if (ctx->callback && pb_bytes_available(ctx) < ctx->bytes_left)
+        {
+            // Stream contents not available, make a guess.
+            result = (ctx->bytes_left - 1) / field->data_size + 1;
+        }
+        else
+#endif
+        {
+            // Varint, count bytes that have top bit unset.
+            size_t length = ctx->bytes_left;
+            const pb_byte_t *p = ctx->rdpos;
+            const pb_byte_t *end = p + length;
+
+            while (p < end)
+            {
+                if ((*p++ & 0x80) == 0)
+                {
+                    result++;
+                }
+            }
+        }
+    }
+
+    if (result <= 0 && ctx->bytes_left > 0)
+    {
+        return 1;
+    }
+    else if (result > PB_SIZE_MAX)
+    {
+        return PB_SIZE_MAX;
+    }
+    else
+    {
+        return (pb_size_t)result;
+    }
+}
+
+// Count how many times the non-packed array field occurs
+pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const pb_field_iter_t *field)
+{
+    const pb_byte_t *old_rdpos = ctx->rdpos;
+    size_t old_length = ctx->bytes_left;
+    pb_size_t count = 0;
+
+#ifndef PB_NO_STREAM_CALLBACK
+    if (ctx->callback)
+    {
+        // Don't read more than what is available in memory buffer
+        size_t available = pb_bytes_available(ctx);
+        if (available < ctx->bytes_left)
+        {
+            ctx->bytes_left = available;
+        }
+    }
+#endif
+
+    while (ctx->bytes_left > 0 && count < PB_SIZE_MAX)
+    {
+        pb_tag_t tag;
+        pb_wire_type_t wt;
+        bool eof;
+
+        count++;
+
+        if (!pb_skip_field(ctx, wire_type) ||
+            !pb_decode_tag(ctx, &wt, &tag, &eof))
+        {
+            ctx->errmsg = NULL;
+            break;
+        }
+
+        if (tag != field->tag || wt != wire_type)
+        {
+            break;
+        }
+    }
+
+    ctx->rdpos = old_rdpos;
+    ctx->bytes_left = old_length;
+
+    if (count == 0 && ctx->bytes_left > 0)
+    {
+        // If we don't know, assume 1 item remains.
+        count = 1;
+    }
+
+    return count;
+}
+#endif
+
 /*************************
  * Field initialization  *
  *************************/
@@ -1029,14 +1143,21 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
 
                     if ((size_t)*size + 1 > allocated_size)
                     {
-                        /* Allocate more storage. This tries to guess the
-                         * number of remaining entries. Round the division
-                         * upwards. */
-                        size_t remain = (ctx->bytes_left - 1) / field->data_size + 1;
-                        if (remain < PB_SIZE_MAX - allocated_size)
-                            allocated_size += remain;
+                        // Grow the array size.
+                        // This tries to estimate the number of remaining entries to minimize
+                        // the number of reallocs needed.
+                        size_t remain = get_packed_array_size(ctx, field);
+
+                        if (remain > PB_SIZE_MAX - allocated_size)
+                        {
+                            PB_SET_ERROR(ctx, "too many array entries");
+                            status = false;
+                            break;
+                        }
                         else
-                            allocated_size += 1;
+                        {
+                            allocated_size += remain;
+                        }
                         
                         if (!pb_allocate_field(ctx, field->pField, field->data_size, allocated_size))
                         {
@@ -1071,19 +1192,53 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
             }
             else
             {
-                /* Normal repeated field, i.e. only one item at a time. */
+                /* Normal repeated field, i.e. each item has its own tag.
+                 * We decode as many consecutive items as there are, to
+                 * reduce the number of separate allocations.
+                 */
                 pb_size_t *size = (pb_size_t*)field->pSize;
+                pb_size_t remain = get_array_size(ctx, wire_type, field);
 
-                if (*size == PB_SIZE_MAX)
+                if (*size > PB_SIZE_MAX - remain)
                     PB_RETURN_ERROR(ctx, "too many array entries");
                 
-                if (!pb_allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + 1)))
+                if (!pb_allocate_field(ctx, field->pField, field->data_size, (size_t)(*size + remain)))
                     return false;
             
                 field->pData = *(char**)field->pField + field->data_size * (*size);
-                (*size)++;
-                memset(field->pData, 0, field->data_size);
-                return decode_basic_field(ctx, wire_type, field);
+                memset(field->pData, 0, field->data_size * remain);
+
+                while (remain > 0)
+                {
+                    // Decode field data
+                    (*size)++;
+                    remain--;
+                    if (!decode_basic_field(ctx, wire_type, field))
+                    {
+                        return false;
+                    }
+
+                    // Decode tag for the following field
+                    if (remain > 0)
+                    {
+                        pb_tag_t new_tag;
+                        pb_wire_type_t new_wt;
+                        bool eof;
+                        if (!pb_decode_tag(ctx, &new_wt, &new_tag, &eof))
+                        {
+                            return false;
+                        }
+
+                        if (new_tag != field->tag || new_wt != wire_type)
+                        {
+                            PB_RETURN_ERROR(ctx, "wrong tag");
+                        }
+
+                        field->pData = (char*)field->pData + field->data_size;
+                    }
+                }
+
+                return true;
             }
 
         default:
