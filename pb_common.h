@@ -15,9 +15,6 @@ extern "C" {
  * Returns false if the message type is empty. */
 bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *message);
 
-/* Get a field iterator for extension field. */
-bool pb_field_iter_begin_extension(pb_field_iter_t *iter, pb_extension_t *extension);
-
 /* Load field iterator values from an extension
  * After next pb_field_iter_next(), the iterator
  * continues from beginning of the parent message.
@@ -31,7 +28,6 @@ void *pb_get_extension_data_ptr(pb_extension_t *extension);
  * Note that the pointers in pb_field_iter_t will be non-const but shouldn't
  * be written to when using these functions. */
 bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message);
-bool pb_field_iter_begin_extension_const(pb_field_iter_t *iter, const pb_extension_t *extension);
 
 /* Reset iterator back to beginning.
  * Returns false if the message type is empty.
