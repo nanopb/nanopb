@@ -6,11 +6,13 @@
 #
 # VERSION_NUMBER is e.g. "1.0.0-dev" (valid semver)
 # WITHOUT_SUFFIX is just "1.0.0" (only numbers)
+# SUFFIX is "dev" or empty
 # MAJOR_VERSION is "1"
 
 VERSION_NUMBER=$1
 WITHOUT_SUFFIX=$(echo $1 | cut -d '-' -f 1)
 MAJOR_VERSION=$(echo $1 | cut -d '.' -f 1)
+SUFFIX=$(echo $1- | cut -d '-' -f 2)
 SEMVER_VALID=$(echo $1 | sed -nE '/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?(\+([0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*))?$/p')
 
 if [[ "x$1" != "x$SEMVER_VALID" ]] || [[ "x$1" == "x" ]]
@@ -23,7 +25,7 @@ sed -i -e 's/nanopb_version\s*=\s*"[^"]*"/nanopb_version = "nanopb-'$VERSION_NUM
 sed -i -e 's/#define\s*NANOPB_VERSION\s*.*/#define NANOPB_VERSION "nanopb-'$VERSION_NUMBER'"/' pb.h
 sed -i -e "0,/version: '[^']*'/s/version: '[^']*'/version: '$VERSION_NUMBER'/" meson.build
 sed -i -e 's/nanopb\@[^\s]*/nanopb\@'$VERSION_NUMBER'/' zephyr/module.yml
-sed -i -e 's/cpe:2.3:a:nanopb_project:nanopb:[^:]*/cpe:2.3:a:nanopb_project:nanopb:'$VERSION_NUMBER'/' zephyr/module.yml
+sed -i -e 's/cpe:2.3:a:nanopb_project:nanopb:[^:]*:[^:]*/cpe:2.3:a:nanopb_project:nanopb:'$WITHOUT_SUFFIX':'$SUFFIX'/' zephyr/module.yml
 sed -i -e 's/"version":\s*"[^"]*"/"version": "'$VERSION_NUMBER'"/' library.json
 sed -i -e 's/version =.*/version = "'$VERSION_NUMBER'"/' conanfile.py
 
