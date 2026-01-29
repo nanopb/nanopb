@@ -77,11 +77,13 @@
  * If this is set to lower than PB_API_VERSION_LATEST, compatibility
  * defines at the end of this file get enabled. This allows easier
  * porting from older nanopb versions.
+ *
+ * For example, set -DPB_API_VERSION=40 in compiler arguments.
  */
 #define PB_API_VERSION_v1_0 100
 #define PB_API_VERSION_v0_4  40
 #define PB_API_VERSION_LATEST PB_API_VERSION_v1_0
-#define PB_API_VERSION_DEFAULT PB_API_VERSION_v0_4
+#define PB_API_VERSION_DEFAULT PB_API_VERSION_v1_0
 
 #ifndef PB_API_VERSION
 #define PB_API_VERSION PB_API_VERSION_DEFAULT
