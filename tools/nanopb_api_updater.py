@@ -18,19 +18,24 @@ C_LANGUAGE = Language(tree_sitter_c.language())
 class RERule:
     '''Code modification rule using Python regex.
     Less robust than TSRules but sometimes easier to use.
+    Use e.g. https://regex101.com/ to debug.
     '''
 
-    def __init__(self, pattern, repl, flags = re.MULTILINE):
+    def __init__(self, pattern, repl, flags = re.MULTILINE, repeat = 1):
         self.pattern = pattern
         self.repl = repl
         self.flags = flags
+        self.repeat = repeat
     
     def __str__(self):
         return 'RERule(%s,%s)' % (repr(self.pattern), repr(self.repl))
 
     def run(self, source):
         try:
-            return re.sub(self.pattern, self.repl, source.decode(), flags = self.flags).encode()
+            text = source.decode()
+            for i in range(self.repeat):
+                text = re.sub(self.pattern, self.repl, text, flags = self.flags)
+            return text.encode()
         except:
             sys.stderr.write("In " + str(self) + ":\n")
             raise
@@ -109,14 +114,6 @@ class TSRule:
 # Rule definitions for API updates
 
 RULES = [
-
-# Regexp rules are not currently used as tree-sitter is more robust.
-# They are retained here as inspiration ;)
-# RERule(r"(?<!\w)pb_istream_t(?!\w)", "pb_decode_ctx_t"),
-# RERule(r"^(?P<tab>\s*)pb_decode_ctx_t\s+(?P<var>\w+)\s*=\s*pb_istream_from_buffer\((?P<buf>[^,]+),(?P<len>.+)\s*\)\s*;",
-#        r"\g<tab>pb_decode_ctx_t \g<var>;\n\g<tab>pb_init_decode_ctx_for_buffer(&\g<var>, \g<buf>,\g<len>);"),
-# RERule(r"(?P<tab>\s*)(?<!\w)(?P<var>\w+)\s*=\s*pb_istream_from_buffer\((?P<buf>[^,]+),(?P<len>.+)\s*\)\s*;",
-#        r"\g<tab>pb_init_decode_ctx_for_buffer(&\g<var>, \g<buf>,\g<len>);"),
 
 # pb_istream_t -> pb_decode_ctx_t
 TSRule('((type_identifier) @node (#eq? @node "pb_istream_t"))', 'pb_decode_ctx_t'),
@@ -247,23 +244,48 @@ TSRule('''(
 ),
 
 # pb_decode_delimited() -> pb_decode() and set flags
-RERule(r'^(?P<tab>\s*)(?P<prefix>.*)pb_decode_delimited\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_delimited\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
        r'\g<tab>\g<ctx>.flags |= PB_DECODE_CTX_FLAG_DELIMITED;\n' +
-       r'\g<tab>\g<prefix>pb_decode(\g<ctx>,\g<args>)'),
+       r'\g<tab>\g<prefix>pb_decode(&\g<ctx>,\g<args>)'),
 
-RERule(r'^(?P<tab>\s*)(?P<prefix>.*)pb_decode_delimited\((?P<ctx>[^,]+),(?P<args>.+)\)',
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_delimited\((?P<ctx>[^,]+),(?P<args>.+)\)',
        r'\g<tab>(\g<ctx>)->flags |= PB_DECODE_CTX_FLAG_DELIMITED;\n' +
        r'\g<tab>\g<prefix>pb_decode(\g<ctx>,\g<args>)'),
 
 # Same for pb_encode_delimited()
-RERule(r'^(?P<tab>\s*)(?P<prefix>.*)pb_encode_delimited\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_delimited\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
        r'\g<tab>\g<ctx>.flags |= PB_ENCODE_CTX_FLAG_DELIMITED;\n' +
-       r'\g<tab>\g<prefix>pb_encode(\g<ctx>,\g<args>)'),
+       r'\g<tab>\g<prefix>pb_encode(&\g<ctx>,\g<args>)'),
 
-RERule(r'^(?P<tab>\s*)(?P<prefix>.*)pb_encode_delimited\((?P<ctx>[^,]+),(?P<args>.+)\)',
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_delimited\((?P<ctx>[^,]+),(?P<args>.+)\)',
        r'\g<tab>(\g<ctx>)->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;\n' +
        r'\g<tab>\g<prefix>pb_encode(\g<ctx>,\g<args>)'),
 
+# pb_make_string_substream(stream, substream)
+# -> pb_decode_open_substream(stream, &old_length)
+RERule(r'pb_decode_ctx_t\s*(?P<substream>[^\s;]+)\b[^;]*;' +
+       r'(?P<ctx1>.*)' +
+       r'pb_make_string_substream\(\s*(?P<stream>[^\s,]+)\s*,\s*&(?P=substream)\s*\)' +
+       r'(?P<ctx2>.*)pb_close_string_substream\(\s*(?P=stream)\s*,\s*&(?P=substream)\s*\)',
+
+       r'pb_size_t old_length; /* API_UPDATER_TODO: replace &\g<substream> -> \g<stream> */' +
+       r'\g<ctx1>' +
+       r'pb_decode_open_substream(\g<stream>, &old_length)' +
+       r'\g<ctx2>pb_decode_close_substream(\g<stream>, old_length)',
+       re.MULTILINE | re.DOTALL),
+
+# Replace dangling references from previous rule
+RERule(r'(?P<ctx>/\* API_UPDATER_TODO: replace (?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/.*)' +
+       r'(?P=substream)',
+       r'\g<ctx>\g<stream>', re.MULTILINE | re.DOTALL, 10),
+
+# Same but for struct member access
+RERule(r'(?P<ctx>/\* API_UPDATER_TODO: replace &(?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/.*)' +
+       r'(?P=substream)\.',
+       r'\g<ctx>\g<stream>->', re.MULTILINE | re.DOTALL, 10),
+
+# Remove placeholder
+RERule(r'\s*/\* API_UPDATER_TODO: replace &(?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/', ''),
 ]
 
 def main(args, rules = RULES):
