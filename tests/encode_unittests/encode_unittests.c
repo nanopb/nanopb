@@ -41,7 +41,7 @@ bool crazyfieldcallback(pb_encode_ctx_t *stream, const pb_field_t *field, void *
  */
 #define WRITES(x, y) \
 memset(buffer, 0xAA, sizeof(buffer)), \
-s = pb_ostream_from_buffer(buffer, sizeof(buffer)), \
+pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer)), \
 (x) && \
 memcmp(buffer, y, sizeof(y) - 1) == 0 && \
 buffer[sizeof(y) - 1] == 0xAA && \
@@ -310,10 +310,10 @@ int main()
         
         COMMENT("Test array size limit in pb_encode")
         
-        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer));
         TEST((msg.data_count = 10) && pb_encode(&s, FloatArray_fields, &msg))
         
-        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer));
         TEST((msg.data_count = 11) && !pb_encode(&s, FloatArray_fields, &msg))
     }
     
@@ -358,8 +358,8 @@ int main()
         IntegerContainer msg = {{5, {1,2,3,4,5}}};
         
         COMMENT("Test pb_encode_delimited.")
-        s.flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
-        TEST(WRITES(pb_encode(&s, IntegerContainer_fields, &msg),
+        TEST(WRITES((s.flags |= PB_ENCODE_CTX_FLAG_DELIMITED,
+                    pb_encode(&s, IntegerContainer_fields, &msg)),
                     "\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"))
     }
 

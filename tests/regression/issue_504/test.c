@@ -20,7 +20,7 @@ int main(int argc, char **argv)
         char *pStr, *pStrAligned;
 
         COMMENT("Test for false negatives with pointer value low byte 0x00")
-        ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
 
         /* copy STR to a malloced 0x100 aligned address */
         pStr = malloc(sizeof(STR) + ALIGN);
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
          } msg = {MyMessage_init_zero, 0};
 
         COMMENT("Test for false positives with data after end of struct")
-        ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
 
         msg.bar = 0xFFFFFFFF;
 
