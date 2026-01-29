@@ -13,7 +13,7 @@
 
 /* This function is called once from main(), it handles
    the decoding and printing. */
-bool print_person(pb_istream_t *stream)
+bool print_person(pb_decode_ctx_t *stream)
 {
     int i;
     Person person = Person_init_zero;
@@ -61,7 +61,7 @@ bool print_person(pb_istream_t *stream)
 int main()
 {
     uint8_t buffer[Person_size];
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t count;
     
     /* Read the data into buffer */
@@ -75,7 +75,7 @@ int main()
     }
     
     /* Construct a pb_istream_t for reading from the buffer */
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
     
     /* Decode and print out the stuff */
     if (!print_person(&stream))

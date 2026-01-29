@@ -11,7 +11,7 @@ int main()
     COMMENT("Test extension fields with zero values");
     {
         uint8_t buffer[256] = {0};
-        pb_ostream_t ostream;
+        pb_encode_ctx_t ostream;
         int32_t value = 0;
         Extendable source = {0};
 
@@ -20,7 +20,7 @@ int main()
         source_ext.dest = &value;
         source.extensions = &source_ext;
 
-        ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
         TEST(pb_encode(&ostream, Extendable_fields, &source));
 
         TEST(ostream.bytes_written == 2);
@@ -33,13 +33,13 @@ int main()
     COMMENT("Test pointer fields with zero values");
     {
         uint8_t buffer[256] = {0};
-        pb_ostream_t ostream;
+        pb_encode_ctx_t ostream;
         int32_t value = 0;
         PointerMessage source = {0};
 
         source.opt_int32 = &value;
 
-        ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
         TEST(pb_encode(&ostream, PointerMessage_fields, &source));
 
         TEST(ostream.bytes_written == 2);

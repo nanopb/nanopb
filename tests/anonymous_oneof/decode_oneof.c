@@ -9,7 +9,7 @@
 #include "unittests.h"
 
 /* Test the 'AnonymousOneOfMessage' */
-int test_oneof_1(pb_istream_t *stream, int option)
+int test_oneof_1(pb_decode_ctx_t *stream, int option)
 {
     AnonymousOneOfMessage msg;
     int status = 0;
@@ -75,9 +75,9 @@ int main(int argc, char **argv)
 
     {
         int status = 0;
-        pb_istream_t stream;
+        pb_decode_ctx_t stream;
 
-        stream = pb_istream_from_buffer(buffer, count);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, count);
         status = test_oneof_1(&stream, option);
 
         if (status != 0)

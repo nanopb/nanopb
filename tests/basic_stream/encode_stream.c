@@ -7,7 +7,7 @@
 #include "test_helpers.h"
 
 /* This binds the pb_ostream_t into the stdout stream */
-bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*) stream->state;
     return fwrite(buf, 1, count, file) == count;

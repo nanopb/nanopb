@@ -32,7 +32,7 @@ static char *find_end_of_item(char *p)
 }
 
 /* Parse a tree in format [[1 2] 3] and encode it directly to protobuf */
-static bool encode_tree(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool encode_tree(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     TreeNode tree = TreeNode_init_zero;
     char *p = (char*)*arg;
@@ -60,7 +60,7 @@ static bool encode_tree(pb_ostream_t *stream, const pb_field_t *field, void * co
 }
 
 /* Parse a dictionary in format {'name': value} and encode it directly to protobuf */
-static bool encode_dictionary(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool encode_dictionary(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     int textlen;
     char *p = (char*)*arg;
@@ -127,7 +127,8 @@ static bool encode_dictionary(pb_ostream_t *stream, const pb_field_t *field, voi
 int main(int argc, char *argv[])
 {
     uint8_t buffer[1024];
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
     Dictionary dict = Dictionary_init_zero;
     dict.dictItem.funcs.encode = encode_dictionary;
     

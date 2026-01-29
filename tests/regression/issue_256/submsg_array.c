@@ -10,7 +10,8 @@ int main()
     COMMENT("Test encoding for submessage with array");
     {
         uint8_t buffer[TestMessage_size] = {0};
-        pb_ostream_t ostream = pb_ostream_from_buffer(buffer, TestMessage_size);
+        pb_encode_ctx_t ostream;
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, TestMessage_size);
         TestMessage msg = TestMessage_init_zero;
         
         msg.submsg.rep_uint32_count = 3;
@@ -22,7 +23,8 @@ int main()
         TEST(ostream.bytes_written > 0);
         
         {
-            pb_istream_t istream = pb_istream_from_buffer(buffer, ostream.bytes_written);
+            pb_decode_ctx_t istream;
+            pb_init_decode_ctx_for_buffer(&istream, buffer, ostream.bytes_written);
             TestMessage msg2 = TestMessage_init_zero;
 
             TEST(pb_decode(&istream, TestMessage_fields, &msg2));

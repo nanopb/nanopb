@@ -8,7 +8,7 @@
 #include <cstdio>
 
 // See tests/alltypes_callback, tests/oneoff_callback and examples/network_server for more...
-bool TestMessage_values_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
+bool TestMessage_values_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
 {
 	if (ostream != NULL) {
 		// Encoding callback, serialize items from vector
@@ -36,7 +36,7 @@ bool TestMessage_values_callback(pb_istream_t *istream, pb_ostream_t *ostream, c
 }
 
 extern "C"
-bool TestMessage_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
+bool TestMessage_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
 {
 	if (field->tag == TestMessage_values_tag) {
 			return TestMessage_values_callback(istream, ostream, field);
@@ -58,7 +58,8 @@ int main() {
 	pb_get_encoded_size(&size, TestMessage_fields, &source);
 	serialized.resize(size);
 
-	pb_ostream_t outstream = pb_ostream_from_buffer(&serialized.front(), serialized.size());
+	pb_encode_ctx_t outstream;
+	pb_init_encode_ctx_for_buffer(&outstream, &serialized.front(), serialized.size());
 	if (!pb_encode(&outstream, TestMessage_fields, &source)) {
 		fprintf(stderr, "Failed to encode: %s\n", PB_GET_ERROR(&outstream));
 		return 1;
@@ -66,7 +67,8 @@ int main() {
 
 
 	TestMessage destination;
-	pb_istream_t instream = pb_istream_from_buffer(&serialized.front(), outstream.bytes_written);
+	pb_decode_ctx_t instream;
+	pb_init_decode_ctx_for_buffer(&instream, &serialized.front(), outstream.bytes_written);
 	if (!pb_decode(&instream, TestMessage_fields, &destination)) {
 		fprintf(stderr, "Failed to decode: %s\n", PB_GET_ERROR(&instream));
 		return 2;

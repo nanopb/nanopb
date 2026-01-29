@@ -5,7 +5,7 @@
 #include "test_helpers.h"
 #include "unittests.h"
 
-bool check_message(pb_istream_t *stream)
+bool check_message(pb_decode_ctx_t *stream)
 {
     DeepMessage msg = {0};
 

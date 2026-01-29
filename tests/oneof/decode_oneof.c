@@ -9,7 +9,7 @@
 #include "unittests.h"
 
 /* Test the 'OneOfMessage' */
-int test_oneof_1(pb_istream_t *stream, int option)
+int test_oneof_1(pb_decode_ctx_t *stream, int option)
 {
     OneOfMessage msg;
     int status = 0;
@@ -53,7 +53,7 @@ int test_oneof_1(pb_istream_t *stream, int option)
 
 
 /* Test the 'PlainOneOfMessage' */
-int test_oneof_2(pb_istream_t *stream, int option)
+int test_oneof_2(pb_decode_ctx_t *stream, int option)
 {
     PlainOneOfMessage msg = PlainOneOfMessage_init_zero;
     int status = 0;
@@ -117,15 +117,15 @@ int main(int argc, char **argv)
         if (status != 0)
             return status;
 
-        pb_istream_t stream;
+        pb_decode_ctx_t stream;
 
-        stream = pb_istream_from_buffer(buffer, count);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, count);
         status = test_oneof_1(&stream, option);
 
         if (status != 0)
             return status;
 
-        stream = pb_istream_from_buffer(buffer, count);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, count);
         status = test_oneof_2(&stream, option);
 
         if (status != 0)

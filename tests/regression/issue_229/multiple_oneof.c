@@ -10,7 +10,8 @@ int main()
     size_t msglen;
 
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
         MainMessage msg = MainMessage_init_zero;
         msg.which_oneof1 = MainMessage_oneof1_uint32_tag;
         msg.oneof1.oneof1_uint32 = 1234;
@@ -21,7 +22,8 @@ int main()
     }
     
     {
-        pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buf, msglen);
         MainMessage msg = MainMessage_init_zero;
         TEST(pb_decode(&stream, MainMessage_fields, &msg));
         TEST(msg.which_oneof1 == MainMessage_oneof1_uint32_tag);

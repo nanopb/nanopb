@@ -10,7 +10,7 @@ int main()
     size_t msglen;
     
     {
-        pb_ostream_t stream;
+        pb_encode_ctx_t stream;
         SimpleMessage msg = SimpleMessage_init_zero;
         ExtMessage extmsg = ExtMessage_init_zero;
         pb_extension_t ext = pb_extension_init_zero;
@@ -26,7 +26,7 @@ int main()
         ext.dest = &extmsg;
         ext.next = NULL;
         
-        stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         TEST(pb_encode(&stream, SimpleMessage_fields, &msg));
         msglen = stream.bytes_written;
         TEST(msglen == 9); /* 3 for number, 3 for submsg tag+len, 3 for second_number */
@@ -42,7 +42,7 @@ int main()
     }
 
     {
-        pb_istream_t stream;
+        pb_decode_ctx_t stream;
         SimpleMessage msg = SimpleMessage_init_zero;
         ExtMessage extmsg = ExtMessage_init_zero;
         pb_extension_t ext = pb_extension_init_zero;
@@ -55,7 +55,7 @@ int main()
         ext.next = NULL;
         ext.found = false;
         
-        stream = pb_istream_from_buffer(buffer, msglen);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
         TEST(pb_decode(&stream, SimpleMessage_fields, &msg));
         TEST(msg.has_number);
         TEST(msg.number == 1234);

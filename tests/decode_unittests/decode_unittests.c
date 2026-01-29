@@ -10,7 +10,7 @@
 
 #define S(x) pb_istream_from_buffer((uint8_t*)x, sizeof(x) - 1)
 
-bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     if (stream->state != NULL)
         return false; /* Simulate error */
@@ -21,7 +21,7 @@ bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 }
 
 /* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
-bool callback_check(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool callback_check(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     int i;
     uint8_t byte;
@@ -46,7 +46,8 @@ int main()
     {
         uint8_t buffer1[] = "foobartest1234";
         uint8_t buffer2[sizeof(buffer1)];
-        pb_istream_t stream = pb_istream_from_buffer(buffer1, sizeof(buffer1));
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer1, sizeof(buffer1));
 
         COMMENT("Test pb_read and pb_istream_t");
         TEST(pb_read(&stream, buffer2, 6))
@@ -60,7 +61,8 @@ int main()
 
     {
         uint8_t buffer[20];
-        pb_istream_t stream = {&stream_callback, NULL, 20};
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_callback(&stream, &stream_callback, NULL, 20, NULL, 0);
 
         COMMENT("Test pb_read with custom callback");
         TEST(pb_read(&stream, buffer, 5))
@@ -73,7 +75,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         uint64_t u;
         int64_t i;
 
@@ -92,7 +94,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         uint32_t u;
 
         COMMENT("Test pb_decode_varint32");
@@ -108,7 +110,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         COMMENT("Test pb_skip_varint");
         TEST((s = S("\x00""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
         TEST((s = S("\xAC\x02""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
@@ -118,7 +120,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         COMMENT("Test pb_skip_string")
         TEST((s = S("\x00""foobar"), pb_skip_string(&s) && s.bytes_left == 6))
         TEST((s = S("\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 6))
@@ -127,7 +129,7 @@ int main()
     }
 
     {
-        pb_istream_t s = S("\x01\x00");
+        pb_decode_ctx_t s = S("\x01\x00");
         pb_field_iter_t f;
         uint32_t d;
 
@@ -145,7 +147,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         int32_t d;
 
@@ -161,7 +163,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         int64_t d;
 
@@ -177,7 +179,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         int32_t d;
 
@@ -193,7 +195,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         uint32_t d;
 
@@ -208,7 +210,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         uint64_t d;
 
@@ -223,7 +225,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         uint32_t d;
 
@@ -237,7 +239,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         float d;
 
         COMMENT("Test pb_dec_fixed using float (failures here may be caused by imperfect rounding)")
@@ -250,7 +252,7 @@ int main()
 
     if (sizeof(double) == 8)
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         double d;
 
         COMMENT("Test pb_dec_fixed64 using double (failures here may be caused by imperfect rounding)")
@@ -260,7 +262,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         struct { pb_size_t size; uint8_t bytes[5]; } d;
         pb_field_iter_t f;
 
@@ -285,7 +287,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         pb_field_iter_t f;
         char d[5];
 
@@ -300,7 +302,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode with repeated int32 field")
@@ -314,7 +316,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode with packed int32 field")
@@ -332,7 +334,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode with unknown fields")
@@ -348,7 +350,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         CallbackArray dest;
         struct { pb_size_t size; uint8_t bytes[10]; } ref;
         dest.data.funcs.decode = &callback_check;
@@ -379,7 +381,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode message termination")
@@ -389,17 +391,19 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode_ex null termination")
 
-        TEST((s = S("\x00"), pb_decode_ex(&s, IntegerArray_fields, &dest, PB_DECODE_NULLTERMINATED)))
-        TEST((s = S("\x08\x01\x00"), pb_decode_ex(&s, IntegerArray_fields, &dest, PB_DECODE_NULLTERMINATED)))
+        s.flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;
+        TEST((s = S("\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
+        s.flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;
+        TEST((s = S("\x08\x01\x00"), pb_decode(&s, IntegerArray_fields, &dest)))
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing pb_decode with invalid tag numbers")
@@ -408,7 +412,7 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerArray dest;
 
         COMMENT("Testing wrong message type detection")
@@ -417,17 +421,18 @@ int main()
     }
 
     {
-        pb_istream_t s;
+        pb_decode_ctx_t s;
         IntegerContainer dest = {{0}};
 
         COMMENT("Testing pb_decode_delimited")
         TEST((s = S("\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"),
-              pb_decode_delimited(&s, IntegerContainer_fields, &dest)) &&
+              s.flags |= PB_DECODE_CTX_FLAG_DELIMITED;
+              pb_decode(&s, IntegerContainer_fields, &dest)) &&
               dest.submsg.data_count == 5)
     }
 
     {
-        pb_istream_t s = {0};
+        pb_decode_ctx_t s = {0};
         void *data = NULL;
 
         COMMENT("Testing pb_allocate_field")

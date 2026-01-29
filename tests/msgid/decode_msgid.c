@@ -7,7 +7,7 @@
 #include "test_helpers.h"
 
 /* This function reads the prefix written by sending side. */
-bool read_prefix(pb_istream_t *stream, int *msgid)
+bool read_prefix(pb_decode_ctx_t *stream, int *msgid)
 {
     uint8_t prefix = 0;
 
@@ -20,7 +20,7 @@ bool read_prefix(pb_istream_t *stream, int *msgid)
 
 /* Main function will call one of these functions based on the prefix */
 
-bool handle_MyMessage1(pb_istream_t *stream)
+bool handle_MyMessage1(pb_decode_ctx_t *stream)
 {
     MyMessage1 msg = MyMessage1_init_default;
 
@@ -31,7 +31,7 @@ bool handle_MyMessage1(pb_istream_t *stream)
     return true;
 }
 
-bool handle_MyMessage2(pb_istream_t *stream)
+bool handle_MyMessage2(pb_decode_ctx_t *stream)
 {
     MyMessage2 msg = MyMessage2_init_default;
 
@@ -43,7 +43,7 @@ bool handle_MyMessage2(pb_istream_t *stream)
     return true;
 }
 
-bool handle_MyMessage3(pb_istream_t *stream)
+bool handle_MyMessage3(pb_decode_ctx_t *stream)
 {
     MyMessage3 msg = MyMessage3_init_default;
 
@@ -57,7 +57,7 @@ bool handle_MyMessage3(pb_istream_t *stream)
 int main(int argc, char **argv)
 {
     uint8_t buffer[128];
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t count;
     bool status = false;
     int prefix;
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
 
     if (!read_prefix(&stream, &prefix))
     {

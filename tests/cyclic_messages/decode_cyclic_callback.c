@@ -9,7 +9,7 @@
 #include "test_helpers.h"
 #include "cyclic_callback.pb.h"
 
-static bool print_stringvalue(pb_istream_t *stream)
+static bool print_stringvalue(pb_decode_ctx_t *stream)
 {
     char buf[32];
 
@@ -29,7 +29,7 @@ static bool print_stringvalue(pb_istream_t *stream)
     return true;
 }
 
-static bool decode_treenode(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool decode_treenode(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     if (field && field->tag == TreeNode_left_tag)
         printf("[");
@@ -54,7 +54,7 @@ static bool decode_treenode(pb_istream_t *stream, const pb_field_t *field, void 
     return true;
 }
 
-static bool decode_dictionary(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool decode_dictionary(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     pb_wire_type_t wt;
     pb_tag_t tag;
@@ -123,7 +123,8 @@ int main(int argc, char *argv[])
     SET_BINARY_MODE(stdin);
     size_t count = fread(buffer, 1, sizeof(buffer), stdin);
 
-    pb_istream_t stream = pb_istream_from_buffer(buffer, count);
+    pb_decode_ctx_t stream;
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
 
     Dictionary dict = Dictionary_init_zero;
     dict.dictItem.funcs.decode = decode_dictionary;

@@ -9,7 +9,8 @@ int main()
     COMMENT("Test message length calculation for short arrays");
     {
         uint8_t buffer[TestMessage_size] = {0};
-        pb_ostream_t ostream = pb_ostream_from_buffer(buffer, TestMessage_size);
+        pb_encode_ctx_t ostream;
+        pb_init_encode_ctx_for_buffer(&ostream, buffer, TestMessage_size);
         TestMessage msg = TestMessage_init_zero;
         
         msg.rep_uint32_count = 1;

@@ -10,31 +10,31 @@
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 
-static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_varint(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_varint(stream, (intptr_t)*arg);
 }
 
-static bool write_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_svarint(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
-static bool write_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_fixed32(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_fixed32(stream, *arg);
 }
 
-static bool write_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_fixed64(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_fixed64(stream, *arg);
 }
 
-static bool write_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_double(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
 #ifdef PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
@@ -46,27 +46,27 @@ static bool write_double(pb_ostream_t *stream, const pb_field_t *field, void * c
            pb_encode_fixed64(stream, *arg);
 }
 
-static bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_string(stream, *arg, strlen(*arg));
 }
 
-static bool write_submsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_submsg(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
    
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_submessage(stream, SubMessage_fields, *arg);
 }
 
-static bool write_emptymsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_emptymsg(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     EmptyMessage emptymsg = {0};
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_submessage(stream, EmptyMessage_fields, &emptymsg);
 }
 
-static bool write_repeated_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_varint(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_varint(stream, 0) &&
@@ -80,7 +80,7 @@ static bool write_repeated_varint(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_varint(stream, (intptr_t)*arg);
 }
 
-static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_svarint(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_svarint(stream, 0) &&
@@ -94,7 +94,7 @@ static bool write_repeated_svarint(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_svarint(stream, (intptr_t)*arg);
 }
 
-static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_fixed32(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint32_t dummy = 0;
 
@@ -108,7 +108,7 @@ static bool write_repeated_fixed32(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_fixed32(stream, *arg);
 }
 
-static bool write_repeated_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_fixed64(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint64_t dummy = 0;
 
@@ -122,7 +122,7 @@ static bool write_repeated_fixed64(pb_ostream_t *stream, const pb_field_t *field
            pb_encode_fixed64(stream, *arg);
 }
 
-static bool write_repeated_double(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_double(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint64_t dummy = 0;
 
@@ -147,7 +147,7 @@ static bool write_repeated_double(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_fixed64(stream, *arg);
 }
 
-static bool write_repeated_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_string(stream, 0, 0) &&
@@ -161,7 +161,7 @@ static bool write_repeated_string(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_string(stream, *arg, strlen(*arg));
 }
 
-static bool write_repeated_submsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_submsg(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     SubMessage dummy = {""};
 
@@ -177,7 +177,7 @@ static bool write_repeated_submsg(pb_ostream_t *stream, const pb_field_t *field,
            pb_encode_submessage(stream, SubMessage_fields, *arg);
 }
 
-static bool write_limits(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_limits(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     Limits limits = {0};
     limits.int32_min  = INT32_MIN;
@@ -195,7 +195,7 @@ static bool write_limits(pb_ostream_t *stream, const pb_field_t *field, void * c
            pb_encode_submessage(stream, Limits_fields, &limits);
 }
 
-static bool write_repeated_emptymsg(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_repeated_emptymsg(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     EmptyMessage emptymsg = {0};
     return pb_encode_tag_for_field(stream, field) &&
@@ -362,7 +362,8 @@ int main(int argc, char **argv)
     
     {
         uint8_t buffer[2048];
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         
         /* Now encode it and check if we succeeded. */
         if (pb_encode(&stream, AllTypes_fields, &alltypes))

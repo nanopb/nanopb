@@ -6,7 +6,7 @@
 #include "deep.pb.h"
 
 /* This binds the pb_ostream_t into the stdout stream */
-bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*) stream->state;
     return fwrite(buf, 1, count, file) == count;
@@ -16,7 +16,8 @@ int main(int argc, const char **argv)
 {
     int mode = 0;
     pb_byte_t buffer[DeepMessage_size];
-    pb_ostream_t stream = {&streamcallback, NULL, DeepMessage_size, 0};
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_callback(&stream, &streamcallback, NULL, DeepMessage_size, NULL, 0);
 
     SET_BINARY_MODE(stdout);
     stream.state = stdout;
@@ -28,7 +29,7 @@ int main(int argc, const char **argv)
 
     if (mode == 0)
     {
-        stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
     }
 
     DeepMessage msg = {0};

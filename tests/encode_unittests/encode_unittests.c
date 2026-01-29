@@ -7,7 +7,7 @@
 #include "unittests.h"
 #include "unittestproto.pb.h"
 
-bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
 {
     /* Allow only 'x' to be written */
     while (count--)
@@ -18,7 +18,7 @@ bool streamcallback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
     return true;
 }
 
-bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool fieldcallback(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     int value = 0x55;
     if (!pb_encode_tag_for_field(stream, field))
@@ -26,7 +26,7 @@ bool fieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * const *
     return pb_encode_varint(stream, value);
 }
 
-bool crazyfieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool crazyfieldcallback(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     /* This callback writes different amount of data the second time. */
     uint32_t *state = (uint32_t*)arg;
@@ -54,7 +54,8 @@ int main()
     {
         uint8_t buffer1[] = "foobartest1234";
         uint8_t buffer2[sizeof(buffer1)];
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer2, sizeof(buffer1));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer2, sizeof(buffer1));
         
         COMMENT("Test pb_write and pb_ostream_t");
         TEST(pb_write(&stream, buffer1, sizeof(buffer1)));
@@ -76,7 +77,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         
         COMMENT("Test pb_encode_varint")
         TEST(WRITES(pb_encode_varint(&s, 0), "\0"));
@@ -89,7 +90,7 @@ int main()
     
     {
         uint8_t buffer[50];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         
         COMMENT("Test pb_encode_varint 32-bit fast path")
         TEST(WRITES(pb_encode_varint(&s, 0x00000000), "\x00"));
@@ -111,7 +112,7 @@ int main()
     
     {
         uint8_t buffer[50];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         
         COMMENT("Test pb_encode_svarint 32-bit fast path")
         TEST(WRITES(pb_encode_svarint(&s, (int32_t)0x00000000), "\x00"));
@@ -134,7 +135,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         
         COMMENT("Test pb_encode_tag")
         TEST(WRITES(pb_encode_tag(&s, PB_WT_STRING, 5), "\x2A"));
@@ -143,7 +144,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         pb_field_iter_t field;
         field.tag = 10;
 
@@ -163,7 +164,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         
         COMMENT("Test pb_encode_string")
         TEST(WRITES(pb_encode_string(&s, (const uint8_t*)"abcd", 4), "\x04""abcd"));
@@ -173,7 +174,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         uint8_t value = 1;
         int32_t max = INT32_MAX;
         int32_t min = INT32_MIN;
@@ -210,7 +211,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         float fvalue;
         double dvalue;
         pb_field_iter_t field;
@@ -242,7 +243,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         struct { pb_size_t size; uint8_t bytes[5]; } value = {5, {'x', 'y', 'z', 'z', 'y'}};
         pb_field_iter_t field;
         pb_field_iter_begin(&field, BytesMessage_fields, &value);
@@ -255,7 +256,7 @@ int main()
     
     {
         uint8_t buffer[30];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         char value[30] = "xyzzy";
         pb_field_iter_t field;
         pb_field_iter_begin(&field, StringMessage_fields, &value);
@@ -271,7 +272,7 @@ int main()
     
     {
         uint8_t buffer[10];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         IntegerArray msg = {5, {1, 2, 3, 4, 5}};
         
         COMMENT("Test pb_encode with int32 array")
@@ -287,7 +288,7 @@ int main()
     
     {
         uint8_t buffer[10];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         FloatArray msg = {1, {99.0f}};
         
         COMMENT("Test pb_encode with float array")
@@ -304,7 +305,7 @@ int main()
     
     {
         uint8_t buffer[50];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         FloatArray msg = {1, {99.0f}};
         
         COMMENT("Test array size limit in pb_encode")
@@ -318,7 +319,7 @@ int main()
     
     {
         uint8_t buffer[10];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         CallbackArray msg;
         
         msg.data.funcs.encode = &fieldcallback;
@@ -329,7 +330,7 @@ int main()
     
     {
         uint8_t buffer[10];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         IntegerContainer msg = {{5, {1,2,3,4,5}}};
         
         COMMENT("Test pb_encode with packed array in a submessage.")
@@ -339,7 +340,7 @@ int main()
     
     {
         uint8_t buffer[32];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         BytesMessage msg = {{3, "xyz"}};
         
         COMMENT("Test pb_encode with bytes message.")
@@ -353,11 +354,12 @@ int main()
     
     {
         uint8_t buffer[20];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         IntegerContainer msg = {{5, {1,2,3,4,5}}};
         
         COMMENT("Test pb_encode_delimited.")
-        TEST(WRITES(pb_encode_delimited(&s, IntegerContainer_fields, &msg),
+        s.flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
+        TEST(WRITES(pb_encode(&s, IntegerContainer_fields, &msg),
                     "\x09\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"))
     }
 
@@ -372,7 +374,7 @@ int main()
     
     {
         uint8_t buffer[10];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         CallbackContainer msg;
         CallbackContainerContainer msg2;
         uint32_t state = 1;
@@ -398,10 +400,10 @@ int main()
     
     {
         uint8_t buffer[StringMessage_size];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         StringMessage msg = {"0123456789"};
         
-        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer));
         
         COMMENT("Test that StringMessage_size is correct")
 
@@ -411,10 +413,10 @@ int main()
 
     {
         uint8_t buffer[StringMessage_size];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         StringMessage msg = {"0123456789"};
 
-        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer));
 
         COMMENT("Testing wrong message type detection")
         TEST(!pb_encode(&s, IntegerContainer_fields, &msg));
@@ -423,7 +425,7 @@ int main()
     
     {
         uint8_t buffer[128];
-        pb_ostream_t s;
+        pb_encode_ctx_t s;
         StringPointerContainer msg = StringPointerContainer_init_zero;
         char *strs[1] = {NULL};
         char zstr[] = "Z";

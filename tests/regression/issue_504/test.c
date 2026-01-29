@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     int i;
 
     {
-        pb_ostream_t ostream;
+        pb_encode_ctx_t ostream;
         MyMessage msg = MyMessage_init_zero;
         char *pStr, *pStrAligned;
 
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     }
 
     {
-        pb_ostream_t ostream;
+        pb_encode_ctx_t ostream;
         struct {
             MyMessage msg;
             uint32_t bar;

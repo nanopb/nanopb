@@ -10,14 +10,14 @@ int main()
 {
     BaseMessage msg = BaseMessage_init_zero;
     uint8_t buffer[256];
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t count;
     bool status;
     
     /* Read the data into buffer */
     SET_BINARY_MODE(stdin);
     count = fread(buffer, 1, sizeof(buffer), stdin);
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
     
     /* Decode the base message */
     if (!pb_decode(&stream, BaseMessage_fields, &msg))
@@ -33,7 +33,7 @@ int main()
     if (strcmp(msg.details.type_url, "type.googleapis.com/google.protobuf.Duration") == 0)
     {
         google_protobuf_Duration duration = google_protobuf_Duration_init_zero;
-        stream = pb_istream_from_buffer(msg.details.value.bytes, msg.details.value.size);
+        pb_init_decode_ctx_for_buffer(&stream, msg.details.value.bytes, msg.details.value.size);
         status = pb_decode(&stream, google_protobuf_Duration_fields, &duration);
         assert(status);
         assert(duration.seconds == 99999);

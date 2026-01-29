@@ -11,12 +11,12 @@ int main(int argc, char **argv)
     int status = 0;
     uint8_t buffer[512] = {0};
     int i;
-    pb_ostream_t ostream;
+    pb_encode_ctx_t ostream;
     
     Reply reply = Reply_init_zero;
     Reply_Result request_result = Reply_Result_OK;
 
-    ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
     reply.result = request_result;
     if (!pb_encode(&ostream, Reply_fields, &reply)) {
         fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&ostream));

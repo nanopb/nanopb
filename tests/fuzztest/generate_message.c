@@ -53,7 +53,7 @@ static void generate_message()
     pb_extension_t ext = pb_extension_init_zero;
 
     static uint8_t buf[FUZZTEST_BUFSIZE];
-    pb_ostream_t stream = {0};
+    pb_encode_ctx_t stream = {0};
     
     do {
         rand_fill((void*)&msg, sizeof(msg));
@@ -65,7 +65,7 @@ static void generate_message()
         ext.next = NULL;
         msg.extensions = &ext;
 
-        stream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
     } while (!pb_encode(&stream, alltypes_static_AllTypes_fields, &msg));
     
     fwrite(buf, 1, stream.bytes_written, stdout);

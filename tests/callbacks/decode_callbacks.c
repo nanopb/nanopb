@@ -7,7 +7,7 @@
 #include "callbacks.pb.h"
 #include "test_helpers.h"
 
-bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint8_t buffer[1024] = {0};
     
@@ -25,7 +25,7 @@ bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -35,7 +35,7 @@ bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_fixed32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint32_t value;
     if (!pb_decode_fixed32(stream, &value))
@@ -45,7 +45,7 @@ bool print_fixed32(pb_istream_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_fixed64(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))
@@ -59,7 +59,7 @@ int main()
 {
     uint8_t buffer[1024];
     size_t length;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     /* Note: empty initializer list initializes the struct with all-0.
      * This is recommended so that unused callbacks are set to NULL instead
      * of crashing at runtime.
@@ -68,7 +68,7 @@ int main()
     
     SET_BINARY_MODE(stdin);
     length = fread(buffer, 1, 1024, stdin);
-    stream = pb_istream_from_buffer(buffer, length);    
+    pb_init_decode_ctx_for_buffer(&stream, buffer, length);
     
     testmessage.submsg.stringvalue.funcs.decode = &print_string;
     testmessage.submsg.stringvalue.arg = "submsg {\n  stringvalue: \"%s\"\n";

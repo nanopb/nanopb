@@ -15,7 +15,7 @@
     return false; \
     }
 
-static bool read_varint(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_varint(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -25,7 +25,7 @@ static bool read_varint(pb_istream_t *stream, const pb_field_t *field, void **ar
     return true;
 }
 
-static bool read_svarint(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_svarint(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     int64_t value;
     if (!pb_decode_svarint(stream, &value))
@@ -35,7 +35,7 @@ static bool read_svarint(pb_istream_t *stream, const pb_field_t *field, void **a
     return true;
 }
 
-static bool read_fixed32(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_fixed32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint32_t value;
     if (!pb_decode_fixed32(stream, &value))
@@ -45,7 +45,7 @@ static bool read_fixed32(pb_istream_t *stream, const pb_field_t *field, void **a
     return true;
 }
 
-static bool read_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_fixed64(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))
@@ -55,7 +55,7 @@ static bool read_fixed64(pb_istream_t *stream, const pb_field_t *field, void **a
     return true;
 }
 
-static bool read_double(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_double(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
 #ifdef PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
@@ -77,7 +77,7 @@ static bool read_double(pb_istream_t *stream, const pb_field_t *field, void **ar
     return true;
 }
 
-static bool read_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint8_t buf[16] = {0};
     size_t len = stream->bytes_left;
@@ -89,7 +89,7 @@ static bool read_string(pb_istream_t *stream, const pb_field_t *field, void **ar
     return true;
 }
 
-static bool read_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_submsg(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage submsg = {""};
     SubMessage *ref = *arg;
@@ -104,13 +104,13 @@ static bool read_submsg(pb_istream_t *stream, const pb_field_t *field, void **ar
     return true;
 }
 
-static bool read_emptymsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_emptymsg(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     EmptyMessage emptymsg = {0};
     return pb_decode(stream, EmptyMessage_fields, &emptymsg);
 }
 
-static bool read_repeated_varint(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_varint(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     int32_t** expected = (int32_t**)arg;
     uint64_t value;
@@ -121,7 +121,7 @@ static bool read_repeated_varint(pb_istream_t *stream, const pb_field_t *field, 
     return true;
 }
 
-static bool read_repeated_svarint(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_svarint(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     int32_t** expected = (int32_t**)arg;
     int64_t value;
@@ -132,7 +132,7 @@ static bool read_repeated_svarint(pb_istream_t *stream, const pb_field_t *field,
     return true;
 }
 
-static bool read_repeated_fixed32(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_fixed32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint32_t** expected = (uint32_t**)arg;
     uint32_t value;
@@ -143,7 +143,7 @@ static bool read_repeated_fixed32(pb_istream_t *stream, const pb_field_t *field,
     return true;
 }
 
-static bool read_repeated_fixed64(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_fixed64(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t** expected = (uint64_t**)arg;
     uint64_t value;
@@ -154,7 +154,7 @@ static bool read_repeated_fixed64(pb_istream_t *stream, const pb_field_t *field,
     return true;
 }
 
-static bool read_repeated_double(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_double(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
 #ifdef PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
@@ -178,7 +178,7 @@ static bool read_repeated_double(pb_istream_t *stream, const pb_field_t *field, 
     return true;
 }
 
-static bool read_repeated_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint8_t*** expected = (uint8_t***)arg;
     uint8_t buf[16] = {0};
@@ -191,7 +191,7 @@ static bool read_repeated_string(pb_istream_t *stream, const pb_field_t *field, 
     return true;
 }
 
-static bool read_repeated_submsg(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_repeated_submsg(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     SubMessage** expected = (SubMessage**)arg;
     SubMessage submsg = {""};
@@ -207,7 +207,7 @@ static bool read_repeated_submsg(pb_istream_t *stream, const pb_field_t *field, 
     return true;
 }
 
-static bool read_limits(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_limits(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     Limits decoded = {0};
     if (!pb_decode(stream, Limits_fields, &decoded))
@@ -230,7 +230,7 @@ static bool read_limits(pb_istream_t *stream, const pb_field_t *field, void **ar
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
-bool check_alltypes(pb_istream_t *stream, int mode)
+bool check_alltypes(pb_decode_ctx_t *stream, int mode)
 {
     /* Values for use from callbacks through pointers. */
     bool status;
@@ -459,7 +459,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
     
 #ifdef PB_ENABLE_MALLOC
     /* Just to check for any interference between pb_release() and callback fields */
-    pb_release(AllTypes_fields, &alltypes);
+    pb_release(stream, AllTypes_fields, &alltypes);
 #endif
 
     return status;

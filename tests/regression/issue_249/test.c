@@ -3,7 +3,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-static bool write_array(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_array(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     int i;
     for (i = 0; i < 5; i++)
@@ -17,7 +17,7 @@ static bool write_array(pb_ostream_t *stream, const pb_field_t *field, void * co
     return true;
 }
 
-static bool read_array(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool read_array(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint32_t i;
     int *sum = *arg;
@@ -38,7 +38,8 @@ int main()
     
     {
         MainMessage msg = MainMessage_init_zero;
-        pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
         msg.submsg.foo.funcs.encode = &write_array;
         TEST(pb_encode(&stream, MainMessage_fields, &msg));
         msglen = stream.bytes_written;
@@ -46,7 +47,8 @@ int main()
     
     {
         MainMessage msg = MainMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buf, msglen);
         int sum = 0;
         msg.submsg.foo.funcs.decode = &read_array;
         msg.submsg.foo.arg = &sum;

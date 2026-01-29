@@ -14,7 +14,7 @@
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
-bool check_alltypes(pb_istream_t *stream, int mode)
+bool check_alltypes(pb_decode_ctx_t *stream, int mode)
 {
     int status = 0;
     AllTypes alltypes;
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 {
     uint8_t buffer[1024];
     size_t count;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     
     /* Whether to expect the optional values or the default values. */
     int mode = (argc > 1) ? atoi(argv[1]) : 0;
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
     count = fread(buffer, 1, sizeof(buffer), stdin);
     
     /* Construct a pb_istream_t for reading from the buffer */
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
 
     /* Use arena allocator for memory */
     arena_allocator_t allocator;

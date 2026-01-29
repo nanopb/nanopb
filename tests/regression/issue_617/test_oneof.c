@@ -12,7 +12,8 @@ int main()
     
     int status = 0;
     TestMessage msg = TestMessage_init_zero;
-    pb_istream_t stream = pb_istream_from_buffer(input_data, sizeof(input_data));
+    pb_decode_ctx_t stream;
+    pb_init_decode_ctx_for_buffer(&stream, input_data, sizeof(input_data));
     
     TEST(pb_decode(&stream, TestMessage_fields, &msg));
     TEST(msg.which_payload == TestMessage_plb11_tag);

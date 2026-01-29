@@ -86,7 +86,8 @@ void rand_fill(uint8_t *buf, size_t count)
 /* Fill with random protobuf-like data */
 size_t rand_fill_protobuf(uint8_t *buf, size_t min_bytes, size_t max_bytes, int min_tag)
 {
-    pb_ostream_t stream = pb_ostream_from_buffer(buf, max_bytes);
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_buffer(&stream, buf, max_bytes);
 
     while(stream.bytes_written < min_bytes)
     {

@@ -33,7 +33,8 @@ int main()
 
     {
         DefaultsMsg msg = DefaultsMsg_init_zero;
-        pb_istream_t empty = {0,0,0};
+        pb_decode_ctx_t empty;
+        pb_init_decode_ctx_for_callback(&empty, 0, 0, 0, NULL, 0);
         pb_decode(&empty, DefaultsMsg_fields, &msg);
         COMMENT("Checking defaults set at runtime");
         status += check_defaults(&msg);

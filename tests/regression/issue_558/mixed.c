@@ -11,7 +11,8 @@ int main()
     size_t msglen;
 
     {
-        pb_ostream_t ostream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t ostream;
+        pb_init_encode_ctx_for_buffer(&ostream, buf, sizeof(buf));
         MixedMessage msg = MixedMessage_init_default;
 
         msg.has_proto2_value = true;
@@ -29,7 +30,8 @@ int main()
     }
 
     {
-        pb_istream_t istream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t istream;
+        pb_init_decode_ctx_for_buffer(&istream, buf, msglen);
         MixedMessage msg = MixedMessage_init_default;
         
         TEST(msg.proto2_value == 100);

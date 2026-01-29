@@ -11,7 +11,7 @@
  * the receiving side to identify message type. Here we use uint8_t to store
  * it, but e.g. varint or some custom header struct would work just as well.
  */
-bool write_prefix(pb_ostream_t *stream, int msgid)
+bool write_prefix(pb_encode_ctx_t *stream, int msgid)
 {
     uint8_t prefix = msgid;
     return pb_write(stream, &prefix, 1);
@@ -22,7 +22,7 @@ bool write_prefix(pb_ostream_t *stream, int msgid)
  * you want to send, here it is decided based on command line parameter.
  */
 
-bool encode_MyMessage1(pb_ostream_t *stream)
+bool encode_MyMessage1(pb_encode_ctx_t *stream)
 {
     MyMessage1 msg = MyMessage1_init_default;
     msg.intvalue = 1234;
@@ -30,7 +30,7 @@ bool encode_MyMessage1(pb_ostream_t *stream)
            && pb_encode(stream, MyMessage1_fields, &msg);
 }
 
-bool encode_MyMessage2(pb_ostream_t *stream)
+bool encode_MyMessage2(pb_encode_ctx_t *stream)
 {
     MyMessage2 msg = MyMessage2_init_default;
     msg.intvalue = 9999;
@@ -39,7 +39,7 @@ bool encode_MyMessage2(pb_ostream_t *stream)
            && pb_encode(stream, MyMessage2_fields, &msg);
 }
 
-bool encode_MyMessage3(pb_ostream_t *stream)
+bool encode_MyMessage3(pb_encode_ctx_t *stream)
 {
     MyMessage3 msg = MyMessage3_init_default;
     msg.boolvalue = true;
@@ -50,7 +50,7 @@ bool encode_MyMessage3(pb_ostream_t *stream)
 int main(int argc, char **argv)
 {
     uint8_t buffer[128];
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     bool status = false;
     int option;
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     }
     option = atoi(argv[1]);
 
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
 
     if (option == 1)
     {

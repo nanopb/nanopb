@@ -117,7 +117,8 @@ int main(int argc, char **argv)
 
     {    
         uint8_t buffer[1024];
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         
         /* Now encode it and check if we succeeded. */
         if (pb_encode(&stream, AllTypes_fields, &alltypes))

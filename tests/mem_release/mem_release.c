@@ -48,11 +48,11 @@ static bool test_TestMessage()
     /* Construct a message with various fields filled in */
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_ostream_t stream;
+        pb_encode_ctx_t stream;
 
         fill_TestMessage(&msg);
         
-        stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         if (!pb_encode(&stream, TestMessage_fields, &msg))
         {
             fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
@@ -68,7 +68,7 @@ static bool test_TestMessage()
     /* Decode memory using dynamic allocation */
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_istream_t stream;
+        pb_decode_ctx_t stream;
         SubMessage ext2_dest;
 
         msg.extensions = &ext1;
@@ -79,7 +79,7 @@ static bool test_TestMessage()
         ext2.dest = &ext2_dest;
         ext2.next = NULL;
         
-        stream = pb_istream_from_buffer(buffer, msgsize);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
         if (!pb_decode(&stream, TestMessage_fields, &msg))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&stream));
@@ -89,7 +89,8 @@ static bool test_TestMessage()
         /* Make sure it encodes back to same data */
         {
             uint8_t buffer2[256];
-            pb_ostream_t ostream = pb_ostream_from_buffer(buffer2, sizeof(buffer2));
+            pb_encode_ctx_t ostream;
+            pb_init_encode_ctx_for_buffer(&ostream, buffer2, sizeof(buffer2));
             TEST(pb_encode(&ostream, TestMessage_fields, &msg));
             TEST(ostream.bytes_written == msgsize);
             TEST(memcmp(buffer, buffer2, msgsize) == 0);
@@ -99,11 +100,11 @@ static bool test_TestMessage()
         TEST(get_alloc_count() > 0);
         
         /* Make sure that pb_release releases everything */
-        pb_release(TestMessage_fields, &msg);
+        pb_release(&stream, TestMessage_fields, &msg);
         TEST(get_alloc_count() == 0);
         
         /* Check that double-free is a no-op */
-        pb_release(TestMessage_fields, &msg);
+        pb_release(&stream, TestMessage_fields, &msg);
         TEST(get_alloc_count() == 0);
     }
     
@@ -117,7 +118,8 @@ static bool test_OneofMessage()
     size_t msgsize;
 
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
 
         /* Encode first with TestMessage */
         {
@@ -175,7 +177,8 @@ static bool test_OneofMessage()
 
     {
         OneofMessage msg = OneofMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
         if (!pb_decode(&stream, OneofMessage_fields, &msg))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&stream));
@@ -193,16 +196,16 @@ static bool test_OneofMessage()
         TEST(msg.msgs.msg2.dynamic_submsg == NULL);
         TEST(msg.last == 88);
 
-        pb_release(OneofMessage_fields, &msg);
+        pb_release(&stream, OneofMessage_fields, &msg);
         TEST(get_alloc_count() == 0);
-        pb_release(OneofMessage_fields, &msg);
+        pb_release(&stream, OneofMessage_fields, &msg);
         TEST(get_alloc_count() == 0);
     }
 
     return true;
 }
 
-static bool dummy_decode_cb(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool dummy_decode_cb(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     return false;
 }
@@ -215,19 +218,22 @@ static bool test_Garbage()
 
     {
         OneofMessage msg = OneofMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
         TEST(!pb_decode(&stream, OneofMessage_fields, &msg));
     }
 
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
         TEST(!pb_decode(&stream, TestMessage_fields, &msg));
     }
 
     {
         RepeatedMessage msg = RepeatedMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msgsize);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
         msg.subs.arg = NULL;
         msg.subs.funcs.decode = dummy_decode_cb;
         TEST(!pb_decode(&stream, RepeatedMessage_fields, &msg));
