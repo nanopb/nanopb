@@ -27,7 +27,7 @@
  * from the server. The filenames will be printed out immediately, so that
  * no memory has to be allocated for them.
  */
-bool ListFilesResponse_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field)
+bool ListFilesResponse_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
     PB_UNUSED(ostream);
     if (istream != NULL && field->tag == ListFilesResponse_file_tag)
@@ -52,7 +52,7 @@ bool listdir(int fd, char *path)
     /* Construct and send the request to server */
     {
         ListFilesRequest request = {};
-        pb_ostream_t output = pb_ostream_from_socket(fd);
+        pb_encode_ctx_t output = pb_ostream_from_socket(fd);
         
         /* In our protocol, path is optional. If it is not given,
          * the server will list the root directory. */
@@ -74,7 +74,8 @@ bool listdir(int fd, char *path)
         
         /* Encode the request. It is written to the socket immediately
          * through our custom stream. */
-        if (!pb_encode_delimited(&output, ListFilesRequest_fields, &request))
+        output.flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
+        if (!pb_encode(&output, ListFilesRequest_fields, &request))
         {
             fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&output));
             return false;
@@ -84,9 +85,10 @@ bool listdir(int fd, char *path)
     /* Read back the response from server */
     {
         ListFilesResponse response = {};
-        pb_istream_t input = pb_istream_from_socket(fd);
+        pb_decode_ctx_t input = pb_istream_from_socket(fd);
         
-        if (!pb_decode_delimited(&input, ListFilesResponse_fields, &response))
+        input.flags |= PB_DECODE_CTX_FLAG_DELIMITED;
+        if (!pb_decode(&input, ListFilesResponse_fields, &response))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&input));
             return false;

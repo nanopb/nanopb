@@ -28,7 +28,7 @@
  * This is accomplished by fetching the filenames one at a time and encoding them
  * immediately.
  */
-bool ListFilesResponse_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field)
+bool ListFilesResponse_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
     PB_UNUSED(istream);
     if (ostream != NULL && field->tag == ListFilesResponse_file_tag)
@@ -72,9 +72,10 @@ void handle_connection(int connfd)
     /* Decode the message from the client and open the requested directory. */
     {
         ListFilesRequest request = {};
-        pb_istream_t input = pb_istream_from_socket(connfd);
+        pb_decode_ctx_t input = pb_istream_from_socket(connfd);
         
-        if (!pb_decode_delimited(&input, ListFilesRequest_fields, &request))
+        input.flags |= PB_DECODE_CTX_FLAG_DELIMITED;
+        if (!pb_decode(&input, ListFilesRequest_fields, &request))
         {
             printf("Decode failed: %s\n", PB_GET_ERROR(&input));
             return;
@@ -87,7 +88,7 @@ void handle_connection(int connfd)
     /* List the files in the directory and transmit the response to client */
     {
         ListFilesResponse response = {};
-        pb_ostream_t output = pb_ostream_from_socket(connfd);
+        pb_encode_ctx_t output = pb_ostream_from_socket(connfd);
         
         if (directory == NULL)
         {
@@ -104,7 +105,8 @@ void handle_connection(int connfd)
             response.file = directory;
         }
         
-        if (!pb_encode_delimited(&output, ListFilesResponse_fields, &response))
+        output.flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
+        if (!pb_encode(&output, ListFilesResponse_fields, &response))
         {
             printf("Encoding failed: %s\n", PB_GET_ERROR(&output));
         }
