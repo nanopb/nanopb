@@ -89,7 +89,7 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
 
     pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
     stream.flags |= flags;
-    status = pb_decode(&stream, msgtype, msg);
+    status = pb_decode_s(&stream, msgtype, msg, structsize);
 
     if (status)
     {
@@ -128,7 +128,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     uint8_t tmpbuf[27];
     flakystream_init(&stream, buffer, msglen, fail_after, tmpbuf, sizeof(tmpbuf));
     stream.stream.flags |= flags;
-    status = pb_decode(&stream.stream, msgtype, msg);
+    status = pb_decode_s(&stream.stream, msgtype, msg, structsize);
 
     if (status)
     {
@@ -402,7 +402,6 @@ static bool generate_base_message(uint8_t *buffer, size_t *msglen)
     assert(stream.bytes_written <= alltypes_static_AllTypes_size);
     
     *msglen = stream.bytes_written;
-    pb_release(alltypes_static_AllTypes_fields, msg);
     free_with_check(msg);
     
     return status;

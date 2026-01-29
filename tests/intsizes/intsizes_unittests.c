@@ -33,13 +33,15 @@
     msg1.req_sint64 = sint64;                                               \
                                                                             \
     {                                                                       \
-        pb_ostream_t s = pb_ostream_from_buffer(buffer1, sizeof(buffer1));  \
+        pb_encode_ctx_t s;                                                  \
+        pb_init_encode_ctx_for_buffer(&s, buffer1, sizeof(buffer1));        \
         TEST(pb_encode(&s, DefaultSizes_fields, &msg1));                    \
         msgsize = s.bytes_written;                                          \
     }                                                                       \
                                                                             \
     {                                                                       \
-        pb_istream_t s = pb_istream_from_buffer(buffer1, msgsize);          \
+        pb_decode_ctx_t s;                                                  \
+        pb_init_decode_ctx_for_buffer(&s, buffer1, msgsize);                \
         TEST(pb_decode(&s, IntSizes_fields, &msg2) == expected_result);     \
         if (expected_result)                                                \
         {                                                                   \
@@ -60,7 +62,8 @@
                                                                             \
     if (expected_result)                                                    \
     {                                                                       \
-        pb_ostream_t s = pb_ostream_from_buffer(buffer2, sizeof(buffer2));  \
+        pb_encode_ctx_t s;                                                  \
+        pb_init_encode_ctx_for_buffer(&s, buffer2, sizeof(buffer2));        \
         TEST(pb_encode(&s, IntSizes_fields, &msg2));                        \
         TEST(s.bytes_written == msgsize);                                   \
         TEST(memcmp(buffer1, buffer2, msgsize) == 0);                       \
