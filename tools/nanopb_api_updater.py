@@ -15,13 +15,18 @@ import tree_sitter_c
 
 C_LANGUAGE = Language(tree_sitter_c.language())
 
+# Number of overlapping matches to search for.
+# This is needed when same variable name is referenced multiple times
+# but the replacement pattern only matches one at a time.
+max_overlap = 10
+
 class RERule:
     '''Code modification rule using Python regex.
     Less robust than TSRules but sometimes easier to use.
     Use e.g. https://regex101.com/ to debug.
     '''
 
-    def __init__(self, pattern, repl, flags = re.MULTILINE, repeat = 1):
+    def __init__(self, pattern, repl, flags = re.MULTILINE, repeat = max_overlap):
         self.pattern = pattern
         self.repl = repl
         self.flags = flags
@@ -33,8 +38,13 @@ class RERule:
     def run(self, source):
         try:
             text = source.decode()
+
             for i in range(self.repeat):
+                prev_text = text
                 text = re.sub(self.pattern, self.repl, text, flags = self.flags)
+                if text == prev_text:
+                    break
+
             return text.encode()
         except:
             sys.stderr.write("In " + str(self) + ":\n")
@@ -110,7 +120,6 @@ class TSRule:
         
         return source
 
-
 # Rule definitions for API updates
 
 RULES = [
@@ -173,7 +182,7 @@ TSRule('''(
     '{type} {var};\n' +
     'pb_init_encode_ctx_for_buffer(&{var}, {buf}, {len});'),
 
-# stream = pb_istream_from_buffer(...)
+# stream = pb_ostream_from_buffer(...)
 # -> pb_init_encode_ctx(&stream, ...)
 TSRule('''(
      (assignment_expression
@@ -261,6 +270,60 @@ RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_delimited\((?P<ctx>[^,]+),(?P<a
        r'\g<tab>(\g<ctx>)->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;\n' +
        r'\g<tab>\g<prefix>pb_encode(\g<ctx>,\g<args>)'),
 
+# pb_decode_nullterminated() -> pb_decode() and set flags
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_nullterminated\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>\g<ctx>.flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;\n' +
+       r'\g<tab>\g<prefix>pb_decode(&\g<ctx>,\g<args>)'),
+
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_nullterminated\((?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>(\g<ctx>)->flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;\n' +
+       r'\g<tab>\g<prefix>pb_decode(\g<ctx>,\g<args>)'),
+
+# Same for pb_encode_nullterminated()
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_nullterminated\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>\g<ctx>.flags |= PB_ENCODE_CTX_FLAG_NULLTERMINATED;\n' +
+       r'\g<tab>\g<prefix>pb_encode(&\g<ctx>,\g<args>)'),
+
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_nullterminated\((?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>(\g<ctx>)->flags |= PB_ENCODE_CTX_FLAG_NULLTERMINATED;\n' +
+       r'\g<tab>\g<prefix>pb_encode(\g<ctx>,\g<args>)'),
+
+# pb_decode_noinit() -> pb_decode() and set flags
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_noinit\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>\g<ctx>.flags |= PB_DECODE_CTX_FLAG_NOINIT;\n' +
+       r'\g<tab>\g<prefix>pb_decode(&\g<ctx>,\g<args>)'),
+
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_noinit\((?P<ctx>[^,]+),(?P<args>.+)\)',
+       r'\g<tab>(\g<ctx>)->flags |= PB_DECODE_CTX_FLAG_NOINIT;\n' +
+       r'\g<tab>\g<prefix>pb_decode(\g<ctx>,\g<args>)'),
+
+# PB_DECODE flags to PB_DECODE_CTX flags
+TSRule('((identifier) @node (#eq? @node "PB_DECODE_DELIMITED"))',       'PB_DECODE_CTX_FLAG_DELIMITED'),
+TSRule('((identifier) @node (#eq? @node "PB_DECODE_NULLTERMINATED"))',  'PB_DECODE_CTX_FLAG_NULLTERMINATED'),
+TSRule('((identifier) @node (#eq? @node "PB_DECODE_NOINIT"))',          'PB_DECODE_CTX_FLAG_NOINIT'),
+
+# PB_ENCODE flags to PB_ENCODE_CTX flags
+TSRule('((identifier) @node (#eq? @node "PB_ENCODE_DELIMITED"))',       'PB_ENCODE_CTX_FLAG_DELIMITED'),
+TSRule('((identifier) @node (#eq? @node "PB_ENCODE_NULLTERMINATED"))',  'PB_ENCODE_CTX_FLAG_NULLTERMINATED'),
+
+# pb_decode_ex() -> pb_decode() and set flags
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_ex\(&(?P<ctx>[^,]+),(?P<args>.+),\s*(?P<flags>[^\)]+)\s*\)',
+       r'\g<tab>\g<ctx>.flags |= \g<flags>;\n' +
+       r'\g<tab>\g<prefix>pb_decode(&\g<ctx>,\g<args>)'),
+
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_delimited\((?P<ctx>[^,]+),(?P<args>.+),\s*(?P<flags>[^\)]+)\s*\)',
+       r'\g<tab>(\g<ctx>)->flags |= \g<flags>;\n' +
+       r'\g<tab>\g<prefix>pb_decode(\g<ctx>,\g<args>)'),
+
+# pb_encode_ex() -> pb_encode() and set flags
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_encode_ex\(&(?P<ctx>[^,]+),(?P<args>.+),\s*(?P<flags>[^\)]+)\s*\)',
+       r'\g<tab>\g<ctx>.flags |= \g<flags>;\n' +
+       r'\g<tab>\g<prefix>pb_encode(&\g<ctx>,\g<args>)'),
+
+RERule(r'^(?P<tab>[ \t]*)(?P<prefix>.*)pb_decode_delimited\((?P<ctx>[^,]+),(?P<args>.+),\s*(?P<flags>[^\)]+)\s*\)',
+       r'\g<tab>(\g<ctx>)->flags |= \g<flags>;\n' +
+       r'\g<tab>\g<prefix>pb_encode(\g<ctx>,\g<args>)'),
+
 # pb_make_string_substream(stream, substream)
 # -> pb_decode_open_substream(stream, &old_length)
 RERule(r'pb_decode_ctx_t\s*(?P<substream>[^\s;]+)\b[^;]*;' +
@@ -277,15 +340,37 @@ RERule(r'pb_decode_ctx_t\s*(?P<substream>[^\s;]+)\b[^;]*;' +
 # Replace dangling references from previous rule
 RERule(r'(?P<ctx>/\* API_UPDATER_TODO: replace (?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/.*)' +
        r'(?P=substream)',
-       r'\g<ctx>\g<stream>', re.MULTILINE | re.DOTALL, 10),
+       r'\g<ctx>\g<stream>', re.MULTILINE | re.DOTALL),
 
 # Same but for struct member access
 RERule(r'(?P<ctx>/\* API_UPDATER_TODO: replace &(?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/.*)' +
        r'(?P=substream)\.',
-       r'\g<ctx>\g<stream>->', re.MULTILINE | re.DOTALL, 10),
+       r'\g<ctx>\g<stream>->', re.MULTILINE | re.DOTALL),
 
 # Remove placeholder
 RERule(r'\s*/\* API_UPDATER_TODO: replace &(?P<substream>[^\s]*) -> (?P<stream>[^\s]*) \*/', ''),
+
+# Provide context as argument to pb_release()
+RERule(r'(?P<head>pb_decode\((?P<ctx>[^,\s]*)\s*,\s*(?P<msgtype>[^,\s]*)\s*,\s*(?P<msg>[^\)\s]*)\s*\).*)' +
+       r'pb_release\((?P=msgtype)\s*,\s*(?P=msg)\s*\)',
+       r'\g<head>pb_release(\g<ctx>, \g<msgtype>, \g<msg>)', re.MULTILINE | re.DOTALL),
+
+# If context was not detected, give NULL to pb_release().
+# This is safe enough, as previously context-based allocators
+# did not exist so old code won't be using it.
+TSRule('''(
+    (call_expression
+        function: (identifier) @func
+        arguments: (argument_list _ . (_) @msgtype . (_) @msg .)
+    ) @node
+    (#eq? @func "pb_release")
+    )''',
+    'pb_release(NULL /* Uses default allocator */, {msgtype}, {msg})'),
+
+# AUTO argument to PB_BIND -> S
+RERule(r'PB_BIND\((?P<args>.*),\s*AUTO\s*\)',
+       r'PB_BIND(\g<args>, S)'),
+
 ]
 
 def main(args, rules = RULES):
