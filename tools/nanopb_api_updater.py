@@ -190,6 +190,62 @@ TSRule('''(
     )''',
     'pb_init_encode_ctx_for_buffer(&{var}, {buf}, {len})'),
 
+# pb_istream_t stream = {func, state, size}
+# -> pb_init_decode_ctx_for_callback(...)
+TSRule('''(
+    (declaration
+        type: (type_identifier) @type
+        declarator: (init_declarator
+                     declarator: (identifier) @var
+                     value: (initializer_list _ . (_) @func . (_) @state . (_) @size )
+        )
+    ) @node
+    (#eq? @type "pb_decode_ctx_t")
+    )''',
+    'pb_decode_ctx_t {var};\n' +
+    'pb_init_decode_ctx_for_callback(&{var}, {func}, {state}, {size}, NULL, 0);'
+),
+
+# pb_ostream_t stream = {func, state, size}
+# -> pb_init_encode_ctx_for_callback(...)
+TSRule('''(
+    (declaration
+        type: (type_identifier) @type
+        declarator: (init_declarator
+                     declarator: (identifier) @var
+                     value: (initializer_list _ . (_) @func . (_) @state . (_) @size )
+        )
+    ) @node
+    (#eq? @type "pb_encode_ctx_t")
+    )''',
+    'pb_encode_ctx_t {var};\n' +
+    'pb_init_encode_ctx_for_callback(&{var}, {func}, {state}, {size}, NULL, 0);'
+),
+
+# SIZE_MAX to PB_SIZE_MAX in pb_init_decode_ctx_for_callback()
+TSRule('''(
+        (call_expression
+            function: (identifier) @func
+            arguments: (argument_list _ . (_) . (_) . (_) . (identifier) @size)
+        ) @node
+        (#eq? @func "pb_init_decode_ctx_for_callback")
+        (#eq? @size "SIZE_MAX")
+        )''',
+        {'size': 'PB_SIZE_MAX'}
+),
+
+# SIZE_MAX to PB_SIZE_MAX in pb_init_encode_ctx_for_callback()
+TSRule('''(
+        (call_expression
+            function: (identifier) @func
+            arguments: (argument_list _ . (_) . (_) . (_) . (identifier) @size)
+        ) @node
+        (#eq? @func "pb_init_encode_ctx_for_callback")
+        (#eq? @size "SIZE_MAX")
+        )''',
+        {'size': 'PB_SIZE_MAX'}
+),
+
 # pb_decode_delimited() -> pb_decode() and set flags
 RERule(r'^(?P<tab>\s*)(?P<prefix>.*)pb_decode_delimited\(&(?P<ctx>[^,]+),(?P<args>.+)\)',
        r'\g<tab>\g<ctx>.flags |= PB_DECODE_CTX_FLAG_DELIMITED;\n' +
