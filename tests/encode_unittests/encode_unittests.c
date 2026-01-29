@@ -65,8 +65,9 @@ int main()
     
     {
         uint8_t buffer1[] = "xxxxxxx";
-        pb_ostream_t stream = {&streamcallback, 0, SIZE_MAX, 0};
-        
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_callback(&stream, &streamcallback, NULL, PB_SIZE_MAX, NULL, 0);
+
         COMMENT("Test pb_write with custom callback");
         TEST(pb_write(&stream, buffer1, 5));
         buffer1[0] = 'a';

@@ -87,7 +87,7 @@ static bool decode_dictionary(pb_istream_t *stream, const pb_field_t *field, voi
             dict.dictItem.funcs.decode = decode_dictionary;
 
             printf("{");
-            size_t old_length;
+            pb_size_t old_length;
             if (!pb_decode_open_substream(stream, &old_length) ||
                 !pb_decode(stream, Dictionary_fields, &dict) ||
                 !pb_decode_close_substream(stream, old_length))
@@ -98,7 +98,7 @@ static bool decode_dictionary(pb_istream_t *stream, const pb_field_t *field, voi
         }
         else if (tag == KeyValuePair_treeValue_tag)
         {
-            size_t old_length;
+            pb_size_t old_length;
             if (!pb_decode_open_substream(stream, &old_length) ||
                 !decode_treenode(stream, NULL, NULL) ||
                 !pb_decode_close_substream(stream, old_length))

@@ -73,9 +73,8 @@ bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
 
 int main()
 {
-    pb_istream_t stream = {&callback, NULL, SIZE_MAX};
-    stream.state = stdin;
-    SET_BINARY_MODE(stdin);
+    pb_decode_ctx_t stream;
+    init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
 
     if (!print_person(&stream))
     {

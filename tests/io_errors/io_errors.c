@@ -14,7 +14,7 @@ typedef struct
     size_t fail_after;
 } faulty_stream_t;
 
-bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     faulty_stream_t *state = stream->state;
     
@@ -28,7 +28,7 @@ bool read_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
     
     return true;
 }
-bool write_callback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
 {
     faulty_stream_t *state = stream->state;
     
@@ -56,7 +56,8 @@ int main()
     /* Test IO errors on decoding */
     {
         bool status;
-        pb_istream_t stream = {&read_callback, NULL, SIZE_MAX};
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_callback(&stream, &read_callback, NULL, PB_SIZE_MAX, NULL, 0);
         faulty_stream_t fs;
         size_t i;
         
@@ -96,7 +97,8 @@ int main()
     /* Test IO errors on encoding */
     {
         bool status;
-        pb_ostream_t stream = {&write_callback, NULL, SIZE_MAX, 0};
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_callback(&stream, &write_callback, NULL, PB_SIZE_MAX, NULL, 0);
         faulty_stream_t fs;
         size_t i;
         

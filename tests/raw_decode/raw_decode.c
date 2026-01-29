@@ -14,7 +14,7 @@ static pb_byte_t g_history[HISTORY_LEN];
 static int g_position;
 
 /* This binds the pb_istream_t to stdin and logs the most recent bytes read. */
-bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*)stream->state;
     size_t len = fread(buf, 1, count, file);
@@ -59,7 +59,7 @@ void print_history(int position)
     printf("\n");
 }
 
-bool raw_decode(pb_istream_t *stream, const char *indent)
+bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
 {
     const char *wiretypes[8] = {"VARINT", "64BIT", "STRING", "SGRP", "EGRP", "32BIT", "????", "????"};
 
@@ -137,7 +137,7 @@ bool raw_decode(pb_istream_t *stream, const char *indent)
         }
         else if (wire_type == PB_WT_STRING)
         {
-            pb_istream_t substream;
+            pb_decode_ctx_t substream;
             position = g_position;
             if (!pb_make_string_substream(stream, &substream))
             {
@@ -182,7 +182,8 @@ bool raw_decode(pb_istream_t *stream, const char *indent)
 
 int main()
 {
-    pb_istream_t stream = {&callback, NULL, SIZE_MAX};
+    pb_decode_ctx_t stream;
+    pb_init_decode_ctx_for_callback(&stream, &callback, NULL, PB_SIZE_MAX, NULL, 0);
     stream.state = stdin;
     SET_BINARY_MODE(stdin);
 

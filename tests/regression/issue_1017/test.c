@@ -10,7 +10,7 @@ const uint8_t input_data[] = {
 
 const size_t input_len = sizeof(input_data);
 
-bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     size_t cursor = (size_t)(uintptr_t)stream->state;
 
@@ -35,7 +35,8 @@ int main()
     /* test buffer stream */
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_istream_t stream = pb_istream_from_buffer(input_data, input_len);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, input_data, input_len);
         TEST(pb_decode(&stream, TestMessage_fields, &msg));
         TEST(msg.foo == 0x1);
         TEST(stream.errmsg == NULL);
@@ -44,7 +45,8 @@ int main()
     /* test callback stream */
     {
         TestMessage msg = TestMessage_init_zero;
-        pb_istream_t stream = {&stream_callback, 0, SIZE_MAX};
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_callback(&stream, &stream_callback, 0, PB_SIZE_MAX, NULL, 0);
         TEST(pb_decode(&stream, TestMessage_fields, &msg));
         TEST(msg.foo == 0x1);
         TEST(stream.errmsg == NULL);

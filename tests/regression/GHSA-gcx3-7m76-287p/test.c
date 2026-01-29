@@ -5,29 +5,13 @@
 #include "test_helpers.h"
 #include "test.pb.h"
 
-bool stream_callback(pb_istream_t *stream, uint8_t *buf, size_t count)
-{
-    FILE *file = (FILE*)stream->state;
-    size_t len = fread(buf, 1, count, file);
-    
-    if (len == count)
-    {
-        return true;
-    }
-    else
-    {
-        stream->bytes_left = 0;
-        return false;
-    }
-}
-
 int main()
 {
-    pb_istream_t stream = {&stream_callback, NULL, SIZE_MAX};
+    pb_decode_ctx_t stream;
+    init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
+
     MyMessage msg = MyMessage_init_default;
     bool status;
-    stream.state = stdin;
-    SET_BINARY_MODE(stdin);
 
     set_max_alloc_bytes(512);
 

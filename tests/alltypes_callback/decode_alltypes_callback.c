@@ -9,7 +9,6 @@
 #include <pb_decode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
-#include "stream_helpers.h"
 
 #define TEST(x) if (!(x)) { \
     printf("Test %s failed (in field %d).\n", #x, (int)field->tag); \
