@@ -15,8 +15,8 @@ int main()
       Message1 msg_a = Message1_init_zero;
       Message1 msg_b = Message1_init_zero;
 
-      pb_ostream_t ostream;
-      pb_istream_t istream;
+      pb_encode_ctx_t ostream;
+      pb_decode_ctx_t istream;
       size_t message_length;
 
       msg_a.data[0] = 1;
@@ -25,11 +25,11 @@ int main()
 
       COMMENT("Test encode and decode with three entries");
 
-      ostream = pb_ostream_from_buffer(buffer, Message1_size);
+      pb_init_encode_ctx_for_buffer(&ostream, buffer, Message1_size);
       TEST(pb_encode(&ostream, Message1_fields, &msg_a));
       message_length = ostream.bytes_written;
 
-      istream = pb_istream_from_buffer(buffer, message_length);
+      pb_init_decode_ctx_for_buffer(&istream, buffer, message_length);
       TEST(pb_decode(&istream, Message1_fields, &msg_b));
 
       TEST(istream.bytes_left == 0);
@@ -38,20 +38,20 @@ int main()
 
     {
       pb_byte_t input[] = {0x08, 0x00, 0x08, 0x01, 0x08, 0x02, 0x08, 0x03};
-      pb_istream_t stream;
+      pb_decode_ctx_t stream;
       Message1 msg = Message1_init_zero;
 
       COMMENT("Test wrong number of entries");
 
-      stream = pb_istream_from_buffer(input, 6);
+      pb_init_decode_ctx_for_buffer(&stream, input, 6);
       TEST(pb_decode(&stream, Message1_fields, &msg));
       TEST(msg.data[0] == 0 && msg.data[1] == 1 && msg.data[2] == 2);
 
-      stream = pb_istream_from_buffer(input, 8);
+      pb_init_decode_ctx_for_buffer(&stream, input, 8);
       TEST(!pb_decode(&stream, Message1_fields, &msg));
       TEST(strcmp(stream.errmsg, "array overflow") == 0);
 
-      stream = pb_istream_from_buffer(input, 4);
+      pb_init_decode_ctx_for_buffer(&stream, input, 4);
       TEST(!pb_decode(&stream, Message1_fields, &msg));
       TEST(strcmp(stream.errmsg, "wrong size for fixed count field") == 0);
     }
@@ -61,8 +61,8 @@ int main()
       Message2 msg_a = Message2_init_zero;
       Message2 msg_b = Message2_init_zero;
 
-      pb_ostream_t ostream;
-      pb_istream_t istream;
+      pb_encode_ctx_t ostream;
+      pb_decode_ctx_t istream;
       size_t message_length;
 
       COMMENT("Test encode and decode with nested messages");
@@ -74,11 +74,11 @@ int main()
       msg_a.data[1].data[1] = 5;
       msg_a.data[1].data[2] = 6;
 
-      ostream = pb_ostream_from_buffer(buffer, Message2_size);
+      pb_init_encode_ctx_for_buffer(&ostream, buffer, Message2_size);
       TEST(pb_encode(&ostream, Message2_fields, &msg_a));
       message_length = ostream.bytes_written;
 
-      istream = pb_istream_from_buffer(buffer, message_length);
+      pb_init_decode_ctx_for_buffer(&istream, buffer, message_length);
       TEST(pb_decode(&istream, Message2_fields, &msg_b));
 
       TEST(istream.bytes_left == 0);
@@ -90,8 +90,8 @@ int main()
       Message3 msg_a = Message3_init_zero;
       Message3 msg_b = Message3_init_zero;
 
-      pb_ostream_t ostream;
-      pb_istream_t istream;
+      pb_encode_ctx_t ostream;
+      pb_decode_ctx_t istream;
       size_t message_length;
 
       COMMENT("Test encode and decode with two nested messages");
@@ -124,11 +124,11 @@ int main()
       msg_a.data2[1].data[1].data[1] = 111;
       msg_a.data2[1].data[1].data[2] = 112;
 
-      ostream = pb_ostream_from_buffer(buffer, Message3_size);
+      pb_init_encode_ctx_for_buffer(&ostream, buffer, Message3_size);
       TEST(pb_encode(&ostream, Message3_fields, &msg_a));
       message_length = ostream.bytes_written;
 
-      istream = pb_istream_from_buffer(buffer, message_length);
+      pb_init_decode_ctx_for_buffer(&istream, buffer, message_length);
       TEST(pb_decode(&istream, Message3_fields, &msg_b));
 
       TEST(istream.bytes_left == 0);
@@ -140,8 +140,8 @@ int main()
       Message4 msg_a = Message4_init_zero;
       Message4 msg_b = Message4_init_zero;
 
-      pb_ostream_t ostream;
-      pb_istream_t istream;
+      pb_encode_ctx_t ostream;
+      pb_decode_ctx_t istream;
       size_t message_length;
 
       COMMENT("Test encode and decode with pointer type fixarray");
@@ -163,13 +163,13 @@ int main()
       msg_a.strings = &strings;
       msg_a.bytes = &bytes;
 
-      ostream = pb_ostream_from_buffer(buffer, Message3_size);
+      pb_init_encode_ctx_for_buffer(&ostream, buffer, Message3_size);
       TEST(pb_encode(&ostream, Message4_fields, &msg_a));
       message_length = ostream.bytes_written;
 
       TEST(get_alloc_count() == 0);
 
-      istream = pb_istream_from_buffer(buffer, message_length);
+      pb_init_decode_ctx_for_buffer(&istream, buffer, message_length);
       TEST(pb_decode(&istream, Message4_fields, &msg_b));
 
       TEST(istream.bytes_left == 0);
@@ -186,7 +186,7 @@ int main()
       TEST((*msg_b.bytes)[1].size == 0 && (*msg_b.bytes)[1].bytes == NULL);
       TEST((*msg_b.bytes)[2].size == 3 && memcmp((*msg_b.bytes)[2].bytes, bytes3, 3) == 0);
 
-      pb_release(Message4_fields, &msg_b);
+      pb_release(&istream, Message4_fields, &msg_b);
 
       TEST(get_alloc_count() == 0);
     }

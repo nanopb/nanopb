@@ -41,7 +41,8 @@ int main(int argc, char **argv)
         int status = 0;
         MyMessage msg = MyMessage_init_zero;
         MyMessage_NumbersEntry *e;
-        pb_istream_t stream = pb_istream_from_buffer(buffer, count);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, count);
         
         if (!pb_decode(&stream, MyMessage_fields, &msg))
         {

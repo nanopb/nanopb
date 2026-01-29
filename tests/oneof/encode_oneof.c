@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
     uint8_t buffer[OneOfMessage_size];
     OneOfMessage msg = OneOfMessage_init_zero;
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     int option;
 
     if (argc != 2)
@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     msg.suffix = 321;
 
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
 
     if (pb_encode(&stream, OneOfMessage_fields, &msg))
     {

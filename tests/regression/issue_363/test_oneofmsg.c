@@ -13,7 +13,8 @@ int main(int argc, char **argv)
     pb_size_t msglen = 0;
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         BodyMessage msg = BodyMessage_init_zero;
         
         msg.which_body_type = BodyMessage_device_data_crypted_tag;
@@ -27,7 +28,8 @@ int main(int argc, char **argv)
     }
     
     {
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
         BodyMessage msg = BodyMessage_init_zero;
         
         TEST(pb_decode(&stream, BodyMessage_fields, &msg));

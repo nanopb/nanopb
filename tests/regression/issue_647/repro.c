@@ -8,7 +8,8 @@ int main() {
   int status = 0;
   Repro repro = Repro_init_zero;
 
-  pb_istream_t stream = pb_istream_from_buffer(data, sizeof(data));
+  pb_decode_ctx_t stream;
+  pb_init_decode_ctx_for_buffer(&stream, data, sizeof(data));
   TEST(!pb_decode(&stream, Repro_fields, &repro));
   TEST(get_alloc_count() == 0);
 

@@ -52,7 +52,8 @@ int main()
 
     {
         Floats floats = {0};
-        pb_istream_t stream = pb_istream_from_buffer(NULL, 0);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, NULL, 0);
         COMMENT("Check decoded");
         TEST(pb_decode(&stream, Floats_fields, &floats));
         TEST(check_floats(&floats));

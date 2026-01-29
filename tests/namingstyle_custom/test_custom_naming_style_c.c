@@ -62,14 +62,16 @@ int main()
     {
         uint8_t buffer1[256];
         uint8_t buffer2[256];
-        pb_ostream_t ostream1 = pb_ostream_from_buffer(buffer1, sizeof(buffer1));
-        pb_ostream_t ostream2 = pb_ostream_from_buffer(buffer2, sizeof(buffer2));
-        pb_istream_t istream;
+        pb_encode_ctx_t ostream1;
+        pb_init_encode_ctx_for_buffer(&ostream1, buffer1, sizeof(buffer1));
+        pb_encode_ctx_t ostream2;
+        pb_init_encode_ctx_for_buffer(&ostream2, buffer2, sizeof(buffer2));
+        pb_decode_ctx_t istream;
         MainMessage message2 = MAIN_MESSAGE_INIT_ZERO;
 
         TEST(pb_encode(&ostream1, &MainMessage_msg, &message));
 
-        istream = pb_istream_from_buffer(buffer1, ostream1.bytes_written);
+        pb_init_decode_ctx_for_buffer(&istream, buffer1, ostream1.bytes_written);
         TEST(pb_decode(&istream, &MainMessage_msg, &message2));
 
         /* Encoding a second time should produce same output */

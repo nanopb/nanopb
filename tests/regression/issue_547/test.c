@@ -7,7 +7,8 @@ int main()
 {
     pb_byte_t buf[512];
     MyMessage msg = MyMessage_init_zero;
-    pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
 
     msg.mybytes.size = -1;
     

@@ -23,14 +23,16 @@ int main()
     
     COMMENT("Step 1: unpacked enums -> protobuf");
     {
-        pb_ostream_t s = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t s;
+        pb_init_encode_ctx_for_buffer(&s, buf, sizeof(buf));
         TEST(pb_encode(&s, UnpackedEnums_fields, &msg1));
         msgsize = s.bytes_written;
     }
     
     COMMENT("Step 2: protobuf -> packed enums");
     {
-        pb_istream_t s = pb_istream_from_buffer(buf, msgsize);
+        pb_decode_ctx_t s;
+        pb_init_decode_ctx_for_buffer(&s, buf, msgsize);
         TEST(pb_decode(&s, PackedEnums_fields, &msg2));
         
         TEST(msg1.u8_min  == (int)msg2.u8_min);
@@ -45,14 +47,16 @@ int main()
     
     COMMENT("Step 3: packed enums -> protobuf");
     {
-        pb_ostream_t s = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t s;
+        pb_init_encode_ctx_for_buffer(&s, buf, sizeof(buf));
         TEST(pb_encode(&s, PackedEnums_fields, &msg2));
         msgsize = s.bytes_written;
     }
     
     COMMENT("Step 4: protobuf -> unpacked enums");
     {
-        pb_istream_t s = pb_istream_from_buffer(buf, msgsize);
+        pb_decode_ctx_t s;
+        pb_init_decode_ctx_for_buffer(&s, buf, msgsize);
         TEST(pb_decode(&s, UnpackedEnums_fields, &msg3));
 
         TEST(msg1.u8_min  == (int)msg3.u8_min);

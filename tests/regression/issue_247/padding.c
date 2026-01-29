@@ -19,7 +19,8 @@ int main()
     /* Test encoding */
     {
         pb_byte_t buf[128] = {0};
-        pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
         TEST(pb_encode(&stream, TestMessage_fields, &msg));
         
         /* Because all fields have zero values, proto3 encoder

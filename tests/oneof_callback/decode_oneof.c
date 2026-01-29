@@ -13,7 +13,7 @@
  * and does not have to be bound separately to the message. It also allows defining
  * a custom data type for the field in the structure.
  */
-bool SubMsg3_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
+bool SubMsg3_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
 {
     if (istream && field->tag == SubMsg3_strvalue_tag)
     {
@@ -42,7 +42,7 @@ bool SubMsg3_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_fie
 /* The two callbacks below are traditional callbacks that use function pointers
  * defined in pb_callback_t.
  */
-bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -52,7 +52,7 @@ bool print_int32(pb_istream_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     uint8_t buffer[64];
     int strlen = stream->bytes_left;
@@ -78,7 +78,7 @@ bool print_string(pb_istream_t *stream, const pb_field_t *field, void **arg)
  * storage inside oneof union, and before we know the message type we can't set
  * the callbacks without overwriting each other.
  */
-bool msg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool msg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     /* Print the prefix field before the submessages.
      * This also demonstrates how to access the top level message fields
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 {
     uint8_t buffer[256];
     OneOfMessage msg = OneOfMessage_init_zero;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t count;
 
     SET_BINARY_MODE(stdin);
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
     /* Set up the cb_values callback, which will in turn set up the callbacks
      * for each oneof field once the field tag is known. */
     msg.cb_values.funcs.decode = msg_callback;
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
     if (!pb_decode(&stream, OneOfMessage_fields, &msg))
     {
         fprintf(stderr, "Decoding failed: %s\n", PB_GET_ERROR(&stream));

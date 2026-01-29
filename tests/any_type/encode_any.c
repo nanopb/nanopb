@@ -11,7 +11,7 @@ int main()
     BaseMessage msg = BaseMessage_init_zero;
     google_protobuf_Duration duration = google_protobuf_Duration_init_zero;
     uint8_t buffer[256];
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     bool status;
     
     msg.start = 1234;
@@ -24,13 +24,13 @@ int main()
     /* Encode a Duration message inside the Any message. */
     duration.seconds = 99999;
     duration.nanos = 100;
-    stream = pb_ostream_from_buffer(msg.details.value.bytes, sizeof(msg.details.value.bytes));
+    pb_init_encode_ctx_for_buffer(&stream, msg.details.value.bytes, sizeof(msg.details.value.bytes));
     status = pb_encode(&stream, google_protobuf_Duration_fields, &duration);
     assert(status);
     msg.details.value.size = stream.bytes_written;
     
     /* Then encode the outer message */
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
     if (pb_encode(&stream, BaseMessage_fields, &msg))
     {    
         /* Write the result data to stdout */

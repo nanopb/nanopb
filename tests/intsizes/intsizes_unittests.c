@@ -118,7 +118,8 @@ int main()
     {
         uint8_t buffer[128];
         IntSizes msg = IntSizes_init_zero;
-        pb_ostream_t s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t s;
+        pb_init_encode_ctx_for_buffer(&s, buffer, sizeof(buffer));
 
         COMMENT("Test message maximum size");
         msg.req_int8   = -128;

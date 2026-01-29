@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-bool encode_string_cb(pb_ostream_t *stream, const pb_field_t *field, void * const * arg)
+bool encode_string_cb(pb_encode_ctx_t *stream, const pb_field_t *field, void * const * arg)
 {
     const char* str = *arg;
     if (!pb_encode_tag_for_field(stream, field)) {
@@ -16,7 +16,7 @@ bool encode_string_cb(pb_ostream_t *stream, const pb_field_t *field, void * cons
     return pb_encode_string(stream, (const pb_byte_t*)str, strlen(str));
 }
 
-bool decode_string_cb(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool decode_string_cb(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     char* str = *arg;
     size_t len = stream->bytes_left;
@@ -30,7 +30,7 @@ bool decode_string_cb(pb_istream_t *stream, const pb_field_t *field, void **arg)
 }
 
 
-bool decode_msg_cb(pb_istream_t* stream, const pb_field_t* field, void** arg)
+bool decode_msg_cb(pb_decode_ctx_t* stream, const pb_field_t* field, void** arg)
 {
     OneOfMessage *msg = field->message;
 
@@ -53,7 +53,8 @@ int main(void)
     size_t tx_string_len = strlen(tx_string);
 
     {
-        pb_ostream_t ostream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t ostream;
+        pb_init_encode_ctx_for_buffer(&ostream, buf, sizeof(buf));
         OneOfMessage msg = OneOfMessage_init_zero;
 
         msg.prefix = 123;
@@ -75,7 +76,8 @@ int main(void)
     }
 
     {
-        pb_istream_t istream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t istream;
+        pb_init_decode_ctx_for_buffer(&istream, buf, msglen);
         OneOfMessage msg = OneOfMessage_init_zero;
         char rx_string[16];
 

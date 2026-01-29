@@ -10,17 +10,19 @@ int main()
     MainMessage msg = MainMessage_init_zero;
     
     {
-        pb_istream_t stream = pb_istream_from_buffer(msgdata, sizeof(msgdata));
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, msgdata, sizeof(msgdata));
         COMMENT("Running first decode");
         TEST(pb_decode(&stream, MainMessage_fields, &msg));
-        pb_release(MainMessage_fields, &msg);
+        pb_release(&stream, MainMessage_fields, &msg);
     }
     
     {
-        pb_istream_t stream = pb_istream_from_buffer(msgdata, sizeof(msgdata));
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, msgdata, sizeof(msgdata));
         COMMENT("Running second decode");
         TEST(pb_decode(&stream, MainMessage_fields, &msg));
-        pb_release(MainMessage_fields, &msg);
+        pb_release(&stream, MainMessage_fields, &msg);
     }
     
     TEST(get_alloc_count() == 0);

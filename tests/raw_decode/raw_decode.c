@@ -137,9 +137,9 @@ bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
         }
         else if (wire_type == PB_WT_STRING)
         {
-            pb_decode_ctx_t substream;
+            pb_size_t old_length;
             position = g_position;
-            if (!pb_make_string_substream(stream, &substream))
+            if (!pb_decode_open_substream(stream, &old_length))
             {
                 printf("ERROR: Failed to parse string length: %s\n", PB_GET_ERROR(stream));
                 print_history(position);
@@ -148,7 +148,7 @@ bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
             else
             {
             
-                if (substream.bytes_left == 0)
+                if (stream->bytes_left == 0)
                 {
                     printf(", empty string\n");
                 }
@@ -158,15 +158,15 @@ bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
                     snprintf(prefix, sizeof(prefix), "f%d> ", (int)tag);
                     
                     printf(", string len %d bytes, attempting recursive decode\n",
-                       (int)substream.bytes_left);
+                       (int)stream->bytes_left);
                 
-                    if (!raw_decode(&substream, prefix))
+                    if (!raw_decode(stream, prefix))
                     {
                         printf("%sfield %d: recursive decode failed, continuing with upper level\n\n",
                                indent, (int)tag);
                     }
                     
-                    pb_close_string_substream(stream, &substream);
+                    pb_decode_close_substream(stream, old_length);
                     stream->errmsg = NULL;
                 }
             }

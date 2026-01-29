@@ -9,7 +9,7 @@
 /* This function is called once from main(), it handles
    the decoding and printing.
    Ugly copy-paste from test_decode1.c. */
-bool print_person(pb_istream_t *stream)
+bool print_person(pb_decode_ctx_t *stream)
 {
     int i;
     Person person = Person_init_zero;
@@ -55,7 +55,7 @@ bool print_person(pb_istream_t *stream)
 }
 
 /* This binds the pb_istream_t to stdin */
-bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     FILE *file = (FILE*)stream->state;
     size_t len = fread(buf, 1, count, file);

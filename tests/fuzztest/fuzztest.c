@@ -66,7 +66,7 @@ static uint32_t xor32_checksum(const void *data, size_t len)
 static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
 {
     bool status;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t initial_alloc_count = get_alloc_count();
     uint8_t *buf2 = malloc_with_check(g_bufsize); /* This is just to match the amount of memory allocations in do_roundtrips(). */
     void *msg = malloc_with_check(structsize);
@@ -88,8 +88,9 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
         ((alltypes_pointer_AllTypes*)msg)->extensions = &ext;
     }
 
-    stream = pb_istream_from_buffer(buffer, msglen);
-    status = pb_decode_ex(&stream, msgtype, msg, flags);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
+    stream.flags |= flags;
+    status = pb_decode(&stream, msgtype, msg);
 
     if (status)
     {
@@ -127,7 +128,8 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
 
     uint8_t tmpbuf[27];
     flakystream_init(&stream, buffer, msglen, fail_after, tmpbuf, sizeof(tmpbuf));
-    status = pb_decode_ex(&stream.stream, msgtype, msg, flags);
+    stream.stream.flags |= flags;
+    status = pb_decode(&stream.stream, msgtype, msg);
 
     if (status)
     {
@@ -154,7 +156,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
 
 static int g_sentinel;
 
-static bool field_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool field_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     assert(stream);
     assert(field);
@@ -162,7 +164,7 @@ static bool field_callback(pb_istream_t *stream, const pb_field_t *field, void *
     return pb_read(stream, NULL, stream->bytes_left);
 }
 
-static bool submsg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+static bool submsg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     assert(stream);
     assert(field);
@@ -173,13 +175,13 @@ static bool submsg_callback(pb_istream_t *stream, const pb_field_t *field, void 
 bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
 {
     bool status;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     size_t initial_alloc_count = get_alloc_count();
     alltypes_callback_AllTypes *msg = malloc_with_check(sizeof(alltypes_callback_AllTypes));
     assert(msg);
 
     memset(msg, 0, sizeof(alltypes_callback_AllTypes));
-    stream = pb_istream_from_buffer(buffer, msglen);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
 
     msg->rep_int32.funcs.decode = &field_callback;
     msg->rep_int32.arg = &g_sentinel;
@@ -200,7 +202,7 @@ bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_succes
         assert(status);
     }
 
-    pb_release(alltypes_callback_AllTypes_fields, msg);
+    pb_release(&stream, alltypes_callback_AllTypes_fields, msg);
     free_with_check(msg);
     assert(get_alloc_count() == initial_alloc_count);
 
@@ -239,7 +241,8 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
      * This will bring it into canonical format.
      */
     {
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
         status = pb_decode_s(&stream, msgtype, msg, structsize);
@@ -250,7 +253,8 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     }
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf2, g_bufsize);
         status = pb_encode_s(&stream, msgtype, msg, structsize);
 
         /* Some messages expand when re-encoding and might no longer fit
@@ -270,7 +274,8 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     /* Then decode from canonical format and re-encode. Result should remain the same. */
     if (status)
     {
-        pb_istream_t stream = pb_istream_from_buffer(buf2, msglen2);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buf2, msglen2);
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
         status = pb_decode_s(&stream, msgtype, msg, structsize);
@@ -282,7 +287,8 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     
     if (status)
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf2, g_bufsize);
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf2, g_bufsize);
         status = pb_encode_s(&stream, msgtype, msg, structsize);
         if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
@@ -347,13 +353,13 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
         set_max_alloc_bytes(get_alloc_bytes() + 4096);
         do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, false);
         do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
-        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, PB_DECODE_DELIMITED, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, PB_DECODE_CTX_FLAG_DELIMITED, false);
         set_max_alloc_bytes(orig_max_alloc_bytes);
     }
 
     /* Test pb_decode_ex() modes */
-    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NOINIT | PB_DECODE_DELIMITED, false);
-    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_NULLTERMINATED, false);
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_CTX_FLAG_NOINIT | PB_DECODE_CTX_FLAG_DELIMITED, false);
+    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_CTX_FLAG_NULLTERMINATED, false);
 
     /* Test callbacks also when message is not valid */
     do_callback_decode(data, size, false);
@@ -415,7 +421,7 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
 
 static bool generate_base_message(uint8_t *buffer, size_t *msglen)
 {
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     bool status;
     static const alltypes_static_AllTypes initval = alltypes_static_AllTypes_init_default;
 
@@ -431,7 +437,7 @@ static bool generate_base_message(uint8_t *buffer, size_t *msglen)
 
     msg->extensions = NULL;
 
-    stream = pb_ostream_from_buffer(buffer, g_bufsize);
+    pb_init_encode_ctx_for_buffer(&stream, buffer, g_bufsize);
     status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
     assert(stream.bytes_written <= g_bufsize);
     assert(stream.bytes_written <= alltypes_static_AllTypes_size);

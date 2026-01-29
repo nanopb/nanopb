@@ -6,7 +6,7 @@
 #include "callbacks.pb.h"
 #include "test_helpers.h"
 
-bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     char *str = "Hello world!";
     
@@ -16,7 +16,7 @@ bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *
     return pb_encode_string(stream, (uint8_t*)str, strlen(str));
 }
 
-bool encode_int32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_int32(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     if (!pb_encode_tag_for_field(stream, field))
         return false;
@@ -24,7 +24,7 @@ bool encode_int32(pb_ostream_t *stream, const pb_field_t *field, void * const *a
     return pb_encode_varint(stream, 42);
 }
 
-bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_fixed32(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint32_t value = 42;
 
@@ -34,7 +34,7 @@ bool encode_fixed32(pb_ostream_t *stream, const pb_field_t *field, void * const 
     return pb_encode_fixed32(stream, &value);
 }
 
-bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_fixed64(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     uint64_t value = 42;
 
@@ -44,7 +44,7 @@ bool encode_fixed64(pb_ostream_t *stream, const pb_field_t *field, void * const 
     return pb_encode_fixed64(stream, &value);
 }
 
-bool encode_repeatedstring(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_repeatedstring(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     char *str[4] = {"Hello world!", "", "Test", "Test2"};
     int i;
@@ -63,10 +63,10 @@ bool encode_repeatedstring(pb_ostream_t *stream, const pb_field_t *field, void *
 int main()
 {
     uint8_t buffer[1024];
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     TestMessage testmessage = {{{NULL}}};
     
-    stream = pb_ostream_from_buffer(buffer, 1024);
+    pb_init_encode_ctx_for_buffer(&stream, buffer, 1024);
     
     testmessage.stringvalue.funcs.encode = &encode_string;
     testmessage.int32value.funcs.encode = &encode_int32;

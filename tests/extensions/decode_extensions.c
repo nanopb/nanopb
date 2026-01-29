@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 {
     uint8_t buffer[1024];
     size_t count;
-    pb_istream_t stream;
+    pb_decode_ctx_t stream;
     int status = 0;
     
     AllTypes alltypes = AllTypes_init_zero;
@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     /* Read the message data */
     SET_BINARY_MODE(stdin);
     count = fread(buffer, 1, sizeof(buffer), stdin);
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
     
     /* Add the extensions */
     alltypes.extensions = &ext1;        

@@ -11,7 +11,8 @@ int main()
     
     COMMENT("Test encoding message with optional field")
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
         TestMessage msg = TestMessage_init_zero;
         
         msg.has_opt_int = true;
@@ -25,7 +26,8 @@ int main()
     
     COMMENT("Test decoding message with optional field")
     {
-        pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buf, msglen);
         TestMessage msg = TestMessage_init_zero;
         
         /* These fields should be missing from the message
@@ -33,7 +35,8 @@ int main()
         msg.opt_int2 = 5;
         msg.normal_int2 = 6;
         
-        TEST(pb_decode_noinit(&stream, TestMessage_fields, &msg));
+        stream.flags |= PB_DECODE_CTX_FLAG_NOINIT;
+        TEST(pb_decode(&stream, TestMessage_fields, &msg));
         TEST(msg.has_opt_int);
         TEST(msg.opt_int == 99);
         TEST(msg.normal_int == 100);

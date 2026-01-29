@@ -13,7 +13,7 @@
  * and does not have to be bound separately to the message. It also allows defining
  * a custom data type for the field in the structure.
  */
-bool SubMsg3_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field)
+bool SubMsg3_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
 {
     if (ostream && field->tag == SubMsg3_strvalue_tag)
     {
@@ -32,7 +32,7 @@ bool SubMsg3_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_fie
 /* The two callbacks below are traditional callbacks that use function pointers
  * defined in pb_callback_t.
  */
-bool encode_int32_array(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_int32_array(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     int i;
     for (i = 0; i < 15; i++)
@@ -46,7 +46,7 @@ bool encode_int32_array(pb_ostream_t *stream, const pb_field_t *field, void * co
     return true;
 }
 
-bool encode_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+bool encode_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     const char *str = "mystring";
 
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 {
     uint8_t buffer[256];
     OneOfMessage msg = OneOfMessage_init_zero;
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     int option;
 
     if (argc != 2)
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
 
     msg.suffix = 321;
 
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
 
     if (pb_encode(&stream, OneOfMessage_fields, &msg))
     {

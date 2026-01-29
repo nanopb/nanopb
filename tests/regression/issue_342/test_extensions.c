@@ -6,7 +6,7 @@
 #include "extensions.pb.h"
 #include "unittests.h"
 
-static bool write_string(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_string(stream, (const void*)"abc", 3);
@@ -19,7 +19,8 @@ int main(int argc, char **argv)
     pb_size_t msglen = 0;
     
     {
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         pb_callback_t callback_def = {{0}};
         pb_extension_t ext = {0};
         BaseMessage msg = {0};
@@ -36,7 +37,8 @@ int main(int argc, char **argv)
     }
     
     {
-        pb_istream_t stream = pb_istream_from_buffer(buffer, msglen);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
         pb_extension_t ext = {0};
         BaseMessage msg = {0};
         

@@ -3,7 +3,7 @@
 #include <pb_decode.h>
 #include "unittests.h"
 
-bool msg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+bool msg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
     /* This tests decoding the submessage already in the message level callback. */
 
@@ -25,7 +25,8 @@ int main()
     size_t msglen;
 
     {
-        pb_ostream_t ostream = pb_ostream_from_buffer(buf, sizeof(buf));
+        pb_encode_ctx_t ostream;
+        pb_init_encode_ctx_for_buffer(&ostream, buf, sizeof(buf));
         MyMessage msg = MyMessage_init_zero;
 
         msg.which_oneof = MyMessage_submsg_tag;
@@ -42,7 +43,8 @@ int main()
     }
 
     {
-        pb_istream_t istream = pb_istream_from_buffer(buf, msglen);
+        pb_decode_ctx_t istream;
+        pb_init_decode_ctx_for_buffer(&istream, buf, msglen);
         MyMessage msg = MyMessage_init_zero;
         msg.cb_oneof.funcs.decode = msg_callback;
 

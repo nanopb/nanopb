@@ -8,7 +8,7 @@
 
 /* This function is called once from main(), it handles
    the decoding and checks the fields. */
-bool check_alltypes(pb_istream_t *stream, int mode)
+bool check_alltypes(pb_decode_ctx_t *stream, int mode)
 {
     int status = 0;
     AllTypes alltypes;
@@ -168,7 +168,7 @@ bool check_alltypes(pb_istream_t *stream, int mode)
 
     TEST(alltypes.end && *alltypes.end == 1099);
 
-    pb_release(AllTypes_fields, &alltypes);
+    pb_release(stream, AllTypes_fields, &alltypes);
 
     return status == 0;
 }

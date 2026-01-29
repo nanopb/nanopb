@@ -12,7 +12,7 @@
 typedef struct {
     float value;
 } FloatMsg;
-PB_BIND(DoubleMsg, FloatMsg, AUTO)
+PB_BIND(DoubleMsg, FloatMsg, S)
 
 static const double testvalues[] = {
            0.0,        -0.0,         0.1,         -0.1,
@@ -45,7 +45,8 @@ int main()
 
         {
             /* Encode the original double */
-            pb_ostream_t stream = pb_ostream_from_buffer(buf, sizeof(buf));
+            pb_encode_ctx_t stream;
+            pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
             DoubleMsg msg = { 0.0 };
             msg.value = orig_double;
             TEST(pb_encode(&stream, &DoubleMsg_msg, &msg));
@@ -55,14 +56,15 @@ int main()
 
         {
             /* Decode as float */
-            pb_ostream_t ostream;
-            pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
+            pb_encode_ctx_t ostream;
+            pb_decode_ctx_t stream;
+            pb_init_decode_ctx_for_buffer(&stream, buf, msglen);
             FloatMsg msg = { 0.0f };
             TEST(pb_decode(&stream, &FloatMsg_msg, &msg));
             TEST(memcmp(&msg.value, &expected_float, sizeof(float)) == 0);
 
             /* Re-encode */
-            ostream = pb_ostream_from_buffer(buf, sizeof(buf));
+            pb_init_encode_ctx_for_buffer(&ostream, buf, sizeof(buf));
             TEST(pb_encode(&ostream, &FloatMsg_msg, &msg));
             msglen = ostream.bytes_written;
             TEST(msglen == 9);
@@ -70,7 +72,8 @@ int main()
 
         {
             /* Decode as double */
-            pb_istream_t stream = pb_istream_from_buffer(buf, msglen);
+            pb_decode_ctx_t stream;
+            pb_init_decode_ctx_for_buffer(&stream, buf, msglen);
             DoubleMsg msg = { 0.0 };
             TEST(pb_decode(&stream, &DoubleMsg_msg, &msg));
 

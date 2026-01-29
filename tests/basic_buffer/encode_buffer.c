@@ -11,7 +11,7 @@
 int main()
 {
     uint8_t buffer[Person_size];
-    pb_ostream_t stream;
+    pb_encode_ctx_t stream;
     
     /* Initialize the structure with constants */
     Person person = {"Test Person 99", 99, true, "test@person.com",
@@ -20,7 +20,7 @@ int main()
             {"1234-5678", true, Person_PhoneType_WORK},
         }};
 
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
     
     /* Now encode it and check if we succeeded. */
     if (pb_encode(&stream, Person_fields, &person))

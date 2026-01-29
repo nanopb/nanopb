@@ -19,9 +19,11 @@ int main()
     {
       Message1 msg1 = Message1_init_zero;
       pb_byte_t msg1_buffer[Message1_size];
-      pb_ostream_t ostream = pb_ostream_from_buffer(msg1_buffer, Message1_size);
+      pb_encode_ctx_t ostream;
+      pb_init_encode_ctx_for_buffer(&ostream, msg1_buffer, Message1_size);
       Message1 msg1_deserialized = Message1_init_zero;
-      pb_istream_t istream = pb_istream_from_buffer(msg1_buffer, Message1_size);
+      pb_decode_ctx_t istream;
+      pb_init_decode_ctx_for_buffer(&istream, msg1_buffer, Message1_size);
 
       for (i = 0; i < 32; i++) {
         msg1.data[i] = i;
@@ -40,9 +42,11 @@ int main()
       Message2 msg2 = {true, {0}};
       Message2 msg2_no_data = {false, {1}};
       pb_byte_t msg2_buffer[Message2_size];
-      pb_ostream_t ostream = pb_ostream_from_buffer(msg2_buffer, Message2_size);
+      pb_encode_ctx_t ostream;
+      pb_init_encode_ctx_for_buffer(&ostream, msg2_buffer, Message2_size);
       Message2 msg2_deserialized = Message2_init_zero;
-      pb_istream_t istream = pb_istream_from_buffer(msg2_buffer, Message2_size);
+      pb_decode_ctx_t istream;
+      pb_init_decode_ctx_for_buffer(&istream, msg2_buffer, Message2_size);
 
       for (i = 0; i < 64; i++) {
         msg2.data[i] = i;
@@ -58,9 +62,9 @@ int main()
       TEST(msg2_deserialized.has_data);
 
       memset(msg2_buffer, 0, sizeof(msg2_buffer));
-      ostream = pb_ostream_from_buffer(msg2_buffer, Message2_size);
+      pb_init_encode_ctx_for_buffer(&ostream, msg2_buffer, Message2_size);
       TEST(pb_encode(&ostream, Message2_fields, &msg2_no_data));
-      istream = pb_istream_from_buffer(msg2_buffer, ostream.bytes_written);
+      pb_init_decode_ctx_for_buffer(&istream, msg2_buffer, ostream.bytes_written);
       TEST(pb_decode(&istream, Message2_fields, &msg2_deserialized));
       TEST(!msg2_deserialized.has_data);
       TEST(memcmp(&msg2_deserialized, &msg2, sizeof(msg2)) != 0);

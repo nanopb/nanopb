@@ -43,7 +43,8 @@ int end_stack_measuring()
 
 void do_encode()
 {
-    pb_ostream_t stream = pb_ostream_from_buffer(g_msgbuf, sizeof(g_msgbuf));
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_buffer(&stream, g_msgbuf, sizeof(g_msgbuf));
     SettingsGroup msg = SettingsGroup_init_zero;
     bool status;
 
@@ -65,7 +66,8 @@ void do_encode()
 
 void do_decode()
 {
-    pb_istream_t stream = pb_istream_from_buffer(g_msgbuf, g_msglen);
+    pb_decode_ctx_t stream;
+    pb_init_decode_ctx_for_buffer(&stream, g_msgbuf, g_msglen);
     SettingsGroup msg = SettingsGroup_init_zero;
     bool status;
 

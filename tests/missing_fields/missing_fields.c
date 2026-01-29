@@ -13,7 +13,8 @@ int main()
     /* Create a message with one missing field */
     {
         MissingField msg = {0};
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         
         if (!pb_encode(&stream, MissingField_fields, &msg))
         {
@@ -27,7 +28,8 @@ int main()
     /* Test that it decodes properly if we don't require that field */
     {
         MissingField msg = {0};
-        pb_istream_t stream = pb_istream_from_buffer(buffer, size);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, size);
         
         if (!pb_decode(&stream, MissingField_fields, &msg))
         {
@@ -39,7 +41,8 @@ int main()
     /* Test that it does *not* decode properly if we require the field */
     {
         AllFields msg = {0};
-        pb_istream_t stream = pb_istream_from_buffer(buffer, size);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, size);
         
         if (pb_decode(&stream, AllFields_fields, &msg))
         {
