@@ -1572,7 +1572,7 @@ class Message(ProtoElement):
         has_callbacks = bool([f for f in self.fields if f.has_callbacks()])
         if has_callbacks:
             if self.callback_function != 'pb_default_field_callback':
-                result += "extern bool %s(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_t *field);\n" % self.callback_function
+                result += "extern bool %s(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field);\n" % self.callback_function
             result += "#define %s_CALLBACK %s\n" % (
                 Globals.naming_style.define_name(self.name),
                 self.callback_function)
