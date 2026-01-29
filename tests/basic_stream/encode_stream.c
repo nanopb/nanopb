@@ -23,9 +23,8 @@ int main()
         }};
     
     /* Prepare the stream, output goes directly to stdout */
-    pb_ostream_t stream = {&streamcallback, NULL, SIZE_MAX, 0};
-    stream.state = stdout;
-    SET_BINARY_MODE(stdout);
+    pb_encode_ctx_t stream;
+    init_encode_ctx_for_stdio(&stream, stdout, PB_SIZE_MAX, NULL, 0);
     
     /* Now encode it and check if we succeeded. */
     if (pb_encode(&stream, Person_fields, &person))

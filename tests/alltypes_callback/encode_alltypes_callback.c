@@ -9,7 +9,6 @@
 #include <pb_encode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
-#include "stream_helpers.h"
 
 static bool write_varint(pb_ostream_t *stream, const pb_field_t *field, void * const *arg)
 {

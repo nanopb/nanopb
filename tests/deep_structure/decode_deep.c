@@ -5,23 +5,6 @@
 #include "test_helpers.h"
 #include "unittests.h"
 
-/* This binds the pb_istream_t to stdin */
-bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
-{
-    FILE *file = (FILE*)stream->state;
-    size_t len = fread(buf, 1, count, file);
-    
-    if (len == count)
-    {
-        return true;
-    }
-    else
-    {
-        stream->bytes_left = 0;
-        return false;
-    }
-}
-
 bool check_message(pb_istream_t *stream)
 {
     DeepMessage msg = {0};
@@ -41,11 +24,8 @@ bool check_message(pb_istream_t *stream)
 int main(int argc, const char **argv)
 {
     int mode = 0;
-    pb_istream_t stream = {&callback, NULL, SIZE_MAX};
+    pb_decode_ctx_t stream;
     pb_byte_t buffer[DeepMessage_size];
-    
-    SET_BINARY_MODE(stdin);
-    stream.state = stdin;
     
     /* In mode 0, buffer is used.
      * In other modes, direct stdin stream is used
@@ -54,8 +34,13 @@ int main(int argc, const char **argv)
 
     if (mode == 0)
     {
+        SET_BINARY_MODE(stdin);
         size_t count = fread(buffer, 1, sizeof(buffer), stdin);
-        stream = pb_istream_from_buffer(buffer, count);
+        pb_init_decode_ctx_for_buffer(&stream, buffer, count);
+    }
+    else
+    {
+        init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
     }
 
     if (!check_message(&stream))

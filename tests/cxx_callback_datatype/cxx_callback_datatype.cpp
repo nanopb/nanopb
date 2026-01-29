@@ -79,7 +79,7 @@ int main() {
 			fprintf(stderr, "%d, ", *i);
 		}
 		fprintf(stderr, "\nencoded(%d): ", (int)serialized.size());
-		for (unsigned i = 0; i != std::min(serialized.size(), outstream.bytes_written); ++i) {
+		for (unsigned i = 0; i != std::min<size_t>(serialized.size(), outstream.bytes_written); ++i) {
 			fprintf(stderr, "0x%02x ", serialized[i]);
 		}
 		fprintf(stderr, "\ndestination(%d): ", (int)destination.values.size());

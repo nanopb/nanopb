@@ -7,7 +7,6 @@
 #include <pb_encode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
-#include "stream_helpers.h"
 
 int main(int argc, char **argv)
 {
