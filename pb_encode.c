@@ -36,7 +36,7 @@
 
 // Information that is needed per each message level during encoding
 typedef struct {
-    size_t msg_start_pos;
+    pb_size_t msg_start_pos;
     uint_least16_t flags;
 } pb_encode_walk_stackframe_t;
 
@@ -65,7 +65,7 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
  * pb_ostream_t implementation *
  *******************************/
 
-void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize)
+void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size_t bufsize)
 {
     ctx->flags = 0;
     ctx->buffer = buf;
@@ -110,7 +110,7 @@ void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 #ifndef PB_NO_STREAM_CALLBACK
 void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     pb_encode_ctx_write_callback_t callback, void *state,
-    size_t max_size, pb_byte_t *buf, size_t bufsize)
+    pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize)
 {
     ctx->flags = 0;
     ctx->callback = callback;
@@ -144,7 +144,7 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
             PB_RETURN_ERROR(ctx, "onepass flush");
         }
 
-        if (!ctx->callback(ctx, ctx->buffer, ctx->buffer_count))
+        if (!ctx->callback(ctx, ctx->buffer, (size_t)ctx->buffer_count))
             PB_RETURN_ERROR(ctx, "io error");
 
         ctx->buffer_count = 0;
@@ -162,7 +162,7 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
 
 // Get pointer for directly writing up to max_bytes data.
 // Returns NULL if not enough space.
-static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, size_t max_bytes)
+static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, pb_size_t max_bytes)
 {
     if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
         return NULL;
@@ -203,7 +203,7 @@ static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, size_t max_byte
 }
 
 // Finish write to buffer previously obtained from pb_get_wrptr().
-static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, size_t bytes_written)
+static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, pb_size_t bytes_written)
 {
 #ifndef PB_NO_STREAM_CALLBACK
     ctx->bytes_written += bytes_written;
@@ -214,7 +214,7 @@ static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, size_t bytes_written)
 }
 
 // Write bytes to stream by copying them from source buffer.
-bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count)
+bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t count)
 {
     if (count == 0)
         return true;
@@ -251,7 +251,7 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t cou
     {
         // Flush any preceding data and write to output callback directly
         if (pb_flush_write_buffer(ctx) &&
-            ctx->callback(ctx, buf, count))
+            ctx->callback(ctx, buf, (size_t)count))
         {
             ctx->bytes_written += count;
             return true;
@@ -315,7 +315,7 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
     else
     {
         pb_encode_ctx_flags_t flags_orig = ctx->flags;
-        size_t size_orig = ctx->bytes_written;
+        pb_size_t size_orig = ctx->bytes_written;
         ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
 
         void *pData_orig = field->pData;
@@ -602,7 +602,7 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
             return pb_enc_string(ctx, field);
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
-            return pb_encode_string(ctx, (const pb_byte_t*)field->pData, (size_t)field->data_size);
+            return pb_encode_string(ctx, (const pb_byte_t*)field->pData, field->data_size);
 
         case PB_LTYPE_SUBMESSAGE:
         case PB_LTYPE_SUBMSG_W_CB:
@@ -783,7 +783,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
 // After a submessage has been encoded on ONEPASS_SIZING mode, we need to patch
 // the message size to the memory buffer. One byte is already reserved for it,
 // but more can be added using memmove().
-static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, size_t submsgsize)
+static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, pb_size_t submsgsize)
 {
     if (submsgsize < 0x7F)
     {
@@ -798,7 +798,7 @@ static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, size_
         uint_fast8_t prefixlen = pb_encode_buffer_varint32(tmpbuf, (uint32_t)submsgsize);
 
         // First allocate dummy space at end of the stream
-        if (!pb_write(ctx, tmpbuf, (size_t)(prefixlen - 1)))
+        if (!pb_write(ctx, tmpbuf, (pb_size_t)(prefixlen - 1)))
             return false;
 
         // If memory buffer filled up, it may convert back to sizing, in which case we are done.
@@ -886,7 +886,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS1) != 0)
     {
         // End of sizing pass.
-        size_t submsgsize = ctx->bytes_written - frame->msg_start_pos;
+        pb_size_t submsgsize = ctx->bytes_written - frame->msg_start_pos;
 
         bool nested = (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_NESTED);
         bool byte_reserved = (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_BYTE_RESERVED);
@@ -928,8 +928,8 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 
                 ctx->buffer_count = 0;
 
-                if (!ctx->callback(ctx, tmpbuf, prefixlen) ||
-                    !ctx->callback(ctx, msgstart, submsgsize))
+                if (!ctx->callback(ctx, tmpbuf, (size_t)prefixlen) ||
+                    !ctx->callback(ctx, msgstart, (size_t)submsgsize))
                 {
                     return PB_WALK_EXIT_ERR;
                 }
@@ -1058,7 +1058,7 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
     if (!pb_encode_s(&ctx, fields, src_struct, struct_size))
         return false;
     
-    *size = ctx.bytes_written;
+    *size = (size_t)ctx.bytes_written;
     return true;
 }
 
@@ -1260,7 +1260,7 @@ bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
     return pb_encode_varint32(ctx, (((uint32_t)field->tag << 3) | wiretype));
 }
 
-bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, size_t size)
+bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, pb_size_t size)
 {
     if (!pb_encode_varint32(ctx, (uint32_t)size))
         return false;
@@ -1371,7 +1371,7 @@ static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t
             return pb_encode_string(ctx, NULL, 0);
         }
 
-        return pb_encode_string(ctx, bytes->bytes, (size_t)bytes->size);
+        return pb_encode_string(ctx, bytes->bytes, bytes->size);
     }
     else
     {
@@ -1382,19 +1382,19 @@ static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t
             PB_RETURN_ERROR(ctx, "bytes size exceeded");
         }
     
-        return pb_encode_string(ctx, bytes->bytes, (size_t)bytes->size);
+        return pb_encode_string(ctx, bytes->bytes, bytes->size);
     }
 }
 
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    size_t size = 0;
-    size_t max_size = (size_t)field->data_size;
+    pb_size_t size = 0;
+    pb_size_t max_size = (pb_size_t)field->data_size;
     const char *str = NULL;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
-        max_size = (size_t)-1;
+        max_size = PB_SIZE_MAX;
 
         if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
         {
