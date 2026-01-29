@@ -15,7 +15,7 @@
  * field tag before the message. The pointer to MsgType_fields array is
  * used as an unique identifier for the message type.
  */
-bool encode_unionmessage(pb_ostream_t *stream, const pb_msgdesc_t *messagetype, void *message)
+bool encode_unionmessage(pb_encode_ctx_t *stream, const pb_msgdesc_t *messagetype, void *message)
 {
     pb_field_iter_t iter;
 
@@ -47,7 +47,8 @@ int main(int argc, char **argv)
     }
     
     uint8_t buffer[512];
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_encode_ctx_t stream;
+    pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
     
     bool status = false;
     int msgtype = atoi(argv[1]);

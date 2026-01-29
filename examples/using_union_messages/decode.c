@@ -15,7 +15,7 @@
  * Returns a pointer to the MsgType_fields array, as an identifier for the
  * message type. Returns null if the tag is of unknown type or an error occurs.
  */
-const pb_msgdesc_t* decode_unionmessage_type(pb_istream_t *stream)
+const pb_msgdesc_t* decode_unionmessage_type(pb_decode_ctx_t *stream)
 {
     pb_wire_type_t wire_type;
     uint32_t tag;
@@ -41,15 +41,15 @@ const pb_msgdesc_t* decode_unionmessage_type(pb_istream_t *stream)
     return NULL;
 }
 
-bool decode_unionmessage_contents(pb_istream_t *stream, const pb_msgdesc_t *messagetype, void *dest_struct)
+bool decode_unionmessage_contents(pb_decode_ctx_t *stream, const pb_msgdesc_t *messagetype, void *dest_struct)
 {
-    pb_istream_t substream;
+    pb_size_t old_length;
     bool status;
-    if (!pb_make_string_substream(stream, &substream))
+    if (!pb_decode_open_substream(stream, &old_length))
         return false;
     
-    status = pb_decode(&substream, messagetype, dest_struct);
-    pb_close_string_substream(stream, &substream);
+    status = pb_decode(stream, messagetype, dest_struct);
+    pb_decode_close_substream(stream, old_length);
     return status;
 }
 
@@ -58,7 +58,8 @@ int main()
     /* Read the data into buffer */
     uint8_t buffer[512];
     size_t count = fread(buffer, 1, sizeof(buffer), stdin);
-    pb_istream_t stream = pb_istream_from_buffer(buffer, count);
+    pb_decode_ctx_t stream;
+    pb_init_decode_ctx_for_buffer(&stream, buffer, count);
     
     const pb_msgdesc_t *type = decode_unionmessage_type(&stream);
     bool status = false;
