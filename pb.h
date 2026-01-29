@@ -352,7 +352,7 @@ typedef uint16_t pb_type_t;
 
 /* Numeric types */
 #define PB_LTYPE_BOOL    0x00U /* bool */
-#define PB_LTYPE_VARINT  0x01U /* int32, int64, enum, bool */
+#define PB_LTYPE_VARINT  0x01U /* int32, int64, enum */
 #define PB_LTYPE_UVARINT 0x02U /* uint32, uint64 */
 #define PB_LTYPE_SVARINT 0x03U /* sint32, sint64 */
 #define PB_LTYPE_FIXED32 0x04U /* fixed32, sfixed32, float */
@@ -439,7 +439,12 @@ typedef uint16_t pb_type_t;
     typedef size_t pb_size_t;
 #endif
 
+// Maximum value that can be stored in pb_size_t
 #define PB_SIZE_MAX ((pb_size_t)-1)
+
+// The code assumes that any value that fits in pb_size_t
+// will also fit in platform size_t.
+PB_STATIC_ASSERT(PB_SIZE_MAX <= (size_t)-1, PB_SIZE_T_TOO_BIG);
 
 /* Data type used for storing field indexes.
  * According to Google "Proto Limits", protobuf implementations
