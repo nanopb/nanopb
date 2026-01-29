@@ -138,6 +138,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * pb_decode() returns with an error, the message is automatically released.
  *
  * If ctx is not NULL, releasing uses the allocator defined in the context.
+ * If ctx is NULL or ctx->allocator is NULL, default allocator is used.
  */
 #define pb_release(ctx, fields, dest_struct) pb_release_s(ctx, fields, dest_struct, sizeof(*dest_struct))
 
