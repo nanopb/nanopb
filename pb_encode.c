@@ -352,7 +352,8 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 
         return true;
     }
-    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32)
     {
         PB_OPT_ASSERT(field->data_size == sizeof(uint32_t));
 #if PB_LITTLE_ENDIAN_8BIT
@@ -369,7 +370,8 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
         }
 #endif
     }
-    else if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
     {
 #ifndef PB_WITHOUT_64BIT
         if (field->data_size == sizeof(uint64_t))
@@ -409,19 +411,18 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 #endif /* PB_CONVERT_DOUBLE_FLOAT */
 
         PB_RETURN_ERROR(ctx, "invalid data_size");
-    }
-    else
+    } /* PB_LTYPE(field->type) == PB_LTYPE_FIXED64 */
+
+    // Remaining types are VARINT/UVARINT/SVARINT
+    for (i = 0; i < count; i++)
     {
-        for (i = 0; i < count; i++)
-        {
-            if (!pb_enc_varint(ctx, field))
-                return false;
+        if (!pb_enc_varint(ctx, field))
+            return false;
 
-            field->pData = (char*)field->pData + field->data_size;
-        }
-
-        return true;
+        field->pData = (char*)field->pData + field->data_size;
     }
+
+    return true;
 }
 #endif /* PB_ENCODE_ARRAYS_UNPACKED */
 

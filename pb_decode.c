@@ -629,8 +629,8 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
     }
 
     // Store stream state for restoring
-    tmp->bytes_left = ctx->bytes_left - length;
-    ctx->bytes_left = length;
+    tmp->bytes_left = (size_t)(ctx->bytes_left - length);
+    ctx->bytes_left = (size_t)length;
 
 #ifndef PB_NO_STREAM_CALLBACK
     tmp->rdpos = ctx->rdpos;
@@ -642,7 +642,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
         // Read from the temp buffer
         ctx->rdpos = buf;
         ctx->buffer = buf;
-        ctx->buffer_size = length;
+        ctx->buffer_size = (size_t)length;
     }
 #endif
 
@@ -2242,7 +2242,7 @@ bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest)
     union {
         uint32_t fixed32;
         pb_byte_t bytes[4];
-    } u;
+    } u = {0};
 
     if (!pb_read(ctx, u.bytes, 4))
         return false;
@@ -2265,7 +2265,7 @@ bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest)
     union {
         uint64_t fixed64;
         pb_byte_t bytes[8];
-    } u;
+    } u = {0};
 
     if (!pb_read(ctx, u.bytes, 8))
         return false;
@@ -2367,10 +2367,10 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     if (!pb_decode_varint32(ctx, &size))
         return false;
     
-    if ((pb_size_t)size != size)
+    if (size > PB_SIZE_MAX - offsetof(pb_bytes_array_t, bytes))
         PB_RETURN_ERROR(ctx, "bytes overflow");
     
-    if (ctx->bytes_left < size)
+    if (size > ctx->bytes_left)
         PB_RETURN_ERROR(ctx, "end-of-stream");
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
@@ -2384,7 +2384,7 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
         bytes->size = (pb_size_t)size;
 
         void *alloc = bytes->bytes;
-        if (size > 0 && !pb_allocate_field(ctx, &alloc, size, 1))
+        if (size > 0 && !pb_allocate_field(ctx, &alloc, (size_t)size, 1))
             return false;
         dest = bytes->bytes = alloc;
 #endif
