@@ -66,7 +66,7 @@ struct pb_decode_ctx_s
     // EOF before this limit is reached. Setting a limit is recommended
     // when decoding directly from file or network streams to avoid
     // denial-of-service by excessively long messages.
-    size_t bytes_left;
+    pb_size_t bytes_left;
     
 #ifndef PB_NO_ERRMSG
     // Pointer to constant (ROM) string when decoding function returns error
@@ -86,7 +86,7 @@ struct pb_decode_ctx_s
     pb_byte_t *buffer;
 
     // Total size of the cache buffer
-    size_t buffer_size;
+    pb_size_t buffer_size;
 #endif
 
     // Outer pb_walk() stackframe, used for memory usage optimizations during
@@ -153,7 +153,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * Alternatively, you can use a custom stream that reads directly from e.g.
  * a file or a network socket.
  */
-void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, size_t msglen);
+void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t msglen);
 
 #ifndef PB_NO_STREAM_CALLBACK
 /* Create encode context for a stream with a callback function.
@@ -162,13 +162,13 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, s
  */
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
     pb_decode_ctx_read_callback_t callback, void *state,
-    size_t msglen, pb_byte_t *buf, size_t bufsize);
+    pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize);
 #endif
 
 /* Function to read from the stream associated with decode context. You can use this if you need to
  * read some custom header data, or to read data in field callbacks.
  */
-bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
+bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count);
 
 #ifdef PB_ENABLE_MALLOC
 /******************************************
@@ -184,7 +184,7 @@ bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
  *
  * On failure, false is returned and '*ptr' remains unchanged.
  */
-bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, size_t data_size, size_t array_size);
+bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb_size_t array_size);
 
 /* Release storage previously allocated by pb_allocate_field().
  * Uses either the allocator defined by ctx or the default allocator.
@@ -251,8 +251,8 @@ bool pb_decode_double_as_float(pb_decode_ctx_t *ctx, float *dest);
  *
  * Remember to close the substream using pb_decode_close_substream().
  */
-bool pb_decode_open_substream(pb_decode_ctx_t *ctx, size_t *old_length);
-bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length);
+bool pb_decode_open_substream(pb_decode_ctx_t *ctx, pb_size_t *old_length);
+bool pb_decode_close_substream(pb_decode_ctx_t *ctx, pb_size_t old_length);
 
 /* API compatibility defines for code written before nanopb-1.0.0 */
 #if PB_API_VERSION < PB_API_VERSION_v1_0
@@ -260,7 +260,8 @@ bool pb_decode_close_substream(pb_decode_ctx_t *ctx, size_t old_length);
 static inline pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
 {
     pb_istream_t ctx;
-    pb_init_decode_ctx_for_buffer(&ctx, buf, msglen);
+    PB_OPT_ASSERT(msglen <= PB_SIZE_MAX);
+    pb_init_decode_ctx_for_buffer(&ctx, buf, (pb_size_t)msglen);
     return ctx;
 }
 
@@ -277,7 +278,7 @@ static inline bool pb_make_string_substream(pb_istream_t *stream, pb_istream_t *
 
 static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t *substream)
 {
-    size_t old_length = stream->bytes_left;
+    pb_size_t old_length = stream->bytes_left;
     *stream = *substream;
     return pb_decode_close_substream(stream, old_length);
 }

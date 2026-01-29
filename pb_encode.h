@@ -65,11 +65,11 @@ struct pb_encode_ctx_s
     void *state;
 #endif
 
-    // Limit number of output bytes written. Can be set to SIZE_MAX.
-    size_t max_size;
+    // Limit number of output bytes written. Can be set to PB_SIZE_MAX.
+    pb_size_t max_size;
 
     // Number of bytes written so far.
-    size_t bytes_written;
+    pb_size_t bytes_written;
     
 #ifndef PB_NO_ERRMSG
     /* Pointer to constant (ROM) string when decoding function returns error */
@@ -86,11 +86,11 @@ struct pb_encode_ctx_s
 #ifndef PB_NO_STREAM_CALLBACK
     // Total size of memory buffer
     // If callback is not used, this is equal to max_size.
-    size_t buffer_size;
+    pb_size_t buffer_size;
 
     // Number of bytes currently in memory buffer
     // If callback is not used, this is equal to bytes_written.
-    size_t buffer_count;
+    pb_size_t buffer_count;
 #endif
 
     // Outer pb_walk() stackframe, used for memory usage optimizations during
@@ -145,7 +145,7 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  * Alternatively, you can use a custom stream that writes directly to e.g.
  * a file or a network socket.
  */
-void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t bufsize);
+void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size_t bufsize);
 
 #ifndef PB_NO_STREAM_CALLBACK
 /* Create encode context for a stream with a callback function.
@@ -154,7 +154,7 @@ void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, size_t 
  */
 void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     pb_encode_ctx_write_callback_t callback, void *state,
-    size_t max_size, pb_byte_t *buf, size_t bufsize);
+    pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize);
 #endif
 
 
@@ -171,7 +171,7 @@ bool pb_flush_write_buffer(pb_encode_ctx_t *ctx);
 /* Function to write into a pb_ostream_t stream. You can use this if you need
  * to append or prepend some custom headers to the message.
  */
-bool pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
+bool pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t count);
 
 /************************************************
  * Helper functions for writing field callbacks *
@@ -202,7 +202,7 @@ bool pb_encode_svarint(pb_encode_ctx_t *ctx, int32_t value);
 #endif
 
 /* Encode a string or bytes type field. For strings, pass strlen(s) as size. */
-bool pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, size_t size);
+bool pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, pb_size_t size);
 
 /* Encode a fixed32, sfixed32 or float value.
  * You need to pass a pointer to a 4-byte wide C variable. */
@@ -233,7 +233,8 @@ bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, cons
 static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
 {
     pb_ostream_t ctx;
-    pb_init_encode_ctx_for_buffer(&ctx, buf, bufsize);
+    PB_OPT_ASSERT(bufsize <= PB_SIZE_MAX);
+    pb_init_encode_ctx_for_buffer(&ctx, buf, (pb_size_t)bufsize);
     return ctx;
 }
 

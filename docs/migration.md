@@ -79,6 +79,16 @@ Their APIs have seen small changes to better accommodate other changes in the co
 
 **Changes:** `pb_field_iter_find()` takes a third argument, which can be given as `NULL`.
 
+### Changed size_t to pb_size_t in structures
+
+**Rationale:** Previously stream structures used platform `size_t` for the lengths.
+In practice the lengths will not be longer than `pb_size_t` can fit.
+Using `pb_size_t` everywhere avoids unnecessary casts and bound checks.
+The `size_t` is still retained in function call APIs that interface with system, such as read/write/realloc.
+The data type of `pb_size_t` is always smaller or equal to `size_t`.
+
+**Required actions:** In some cases `SIZE_MAX` in user code may need to be replaced with `PB_SIZE_MAX` to silence compiler warnings.
+
 ### Remove Python 2 support
 
 **Rationale:** Python 2 interpreter was deprecated in 2020. For backward

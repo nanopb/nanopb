@@ -89,7 +89,7 @@
 
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
- * - strlen, memcpy, memset functions
+ * - strlen, memcpy, memmove, memset functions
  * - [u]int_least8_t, uint_fast8_t, [u]int_least16_t, [u]int32_t, [u]int64_t
  * - size_t
  * - bool
@@ -444,7 +444,7 @@ typedef uint16_t pb_type_t;
 
 // The code assumes that any value that fits in pb_size_t
 // will also fit in platform size_t.
-PB_STATIC_ASSERT(PB_SIZE_MAX <= (size_t)-1, PB_SIZE_T_TOO_BIG);
+PB_STATIC_ASSERT(PB_SIZE_MAX <= (size_t)-1, PB_SIZE_T_TOO_BIG)
 
 /* Data type used for storing field indexes.
  * According to Google "Proto Limits", protobuf implementations
@@ -571,7 +571,7 @@ PB_STATIC_ASSERT(CHAR_BIT >= 8 &&
  * Note that actual structs used will have a different length of bytes array.
  */
 #define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; pb_byte_t bytes[n]; }
-#define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
+#define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((pb_size_t)((n) + offsetof(pb_bytes_array_t, bytes)))
 
 struct pb_bytes_array_s {
     pb_size_t size;
