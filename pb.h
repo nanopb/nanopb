@@ -119,6 +119,11 @@
 #define PB_NO_OPT_ASSERT PB_MINIMAL
 #endif
 
+// PB_NO_EXTENSIONS: Disable support for proto2 extension fields
+#ifndef PB_NO_EXTENSIONS
+#define PB_NO_EXTENSIONS PB_MINIMAL
+#endif
+
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *

@@ -15,19 +15,13 @@ extern "C" {
  * Returns false if the message type is empty. */
 bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *message);
 
-/* Load field iterator values from an extension
- * After next pb_field_iter_next(), the iterator
- * continues from beginning of the parent message.
- */
-bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension);
-
-/* Get pointer to the destination data for an extension field */
-void *pb_get_extension_data_ptr(pb_extension_t *extension);
-
 /* Same as pb_field_iter_begin(), but for const message pointer.
  * Note that the pointers in pb_field_iter_t will be non-const but shouldn't
  * be written to when using these functions. */
-bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message);
+static inline bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
+{
+    return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
+}
 
 /* Reset iterator back to beginning.
  * Returns false if the message type is empty.
@@ -47,6 +41,17 @@ bool pb_field_iter_next(pb_field_iter_t *iter);
  * field in this case, as all normal fields are searched through first.
  */
 bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ext);
+
+#if !PB_NO_EXTENSIONS
+/* Load field iterator values from an extension
+ * After next pb_field_iter_next(), the iterator
+ * continues from beginning of the parent message.
+ */
+bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension);
+
+/* Get pointer to the destination data for an extension field */
+void *pb_get_extension_data_ptr(pb_extension_t *extension);
+#endif
 
 // Return value type for pb_walk() callback function
 typedef enum {
@@ -168,7 +173,12 @@ bool pb_walk(pb_walk_state_t *state);
 /* Override the message pb_walk() with walk into, when PB_WALK_IN is next returned.
  * This should only be called from within pb_walk() callback function.
  */
-pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message);
+static inline pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message)
+{
+    state->iter.submsg_desc = desc;
+    state->iter.pData = message;
+    return PB_WALK_IN;
+}
 
 #if !PB_NO_VALIDATE_UTF8
 /* Validate UTF-8 text string */
