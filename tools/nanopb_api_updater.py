@@ -371,6 +371,40 @@ TSRule('''(
 RERule(r'PB_BIND\((?P<args>.*),\s*AUTO\s*\)',
        r'PB_BIND(\g<args>, S)'),
 
+# #ifdef PB_NO_xxxx -> #if PB_NO_xxxx
+RERule(r'(?P<prefix>\s*#\s*)ifdef\s+(?P<name>PB_NO_[A-Z_]+)',
+       r'\g<prefix>if \g<name>'),
+
+# #ifndef PB_NO_xxxx -> #if !PB_NO_xxxx
+# but only if no #define PB_NO_xxxx inside it
+RERule(r'^(?P<prefix>[ \t]*#[ \t]*)ifndef\s+(?P<name>PB_NO_[A-Z_]+)' +
+       r'(?P<rest>\s*(?:(?!#define\s(?P=name)).)*#endif)',
+       r'\g<prefix>if !\g<name>\g<rest>', re.MULTILINE | re.DOTALL),
+
+# #define PB_NO_xxxx without value -> 1
+RERule(r'(?P<prefix>\s*#\s*)define\s+(?P<name>PB_NO_[A-Z_]+)\s*$',
+       r'\g<prefix>define \g<name> 1'),
+
+# #ifndef PB_ENABLE_MALLOC -> #if PB_NO_MALLOC
+RERule(r'(?P<prefix>\s*#\s*)ifndef\s+PB_ENABLE_MALLOC',
+       r'\g<prefix>if PB_NO_MALLOC'),
+
+# #ifdef PB_ENABLE_MALLOC -> #if !PB_NO_MALLOC
+RERule(r'(?P<prefix>\s*#\s*)ifdef\s+PB_ENABLE_MALLOC',
+       r'\g<prefix>if !PB_NO_MALLOC'),
+
+# #ifndef PB_CONVERT_DOUBLE_FLOAT -> #if !PB_CONVERT_DOUBLE_FLOAT
+RERule(r'(?P<prefix>\s*#\s*)ifndef\s+PB_CONVERT_DOUBLE_FLOAT',
+       r'\g<prefix>if !PB_CONVERT_DOUBLE_FLOAT'),
+
+# #ifdef PB_CONVERT_DOUBLE_FLOAT -> #if PB_CONVERT_DOUBLE_FLOAT
+RERule(r'(?P<prefix>\s*#\s*)ifdef\s+PB_CONVERT_DOUBLE_FLOAT',
+       r'\g<prefix>if PB_CONVERT_DOUBLE_FLOAT'),
+
+# defined(PB_NO_xxxx) -> PB_NO_xxxxx
+RERule(r'defined\(\s*(?P<name>PB_NO_[A-Z_]+)\s*\)',
+       r'\g<name>'),
+
 ]
 
 def main(args, rules = RULES):
