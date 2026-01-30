@@ -223,14 +223,18 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t 
     if (count == 0)
         return true;
 
+    if ((pb_size_t)(ctx->bytes_written + count) < ctx->bytes_written)
+    {
+        PB_RETURN_ERROR(ctx, "stream full"); // pb_size_t overflow
+    }
+
     if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
     {
         ctx->bytes_written += count;
         return true;
     }
 
-    if (ctx->bytes_written + count < ctx->bytes_written ||
-        ctx->bytes_written + count > ctx->max_size)
+    if (ctx->bytes_written + count > ctx->max_size)
     {
         PB_RETURN_ERROR(ctx, "stream full");
     }
