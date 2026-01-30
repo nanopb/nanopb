@@ -1,0 +1,2 @@
+# memcpy_s() etc. are not actually available on most platforms, so this check is quite useless.
+Checks: "-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"

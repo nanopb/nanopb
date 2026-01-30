@@ -1,0 +1,44 @@
+# Check the nanopb core using splint
+
+Import('env')
+
+env.Match('splint/pb_decode.matched', ['$NANOPB/pb_decode.c', 'codestyle.expected'])
+env.Match('splint/pb_encode.matched', ['$NANOPB/pb_encode.c', 'codestyle.expected'])
+env.Match('splint/pb_common.matched', ['$NANOPB/pb_common.c', 'codestyle.expected'])
+
+if env.WhereIs('splint'):
+    env.Command('pb_decode.splint', '$NANOPB/pb_decode.c',
+        'splint -f codestyle/splint.rc $SOURCE 2> $TARGET')
+
+    env.Command('pb_encode.splint', '$NANOPB/pb_encode.c',
+        'splint -f codestyle/splint.rc $SOURCE 2> $TARGET')
+
+    env.Command('pb_common.splint', '$NANOPB/pb_common.c',
+        'splint -f codestyle/splint.rc $SOURCE 2> $TARGET')
+
+if env.WhereIs('cppcheck'):
+    env.Append(CPPCHECK_ARGS = '-UPB_SYSTEM_HEADER ')
+    env.Append(CPPCHECK_ARGS = '-D_ONE_CONFIG ')
+    env.Append(CPPCHECK_ARGS = '--check-level=exhaustive ')
+    env.Append(CPPCHECK_ARGS = '--std=c99 --enable=warning --inconclusive ')
+
+    env.Command('pb_decode.cppcheck', '$NANOPB/pb_decode.c',
+        'cppcheck $CPPCHECK_ARGS $SOURCE && echo > $TARGET')
+
+    env.Command('pb_encode.cppcheck', '$NANOPB/pb_encode.c',
+        'cppcheck $CPPCHECK_ARGS $SOURCE && echo > $TARGET')
+
+    env.Command('pb_common.cppcheck', '$NANOPB/pb_common.c',
+        'cppcheck $CPPCHECK_ARGS $SOURCE && echo > $TARGET')
+
+if env.WhereIs('clang-tidy'):
+    env.Append(CLANGTIDY_ARGS = '-warnings-as-errors=\'*\' ')
+
+    env.Command('pb_decode.clang-tidy', '$NANOPB/pb_decode.c',
+        'clang-tidy $CLANGTIDY_ARGS $SOURCE -- -std=c99 && echo > $TARGET')
+
+    env.Command('pb_encode.clang-tidy', '$NANOPB/pb_encode.c',
+        'clang-tidy $CLANGTIDY_ARGS $SOURCE -- -std=c99 && echo > $TARGET')
+
+    env.Command('pb_common.clang-tidy', '$NANOPB/pb_common.c',
+        'clang-tidy $CLANGTIDY_ARGS $SOURCE -- -std=c99 && echo > $TARGET')
