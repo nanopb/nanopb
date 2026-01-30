@@ -890,12 +890,14 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     {
         if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
+#if !PB_NO_EXTENSIONS
             pb_extension_t* extension = *(pb_extension_t**)iter->pData;
             if (extension)
             {
                 // Descend into extension
                 return pb_walk_into(state, extension->type, pb_get_extension_data_ptr(extension));
             }
+#endif
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_POINTER)
         {
@@ -1576,6 +1578,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 
         if (extension)
         {
+#if !PB_NO_EXTENSIONS
             // Load iterator information for the extension field contents.
             // Iterator will resume in the parent message after the extension
             // is done.
@@ -1586,6 +1589,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             }
 
             extension->found = true;
+#endif
         }
         else if (PB_HTYPE(iter->type) == PB_HTYPE_REQUIRED)
         {
@@ -2129,6 +2133,7 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             continue;
         }
 
+#if !PB_NO_EXTENSIONS
         if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
             pb_extension_t* extension = *(pb_extension_t**)iter->pData;
@@ -2139,6 +2144,7 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             }
             continue;
         }
+#endif
 
         if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
         {

@@ -509,6 +509,8 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
              * because the C struct may contain padding bytes that must
              * be skipped. Note that usually proto3 submessages have
              * a separate has_field that is checked earlier in this if.
+             *
+             * FIXME: this still has recursion
              */
             pb_field_iter_t iter;
             if (pb_field_iter_begin(&iter, field->submsg_desc, field->pData))
@@ -538,8 +540,12 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
     {
         if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
         {
+#if !PB_NO_EXTENSIONS
             const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
             return extension == NULL;
+#else
+            return true;
+#endif
         }
         else if (field->descriptor->field_callback == pb_default_field_callback)
         {
@@ -702,12 +708,14 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
     do {
         if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
         {
+#if !PB_NO_EXTENSIONS
             pb_extension_t* extension = *(pb_extension_t**)iter->pData;
             if (extension)
             {
                 // Descend into extension
                 return pb_walk_into(state, extension->type, pb_get_extension_data_ptr(extension));
             }
+#endif
             continue;
         }
 

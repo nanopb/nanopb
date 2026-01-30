@@ -227,6 +227,7 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
     return load_descriptor_values(iter);
 }
 
+#if !PB_NO_EXTENSIONS
 bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extension)
 {
     const pb_msgdesc_t *old_msgdesc = iter->descriptor;
@@ -267,6 +268,7 @@ void *pb_get_extension_data_ptr(pb_extension_t *extension)
         return extension->dest;
     }
 }
+#endif
 
 bool pb_field_iter_reset(pb_field_iter_t *iter)
 {
@@ -309,8 +311,11 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
         iter->index = field_count;
     }
 
+#if !PB_NO_EXTENSIONS
     bool seek_extension = (ext != NULL && (iter->descriptor->msg_flags & PB_MSGFLAG_EXTENSIBLE) != 0);
     pb_extension_t *extensions = NULL;
+#endif
+
     pb_tag_t itertag = 0;
     do
     {
@@ -330,6 +335,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
             }
         }
 
+#if !PB_NO_EXTENSIONS
         if (tag >= itertag && seek_extension)
         {
             // Store info for extension fields
@@ -347,11 +353,13 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
                 }
             }
         }
+#endif
     } while (tag > itertag && iter->index < field_count - 1);
 
     // Restore iterator to valid state after failed search
     (void)load_descriptor_values(iter);
 
+#if !PB_NO_EXTENSIONS
     // No match found, check if there is a matching extension
     if (ext != NULL)
     {
@@ -370,13 +378,9 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
             extensions = extensions->next;
         }
     }
+#endif
 
     return false;
-}
-
-bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
-{
-    return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
 }
 
 bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
@@ -591,7 +595,9 @@ bool pb_walk(pb_walk_state_t *state)
                     iter->pData = old_msg;
                 }
             }
-            else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
+
+#if !PB_NO_EXTENSIONS
+            if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
             {
                 // Find extension that contained this dest
                 // Both type and data pointer need to match
@@ -614,6 +620,7 @@ bool pb_walk(pb_walk_state_t *state)
                 else
                     iter->pData = NULL;
             }
+#endif
 
             if (state->stack_remain >= stack_remain_initial && state->depth > 0)
             {
@@ -645,6 +652,7 @@ bool pb_walk(pb_walk_state_t *state)
                         go_next_field = false;
                     }
                 }
+#if !PB_NO_EXTENSIONS
                 else if (PB_LTYPE(iter->type) == PB_LTYPE_EXTENSION)
                 {
                     if (iter->data_size != sizeof(pb_extension_t*))
@@ -660,6 +668,7 @@ bool pb_walk(pb_walk_state_t *state)
                         go_next_field = false;
                     }
                 }
+#endif
             }
 
             if (go_next_field)
@@ -674,13 +683,6 @@ bool pb_walk(pb_walk_state_t *state)
     }
 
     return state->retval == PB_WALK_EXIT_OK;
-}
-
-pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message)
-{
-    state->iter.submsg_desc = desc;
-    state->iter.pData = message;
-    return PB_WALK_IN;
 }
 
 #if !PB_NO_VALIDATE_UTF8
