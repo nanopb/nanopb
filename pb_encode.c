@@ -368,6 +368,7 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 
             field->pData = (char*)field->pData + field->data_size;
         }
+        return true;
 #endif
     }
 
