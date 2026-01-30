@@ -62,7 +62,8 @@ static uint32_t xor32_checksum(const void *data, size_t len)
     return checksum;
 }
 
-static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
+static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize,
+    const pb_msgdesc_t *msgtype, pb_decode_ctx_flags_t flags, bool assert_success)
 {
     bool status;
     pb_decode_ctx_t stream;
@@ -115,7 +116,8 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize, c
     return status;
 }
 
-static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_after, size_t structsize, const pb_msgdesc_t *msgtype, unsigned flags, bool assert_success)
+static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_after, size_t structsize,
+    const pb_msgdesc_t *msgtype, pb_decode_ctx_flags_t flags, bool assert_success)
 {
     bool status;
     flakystream_t stream;
@@ -171,7 +173,7 @@ static bool submsg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, vo
     return true;
 }
 
-bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_success)
+bool do_callback_decode(const uint8_t *buffer, size_t msglen, pb_decode_ctx_flags_t flags, bool assert_success)
 {
     bool status;
     pb_decode_ctx_t stream;
@@ -181,6 +183,7 @@ bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_succes
 
     memset(msg, 0, sizeof(alltypes_callback_AllTypes));
     pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
+    stream.flags |= flags;
 
     msg->rep_int32.funcs.decode = &field_callback;
     msg->rep_int32.arg = &g_sentinel;
@@ -209,7 +212,9 @@ bool do_callback_decode(const uint8_t *buffer, size_t msglen, bool assert_succes
 }
 
 /* Do a decode -> encode -> decode -> encode roundtrip */
-void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const pb_msgdesc_t *msgtype)
+void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize,
+    const pb_msgdesc_t *msgtype,
+    pb_decode_ctx_flags_t dec_flags, pb_encode_ctx_flags_t enc_flags)
 {
     bool status;
     uint32_t checksum2, checksum3;
@@ -242,6 +247,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     {
         pb_decode_ctx_t stream;
         pb_init_decode_ctx_for_buffer(&stream, buffer, msglen);
+        stream.flags |= dec_flags;
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
         status = pb_decode_s(&stream, msgtype, msg, structsize);
@@ -254,6 +260,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     {
         pb_encode_ctx_t stream;
         pb_init_encode_ctx_for_buffer(&stream, buf2, g_bufsize);
+        stream.flags |= enc_flags;
         status = pb_encode_s(&stream, msgtype, msg, structsize);
 
         /* Some messages expand when re-encoding and might no longer fit
@@ -275,6 +282,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     {
         pb_decode_ctx_t stream;
         pb_init_decode_ctx_for_buffer(&stream, buf2, msglen2);
+        stream.flags |= dec_flags;
         memset(msg, 0, structsize);
         if (ext_field) *ext_field = &ext;
         status = pb_decode_s(&stream, msgtype, msg, structsize);
@@ -288,6 +296,7 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize, const
     {
         pb_encode_ctx_t stream;
         pb_init_encode_ctx_for_buffer(&stream, buf2, g_bufsize);
+        stream.flags |= enc_flags;
         status = pb_encode_s(&stream, msgtype, msg, structsize);
         if (!status) fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
         assert(status);
@@ -309,36 +318,42 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     size_t initial_alloc_count = get_alloc_count();
     PB_UNUSED(expect_valid); /* Potentially unused depending on configuration */
 
+    // Disable UTF-8 validation for fuzzing, because it leads to too many
+    // non-useful message rejections. UTF-8 validation is subjected to fuzzing
+    // in the IO_ERRORS delimited case below.
+    pb_decode_ctx_flags_t dec_flags = PB_DECODE_CTX_FLAG_NO_VALIDATE_UTF8;
+    pb_encode_ctx_flags_t enc_flags = PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8;
+
 #ifdef FUZZTEST_PROTO2_STATIC
-    if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, dec_flags, expect_valid))
     {
-        do_roundtrip(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, true);
-        do_callback_decode(data, size, true);
+        do_roundtrip(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, dec_flags, enc_flags);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, dec_flags, true);
+        do_callback_decode(data, size, dec_flags, true);
     }
 #endif
 
 #ifdef FUZZTEST_PROTO3_STATIC
-    if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, dec_flags, expect_valid))
     {
-        do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, 0, true);
+        do_roundtrip(data, size, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, dec_flags, enc_flags);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_static_AllTypes), alltypes_proto3_static_AllTypes_fields, dec_flags, true);
     }
 #endif
 
 #ifdef FUZZTEST_PROTO2_POINTER
-    if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, dec_flags, expect_valid))
     {
-        do_roundtrip(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, true);
+        do_roundtrip(data, size, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, dec_flags, enc_flags);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, dec_flags, true);
     }
 #endif
 
 #ifdef FUZZTEST_PROTO3_POINTER
-    if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, expect_valid))
+    if (do_decode(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, dec_flags, expect_valid))
     {
-        do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields);
-        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, 0, true);
+        do_roundtrip(data, size, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, dec_flags, enc_flags);
+        do_stream_decode(data, size, SIZE_MAX, sizeof(alltypes_proto3_pointer_AllTypes), alltypes_proto3_pointer_AllTypes_fields, dec_flags, true);
     }
 #endif
 
@@ -350,8 +365,8 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
          * Testing proto2 is enough for good coverage here, as it has a superset of the field types of proto3.
          */
         set_max_alloc_bytes(get_alloc_bytes() + 4096);
-        do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, 0, false);
-        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, 0, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, dec_flags, false);
+        do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, dec_flags, false);
         do_stream_decode(data, size, size - 16, sizeof(alltypes_pointer_AllTypes), alltypes_pointer_AllTypes_fields, PB_DECODE_CTX_FLAG_DELIMITED, false);
         set_max_alloc_bytes(orig_max_alloc_bytes);
     }
@@ -361,7 +376,9 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_CTX_FLAG_NULLTERMINATED, false);
 
     /* Test callbacks also when message is not valid */
-    do_callback_decode(data, size, false);
+    do_callback_decode(data, size, dec_flags, false);
+
+    PB_UNUSED(enc_flags);
 #endif
 
     assert(get_alloc_count() == initial_alloc_count);
@@ -397,6 +414,7 @@ static bool generate_base_message(uint8_t *buffer, size_t *msglen)
     msg->extensions = NULL;
 
     pb_init_encode_ctx_for_buffer(&stream, buffer, g_bufsize);
+    stream.flags |= PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8;
     status = pb_encode(&stream, alltypes_static_AllTypes_fields, msg);
     assert(stream.bytes_written <= g_bufsize);
     assert(stream.bytes_written <= alltypes_static_AllTypes_size);

@@ -10,6 +10,7 @@
 #include <assert.h>
 #include "alltypes_static.pb.h"
 #include "random_data.h"
+#include <malloc_wrappers.h>
 
 #ifndef FUZZTEST_BUFSIZE
 #define FUZZTEST_BUFSIZE 4096
@@ -48,13 +49,13 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
 
 static void generate_message()
 {
-    alltypes_static_AllTypes msg;
+    static alltypes_static_AllTypes msg;
     alltypes_static_TestExtension extmsg = alltypes_static_TestExtension_init_zero;
     pb_extension_t ext = pb_extension_init_zero;
 
-    static uint8_t buf[FUZZTEST_BUFSIZE];
+    uint8_t *buf = malloc_with_check(FUZZTEST_BUFSIZE);
     pb_encode_ctx_t stream = {0};
-    
+
     do {
         rand_fill((void*)&msg, sizeof(msg));
         limit_sizes(&msg);
@@ -65,10 +66,12 @@ static void generate_message()
         ext.next = NULL;
         msg.extensions = &ext;
 
-        pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
+        pb_init_encode_ctx_for_buffer(&stream, buf, FUZZTEST_BUFSIZE);
+        stream.flags = PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8;
     } while (!pb_encode(&stream, alltypes_static_AllTypes_fields, &msg));
     
     fwrite(buf, 1, stream.bytes_written, stdout);
+    free_with_check(buf);
 }
 
 int main(int argc, char **argv)
