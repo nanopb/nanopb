@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 /* Callback pointer for custom stream types. This can write the
  * bytes directly to your storage, which can be for example
  * a file or a network socket.
@@ -50,13 +50,17 @@ typedef uint16_t pb_encode_ctx_flags_t;
 // performance.
 #define PB_ENCODE_CTX_FLAG_ONEPASS_SIZING    (pb_encode_ctx_flags_t)(1 << 3)
 
+// PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8: Disable UTF8 validation of strings.
+// Can also be applied globally with PB_NO_VALIDATE_UTF8 define.
+#define PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8  (pb_encode_ctx_flags_t)(1 << 4)
+
 /* Structure containing the state associated with message encoding.
  * For the common case of writing a message to a memory buffer, this
  * is initialized with pb_init_encode_ctx_for_buffer().
  */
 struct pb_encode_ctx_s
 {
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // Optional callback function for writing to output directly, instead
     // of the memory buffer. State is a free field for use by the callback.
     // It's also allowed to extend the pb_encode_ctx_t struct with your own
@@ -71,7 +75,7 @@ struct pb_encode_ctx_s
     // Number of bytes written so far.
     pb_size_t bytes_written;
     
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
@@ -83,7 +87,7 @@ struct pb_encode_ctx_s
     // If callback is provided, this is optional and used as cache.
     pb_byte_t *buffer;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // Total size of memory buffer
     // If callback is not used, this is equal to max_size.
     pb_size_t buffer_size;
@@ -147,7 +151,7 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  */
 void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size_t bufsize);
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 /* Create encode context for a stream with a callback function.
  * State is a free pointer for use by the callback.
  * A memory buffer can optionally be provided for caching.
@@ -187,7 +191,7 @@ bool pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field
 
 /* Encode an integer in the varint format.
  * This works for bool, enum, int32, int64, uint32 and uint64 field types. */
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool pb_encode_varint(pb_encode_ctx_t *ctx, uint64_t value);
 #else
 bool pb_encode_varint(pb_encode_ctx_t *ctx, uint32_t value);
@@ -195,7 +199,7 @@ bool pb_encode_varint(pb_encode_ctx_t *ctx, uint32_t value);
 
 /* Encode an integer in the zig-zagged svarint format.
  * This works for sint32 and sint64. */
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool pb_encode_svarint(pb_encode_ctx_t *ctx, int64_t value);
 #else
 bool pb_encode_svarint(pb_encode_ctx_t *ctx, int32_t value);
@@ -208,13 +212,13 @@ bool pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, pb_size_t s
  * You need to pass a pointer to a 4-byte wide C variable. */
 bool pb_encode_fixed32(pb_encode_ctx_t *ctx, const void *value);
 
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 /* Encode a fixed64, sfixed64 or double value.
  * You need to pass a pointer to a 8-byte wide C variable. */
 bool pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value);
 #endif
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
 /* Encode a float value so that it appears like a double in the encoded
  * message. */
 bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value);
@@ -239,14 +243,14 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 }
 
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
-#ifndef PB_NO_STREAM_CALLBACK
-# ifndef PB_NO_ERRMSG
+#if !PB_NO_STREAM_CALLBACK
+# if !PB_NO_ERRMSG
 #  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
 # else
 #  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
 # endif
 #else
-# ifndef PB_NO_ERRMSG
+# if !PB_NO_ERRMSG
 #  define PB_OSTREAM_SIZING {0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}
 # else
 #  define PB_OSTREAM_SIZING {0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}

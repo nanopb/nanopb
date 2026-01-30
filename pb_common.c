@@ -84,7 +84,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     const uint32_t *field_info = &iter->descriptor->field_info[iter->field_info_index];
     pb_size_t size_offset, data_offset;
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
     if (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
     {
         // Load descriptor values for large format (5 words)
@@ -172,7 +172,7 @@ static inline pb_tag_t get_tag_quick(const pb_msgdesc_t *descriptor, pb_fieldidx
 {
     uint32_t word0 = PB_PROGMEM_READU32(descriptor->field_info[field_info_index]);
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
     if (descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
         return (pb_tag_t)(word0 & 0x1FFFFFFF);
     else
@@ -183,7 +183,7 @@ static inline pb_tag_t get_tag_quick(const pb_msgdesc_t *descriptor, pb_fieldidx
 // Return number of words per descriptor entry
 static inline pb_fieldidx_t descsize(const pb_field_iter_t *iter)
 {
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
     return (iter->descriptor->msg_flags & PB_MSGFLAG_LARGEDESC) ? 5 : 2;
 #else
     PB_UNUSED(iter);
@@ -217,7 +217,7 @@ bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *
 {
     memset(iter, 0, sizeof(*iter));
 
-#ifdef PB_NO_LARGEMSG
+#if PB_NO_LARGEMSG
     PB_OPT_ASSERT(!(desc->msg_flags & PB_MSGFLAG_LARGEDESC));
 #endif
 
@@ -415,7 +415,7 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
     state->max_depth = PB_MESSAGE_NESTING_MAX;
     state->retval = PB_WALK_EXIT_OK;
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     state->errmsg = NULL;
 #endif
 
@@ -424,7 +424,7 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
 
 static bool pb_walk_recurse(pb_walk_state_t *state)
 {
-#ifndef PB_NO_RECURSION
+#if !PB_NO_RECURSION
     void *old_stack = state->stack;
     pb_walk_stacksize_t old_stack_remain = state->stack_remain;
 
@@ -683,7 +683,7 @@ pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, 
     return PB_WALK_IN;
 }
 
-#ifdef PB_VALIDATE_UTF8
+#if !PB_NO_VALIDATE_UTF8
 
 /* This function checks whether a string is valid UTF-8 text.
  *

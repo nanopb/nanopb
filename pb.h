@@ -1,73 +1,267 @@
-/* Common parts of the nanopb library. Most of these are quite low-level
- * stuff. For the high-level interface, see pb_encode.h and pb_decode.h.
+/* Type and macro definitions for the nanopb library.
+ * This file contains configuration options and internal definitions.
+ *
+ * For encoding and decoding API, see pb_encode.h and pb_decode.h
  */
 
 #ifndef PB_H_INCLUDED
 #define PB_H_INCLUDED
 
+/* Include all the system headers needed by nanopb. You will need the
+ * definitions of the following:
+ * - strlen, memcpy, memmove, memset functions
+ * - [u]int_least8_t, uint_fast8_t, [u]int_least16_t, [u]int32_t, [u]int64_t
+ * - size_t
+ * - bool
+ * - realloc() and free() unless PB_NO_DEFAULT_ALLOCATOR is defined
+ *
+ * If you don't have the standard header files, you can instead provide
+ * a custom header that defines or includes all this. In that case,
+ * define PB_SYSTEM_HEADER to the path of this file.
+ */
+#ifdef PB_SYSTEM_HEADER
+#include PB_SYSTEM_HEADER
+#else
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#endif
+
 /*****************************************************************
  * Nanopb compilation time options. You can change these here by *
  * uncommenting the lines, or on the compiler command line.      *
+ *                                                               *
+ * By default all features default to enabled.                   *
+ * They can be individually disabled by defining PB_NO_xxxx to 1.*
+ * Disabling features generally reduces code size and RAM usage, *
+ * but benefits vary between platforms.                          *
+ *                                                               *
+ * Alternatively PB_MINIMAL=1 will disable features by default.  *
+ * Features can then be enabled by defining PB_NO_xxxx to 0.     *
  *****************************************************************/
 
-/* Enable support for dynamically allocated fields */
-/* #define PB_ENABLE_MALLOC 1 */
+// PB_API_VERSION: API compatibility level for old code.
+// This enables macros that ease porting of code written for older
+// nanopb versions. Define to e.g. '40' to enable nanopb-0.4.x API.
+// Latest API is always supported independent of this setting.
+#ifndef PB_API_VERSION
+#define PB_API_VERSION PB_API_VERSION_LATEST
+#endif
 
-/* Define this if your CPU / compiler combination does not support
- * unaligned memory access to packed structures. Note that packed
- * structures are only used when requested in .proto options. */
-/* #define PB_NO_PACKED_STRUCTS 1 */
+// PB_MINIMAL: When 1, disable all optional features by default.
+// Individual features can still be enabled by defining their
+// PB_NO_xxxx setting to 0.
+#ifndef PB_MINIMAL
+#define PB_MINIMAL 0
+#endif
 
-/* Increase the number of required fields that are tracked.
- * A compiler warning will tell if you need this. */
-/* #define PB_MAX_REQUIRED_FIELDS 256 */
+// PB_NO_MALLOC: Disable support for dynamically allocated fields.
+#ifndef PB_NO_MALLOC
+#define PB_NO_MALLOC PB_MINIMAL
+#endif
 
-/* Disable support for messages larger than 4 kB */
-/* #define PB_NO_LARGEMSG 1*/
+// PB_NO_DEFAULT_ALLOCATOR: Disable support for default allocator.
+// Dynamic allocation is enabled only if ctx->allocator is set by user code.
+#ifndef PB_NO_DEFAULT_ALLOCATOR
+#define PB_NO_DEFAULT_ALLOCATOR PB_NO_MALLOC
+#endif
 
-/* Disable support for error messages in order to save some code space. */
-/* #define PB_NO_ERRMSG 1 */
+// PB_NO_CONTEXT_ALLOCATOR: Disable support for context-specific allocator.
+// Only default allocator (pb_realloc()) is supported,
+// the pb_decode_ctx_t allocator field is disabled.
+#ifndef PB_NO_CONTEXT_ALLOCATOR
+#define PB_NO_CONTEXT_ALLOCATOR PB_NO_MALLOC
+#endif
 
-/* Disable support for custom streams (support only memory buffers). */
-/* #define PB_BUFFER_ONLY 1 */
+// PB_NO_STREAM_CALLBACK: Only support input/output to memory buffers.
+// Disables using callback functions for IO streams.
+// This option was called PB_BUFFER_ONLY in nanopb-0.4.x
+#ifndef PB_NO_STREAM_CALLBACK
+#ifdef PB_BUFFER_ONLY
+#define PB_NO_STREAM_CALLBACK 1
+#else
+#define PB_NO_STREAM_CALLBACK PB_MINIMAL
+#endif
+#endif
 
-/* Disable support for 64-bit datatypes, for compilers without int64_t
-   or to save some code space. */
-/* #define PB_WITHOUT_64BIT 1 */
+// PB_NO_ERRMSG: Disable support for descriptive error messages.
+// Only success/failure status is provided.
+#ifndef PB_NO_ERRMSG
+#define PB_NO_ERRMSG PB_MINIMAL
+#endif
 
-/* Don't encode scalar arrays as packed. This is only to be used when
- * the decoder on the receiving side cannot process packed scalar arrays.
- * Such example is older protobuf.js. */
-/* #define PB_ENCODE_ARRAYS_UNPACKED 1 */
+// PB_NO_RECURSION: Disable recursive function calls in nanopb core.
+// Only up to PB_MESSAGE_NESTING levels of nested messages can be
+// processed. User callbacks can still invoke recursion.
+#ifndef PB_NO_RECURSION
+#define PB_NO_RECURSION PB_MINIMAL
+#endif
 
-/* Enable conversion of doubles to floats for platforms that do not
- * support 64-bit doubles. Most commonly AVR. */
-/* #define PB_CONVERT_DOUBLE_FLOAT 1 */
+// PB_NO_LARGEMSG: Disable support for messages over 4 kB.
+// Tag numbers are limited to max 4095 and arrays to max 255 items.
+#ifndef PB_NO_LARGEMSG
+#define PB_NO_LARGEMSG PB_MINIMAL
+#endif
 
-/* Check whether incoming strings are valid UTF-8 sequences. Slows down
- * the string processing slightly and slightly increases code size. */
-/* #define PB_VALIDATE_UTF8 1 */
+// PB_NO_VALIDATE_UTF8: Do not validate string encoding.
+// Protobuf spec requires strings to be valid UTF-8. This setting
+// disables string validation in nanopb.
+#ifndef PB_NO_VALIDATE_UTF8
+#define PB_NO_VALIDATE_UTF8 PB_MINIMAL
+#endif
 
-/* This can be defined if the platform is little-endian and has 8-bit bytes.
- * Normally it is automatically detected based on __BYTE_ORDER__ macro. */
+// PB_NO_OPT_ASSERT: Disable optional assertions in code.
+// These are mainly to more easily catch bugs during development.
+#ifndef PB_NO_OPT_ASSERT
+#define PB_NO_OPT_ASSERT PB_MINIMAL
+#endif
+
+/*********************************************************************
+ * Platform feature options.                                         *
+ *                                                                   *
+ * These are used to disable features for CPU platforms or compilers *
+ * that do not support the full ISO C99 feature set.                 *
+ *                                                                   *
+ * By default all of these are disabled. Define to 1 to enable.      *
+ *********************************************************************/
+
+// PB_WITHOUT_64BIT: Disable usage of 64-bit data types in the code.
+// For compilers or CPUs that do not support uint64_t.
+#ifndef PB_WITHOUT_64BIT
+#define PB_WITHOUT_64BIT 0
+#endif
+
+// PB_NO_PACKED_STRUCTS: Never use 'packed' attribute on structures.
+// Note that the attribute is only specified when requested in .proto
+// file options. This define allows globally disabling it on platforms
+// that do not support unaligned memory access.
+#ifndef PB_NO_PACKED_STRUCTS
+#define PB_NO_PACKED_STRUCTS 0
+#endif
+
+// PB_C99_STATIC_ASSERT: Force use of older, C99 static assertion mechanism.
+// This is for compilers that do not support _Static_assert() keyword that
+// was introduced in C11 standard. Many compilers supported it before that.
+#ifndef PB_C99_STATIC_ASSERT
+#define PB_C99_STATIC_ASSERT 0
+#endif
+
+// PB_NO_STATIC_ASSERT: Disable compile-time assertions in the code.
+// This is for compilers where the PB_STATIC_ASSERT macro does not work.
+// It's preferable to either change compiler to C11 standards mode or
+// to define PB_C99_STATIC_ASSERT.
+#ifndef PB_NO_STATIC_ASSERT
+#define PB_NO_STATIC_ASSERT 0
+#endif
+
+// PB_LITTLE_ENDIAN_8BIT: Specify memory layout compatibility.
+// This can be defined if CPU uses 8-bit bytes and has little-endian
+// memory layout. If undefined (default), the support is automatically
+// detected from compiler type.
 /* #define PB_LITTLE_ENDIAN_8BIT 1 */
 
-/* Configure static assert mechanism. Instead of changing these, set your
- * compiler to C11 standard mode if possible. */
-/* #define PB_C99_STATIC_ASSERT 1 */
-/* #define PB_NO_STATIC_ASSERT 1 */
+// PB_PROGMEM: Attribute and access method for storing constants in ROM.
+// This is automatically enabled for AVR platform. It can be used
+// on platforms where const variables are not automatically stored in ROM.
+/* #define PB_PROGMEM             ...attribute... */
+/* #define PB_PROGMEM_READU32(x)  ...access function... */
 
-/* Message nesting and recursion. By default enough stack space is reserved
- * to handle up to PB_MESSAGE_NESTING levels of submessages. If deeper
- * hierarchy is encoutered, function call recursion is used to get more stack.
- */
-/* #define PB_MESSAGE_NESTING 8 */
+// PB_WALK_STACK_ALIGN_TYPE: Alignment requirement for pb_walk() stack.
+// By default this is void*, which should have large enough alignment
+// for storage of any pointer or 32-bit integer. Special platforms could
+// require e.g. uint32_t here.
+#ifndef PB_WALK_STACK_ALIGN_TYPE
+#define PB_WALK_STACK_ALIGN_TYPE void*
+#endif
+
+// PB_BYTE_T_OVERRIDE: Override type used to access byte buffers.
+// On most platforms, pb_byte_t = uint8_t. On platforms without uint8_t,
+// by default unsigned char is used. Alternatively this option can
+// be used to set a custom type.
+/* #define PB_BYTE_T_OVERRIDE uint_least8_t */
+
+// PB_SIZE_T_OVERRIDE: Override size type used for messages and streams.
+// On 8-32 bit platforms, pb_size_t defaults to size_t.
+// On 64 bit platforms, pb_size_t defaults to uint32_t.
+// This option can be used to override the type.
+/* #define PB_SIZE_T_OVERRIDE uint16_t */
+
+/*******************************************************************
+ * Protobuf compatibility options                                  *
+ *                                                                 *
+ * These aid in compatibility with other protobuf implementations  *
+ * in specific situations. By default they are disabled.           *
+ *******************************************************************/
+
+// PB_ENCODE_ARRAYS_UNPACKED: Use 'unpacked' array format for all fields.
+// Normally the more efficient 'packed' array format is used for field types
+// that support it. This option forces 'unpacked' format. In particular,
+// it is needed when communicating with protobuf.js versions before 2020.
+#ifndef PB_ENCODE_ARRAYS_UNPACKED
+#define PB_ENCODE_ARRAYS_UNPACKED 0
+#endif
+
+// PB_CONVERT_DOUBLE_FLOAT: Convert 64-bit doubles to 32-bit floats.
+// AVR platform only supports 32-bit floats. If you need to use a .proto
+// that has 'double' fields, this option will convert the encoded binary
+// format. The precision of values will be limited to 32-bit.
+#ifndef PB_CONVERT_DOUBLE_FLOAT
+#define PB_CONVERT_DOUBLE_FLOAT 0
+#endif
+
+/*******************************************************************
+ * Stack usage and nesting limit options                           *
+ *                                                                 *
+ * Nanopb uses a hybrid approach to handling recursive messages.   *
+ * Instead of C recursion, the core uses a memory buffer to store  *
+ * minimal amount of information for each message level. For this  *
+ * storage, a constant-sized buffer is allocated on stack. This    *
+ * initial reservation is enough for PB_MESSAGE_NESTING levels.    *
+ *                                                                 *
+ * Once the buffer fills up, more memory is allocated from stack   *
+ * using C recursion. This can be disabled with PB_NO_RECURSION.   *
+ *                                                                 *
+ * In any case, message nesting is limited to maximum of           *
+ * PB_MESSAGE_NESTING_MAX levels, after which runtime error is     *
+ * returned.                                                       *
+ *******************************************************************/
+
+// PB_MESSAGE_NESTING: Expected depth of message hierarchy.
+// Encode and decode calls initially reserve enough stack space to
+// handle this number of nested message levels.
+#ifndef PB_MESSAGE_NESTING
+#define PB_MESSAGE_NESTING 8
+#endif
+
+// PB_MESSAGE_NESTING_MAX: Runtime limit of message nesting.
+// If recursion is enabled, up to this many nested message levels
+// can be processed by dynamically allocating more stack space.
+#ifndef PB_MESSAGE_NESTING_MAX
+#define PB_MESSAGE_NESTING_MAX 100
+#endif
+
+// PB_WALK_STACK_SIZE: Block size of recursive memory reservation.
+// Once the initial stack allocation is exhausted, pb_walk() will
+// reserve more stack in blocks of this many bytes.
+#ifndef PB_WALK_STACK_SIZE
+#define PB_WALK_STACK_SIZE 256
+#endif
+
+// PB_MAX_REQUIRED_FIELDS: Expected number of required fields per message.
+// This is only used for calculating the initial stack allocation.
+// At runtime, memory is allocated based on actual number of required
+// fields in each message.
+#ifndef PB_MAX_REQUIRED_FIELDS
+#define PB_MAX_REQUIRED_FIELDS 64
+#endif
 
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
  ******************************************************************/
-
 
 /* Version of the nanopb library. Just in case you want to check it in
  * your own program. */
@@ -83,35 +277,24 @@
 #define PB_API_VERSION_v1_0 100
 #define PB_API_VERSION_v0_4  40
 #define PB_API_VERSION_LATEST PB_API_VERSION_v1_0
-#define PB_API_VERSION_DEFAULT PB_API_VERSION_v1_0
 
-#ifndef PB_API_VERSION
-#define PB_API_VERSION PB_API_VERSION_DEFAULT
+/* Validate configuration options */
+#if PB_NO_MALLOC && !PB_NO_DEFAULT_ALLOCATOR
+#undef PB_NO_DEFAULT_ALLOCATOR
+#define PB_NO_DEFAULT_ALLOCATOR 1
 #endif
 
-/* Include all the system headers needed by nanopb. You will need the
- * definitions of the following:
- * - strlen, memcpy, memmove, memset functions
- * - [u]int_least8_t, uint_fast8_t, [u]int_least16_t, [u]int32_t, [u]int64_t
- * - size_t
- * - bool
- *
- * If you don't have the standard header files, you can instead provide
- * a custom header that defines or includes all this. In that case,
- * define PB_SYSTEM_HEADER to the path of this file.
- */
-#ifdef PB_SYSTEM_HEADER
-#include PB_SYSTEM_HEADER
-#else
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <string.h>
-#include <limits.h>
-
-#ifdef PB_ENABLE_MALLOC
-#include <stdlib.h>
+#if PB_NO_MALLOC && !PB_NO_CONTEXT_ALLOCATOR
+#undef PB_NO_CONTEXT_ALLOCATOR
+#define PB_NO_CONTEXT_ALLOCATOR 1
 #endif
+
+#if PB_WITHOUT_64BIT && PB_CONVERT_DOUBLE_FLOAT
+#error CONVERT_DOUBLE_FLOAT requires uint64_t support
+#endif
+
+#if PB_MESSAGE_NESTING < 1
+#error PB_MESSAGE_NESTING must be >= 1
 #endif
 
 #ifdef __cplusplus
@@ -120,8 +303,9 @@ extern "C" {
 
 /* Macro for defining packed structures (compiler dependent).
  * This just reduces memory requirements, but is not required.
+ * It is only used if 'packed_struct = true' is defined in .proto
  */
-#if defined(PB_NO_PACKED_STRUCTS)
+#if PB_NO_PACKED_STRUCTS
     /* Disable struct packing */
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
@@ -146,30 +330,6 @@ extern "C" {
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed
-#endif
-
-/* Old name for PB_NO_STREAM_CALLBACK */
-#ifdef PB_BUFFER_ONLY
-#define PB_NO_STREAM_CALLBACK
-#endif
-
-/* Define for explicitly not inlining a given function */
-#ifndef pb_noinline
-#if defined(__GNUC__) || defined(__clang__)
-    /* For GCC and clang */
-#   if defined(noinline)
-#   define pb_noinline noinline
-#   else
-#   define pb_noinline __attribute__((noinline))
-#   endif
-#elif defined(__ICCARM__) || defined(__CC_ARM)
-    /* For IAR ARM and Keil MDK-ARM compilers */
-#   define pb_noinline
-#elif defined(_MSC_VER) && (_MSC_VER >= 1500)
-#   define pb_noinline __declspec(noinline)
-#else
-#   define pb_noinline
-#endif
 #endif
 
 /* Detect endianness and size of char type */
@@ -217,7 +377,7 @@ extern "C" {
  * They can be disabled for small amount of code size saving.
  */
 #ifndef PB_OPT_ASSERT
-# ifdef PB_NO_OPT_ASSERT
+# if PB_NO_OPT_ASSERT
 #  define PB_OPT_ASSERT(ignore) ((void)0)
 # else
 #  include <assert.h>
@@ -234,7 +394,7 @@ extern "C" {
  * message is not always very clear to read, but you can see the reason better
  * in the place where the PB_STATIC_ASSERT macro was called.
  */
-#ifndef PB_NO_STATIC_ASSERT
+#if !PB_NO_STATIC_ASSERT
 #  ifndef PB_STATIC_ASSERT
 #    if defined(__ICCARM__)
        /* IAR has static_assert keyword but no _Static_assert */
@@ -242,7 +402,7 @@ extern "C" {
 #    elif defined(_MSC_VER) && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112)
        /* MSVC in C89 mode supports static_assert() keyword anyway */
 #      define PB_STATIC_ASSERT(COND,MSG) static_assert(COND,#MSG);
-#    elif defined(PB_C99_STATIC_ASSERT)
+#    elif defined(PB_C99_STATIC_ASSERT) && PB_C99_STATIC_ASSERT
        /* Classic negative-size-array static assert mechanism */
 #      define PB_STATIC_ASSERT(COND,MSG) typedef char PB_STATIC_ASSERT_MSG(MSG, __LINE__, __COUNTER__)[(COND)?1:-1];
 #      define PB_STATIC_ASSERT_MSG(MSG, LINE, COUNTER) PB_STATIC_ASSERT_MSG_(MSG, LINE, COUNTER)
@@ -268,47 +428,8 @@ extern "C" {
  */
 PB_STATIC_ASSERT(1, STATIC_ASSERT_IS_NOT_WORKING)
 
-/* Number of required fields to keep track of. */
-#ifndef PB_MAX_REQUIRED_FIELDS
-#define PB_MAX_REQUIRED_FIELDS 64
-#endif
-
-#if PB_MAX_REQUIRED_FIELDS < 64
-#error You should not lower PB_MAX_REQUIRED_FIELDS from the default value (64).
-#endif
-
-/* Number of nested messages to reserve stack space for
- * in encode/decode calls.
- */
-#ifndef PB_MESSAGE_NESTING
-#define PB_MESSAGE_NESTING 8
-#endif
-
-/* Maximum number of nested messages, with recursion used */
-#ifndef PB_MESSAGE_NESTING_MAX
-#define PB_MESSAGE_NESTING_MAX 100
-#endif
-
-/* Number of bytes of stack space to reserve per recursion level
- * in pb_walk(), if the initial stack reservation runs out.
- */
-#ifndef PB_WALK_STACK_SIZE
-#define PB_WALK_STACK_SIZE 256
-#endif
-
-#ifdef PB_WITHOUT_64BIT
-#ifdef PB_CONVERT_DOUBLE_FLOAT
-/* Cannot use doubles without 64-bit types */
-#undef PB_CONVERT_DOUBLE_FLOAT
-#endif
-#endif
-
-/* Stack alignment used by pb_walk(). */
-#ifndef PB_WALK_STACK_ALIGN_TYPE_OVERRIDE
-typedef void* pb_walk_stack_align_t;
-#else
-typedef PB_WALK_STACK_ALIGN_TYPE_OVERRIDE pb_walk_stack_align_t;
-#endif
+// Stack alignment used by pb_walk().
+typedef PB_WALK_STACK_ALIGN_TYPE pb_walk_stack_align_t;
 
 // Round byte count upwards to a multiple of sizeof(void*) to retain alignment
 #define PB_WALK_ALIGNSIZE sizeof(pb_walk_stack_align_t)
@@ -418,7 +539,7 @@ typedef uint16_t pb_type_t;
                                PB_LTYPE(x) == PB_LTYPE_SUBMSG_W_CB)
 
 /* Data type used for storing field tags. */
-#ifdef PB_NO_LARGEMSG
+#if PB_NO_LARGEMSG
     typedef uint_least16_t pb_tag_t;
 #else
     typedef uint32_t pb_tag_t;
@@ -558,7 +679,7 @@ typedef pb_field_iter_t pb_field_t;
  * If you get errors here, it probably means that your stdint.h is not
  * correct for your platform.
  */
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 PB_STATIC_ASSERT(sizeof(int64_t) == 2 * sizeof(int32_t), INT64_T_WRONG_SIZE)
 PB_STATIC_ASSERT(sizeof(uint64_t) == 2 * sizeof(uint32_t), UINT64_T_WRONG_SIZE)
 #endif
@@ -660,8 +781,7 @@ struct pb_extension_s {
 
 #define pb_extension_init_zero {NULL,NULL,NULL,false}
 
-#ifdef PB_ENABLE_MALLOC
-# ifndef PB_NO_CONTEXT_ALLOCATOR
+#if !PB_NO_CONTEXT_ALLOCATOR
 /* Memory allocator can be defined individually per each decoding
  * context using this structure. User implementation can extend
  * the state structure by wrapping it in another struct.
@@ -681,20 +801,19 @@ struct pb_allocator_s {
     // Free pointer that can be used by realloc/free implementation
     void *ctx;
 };
-# endif /* PB_NO_CONTEXT_ALLOCATOR */
+#endif /* !PB_NO_CONTEXT_ALLOCATOR */
 
-# ifndef PB_NO_DEFAULT_ALLOCATOR
+#if !PB_NO_DEFAULT_ALLOCATOR
 /* Memory allocation functions to use if context-based allocator
  * is not given. You can define pb_realloc and pb_free to custom
  * functions if you want. */
-#   ifndef pb_realloc
-#       define pb_realloc(ptr, size) realloc(ptr, size)
-#   endif
-#   ifndef pb_free
-#       define pb_free(ptr) free(ptr)
-#   endif
-# endif /* PB_NO_DEFAULT_ALLOCATOR */
-#endif /* PB_ENABLE_MALLOC */
+#  ifndef pb_realloc
+#      define pb_realloc(ptr, size) realloc(ptr, size)
+#  endif
+#  ifndef pb_free
+#      define pb_free(ptr) free(ptr)
+#  endif
+#endif /* !PB_NO_DEFAULT_ALLOCATOR */
 
 // Type used to store stack sizes internally in pb_walk().
 // By default up to 64 kB can be allocated per recursion level,
@@ -775,7 +894,7 @@ typedef struct {
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
 #define PB_MSGFLAG_DESCWIDTH_S 0
 #define PB_MSGFLAG_DESCWIDTH_L PB_MSGFLAG_LARGEDESC
 #else
@@ -799,7 +918,7 @@ typedef struct {
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
 #define PB_GEN_FIELD_INFO_L(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_L( \
                    tag, \
@@ -830,7 +949,7 @@ typedef struct {
                    PB_SIZE_OFFSET_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname), \
                    PB_ARRAY_SIZE_ ## atype(_PB_HTYPE_ ## htype, structname, fieldname))
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
 #define PB_GEN_FIELD_INFO_ASSERT_L(structname, atype, htype, ltype, fieldname, tag) \
     PB_FIELDINFO_ASSERT_L( \
                    tag, \
@@ -1082,7 +1201,7 @@ typedef struct {
  * PB_RETURN_ERROR() sets the error and returns false from current
  *                   function.
  */
-#ifdef PB_NO_ERRMSG
+#if PB_NO_ERRMSG
 #define PB_SET_ERROR(ctx, msg) PB_UNUSED(ctx)
 #define PB_GET_ERROR(ctx) "(errmsg disabled)"
 #else

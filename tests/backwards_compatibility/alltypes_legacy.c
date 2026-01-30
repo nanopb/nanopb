@@ -23,7 +23,7 @@ PB_BIND(AllTypes, AllTypes, S)
 
 
 
-#ifndef PB_CONVERT_DOUBLE_FLOAT
+#if !PB_CONVERT_DOUBLE_FLOAT
 /* On some platforms (such as AVR), double is really float.
  * To be able to encode/decode double on these platforms, you need.
  * to define PB_CONVERT_DOUBLE_FLOAT in pb.h or compiler command line.
