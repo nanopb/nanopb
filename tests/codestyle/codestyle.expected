@@ -1,0 +1,8 @@
+! #\s*ifdef\s*PB_NO_
+! #\s*ifndef\s*PB_NO_
+! #\s*ifdef\s*PB_WITHOUT_64BIT
+! #\s*ifndef\s*PB_WITHOUT_64BIT
+! #\s*ifdef\s*PB_CONVERT_DOUBLE_FLOAT
+! #\s*ifndef\s*PB_CONVERT_DOUBLE_FLOAT
+! #\s*ifdef\s*PB_ENCODE_ARRAYS_UNPACKED
+! #\s*ifndef\s*PB_ENCODE_ARRAYS_UNPACKED

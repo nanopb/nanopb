@@ -3,6 +3,10 @@
  * 2011 Petteri Aimonen <jpa@kapsi.fi>
  */
 
+#include "pb.h"
+#include "pb_decode.h"
+#include "pb_common.h"
+
 /* Use the GCC warn_unused_result attribute to check that all return values
  * are propagated correctly. On other compilers, gcc before 3.4.0 and iar
  * before 9.40.1 just ignore the annotation.
@@ -13,10 +17,6 @@
 #else
     #define checkreturn
 #endif
-
-#include "pb.h"
-#include "pb_decode.h"
-#include "pb_common.h"
 
 /**************************************
  * Declarations internal to this file *
@@ -161,6 +161,7 @@ static bool checkreturn pb_fill_stream_cache(pb_decode_ctx_t *ctx)
             // If there is old data, move it into place
             if (bytes_in_buf > 0)
             {
+                PB_OPT_ASSERT(total < bytes_in_buf);
                 memmove(buf, ctx->rdpos, bytes_in_buf);
             }
 
@@ -826,6 +827,7 @@ static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
         if (PB_LTYPE_IS_SUBMSG(iter->type) &&
             (iter->submsg_desc->msg_flags & init_flags) != 0)
         {
+            PB_OPT_ASSERT(iter->submsg_desc->struct_size == iter->data_size);
             return PB_WALK_IN;
         }
         else
@@ -1166,13 +1168,8 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     }
 
                     /* Decode the array entry */
+                    PB_OPT_ASSERT(*(char**)field->pField != NULL);
                     field->pData = *(char**)field->pField + field->data_size * (*size);
-                    if (field->pData == NULL)
-                    {
-                        /* Shouldn't happen, but satisfies static analyzers */
-                        status = false;
-                        break;
-                    }
 
                     memset(field->pData, 0, field->data_size);
                     if (!decode_basic_field(ctx, PB_WT_PACKED, field))
@@ -1476,6 +1473,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
     }
 
     /* Descend to iterate through submessage fields */
+    PB_OPT_ASSERT(field->submsg_desc->struct_size == field->data_size);
     state->next_stacksize = stacksize_for_msg(field->submsg_desc);
     return PB_WALK_IN;
 }
@@ -2171,6 +2169,7 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
             (iter->submsg_desc->msg_flags & PB_MSGFLAG_R_HAS_PTRS) != 0)
         {
             // Descend into submessage
+            PB_OPT_ASSERT(iter->submsg_desc->struct_size == iter->data_size);
             return PB_WALK_IN;
         }
 

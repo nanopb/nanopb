@@ -790,6 +790,12 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
 // but more can be added using memmove().
 static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, pb_size_t submsgsize)
 {
+#if PB_NO_STREAM_CALLBACK
+    PB_OPT_ASSERT(msgstart >= ctx->buffer && msgstart + submsgsize <= ctx->buffer + ctx->max_size);
+#else
+    PB_OPT_ASSERT(msgstart >= ctx->buffer && msgstart + submsgsize <= ctx->buffer + ctx->buffer_size);
+#endif
+
     if (submsgsize < 0x7F)
     {
         // Length fits in the one byte we reserved
