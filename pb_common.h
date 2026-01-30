@@ -172,7 +172,7 @@ pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, 
 
 #if !PB_NO_VALIDATE_UTF8
 /* Validate UTF-8 text string */
-bool pb_validate_utf8(const char *s);
+bool pb_validate_utf8(const char *str);
 #endif
 
 #ifdef __cplusplus

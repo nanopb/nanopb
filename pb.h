@@ -378,7 +378,7 @@ extern "C" {
  */
 #ifndef PB_OPT_ASSERT
 # if PB_NO_OPT_ASSERT
-#  define PB_OPT_ASSERT(ignore) ((void)0)
+#  define PB_OPT_ASSERT(ignore) ((void)(ignore))
 # else
 #  include <assert.h>
 #  define PB_OPT_ASSERT(cond) assert(cond)
@@ -457,7 +457,7 @@ typedef PB_BYTE_T_OVERRIDE pb_byte_t;
 #elif defined(UINT8_MAX)
 typedef uint8_t pb_byte_t;
 #else
-typedef uint_least8_t pb_byte_t;
+typedef unsigned char pb_byte_t;
 #endif
 
 /* List of possible field types.
@@ -581,28 +581,17 @@ typedef uint_least16_t pb_fieldidx_t;
 typedef struct pb_decode_ctx_s pb_decode_ctx_t;
 typedef struct pb_encode_ctx_s pb_encode_ctx_t;
 typedef struct pb_field_iter_s pb_field_iter_t;
-
-/* Short-form representation for field information */
-typedef struct pb_field_data_short_s {
-    pb_byte_t tag;         /* Tag number of the field */
-    pb_byte_t type;        /* PB_ATYPE/HTYPE/LTYPE of the field */
-    pb_byte_t data_size;   /* sizeof() of a single item */
-    pb_byte_t array_size;  /* Number of array entries */
-    pb_byte_t data_offset; /* Offset to data field from beginning of message */
-    pb_byte_t size_offset; /* Offset to size field from beginning of message */
-} pb_field_data_short_t;
-
-/* Long-form representation for field information */
-typedef struct pb_field_data_long_s {
-    uint32_t tag;         /* Tag number of the field */
-    uint32_t type;        /* PB_ATYPE/HTYPE/LTYPE/ETYPE of the field */
-    uint32_t data_size;   /* sizeof() of a single item */
-    uint32_t array_size;  /* Number of array entries */
-    uint32_t data_offset; /* Offset to data field from beginning of message */
-    uint32_t size_offset; /* Offset to size field from beginning of message */
-} pb_field_data_long_t;
+typedef struct pb_msgdesc_s pb_msgdesc_t;
+typedef struct pb_bytes_array_s pb_bytes_array_t;
+typedef struct pb_bytes_s pb_bytes_t;
+typedef struct pb_callback_s pb_callback_t;
+typedef struct pb_extension_s pb_extension_t;
+typedef struct pb_walk_state_s pb_walk_state_t;
 
 /* Binary flags related to message descriptor
+ * These flags are set by generator and control the
+ * encoder/decoder behavior.
+ *
  * Flags marked _R_ are recursive: if submessage has the flag,
  * parent message will have it also.
  */
@@ -618,7 +607,6 @@ typedef uint16_t pb_msgflag_t;
 #define PB_MSGFLAG_COLLECT(x)     ((x) & 0xFF00)
 
 /* Structure that defines the mapping between protobuf fields and C struct. */
-typedef struct pb_msgdesc_s pb_msgdesc_t;
 struct pb_msgdesc_s {
     /* Basic information about the message */
     pb_size_t struct_size;
@@ -700,7 +688,6 @@ struct pb_bytes_array_s {
     pb_size_t size;
     pb_byte_t bytes[1];
 };
-typedef struct pb_bytes_array_s pb_bytes_array_t;
 
 /* This structure is used for pointer-type bytes fields.
  * The length of the bytes field is stored statically in the structure,
@@ -710,7 +697,6 @@ struct pb_bytes_s {
     pb_size_t size;
     pb_byte_t *bytes;
 };
-typedef struct pb_bytes_s pb_bytes_t;
 
 /* This structure is used for giving the callback function.
  * It is stored in the message structure and filled in by the method that
@@ -730,7 +716,6 @@ typedef struct pb_bytes_s pb_bytes_t;
  *
  * The callback can be null if you want to skip a field.
  */
-typedef struct pb_callback_s pb_callback_t;
 struct pb_callback_s {
     /* Callback functions receive a pointer to the arg field.
      * You can access the value of the field as *arg, and modify it if needed.
@@ -760,7 +745,6 @@ typedef enum {
  * The extensions are stored as a linked list, which is searched until
  * matching field tag is found.
  */
-typedef struct pb_extension_s pb_extension_t;
 struct pb_extension_s {
     /* Message descriptor for the extension field */
     const pb_msgdesc_t *type;
@@ -824,8 +808,6 @@ typedef uint_least16_t pb_walk_stacksize_t;
 #else
 typedef PB_WALK_STACKSIZE_TYPE_OVERRIDE pb_walk_stacksize_t;
 #endif
-
-typedef struct pb_walk_state_s pb_walk_state_t;
 
 /* This structure is used by pb_walk() for storing information
  * for each submessage level. It shouldn't be directly accessed

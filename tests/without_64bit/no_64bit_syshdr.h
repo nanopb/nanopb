@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 #endif
 
 #define uint64_t disabled_uint64_t
