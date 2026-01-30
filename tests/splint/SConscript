@@ -2,9 +2,11 @@
 
 Import('env')
 
-p = env.WhereIs('splint')
+env.Match('splint/pb_decode.matched', ['$NANOPB/pb_decode.c', 'codestyle.expected'])
+env.Match('splint/pb_encode.matched', ['$NANOPB/pb_encode.c', 'codestyle.expected'])
+env.Match('splint/pb_common.matched', ['$NANOPB/pb_common.c', 'codestyle.expected'])
 
-if p:
+if env.WhereIs('splint'):
     env.Command('pb_decode.splint', '$NANOPB/pb_decode.c',
         'splint -f splint/splint.rc $SOURCE 2> $TARGET')
 
@@ -13,4 +15,3 @@ if p:
 
     env.Command('pb_common.splint', '$NANOPB/pb_common.c',
         'splint -f splint/splint.rc $SOURCE 2> $TARGET')
-

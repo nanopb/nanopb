@@ -696,7 +696,7 @@ pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, 
 bool pb_validate_utf8(const char *str)
 {
     const pb_byte_t *s = (const pb_byte_t*)str;
-    while (*s)
+    while (*s != 0)
     {
         if (*s < 0x80)
         {

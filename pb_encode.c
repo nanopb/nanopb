@@ -40,13 +40,17 @@ typedef struct {
     uint_least16_t flags;
 } pb_encode_walk_stackframe_t;
 
+// Total stackframe size, including PB_WALK internal stackframe
+#define PB_ENCODE_STACKFRAME_SIZE (PB_WALK_STACKFRAME_SIZE + PB_WALK_ALIGN(sizeof(pb_encode_walk_stackframe_t)))
+
 // Amount of stack initially allocated for encoding.
 // pb_walk() will allocate more automatically unless recursion is disabled.
 #ifndef PB_ENCODE_INITIAL_STACKSIZE
-#define PB_ENCODE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * \
-    (PB_WALK_STACKFRAME_SIZE + PB_WALK_ALIGN(sizeof(pb_encode_walk_stackframe_t))) \
-)
+#define PB_ENCODE_INITIAL_STACKSIZE (PB_MESSAGE_NESTING * PB_ENCODE_STACKFRAME_SIZE)
 #endif
+
+// Make sure each recursion level can fit at least one frame
+PB_STATIC_ASSERT(PB_WALK_STACK_SIZE > PB_ENCODE_STACKFRAME_SIZE, PB_WALK_STACK_SIZE_is_too_small)
 
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);

@@ -112,13 +112,14 @@ def add_nanopb_builders(env):
                     invert = True
                     pattern = pattern[2:]
                 
-                status = re.search(pattern.strip(), data, re.MULTILINE)
+                match = re.search(pattern.strip(), data, re.MULTILINE)
                 
-                if not status and not invert:
+                if not match and not invert:
                     print('\033[31m[FAIL]\033[0m   Pattern not found in ' + str(source[0]) + ': ' + pattern)
                     return 1
-                elif status and invert:
-                    print('\033[31m[FAIL]\033[0m   Pattern should not exist, but does in ' + str(source[0]) + ': ' + pattern)
+                elif match and invert:
+                    lineno = data.count('\n', 0, match.start()) + 1
+                    print('\033[31m[FAIL]\033[0m   Pattern should not exist, but does in ' + str(source[0]) + ':' + str(lineno) + ': ' + pattern)
                     return 1
         else:
             print('\033[32m[ OK ]\033[0m   All patterns found in ' + str(source[0]))
