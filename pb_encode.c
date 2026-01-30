@@ -21,7 +21,7 @@
 /**************************************
  * Declarations internal to this file *
  **************************************/
-#ifdef PB_WITHOUT_64BIT
+#if PB_WITHOUT_64BIT
 #define pb_int64_t int32_t
 #define pb_uint64_t uint32_t
 #else
@@ -57,7 +57,7 @@ static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_
 static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 
-#ifndef PB_ENCODE_ARRAYS_UNPACKED
+#if !PB_ENCODE_ARRAYS_UNPACKED
 static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field, pb_size_t count);
 #endif
 
@@ -72,14 +72,14 @@ void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size
     ctx->max_size = bufsize;
     ctx->bytes_written = 0;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     ctx->callback = NULL;
     ctx->state = NULL;
     ctx->buffer_size = bufsize;
     ctx->buffer_count = 0;
 #endif
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 
@@ -93,21 +93,21 @@ void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
     ctx->max_size = PB_SIZE_MAX;
     ctx->bytes_written = 0;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     ctx->callback = NULL;
     ctx->state = NULL;
     ctx->buffer_size = 0;
     ctx->buffer_count = 0;
 #endif
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 
     ctx->walk_state = NULL;
 }
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     pb_encode_ctx_write_callback_t callback, void *state,
     pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize)
@@ -124,7 +124,7 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     ctx->buffer_size = bufsize;
     ctx->buffer_count = 0;
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 
@@ -132,7 +132,7 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
 }
 #endif
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 // Flush any buffered data to callback
 inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
 {
@@ -167,7 +167,7 @@ static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, pb_size_t max_b
     if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
         return NULL;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     if (ctx->bytes_written + max_bytes <= ctx->max_size)
     {
         if (ctx->buffer_count + max_bytes > ctx->buffer_size)
@@ -205,7 +205,7 @@ static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, pb_size_t max_b
 // Finish write to buffer previously obtained from pb_get_wrptr().
 static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, pb_size_t bytes_written)
 {
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     ctx->bytes_written += bytes_written;
     ctx->buffer_count += bytes_written;
 #else
@@ -231,7 +231,7 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t 
         PB_RETURN_ERROR(ctx, "stream full");
     }
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     pb_byte_t *target = pb_bufwrite_start(ctx, count);
     if (target)
     {
@@ -290,7 +290,7 @@ static inline bool safe_read_bool(const void *pSize)
 }
 
 /* Encode a packed array in WT_STRING data. */
-#ifndef PB_ENCODE_ARRAYS_UNPACKED
+#if !PB_ENCODE_ARRAYS_UNPACKED
 static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_t *field, pb_size_t count)
 {
     pb_size_t i;
@@ -374,7 +374,7 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 
     if (PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
     {
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
         if (field->data_size == sizeof(uint64_t))
         {
 #if PB_LITTLE_ENDIAN_8BIT
@@ -395,7 +395,7 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
         }
 #endif /* PB_WITHOUT_64BIT */
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
         /* On AVR, there is no 64-bit double, but we can convert float */
         if (field->data_size == sizeof(float))
         {
@@ -582,13 +582,13 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
             return pb_encode_fixed32(ctx, field->pData);
 
         case PB_LTYPE_FIXED64:
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
             if (field->data_size == sizeof(uint64_t))
             {
                 return pb_encode_fixed64(ctx, field->pData);
             }
 #endif
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
             if (field->data_size == sizeof(float) && PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
             {
                 return pb_encode_float_as_double(ctx, *(float*)field->pData);
@@ -750,7 +750,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
                 return PB_WALK_EXIT_ERR;
             }
 
-#ifndef PB_ENCODE_ARRAYS_UNPACKED
+#if !PB_ENCODE_ARRAYS_UNPACKED
             if (PB_LTYPE(iter->type) <= PB_LTYPE_LAST_PACKABLE)
             {
                 // Packed arrays are encoded inside single PB_WT_STRING
@@ -846,7 +846,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
                 if (!pb_write(ctx, &dummy, 1))
                     return PB_WALK_EXIT_ERR;
             }
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
             else if (ctx->callback != NULL && ctx->buffer_size < PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
             {
                 // Buffer is too small for one-pass sizing, do it with two passes.
@@ -908,7 +908,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         else if (onepass_size && !size_only)
         {
             // Onepass sizing was successful, message data is now in buffer.
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
             pb_byte_t *msgstart = ctx->buffer + ctx->buffer_count - submsgsize;
 #else
             pb_byte_t *msgstart = ctx->buffer + ctx->bytes_written - submsgsize;
@@ -920,7 +920,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
                 ctx->flags = (pb_encode_ctx_flags_t)(ctx->flags & ~PB_ENCODE_CTX_FLAG_ONEPASS_SIZING);
             }
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
             if (!nested && ctx->callback != NULL)
             {
                 // We can write the size to callback directly.
@@ -957,7 +957,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             {
                 ctx->bytes_written = frame->msg_start_pos - 1;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
                 if (ctx->callback != NULL)
                     ctx->buffer_count = 0; // Buffer was flushed before sizing
                 else
@@ -1147,7 +1147,7 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
     }
 }
 
-#ifdef PB_WITHOUT_64BIT
+#if PB_WITHOUT_64BIT
 // When 64-bit datatypes are not available, negative int32_t values still
 // need to be encoded as-if they were 64-bit.
 static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t value)
@@ -1191,7 +1191,7 @@ bool checkreturn pb_encode_svarint(pb_encode_ctx_t *ctx, pb_int64_t value)
 
 bool checkreturn pb_encode_fixed32(pb_encode_ctx_t *ctx, const void *value)
 {
-#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+#if PB_LITTLE_ENDIAN_8BIT
     /* Fast path if we know that we're on little endian */
     return pb_write(ctx, (const pb_byte_t*)value, 4);
 #else
@@ -1205,10 +1205,10 @@ bool checkreturn pb_encode_fixed32(pb_encode_ctx_t *ctx, const void *value)
 #endif
 }
 
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool checkreturn pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value)
 {
-#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+#if PB_LITTLE_ENDIAN_8BIT
     /* Fast path if we know that we're on little endian */
     return pb_write(ctx, (const pb_byte_t*)value, 8);
 #else
@@ -1349,7 +1349,7 @@ static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_
 
         if (PB_LTYPE(field->type) == PB_LTYPE_SVARINT)
             return pb_encode_svarint(ctx, value);
-#ifdef PB_WITHOUT_64BIT
+#if PB_WITHOUT_64BIT
         else if (value < 0)
             return pb_encode_negative_varint(ctx, value);
 #endif
@@ -1443,15 +1443,19 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
         }
     }
 
-#ifdef PB_VALIDATE_UTF8
-    if (!pb_validate_utf8(str))
+#if !PB_NO_VALIDATE_UTF8
+    if (str != NULL &&
+        (ctx->flags & PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8) == 0 &&
+        !pb_validate_utf8(str))
+    {
         PB_RETURN_ERROR(ctx, "invalid utf8");
+    }
 #endif
 
     return pb_encode_string(ctx, (const pb_byte_t*)str, size);
 }
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
 bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value)
 {
     union { float f; uint32_t i; } in;

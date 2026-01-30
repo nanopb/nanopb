@@ -57,7 +57,7 @@ static bool read_fixed64(pb_decode_ctx_t *stream, const pb_field_t *field, void 
 
 static bool read_double(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
     {
         float value;
@@ -156,7 +156,7 @@ static bool read_repeated_fixed64(pb_decode_ctx_t *stream, const pb_field_t *fie
 
 static bool read_repeated_double(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
 {
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
     {
         float** expectedf = (float**)arg;
@@ -457,7 +457,7 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
     
     status = pb_decode(stream, AllTypes_fields, &alltypes);
     
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
     /* Just to check for any interference between pb_release() and callback fields */
     pb_release(stream, AllTypes_fields, &alltypes);
 #endif

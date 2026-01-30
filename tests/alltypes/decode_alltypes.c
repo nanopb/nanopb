@@ -99,13 +99,13 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
         TEST(alltypes.req_limits.enum_min   == HugeEnum_Negative);
         TEST(alltypes.req_limits.enum_max   == HugeEnum_Positive);
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
         TEST(alltypes.req_limits.largetag   == 1001);
 #endif
 
         TEST(alltypes.req_ds8.first == 9991);
 
-#ifndef PB_NO_LARGEMSG
+#if !PB_NO_LARGEMSG
         TEST(alltypes.req_ds8.second == 9992);
 #endif
 

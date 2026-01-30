@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 /* Callback pointer for custom stream types. This can read the
  * bytes directly from your storage, which can be for example
  * a file or a network socket.
@@ -47,13 +47,17 @@ typedef uint16_t pb_decode_ctx_flags_t;
 // NOTE: This behavior is not supported in most other protobuf implementations.
 #define PB_DECODE_CTX_FLAG_NULLTERMINATED    (pb_decode_ctx_flags_t)(1 << 2)
 
+// PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8: Disable UTF8 validation of strings.
+// Can also be applied globally with PB_NO_VALIDATE_UTF8 define.
+#define PB_DECODE_CTX_FLAG_NO_VALIDATE_UTF8  (pb_decode_ctx_flags_t)(1 << 4)
+
 /* Structure containing the state associated with message decoding.
  * For the common case of message coming from a memory buffer, this
  * is initialized with pb_init_decode_ctx_for_buffer().
  */
 struct pb_decode_ctx_s
 {
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // Optional callback for reading from input directly, instead
     // of the memory buffer. State is a free field for use by the callback.
     // It's also allowed to extend the pb_encode_ctx_t struct with your own
@@ -68,7 +72,7 @@ struct pb_decode_ctx_s
     // denial-of-service by excessively long messages.
     pb_size_t bytes_left;
     
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     // Pointer to constant (ROM) string when decoding function returns error
     const char *errmsg;
 #endif
@@ -80,7 +84,7 @@ struct pb_decode_ctx_s
     // The pointer is advanced when data has been read
     const pb_byte_t *rdpos;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // Pointer to the beginning of the memory buffer usable as cache
     // Bytes are stored aligned to the end of the buffer.
     pb_byte_t *buffer;
@@ -93,7 +97,7 @@ struct pb_decode_ctx_s
     // callback handling. This is initialized to NULL and later set by pb_decode().
     pb_walk_state_t *walk_state;
 
-#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+#if !PB_NO_CONTEXT_ALLOCATOR
     pb_allocator_t *allocator;
 #endif
 };
@@ -156,7 +160,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  */
 void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t msglen);
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 /* Create encode context for a stream with a callback function.
  * State is a free pointer for use by the callback.
  * A memory buffer can optionally be provided for caching.
@@ -171,7 +175,7 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
  */
 bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count);
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 /******************************************
  * Helper functions for memory allocation *
  ******************************************/
@@ -207,7 +211,7 @@ bool pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type);
 
 /* Decode an integer in the varint format. This works for enum, int32,
  * int64, uint32 and uint64 field types. */
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest);
 #else
 #define pb_decode_varint pb_decode_varint32
@@ -222,7 +226,7 @@ bool pb_decode_bool(pb_decode_ctx_t *ctx, bool *dest);
 
 /* Decode an integer in the zig-zagged svarint format. This works for sint32
  * and sint64. */
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool pb_decode_svarint(pb_decode_ctx_t *ctx, int64_t *dest);
 #else
 bool pb_decode_svarint(pb_decode_ctx_t *ctx, int32_t *dest);
@@ -232,13 +236,13 @@ bool pb_decode_svarint(pb_decode_ctx_t *ctx, int32_t *dest);
  * a 4-byte wide C variable. */
 bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest);
 
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 /* Decode a fixed64, sfixed64 or double value. You need to pass a pointer to
  * a 8-byte wide C variable. */
 bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest);
 #endif
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
 /* Decode a double value into float variable. */
 bool pb_decode_double_as_float(pb_decode_ctx_t *ctx, float *dest);
 #endif

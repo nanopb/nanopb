@@ -32,7 +32,7 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb
 static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
 static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const pb_field_iter_t *field);
 
@@ -40,7 +40,7 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
 static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #endif
 
-#ifdef PB_WITHOUT_64BIT
+#if PB_WITHOUT_64BIT
 #define pb_int64_t int32_t
 #define pb_uint64_t uint32_t
 #else
@@ -48,8 +48,8 @@ static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #define pb_uint64_t uint64_t
 #endif
 
-#ifndef PB_NO_ERRMSG
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_ERRMSG
+#if !PB_NO_STREAM_CALLBACK
 // This is used in pb_decode_tag() to workaround corner case
 // in EOF detection with input stream callbacks.
 static const char c_errmsg_io_error[] = "io error";
@@ -99,7 +99,7 @@ typedef struct {
 typedef struct {
     pb_size_t bytes_left;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // We may need a temporary buffer when varint field comes from a stream source
     const pb_byte_t *rdpos;
     pb_byte_t *buffer;
@@ -115,7 +115,7 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
  * pb_istream_t implementation *
  *******************************/
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 
 // Return how many bytes are available at rdpos
 static inline pb_size_t pb_bytes_available(const pb_decode_ctx_t *ctx)
@@ -188,7 +188,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
     {
         bufcount = count;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
         // Check how much data is available from cache
         if (ctx->buffer_size > 0)
         {
@@ -209,7 +209,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
         ctx->bytes_left -= bufcount;
     }
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     if (ctx->callback != NULL && bufcount < count)
     {
         // Read rest of the data directly from callback
@@ -253,7 +253,7 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
     if (ctx->bytes_left == 0)
         PB_RETURN_ERROR(ctx, "end-of-stream");
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     if (!ctx->rdpos ||
         (ctx->buffer_size > 0 && ctx->rdpos >= ctx->buffer + ctx->buffer_size))
     {
@@ -278,11 +278,11 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
     ctx->bytes_left = msglen;
     ctx->rdpos = buf;
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     ctx->callback = NULL;
     ctx->state = NULL;
     ctx->buffer = NULL;
@@ -291,12 +291,12 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
 
     ctx->walk_state = NULL;
 
-#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+#if !PB_NO_CONTEXT_ALLOCATOR
     ctx->allocator = NULL;
 #endif
 }
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
     pb_decode_ctx_read_callback_t callback, void *state,
     pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize)
@@ -321,13 +321,13 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
         ctx->buffer_size = 0;
     }
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     ctx->errmsg = NULL;
 #endif
 
     ctx->walk_state = NULL;
 
-#if defined(PB_ENABLE_MALLOC) && !defined(PB_NO_CONTEXT_ALLOCATOR)
+#if !PB_NO_CONTEXT_ALLOCATOR
     ctx->allocator = NULL;
 #endif
 }
@@ -395,7 +395,7 @@ bool checkreturn pb_decode_varint32(pb_decode_ctx_t *ctx, uint32_t *dest)
    return true;
 }
 
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool checkreturn pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest)
 {
     pb_byte_t byte;
@@ -459,11 +459,11 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
 
     if (!pb_decode_varint32(ctx, &temp))
     {
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
         // Callbacks might detect eof only after first unsuccessful read
         if (ctx->callback != NULL && ctx->bytes_left == 0)
         {
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
             // Workaround issue #1017 where the "io error" message set by pb_readbyte()
             // will cause other error messages to be overridden later.
             if (ctx->errmsg == c_errmsg_io_error)
@@ -475,7 +475,7 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
         return false;
     }
     
-#ifdef PB_NO_LARGEMSG
+#if PB_NO_LARGEMSG
     // Range of tags in messages is limited to 4096,
     // make sure large tag numbers are not confused
     // after truncation to pb_tag_t.
@@ -524,7 +524,7 @@ bool pb_decode_open_substream(pb_decode_ctx_t *ctx, pb_size_t *old_length)
     *old_length = (pb_size_t)(ctx->bytes_left - size);
     ctx->bytes_left = (pb_size_t)size;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // We can prefill stream cache now that we know substream length
     if (!pb_fill_stream_cache(ctx))
         return false;
@@ -552,7 +552,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
 {
     uint32_t length = 0;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     pb_byte_t *buf = NULL;
 #endif
 
@@ -569,7 +569,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
     {
         length = 8;
     }
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     else if (wire_type == PB_WT_VARINT && ctx->callback != NULL &&
              pb_bytes_available(ctx) < 10)
     {
@@ -633,7 +633,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
     tmp->bytes_left = (pb_size_t)(ctx->bytes_left - length);
     ctx->bytes_left = (pb_size_t)length;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     tmp->rdpos = ctx->rdpos;
     tmp->buffer = ctx->buffer;
     tmp->buffer_size = ctx->buffer_size;
@@ -662,7 +662,7 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
 
     ctx->bytes_left = tmp->bytes_left;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     // Check if temporary buffer was used
     if (ctx->buffer != tmp->buffer)
     {
@@ -675,7 +675,7 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
     return true;
 }
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 // Estimate the array allocation size of packed array.
 pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
@@ -695,7 +695,7 @@ pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_
     }
     else
     {
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
         if (ctx->callback && pb_bytes_available(ctx) < ctx->bytes_left)
         {
             // Stream contents not available, make a guess.
@@ -740,7 +740,7 @@ pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const p
     pb_size_t old_length = ctx->bytes_left;
     pb_size_t count = 0;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
     if (ctx->callback)
     {
         // Don't read more than what is available in memory buffer
@@ -763,7 +763,9 @@ pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const p
         if (!pb_skip_field(ctx, wire_type) ||
             !pb_decode_tag(ctx, &wt, &tag, &eof))
         {
+#if !PB_NO_ERRMSG
             ctx->errmsg = NULL;
+#endif
             break;
         }
 
@@ -985,14 +987,14 @@ static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t 
             if (wire_type != PB_WT_64BIT && wire_type != PB_WT_PACKED)
                 PB_RETURN_ERROR(ctx, "wrong wire type");
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
             if (field->data_size == sizeof(float))
             {
                 return pb_decode_double_as_float(ctx, (float*)field->pData);
             }
 #endif
 
-#ifdef PB_WITHOUT_64BIT
+#if PB_WITHOUT_64BIT
             PB_RETURN_ERROR(ctx, "invalid data_size");
 #else
             return pb_decode_fixed64(ctx, field->pData);
@@ -1087,7 +1089,7 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
-#ifndef PB_ENABLE_MALLOC
+#if PB_NO_MALLOC
     PB_UNUSED(wire_type);
     PB_UNUSED(field);
     PB_RETURN_ERROR(ctx, "no malloc support");
@@ -1304,7 +1306,7 @@ static bool check_all_required_fields_present(pb_walk_state_t *state)
     return true;
 }
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 
 // Check if there is old data in the oneof union that needs to be released
 // prior to replacing it with a new value.
@@ -1375,7 +1377,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
         // Allocate memory for a pointer field
         if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
         {
@@ -1507,7 +1509,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             return pb_defaults_walk_cb(state);
         }
     }
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
     else if (state->flags & PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD)
     {
         if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_RELEASE)
@@ -1621,7 +1623,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
         else if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
         {
             // Release old value of the oneof field
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
             pb_walk_retval_t retval = release_oneof(state, iter, false);
             if (retval != PB_WALK_NEXT_ITEM)
             {
@@ -1667,7 +1669,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             if (!open_callback_substream(ctx, wire_type, &tmp))
                 return PB_WALK_EXIT_ERR;
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
             if (PB_LTYPE_IS_SUBMSG(iter->type) && ctx->callback != NULL)
             {
                 // We now know the submessage data length, so preload it into cache.
@@ -1792,7 +1794,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     {
         PB_SET_ERROR(ctx, state.errmsg);
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
         (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         state.ctx = ctx;
@@ -1846,7 +1848,7 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
     }
 
     /* Release allocations on failure*/
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
     if (!status)
     {
         state->flags = 0;
@@ -1917,7 +1919,7 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * Memory allocation and release *
  *********************************/
 
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 
 /* Allocate storage for 'array_size' entries each of 'data_size' bytes.
  * Uses either the allocator defined by ctx or the default allocator.
@@ -1964,14 +1966,14 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb
     pb_size_t bytes = array_size * data_size;
     void *new_ptr = NULL;
 
-#ifndef PB_NO_CONTEXT_ALLOCATOR
+#if !PB_NO_CONTEXT_ALLOCATOR
     if (ctx != NULL && ctx->allocator)
     {
         new_ptr = ctx->allocator->realloc(ctx->allocator, *ptr, bytes);
     }
     else
 #endif
-#ifndef PB_NO_DEFAULT_ALLOCATOR
+#if !PB_NO_DEFAULT_ALLOCATOR
     {
         new_ptr = pb_realloc(*ptr, bytes);
     }
@@ -1993,14 +1995,14 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb
  */
 void pb_release_field(pb_decode_ctx_t *ctx, void *ptr)
 {
-#ifdef PB_NO_DEFAULT_ALLOCATOR
+#if PB_NO_DEFAULT_ALLOCATOR
     PB_OPT_ASSERT(ctx != NULL);
 #endif
 
     if (ptr == NULL)
         return; // Nothing to do
 
-#ifndef PB_NO_CONTEXT_ALLOCATOR
+#if !PB_NO_CONTEXT_ALLOCATOR
     if (ctx != NULL && ctx->allocator)
     {
         ctx->allocator->free(ctx->allocator, ptr);
@@ -2008,7 +2010,7 @@ void pb_release_field(pb_decode_ctx_t *ctx, void *ptr)
     else
 #endif
     {
-#ifndef PB_NO_DEFAULT_ALLOCATOR
+#if !PB_NO_DEFAULT_ALLOCATOR
         pb_free(ptr);
 #endif
     }
@@ -2253,7 +2255,7 @@ bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest)
     if (!pb_read(ctx, u.bytes, 4))
         return false;
 
-#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+#if PB_LITTLE_ENDIAN_8BIT
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint32_t*)dest = u.fixed32;
 #else
@@ -2265,7 +2267,7 @@ bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest)
     return true;
 }
 
-#ifndef PB_WITHOUT_64BIT
+#if !PB_WITHOUT_64BIT
 bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest)
 {
     union {
@@ -2276,7 +2278,7 @@ bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest)
     if (!pb_read(ctx, u.bytes, 8))
         return false;
 
-#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+#if PB_LITTLE_ENDIAN_8BIT
     /* fast path - if we know that we're on little endian, assign directly */
     *(uint64_t*)dest = u.fixed64;
 #else
@@ -2384,10 +2386,9 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
-#ifndef PB_ENABLE_MALLOC
+#if PB_NO_MALLOC
         PB_RETURN_ERROR(ctx, "no malloc support");
 #else
-
         PB_OPT_ASSERT(field->data_size == sizeof(pb_bytes_t));
         pb_bytes_t *bytes = (pb_bytes_t*)field->pData;
         bytes->size = size;
@@ -2435,7 +2436,7 @@ static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
-#ifndef PB_ENABLE_MALLOC
+#if PB_NO_MALLOC
         PB_RETURN_ERROR(ctx, "no malloc support");
 #else
         if (!pb_allocate_field(ctx, field->pData, alloc_size, 1))
@@ -2454,9 +2455,12 @@ static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_
     if (!pb_read(ctx, dest, size))
         return false;
 
-#ifdef PB_VALIDATE_UTF8
-    if (!pb_validate_utf8((const char*)dest))
+#if !PB_NO_VALIDATE_UTF8
+    if ((ctx->flags & PB_DECODE_CTX_FLAG_NO_VALIDATE_UTF8) == 0 &&
+        !pb_validate_utf8((const char*)dest))
+    {
         PB_RETURN_ERROR(ctx, "invalid utf8");
+    }
 #endif
 
     return true;
@@ -2482,7 +2486,7 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb
     return pb_read(ctx, (pb_byte_t*)field->pData, field->data_size);
 }
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
 bool pb_decode_double_as_float(pb_decode_ctx_t *ctx, float *dest)
 {
     uint_least8_t sign;

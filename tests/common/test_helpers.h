@@ -17,7 +17,7 @@
 #define SET_BINARY_MODE(file)
 #endif
 
-#ifndef PB_NO_STREAM_CALLBACK
+#if !PB_NO_STREAM_CALLBACK
 
 // Bind stdio streams to nanopb streams
 static bool stdio_write_cb(pb_encode_ctx_t *ctx, const uint8_t *buf, size_t count)

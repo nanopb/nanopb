@@ -36,7 +36,7 @@ static bool write_fixed64(pb_encode_ctx_t *stream, const pb_field_t *field, void
 
 static bool write_double(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
 {
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
         return pb_encode_tag_for_field(stream, field) &&
                pb_encode_float_as_double(stream, *(float*)*arg);
@@ -126,7 +126,7 @@ static bool write_repeated_double(pb_encode_ctx_t *stream, const pb_field_t *fie
 {
     uint64_t dummy = 0;
 
-#ifdef PB_CONVERT_DOUBLE_FLOAT
+#if PB_CONVERT_DOUBLE_FLOAT
     if (sizeof(double) == sizeof(float))
         return pb_encode_tag(stream, PB_WT_STRING, field->tag) &&
                pb_encode_varint(stream, 5 * 8) && /* Number of bytes */

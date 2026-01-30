@@ -35,6 +35,24 @@ were given varying `stream` pointers when substreams were processed.
 
 **Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
 
+### All features are enabled by default
+
+**Rationale:** Previously some features were disabled with `PB_NO_xxxx` macro,
+while others were enabled with `PB_ENABLE_xxxx` macros. The disabled features
+got poorer compilation test coverage, and the ABI compatibility depended on
+what was enabled.
+
+**Changes:** All supported features are enabled by default. The exception is
+platform-specific features and special compatibility settings. In particular,
+malloc support and utf8-validation are now enabled by default. The macros are
+now always defined as either `0` or `1`, and instead of `#ifdef`, `#if` should
+be used. New setting `PB_MINIMAL` makes all features default to disabled.
+
+**Required actions:** Check required features, and define e.g. `PB_NO_MALLOC`
+or `PB_NO_VALIDATE_UTF8` to `1` if preferred. If user code uses `#ifdef` on
+the `PB_` feature defines, convert it to `#if`. The `nanopb_api_updater.py`
+script can perform this automatically in most cases.
+
 ### Remove custom extension field callback support
 
 **Rationale:** Previously extension fields used extra `pb_extension_type_t`

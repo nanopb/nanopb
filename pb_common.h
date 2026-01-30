@@ -122,7 +122,7 @@ struct pb_walk_state_s {
     // Previous callback return value
     pb_walk_retval_t retval;
 
-#ifndef PB_NO_ERRMSG
+#if !PB_NO_ERRMSG
     // Pointer to constant (ROM) string used to indicate error cause
     const char *errmsg;
 #endif
@@ -170,7 +170,7 @@ bool pb_walk(pb_walk_state_t *state);
  */
 pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message);
 
-#ifdef PB_VALIDATE_UTF8
+#if !PB_NO_VALIDATE_UTF8
 /* Validate UTF-8 text string */
 bool pb_validate_utf8(const char *s);
 #endif
