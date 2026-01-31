@@ -107,6 +107,16 @@ The data type of `pb_size_t` is always smaller or equal to `size_t`.
 
 **Required actions:** In some cases `SIZE_MAX` in user code may need to be replaced with `PB_SIZE_MAX` to silence compiler warnings.
 
+### Proto3 singular submessages are unconditionally encoded
+
+**Rationale:** Since nanopb-0.4.0, proto3 submessages have had a separate `has_` field,
+consistent with behavior of other protobuf libraries. This can be omitted with generator
+option `proto3_singular_msgs`. Previously submessage was then recursively checked for non-zero
+values.
+
+**Changes:** To simplify code, singular submessages are now unconditionally encoded as zero-length
+value. This decodes to the same result, but takes 2 bytes more in the encoded representation.
+
 ### Remove Python 2 support
 
 **Rationale:** Python 2 interpreter was deprecated in 2020. For backward

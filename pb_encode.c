@@ -52,7 +52,6 @@ typedef struct {
 // Make sure each recursion level can fit at least one frame
 PB_STATIC_ASSERT(PB_WALK_STACK_SIZE > PB_ENCODE_STACKFRAME_SIZE, PB_WALK_STACK_SIZE_is_too_small)
 
-static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value);
 static bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value);
@@ -384,136 +383,6 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 }
 #endif /* PB_ENCODE_ARRAYS_UNPACKED */
 
-/* In proto3, all fields are optional and are only encoded if their value is "non-zero".
- * This function implements the check for the zero value. */
-static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field)
-{
-    pb_type_t type = field->type;
-
-    if (PB_ATYPE(type) == PB_ATYPE_STATIC)
-    {
-        if (PB_HTYPE(type) == PB_HTYPE_REQUIRED)
-        {
-            /* Required proto2 fields inside proto3 submessage, pretty rare case */
-            return false;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED)
-        {
-            /* Repeated fields inside proto3 submessage: present if count != 0 */
-            return *(const pb_size_t*)field->pSize == 0;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_ONEOF)
-        {
-            /* Oneof fields */
-            return *(const pb_tag_t*)field->pSize == 0;
-        }
-        else if (PB_HTYPE(type) == PB_HTYPE_OPTIONAL && field->pSize != NULL)
-        {
-            /* Proto2 optional fields inside proto3 message, or proto3
-             * submessage fields. */
-            return safe_read_bool(field->pSize) == false;
-        }
-        else if (field->descriptor->default_value)
-        {
-            /* Proto3 messages do not have default values, but proto2 messages
-             * can contain optional fields without has_fields (generator option 'proto3').
-             * In this case they must always be encoded, to make sure that the
-             * non-zero default value is overwritten.
-             */
-            return false;
-        }
-
-        /* Rest is proto3 singular fields */
-        if (PB_LTYPE(type) <= PB_LTYPE_LAST_PACKABLE)
-        {
-            /* Simple integer / float fields */
-            pb_size_t i;
-            const char *p = (const char*)field->pData;
-            for (i = 0; i < field->data_size; i++)
-            {
-                if (p[i] != 0)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-        else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
-        {
-            const pb_bytes_array_t *bytes = (const pb_bytes_array_t*)field->pData;
-            return bytes->size == 0;
-        }
-        else if (PB_LTYPE(type) == PB_LTYPE_STRING)
-        {
-            return *(const char*)field->pData == '\0';
-        }
-        else if (PB_LTYPE(type) == PB_LTYPE_FIXED_LENGTH_BYTES)
-        {
-            /* Fixed length bytes is only empty if its length is fixed
-             * as 0. Which would be pretty strange, but we can check
-             * it anyway. */
-            return field->data_size == 0;
-        }
-        else if (PB_LTYPE_IS_SUBMSG(type))
-        {
-            /* Check all fields in the submessage to find if any of them
-             * are non-zero. The comparison cannot be done byte-per-byte
-             * because the C struct may contain padding bytes that must
-             * be skipped. Note that usually proto3 submessages have
-             * a separate has_field that is checked earlier in this if.
-             *
-             * FIXME: this still has recursion
-             */
-            pb_field_iter_t iter;
-            if (pb_field_iter_begin(&iter, field->submsg_desc, field->pData))
-            {
-                do
-                {
-                    if (!pb_check_proto3_default_value(&iter))
-                    {
-                        return false;
-                    }
-                } while (pb_field_iter_next(&iter));
-            }
-            return true;
-        }
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_POINTER &&
-             PB_LTYPE(type) == PB_LTYPE_BYTES &&
-             PB_HTYPE(type) != PB_HTYPE_REPEATED)
-    {
-        return ((pb_bytes_t*)field->pData)->size != 0;
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_POINTER)
-    {
-        return field->pData == NULL;
-    }
-    else if (PB_ATYPE(type) == PB_ATYPE_CALLBACK)
-    {
-        if (PB_LTYPE(type) == PB_LTYPE_EXTENSION)
-        {
-#if !PB_NO_EXTENSIONS
-            const pb_extension_t *extension = *(const pb_extension_t* const *)field->pData;
-            return extension == NULL;
-#else
-            return true;
-#endif
-        }
-        else if (field->descriptor->field_callback == pb_default_field_callback)
-        {
-            pb_callback_t *pCallback = (pb_callback_t*)field->pData;
-            return pCallback->funcs.encode == NULL;
-        }
-        else
-        {
-            return field->descriptor->field_callback == NULL;
-        }
-    }
-
-    return false; /* Not typically reached, safe default for weird special cases. */
-}
-
 /* Encode a field with static or pointer allocation, i.e. one whose data
  * is available to the encoder directly. */
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
@@ -578,55 +447,74 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
 /* Check if field is present */
 static bool field_present(const pb_field_iter_t *field)
 {
-    if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
-    {
-        if (*(const pb_tag_t*)field->pSize != field->tag)
-        {
-            /* Different type oneof field */
-            return false;
-        }
-    }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL)
-    {
-        if (field->pSize)
-        {
-            if (safe_read_bool(field->pSize) == false)
-            {
-                /* Missing optional field */
-                return false;
-            }
-        }
-        else if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
-        {
-            /* Proto3 singular field */
-            if (pb_check_proto3_default_value(field))
-                return false;
-        }
-        else if (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
-                 PB_LTYPE(field->type) == PB_LTYPE_BYTES)
-        {
-            const pb_bytes_t *bytes = (const pb_bytes_t*)field->pData;
-            return bytes->size != 0;
-        }
-    }
-    else if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-    {
-        if (field->pSize)
-        {
-            if (*(pb_size_t*)field->pSize == 0)
-            {
-                /* Empty array */
-                return false;
-            }
-        }
-    }
-
-    if (!field->pData)
-    {
-        /* Pointer field set to NULL */
+    if (field->pData == NULL)
         return false;
+
+    if (field->pSize)
+    {
+        // Fields with separate size or has field
+        switch(PB_HTYPE(field->type))
+        {
+            case PB_HTYPE_ONEOF:        return *(const pb_tag_t*)field->pSize == field->tag;
+            case PB_HTYPE_REPEATED:     return *(pb_size_t*)field->pSize != 0;
+            case PB_HTYPE_OPTIONAL:     return safe_read_bool(field->pSize);
+            default:                    return true;
+        }
     }
 
+    if (PB_HTYPE(field->type) == PB_HTYPE_OPTIONAL &&
+        PB_ATYPE(field->type) == PB_ATYPE_STATIC)
+    {
+        // Proto3 singular fields
+
+        if (field->descriptor->default_value)
+        {
+            // Proto3 messages do not have default values, but proto2 messages
+            // can contain optional fields without has_fields (generator option 'proto3').
+            // In this case they must always be encoded, to make sure that the
+            // non-zero default value is overwritten.
+            return true;
+        }
+
+        switch (PB_LTYPE(field->type))
+        {
+            case PB_LTYPE_BYTES:
+                return ((const pb_bytes_array_t*)field->pData)->size != 0;
+
+            case PB_LTYPE_STRING:
+                return *(const char*)field->pData != '\0';
+
+            case PB_LTYPE_FIXED_LENGTH_BYTES:
+                return field->data_size != 0;
+
+            case PB_LTYPE_SUBMESSAGE:
+            case PB_LTYPE_SUBMSG_W_CB:
+                // Proto3 submessages normally have has_ field, but that can
+                // be excluded with generator option. In that case, assume the
+                // submessage is always present.
+                return true;
+
+            default:
+                // Varints, floats etc. can be checked byte-by-byte against 0
+                {
+                    pb_size_t i;
+                    const char *p = (const char*)field->pData;
+                    for (i = 0; i < field->data_size; i++)
+                    {
+                        if (p[i] != 0) return true;
+                    }
+                    return false;
+                }
+        }
+    }
+
+    if (PB_LTYPE(field->type) == PB_LTYPE_BYTES &&
+        PB_ATYPE(field->type) == PB_ATYPE_POINTER)
+    {
+        return ((pb_bytes_t*)field->pData)->bytes != NULL;
+    }
+
+    // Required fields, pointer fields, callback fields
     return true;
 }
 

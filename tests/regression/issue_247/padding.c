@@ -23,9 +23,10 @@ int main()
         pb_init_encode_ctx_for_buffer(&stream, buf, sizeof(buf));
         TEST(pb_encode(&stream, TestMessage_fields, &msg));
         
-        /* Because all fields have zero values, proto3 encoder
-         * shouldn't write out anything. */
-        TEST(stream.bytes_written == 0);
+        /* The submessage will be encoded as an empty message. */
+        TEST(stream.bytes_written == 2 &&
+             buf[0] == ((1 << 3) | PB_WT_STRING) &&
+             buf[1] == 0);
     }
     
     return status;

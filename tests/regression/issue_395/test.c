@@ -25,13 +25,18 @@ int main(int argc, char **argv)
 
     printf("response payload (%d):", (int)ostream.bytes_written);
     for (i = 0; i < ostream.bytes_written; i++) {
-        printf("%02X", buffer[i]);
+        printf("0x%02X ", buffer[i]);
     }
     printf("\n");
 
-    TEST(ostream.bytes_written == 2);
-    TEST(buffer[0] == 0x08);
-    TEST(buffer[1] == 0x01);
+    pb_byte_t expected[] = {
+        0x08, 0x01, // Reply.result == Reply_Result_OK
+        0x12, 0x00, // Reply.error = no fields in submsg
+        0x1A, 0x02, // Reply.submessage
+            0x0A, 0x00 // Reply.submessage.subsubmessageA = no fields in submsg
+    };
+    TEST(ostream.bytes_written == sizeof(expected));
+    TEST(memcmp(buffer, expected, sizeof(expected)) == 0);
     
     return status;
 }
