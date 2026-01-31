@@ -70,44 +70,20 @@ static bool checkreturn encode_packed_array(pb_encode_ctx_t *ctx, pb_field_iter_
 
 void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size_t bufsize)
 {
-    ctx->flags = 0;
+    memset(ctx, 0, sizeof(pb_encode_ctx_t));
+
     ctx->buffer = buf;
     ctx->max_size = bufsize;
-    ctx->bytes_written = 0;
 
 #if !PB_NO_STREAM_CALLBACK
-    ctx->callback = NULL;
-    ctx->state = NULL;
     ctx->buffer_size = bufsize;
-    ctx->buffer_count = 0;
 #endif
-
-#if !PB_NO_ERRMSG
-    ctx->errmsg = NULL;
-#endif
-
-    ctx->walk_state = NULL;
 }
 
 void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 {
+    memset(ctx, 0, sizeof(pb_encode_ctx_t));
     ctx->flags = PB_ENCODE_CTX_FLAG_SIZING;
-    ctx->buffer = NULL;
-    ctx->max_size = PB_SIZE_MAX;
-    ctx->bytes_written = 0;
-
-#if !PB_NO_STREAM_CALLBACK
-    ctx->callback = NULL;
-    ctx->state = NULL;
-    ctx->buffer_size = 0;
-    ctx->buffer_count = 0;
-#endif
-
-#if !PB_NO_ERRMSG
-    ctx->errmsg = NULL;
-#endif
-
-    ctx->walk_state = NULL;
 }
 
 #if !PB_NO_STREAM_CALLBACK
@@ -115,23 +91,15 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     pb_encode_ctx_write_callback_t callback, void *state,
     pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize)
 {
-    ctx->flags = 0;
-    ctx->callback = callback;
-    ctx->state = state;
+    memset(ctx, 0, sizeof(pb_encode_ctx_t));
 
     ctx->max_size = max_size;
-    ctx->bytes_written = 0;
 
     ctx->buffer = buf;
-
     ctx->buffer_size = bufsize;
-    ctx->buffer_count = 0;
 
-#if !PB_NO_ERRMSG
-    ctx->errmsg = NULL;
-#endif
-
-    ctx->walk_state = NULL;
+    ctx->callback = callback;
+    ctx->state = state;
 }
 #endif
 
@@ -389,7 +357,7 @@ static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_
 {
     if (!field->pData)
     {
-        /* Missing pointer field */
+        // Missing pointer field inside an array
         return true;
     }
 
@@ -674,7 +642,6 @@ static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, pb_si
 
 static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 {
-    pb_field_iter_t *iter = &state->iter;
     pb_encode_ctx_t *ctx = (pb_encode_ctx_t *)state->ctx;
     pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
 
@@ -806,6 +773,12 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
         }
         else
         {
+#if PB_NO_STREAM_CALLBACK
+            // Onepass sizing should never fail with memory buffers
+            PB_SET_ERROR(ctx, "sizing failed");
+            return PB_WALK_EXIT_ERR;
+#else
+
             // Submessage size is now known.
             // Encode again to write out the message data.
             ctx->flags &= (pb_encode_ctx_flags_t)~(PB_ENCODE_CTX_FLAG_SIZING | PB_ENCODE_CTX_FLAG_ONEPASS_SIZING);
@@ -816,12 +789,10 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             {
                 ctx->bytes_written = frame->msg_start_pos - 1;
 
-#if !PB_NO_STREAM_CALLBACK
                 if (ctx->callback != NULL)
                     ctx->buffer_count = 0; // Buffer was flushed before sizing
                 else
                     ctx->buffer_count = ctx->bytes_written;
-#endif
             }
             else
             {
@@ -834,12 +805,17 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             // Store expected end position of message
             frame->msg_start_pos = ctx->bytes_written + submsgsize;
 
+            // Return iterator to the first field
+            state->iter.index = state->iter.descriptor->field_count;
+            (void)pb_field_iter_next(&state->iter);
+
             // Do the encoding and write output data
-            (void)pb_field_iter_reset(iter);
             retval = encode_all_fields(ctx, state);
+#endif
         }
     }
 
+#if !PB_NO_STREAM_CALLBACK
     if (retval == PB_WALK_OUT &&
         (frame->flags & PB_ENCODE_WALK_FRAME_FLAG_SUBMSG_PASS2) != 0)
     {
@@ -851,6 +827,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             return PB_WALK_EXIT_ERR;
         }
     }
+#endif
     
     return retval;
 }
@@ -1246,9 +1223,8 @@ static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t
 
 static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    pb_size_t size = 0;
     pb_size_t max_size = (pb_size_t)field->data_size;
-    const char *str = NULL;
+    const char *str = (const char*)field->pData;
     
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
     {
@@ -1259,10 +1235,6 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
             // In pointer-type string arrays, the array entries are themselves
             // pointers. Therefore we have to dereference twice.
             str = *(const char**)field->pData;
-        }
-        else
-        {
-            str = (const char*)field->pData;
         }
     }
     else
@@ -1276,27 +1248,20 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
             PB_RETURN_ERROR(ctx, "zero-length string");
 
         max_size -= 1;
-        str = (const char*)field->pData;
     }
 
-    if (str == NULL)
+    pb_size_t size = 0;
+    if (str != NULL)
     {
-        size = 0; /* Treat null pointer as an empty string */
-    }
-    else
-    {
-        const char *p = str;
-
         /* strnlen() is not always available, so just use a loop */
-        while (size < max_size && *p != '\0')
+        while (str[size] != '\0')
         {
-            size++;
-            p++;
-        }
+            if (size >= max_size)
+            {
+                PB_RETURN_ERROR(ctx, "unterminated string");
+            }
 
-        if (*p != '\0')
-        {
-            PB_RETURN_ERROR(ctx, "unterminated string");
+            size++;
         }
     }
 

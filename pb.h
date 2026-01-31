@@ -238,7 +238,11 @@
 // Encode and decode calls initially reserve enough stack space to
 // handle this number of nested message levels.
 #ifndef PB_MESSAGE_NESTING
+#if PB_MINIMAL
+#define PB_MESSAGE_NESTING 4
+#else
 #define PB_MESSAGE_NESTING 8
+#endif
 #endif
 
 // PB_MESSAGE_NESTING_MAX: Runtime limit of message nesting.

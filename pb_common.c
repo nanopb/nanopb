@@ -54,9 +54,6 @@ static bool validate_data_pointer(pb_field_iter_t *iter, void *ptr)
         count = iter->array_size;
     }
 
-    if (iter->data_size == 0)
-        return false; // Invalid iterator state
-
     if (queryptr >= baseptr + iter->data_size * count)
         return false; // Past the end of the field
 
@@ -69,6 +66,10 @@ static bool validate_data_pointer(pb_field_iter_t *iter, void *ptr)
 // Load field iterator values from the descriptor array and setup pointers
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
+    iter->pField = NULL;
+    iter->pData = NULL;
+    iter->pSize = NULL;
+
     if (iter->index >= iter->descriptor->field_count)
     {
         /* This is used to indicate end of message.
@@ -77,7 +78,6 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
         iter->tag = 0;
         iter->type = 0;
         iter->data_size = iter->array_size = 0;
-        iter->pData = iter->pField = iter->pSize = NULL;
         return false;
     }
 
@@ -126,13 +126,8 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     }
 
     // Calculate pField and pSize pointers from the offsets given by descriptor
-    if (!iter->message)
-    {
-        /* Avoid doing arithmetic on null pointers, it is undefined */
-        iter->pField = NULL;
-        iter->pSize = NULL;
-    }
-    else
+    // If message is NULL, the pointers can remain NULL.
+    if (iter->message)
     {
         iter->pField = (char*)iter->message + data_offset;
 
@@ -198,8 +193,11 @@ static void advance_iterator(pb_field_iter_t *iter, bool wrap)
 
     if (wrap && iter->index >= iter->descriptor->field_count)
     {
-        /* Restart */
-        (void)pb_field_iter_reset(iter);
+        // Restart from beginning
+        iter->index = 0;
+        iter->field_info_index = 0;
+        iter->submessage_index = 0;
+        iter->required_field_index = 0;
     }
     else
     {
@@ -269,15 +267,6 @@ void *pb_get_extension_data_ptr(pb_extension_t *extension)
     }
 }
 #endif
-
-bool pb_field_iter_reset(pb_field_iter_t *iter)
-{
-    iter->index = 0;
-    iter->field_info_index = 0;
-    iter->submessage_index = 0;
-    iter->required_field_index = 0;
-    return load_descriptor_values(iter);
-}
 
 bool pb_field_iter_next(pb_field_iter_t *iter)
 {
