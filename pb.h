@@ -743,7 +743,6 @@ typedef enum {
     PB_WT_64BIT  = 1,
     PB_WT_STRING = 2,
     PB_WT_32BIT  = 5,
-    PB_WT_INVALID = 254,
     PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
 } pb_wire_type_t;
 
