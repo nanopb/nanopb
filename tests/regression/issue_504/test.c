@@ -47,6 +47,14 @@ int main(int argc, char **argv)
         TEST(ostream.bytes_written != 0);
     }
 
+    // Expected behavior changed in nanopb-1.0.
+    // Since 0.4.x, proto3 submessages have had separate has_ field,
+    // like they do in other Protobuf implementations.
+    //
+    // The has_ field can be omitted by setting proto3_singular_msgs.
+    // Previously this caused all submessage fields to be recursively checked for non-zero values.
+    // Now the submessage is unconditionally encoded.
+    //
     {
         pb_encode_ctx_t ostream;
         struct {
@@ -70,7 +78,7 @@ int main(int argc, char **argv)
         }
         printf("\n");
 
-        TEST(ostream.bytes_written == 0);
+        TEST(ostream.bytes_written <= 2);
     }
 
     return status;
