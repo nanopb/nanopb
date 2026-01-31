@@ -27,7 +27,7 @@ static char *find_end_of_item(char *p)
         return p; /* End of parent dict */
     
     p++;
-    while (isspace(*p)) p++;
+    while (isspace((unsigned char)*p)) p++;
     return p;
 }
 
@@ -69,7 +69,7 @@ static bool encode_dictionary(pb_encode_ctx_t *stream, const pb_field_t *field, 
     {
         KeyValuePair pair = KeyValuePair_init_zero;
         
-        while (isspace(*p)) p++;
+        while (isspace((unsigned char)*p)) p++;
 
         if (*p != '\'')
             PB_RETURN_ERROR(stream, "invalid key, missing quote");

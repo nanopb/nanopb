@@ -938,7 +938,7 @@ static bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value)
 
     pb_byte_t tmpbuf[5];
     uint_fast8_t len = pb_encode_buffer_varint32(tmpbuf, value);
-    return pb_write(ctx, tmpbuf, len);
+    return pb_write(ctx, tmpbuf, (pb_size_t)len);
 }
 
 bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
@@ -967,7 +967,7 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
         }
     } while (value != 0);
 
-    return pb_write(ctx, buffer, len);
+    return pb_write(ctx, buffer, (pb_size_t)len);
 #endif
 }
 

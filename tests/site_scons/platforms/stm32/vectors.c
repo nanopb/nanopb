@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <errno.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,6 +42,14 @@ void ramboot()
     "msr msp, %0\n\t"
     "bx %1" : : "r" (g_vector_table[0]),
                 "r" (g_vector_table[1]) : "memory");
+}
+
+int _getentropy(void *buf, size_t len)
+{
+    (void)buf;
+    (void)len;
+    errno = ENOSYS;
+    return -1;
 }
 
 #ifdef __cplusplus
