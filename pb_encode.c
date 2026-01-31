@@ -55,7 +55,7 @@ PB_STATIC_ASSERT(PB_WALK_STACK_SIZE > PB_ENCODE_STACKFRAME_SIZE, PB_WALK_STACK_S
 static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *field);
 static bool checkreturn encode_basic_field(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value);
-static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value);
+static bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value);
 static inline bool safe_read_bool(const void *pSize);
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -1055,7 +1055,7 @@ static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value)
     return len;
 }
 
-static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value)
+static bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value)
 {
 #if PB_NO_STREAM_CALLBACK
     if (value <= 0x7F && ctx->bytes_written < ctx->max_size)
@@ -1271,48 +1271,60 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
 
 static bool checkreturn pb_enc_varint(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT)
+    if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT &&
+        field->data_size <= sizeof(uint32_t))
     {
-        /* Perform unsigned integer extension */
-        pb_uint64_t value = 0;
+        /* Perform unsigned integer extension to 32 bits */
+        uint32_t value = 0;
 
-        if (field->data_size == sizeof(uint_least8_t))
-            value = *(const uint_least8_t*)field->pData;
-        else if (field->data_size == sizeof(uint_least16_t))
-            value = *(const uint_least16_t*)field->pData;
-        else if (field->data_size == sizeof(uint32_t))
+        if (field->data_size == sizeof(uint32_t))
+        {
             value = *(const uint32_t*)field->pData;
-        else if (field->data_size == sizeof(pb_uint64_t))
-            value = *(const pb_uint64_t*)field->pData;
+        }
+        else if (field->data_size == sizeof(uint_least16_t))
+        {
+            value = *(const uint_least16_t*)field->pData;
+        }
         else
-            PB_RETURN_ERROR(ctx, "invalid data_size");
+        {
+            PB_OPT_ASSERT(field->data_size == sizeof(uint_least8_t));
+            value = *(const uint_least8_t*)field->pData;
+        }
 
-        return pb_encode_varint(ctx, value);
+        return pb_encode_varint32(ctx, value);
     }
     else
     {
-        /* Perform signed integer extension */
-        pb_int64_t value = 0;
+        /* Perform signed integer extension to 64 bits */
+        pb_uint64_t value = 0;
 
         if (field->data_size == sizeof(int_least8_t))
-            value = *(const int_least8_t*)field->pData;
+        {
+            value = (pb_uint64_t)(pb_int64_t)*(const int_least8_t*)field->pData;
+        }
         else if (field->data_size == sizeof(int_least16_t))
-            value = *(const int_least16_t*)field->pData;
+        {
+            value = (pb_uint64_t)(pb_int64_t)*(const int_least16_t*)field->pData;
+        }
         else if (field->data_size == sizeof(int32_t))
-            value = *(const int32_t*)field->pData;
-        else if (field->data_size == sizeof(pb_int64_t))
-            value = *(const pb_int64_t*)field->pData;
+        {
+            value = (pb_uint64_t)(pb_int64_t)*(const int32_t*)field->pData;
+        }
         else
-            PB_RETURN_ERROR(ctx, "invalid data_size");
+        {
+            /* int64_t and uint64_t are directly compatible */
+            PB_OPT_ASSERT(field->data_size == sizeof(pb_uint64_t));
+            value = *(const pb_uint64_t*)field->pData;
+        }
 
         if (PB_LTYPE(field->type) == PB_LTYPE_SVARINT)
-            return pb_encode_svarint(ctx, value);
+            return pb_encode_svarint(ctx, (pb_int64_t)value);
 #if PB_WITHOUT_64BIT
-        else if (value < 0)
-            return pb_encode_negative_varint(ctx, value);
+        else if ((pb_int64_t)value < 0)
+            return pb_encode_negative_varint(ctx, (pb_int64_t)value);
 #endif
         else
-            return pb_encode_varint(ctx, (pb_uint64_t)value);
+            return pb_encode_varint(ctx, value);
 
     }
 }
