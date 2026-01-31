@@ -1935,19 +1935,6 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb
 {
     PB_OPT_ASSERT(ptr != NULL && ctx != NULL);
 
-    if (data_size == 0 || array_size == 0)
-        PB_RETURN_ERROR(ctx, "invalid size");
-
-#ifdef __AVR__
-    /* Workaround for AVR libc bug 53284: http://savannah.nongnu.org/bugs/?53284
-     * Realloc to size of 1 byte can cause corruption of the malloc structures.
-     */
-    if (data_size == 1 && array_size == 1)
-    {
-        data_size = 2;
-    }
-#endif
-
     /* Check for multiplication overflows.
      * This code avoids the costly division if the sizes are small enough.
      * Multiplication is safe as long as only half of bits are set
@@ -1966,6 +1953,16 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb
 
     pb_size_t bytes = array_size * data_size;
     void *new_ptr = NULL;
+
+#ifdef __AVR__
+    /* Workaround for AVR libc bug 53284: http://savannah.nongnu.org/bugs/?53284
+     * Realloc to size of 1 byte can cause corruption of the malloc structures.
+     */
+    if (bytes < 2) bytes = 2;
+#else
+    /* Zero-length allocation is used as a sentinel for present-but-empty bytes value */
+    if (bytes < 1) bytes = 1;
+#endif
 
 #if !PB_NO_CONTEXT_ALLOCATOR
     if (ctx != NULL && ctx->allocator != NULL)
@@ -2400,7 +2397,7 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
         bytes->size = size;
 
         void *alloc = bytes->bytes;
-        if (size > 0 && !pb_allocate_field(ctx, &alloc, size, 1))
+        if (!pb_allocate_field(ctx, &alloc, size, 1))
             return false;
         dest = bytes->bytes = (pb_byte_t*)alloc;
 #endif

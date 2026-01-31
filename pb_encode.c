@@ -1336,11 +1336,10 @@ static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t
         PB_OPT_ASSERT(field->data_size == sizeof(pb_bytes_t));
         const pb_bytes_t *bytes = (const pb_bytes_t*)field->pData;
 
-        if (bytes->bytes == NULL)
-        {
-            /* Treat null pointer as an empty bytes field */
-            return pb_encode_string(ctx, NULL, 0);
-        }
+        // field_present() should already check for NULL pointer.
+        // To encode 0 length pointer-type bytes field, set a non-NULL
+        // pointer but size = 0
+        PB_OPT_ASSERT(bytes->size == 0 || bytes->bytes != NULL);
 
         return pb_encode_string(ctx, bytes->bytes, bytes->size);
     }
