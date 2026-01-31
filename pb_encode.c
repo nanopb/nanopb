@@ -1251,36 +1251,45 @@ bool checkreturn pb_encode_fixed64(pb_encode_ctx_t *ctx, const void *value)
 
 bool checkreturn pb_encode_tag(pb_encode_ctx_t *ctx, pb_wire_type_t wiretype, pb_tag_t field_number)
 {
-    return pb_encode_varint32(ctx, (((uint32_t)field_number << 3) | wiretype));
+    // pb_tag_t is either 16- or 32-bit
+    // Field number is either 29-bit or 12-bit, depending on PB_NO_LARGEMSG.
+    return pb_encode_varint32(ctx, ((pb_tag_t)(field_number << 3) | wiretype));
 }
 
 bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
 {
-    // Note: the order of this array must match PB_LTYPE numeric values
-    static const pb_wire_type_t wiretypes[16] = {
-        PB_WT_VARINT,  //  0: PB_LTYPE_BOOL
-        PB_WT_VARINT,  //  1: PB_LTYPE_VARINT
-        PB_WT_VARINT,  //  2: PB_LTYPE_UVARINT
-        PB_WT_VARINT,  //  3: PB_LTYPE_SVARINT
-        PB_WT_32BIT,   //  4: PB_LTYPE_FIXED32
-        PB_WT_64BIT,   //  5: PB_LTYPE_FIXED64
-        PB_WT_STRING,  //  6: PB_LTYPE_BYTES
-        PB_WT_STRING,  //  7: PB_LTYPE_STRING
-        PB_WT_STRING,  //  8: PB_LTYPE_SUBMESSAGE
-        PB_WT_STRING,  //  9: PB_LTYPE_SUBMSG_W_CB
-        PB_WT_INVALID, // 10: PB_LTYPE_EXTENSION
-        PB_WT_STRING,  // 11: PB_LTYPE_FIXED_LENGTH_BYTES
-        PB_WT_INVALID, // 12: Reserved
-        PB_WT_INVALID, // 13: Reserved
-        PB_WT_INVALID, // 14: Reserved
-        PB_WT_INVALID, // 15: Reserved
-    };
+    pb_tag_t tag = (pb_tag_t)(field->tag << 3);
 
-    pb_wire_type_t wiretype = wiretypes[PB_LTYPE(field->type)];
-    if (wiretype == PB_WT_INVALID)
-        PB_RETURN_ERROR(ctx, "invalid field type");
+    switch (PB_LTYPE(field->type))
+    {
+        case PB_LTYPE_BOOL:
+        case PB_LTYPE_VARINT:
+        case PB_LTYPE_UVARINT:
+        case PB_LTYPE_SVARINT:
+            tag |= (pb_tag_t)PB_WT_VARINT;
+            break;
 
-    return pb_encode_varint32(ctx, (((uint32_t)field->tag << 3) | wiretype));
+        case PB_LTYPE_FIXED32:
+            tag |= (pb_tag_t)PB_WT_32BIT;
+            break;
+
+        case PB_LTYPE_FIXED64:
+            tag |= (pb_tag_t)PB_WT_64BIT;
+            break;
+
+        case PB_LTYPE_BYTES:
+        case PB_LTYPE_STRING:
+        case PB_LTYPE_SUBMESSAGE:
+        case PB_LTYPE_SUBMSG_W_CB:
+        case PB_LTYPE_FIXED_LENGTH_BYTES:
+            tag |= (pb_tag_t)PB_WT_STRING;
+            break;
+
+        default:
+            PB_RETURN_ERROR(ctx, "invalid field type");
+    }
+
+    return pb_encode_varint32(ctx, tag);
 }
 
 bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer, pb_size_t size)
