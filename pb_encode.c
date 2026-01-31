@@ -164,115 +164,64 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
 }
 #endif
 
-// Get pointer for directly writing up to max_bytes data.
-// Returns NULL if not enough space.
-static inline pb_byte_t *pb_bufwrite_start(pb_encode_ctx_t *ctx, pb_size_t max_bytes)
-{
-    if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
-        return NULL;
-
-#if !PB_NO_STREAM_CALLBACK
-    if (ctx->bytes_written + max_bytes <= ctx->max_size)
-    {
-        if (ctx->buffer_count + max_bytes > ctx->buffer_size)
-        {
-            if (max_bytes > ctx->buffer_size)
-            {
-                return NULL; // Buffer is just too small
-            }
-            else if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
-            {
-                return NULL; // pb_write() will convert this to sizing stream
-            }
-            else
-            {
-                // Flush buffer to release space
-                if (!pb_flush_write_buffer(ctx))
-                    return NULL; // Error will be returned when caller resorts to pb_write().
-            }
-        }
-
-        return ctx->buffer + ctx->buffer_count;
-    }
-    else
-    {
-        return NULL;
-    }
-#else
-    if (ctx->bytes_written + max_bytes <= ctx->max_size)
-        return ctx->buffer + ctx->bytes_written;
-    else
-        return NULL;
-#endif
-}
-
-// Finish write to buffer previously obtained from pb_get_wrptr().
-static inline void pb_bufwrite_done(pb_encode_ctx_t *ctx, pb_size_t bytes_written)
-{
-#if !PB_NO_STREAM_CALLBACK
-    ctx->bytes_written += bytes_written;
-    ctx->buffer_count += bytes_written;
-#else
-    ctx->bytes_written += bytes_written;
-#endif
-}
-
 // Write bytes to stream by copying them from source buffer.
 bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t count)
 {
     if (count == 0)
         return true;
 
-    if ((pb_size_t)(ctx->bytes_written + count) < ctx->bytes_written)
+    pb_size_t new_bytes_written = ctx->bytes_written + count;
+    if (new_bytes_written < ctx->bytes_written)
     {
         PB_RETURN_ERROR(ctx, "stream full"); // pb_size_t overflow
     }
 
     if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
     {
-        ctx->bytes_written += count;
+        ctx->bytes_written = new_bytes_written;
         return true;
     }
 
-    if (ctx->bytes_written + count > ctx->max_size)
+    if (new_bytes_written > ctx->max_size)
     {
         PB_RETURN_ERROR(ctx, "stream full");
     }
 
-#if !PB_NO_STREAM_CALLBACK
-    pb_byte_t *target = pb_bufwrite_start(ctx, count);
-    if (target)
+#if PB_NO_STREAM_CALLBACK
+    // Just copy data to the output buffer
+    memcpy(ctx->buffer + ctx->bytes_written, buf, count);
+    ctx->bytes_written = new_bytes_written;
+    return true;
+#else
+    // Check if the stream has space in memory buffer
+    pb_size_t new_buffer_count = ctx->buffer_count + count;
+    if (new_buffer_count <= ctx->buffer_size)
     {
-        memcpy(target, buf, count * sizeof(pb_byte_t));
-        pb_bufwrite_done(ctx, count);
+        memcpy(ctx->buffer + ctx->buffer_count, buf, count);
+        ctx->buffer_count = new_buffer_count;
+        ctx->bytes_written = new_bytes_written;
         return true;
     }
     else if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
     {
         // Memory buffer is full, convert to sizing stream
         ctx->flags |= PB_ENCODE_CTX_FLAG_SIZING;
-        ctx->bytes_written += count;
+        ctx->bytes_written = new_bytes_written;
         return true;
     }
-
-    if (ctx->callback)
+    else if (ctx->callback)
     {
         // Flush any preceding data and write to output callback directly
         if (pb_flush_write_buffer(ctx) &&
             ctx->callback(ctx, buf, (size_t)count))
         {
-            ctx->bytes_written += count;
+            ctx->bytes_written = new_bytes_written;
             return true;
         }
     }
 
     // If we get this far, the callback failed.
-    // pb_bufwrite_start() should return non-NULL for memory streams.
     PB_RETURN_ERROR(ctx, "io error");
-#else
-    memcpy(ctx->buffer + ctx->bytes_written, buf, count);
-    ctx->bytes_written += count;
-    return true;
 #endif
 }
 
@@ -1095,17 +1044,11 @@ static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value)
 {
     uint_fast8_t len = 0;
 
-    if (value <= 0x7F)
-    {
-        buffer[0] = (pb_byte_t)value;
-        return 1;
-    }
-
-    do
+    while (value > 0x7F)
     {
         buffer[len++] = (pb_byte_t)((value & 0x7F) | 0x80);
         value >>= 7;
-    } while (value > 0x7F);
+    }
 
     buffer[len++] = (pb_byte_t)value;
 
@@ -1114,30 +1057,31 @@ static uint_fast8_t pb_encode_buffer_varint32(pb_byte_t *buffer, uint32_t value)
 
 static inline bool checkreturn pb_encode_varint32(pb_encode_ctx_t *ctx, uint32_t value)
 {
-    pb_byte_t tmpbuf[5];
-    pb_byte_t *buffer = pb_bufwrite_start(ctx, 5);
-    if (!buffer) buffer = tmpbuf;
-
-    uint_fast8_t len = pb_encode_buffer_varint32(buffer, value);
-
-    if (buffer == tmpbuf)
+#if PB_NO_STREAM_CALLBACK
+    if (value <= 0x7F && ctx->bytes_written < ctx->max_size)
     {
-        return pb_write(ctx, buffer, len);
-    }
-    else
-    {
-        pb_bufwrite_done(ctx, len);
+        // Fast path for single-byte varints
+        if ((ctx->flags & PB_ENCODE_CTX_FLAG_SIZING) == 0)
+        {
+            ctx->buffer[ctx->bytes_written] = (pb_byte_t)value;
+        }
+
+        ctx->bytes_written++;
         return true;
     }
+#endif
+
+    pb_byte_t tmpbuf[5];
+    uint_fast8_t len = pb_encode_buffer_varint32(tmpbuf, value);
+    return pb_write(ctx, tmpbuf, len);
 }
 
 bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 {
-    // Write either directly to stream or to tmpbuf
-    pb_byte_t tmpbuf[10];
-    pb_byte_t *buffer = pb_bufwrite_start(ctx, 10);
-    if (!buffer) buffer = tmpbuf;
-
+#if PB_WITHOUT_64BIT
+    return pb_encode_varint32(ctx, value);
+#else
+    pb_byte_t buffer[10];
     uint_fast8_t len = 0;
 
     do
@@ -1158,15 +1102,8 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
         }
     } while (value != 0);
 
-    if (buffer == tmpbuf)
-    {
-        return pb_write(ctx, buffer, len);
-    }
-    else
-    {
-        pb_bufwrite_done(ctx, len);
-        return true;
-    }
+    return pb_write(ctx, buffer, len);
+#endif
 }
 
 #if PB_WITHOUT_64BIT
@@ -1174,9 +1111,7 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 // need to be encoded as-if they were 64-bit.
 static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t value)
 {
-    pb_byte_t tmpbuf[10];
-    pb_byte_t *buffer = pb_bufwrite_start(ctx, 10);
-    if (!buffer) buffer = tmpbuf;
+    pb_byte_t buffer[10];
 
     PB_OPT_ASSERT(value < 0);
     pb_encode_buffer_varint32(buffer, (uint32_t)value);
@@ -1187,15 +1122,7 @@ static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t 
     buffer[8] = 0xFF;
     buffer[9] = 0x01;
 
-    if (buffer == tmpbuf)
-    {
-        return pb_write(ctx, buffer, 10);
-    }
-    else
-    {
-        pb_bufwrite_done(ctx, 10);
-        return true;
-    }
+    return pb_write(ctx, buffer, 10);
 }
 #endif
 
