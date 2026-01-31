@@ -445,9 +445,9 @@ int main()
 
         {
             void *oldvalue = data;
-            size_t very_big = (size_t)-1;
-            size_t somewhat_big = very_big / 2 + 1;
-            size_t not_so_big = (size_t)1 << (4 * sizeof(size_t));
+            pb_size_t very_big = (pb_size_t)-1;
+            pb_size_t somewhat_big = very_big / 2 + 1;
+            pb_size_t not_so_big = (pb_size_t)1 << (4 * sizeof(pb_size_t));
 
             TEST(!pb_allocate_field(&s, &data, very_big, 2) && data == oldvalue);
             TEST(!pb_allocate_field(&s, &data, somewhat_big, 2) && data == oldvalue);

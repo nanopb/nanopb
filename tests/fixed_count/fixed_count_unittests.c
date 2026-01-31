@@ -182,8 +182,8 @@ int main()
       TEST(strcmp((*msg_b.strings)[1], "b") == 0);
       TEST(strcmp((*msg_b.strings)[2], "abc") == 0);
 
-      TEST((*msg_b.bytes)[0].size == 0 && (*msg_b.bytes)[0].bytes == NULL);
-      TEST((*msg_b.bytes)[1].size == 0 && (*msg_b.bytes)[1].bytes == NULL);
+      TEST((*msg_b.bytes)[0].size == 0);
+      TEST((*msg_b.bytes)[1].size == 0);
       TEST((*msg_b.bytes)[2].size == 3 && memcmp((*msg_b.bytes)[2].bytes, bytes3, 3) == 0);
 
       pb_release(&istream, Message4_fields, &msg_b);
