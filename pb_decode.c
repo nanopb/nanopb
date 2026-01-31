@@ -279,26 +279,9 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
 
 void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t msglen)
 {
-    ctx->flags = 0;
+    memset(ctx, 0, sizeof(pb_decode_ctx_t));
     ctx->bytes_left = msglen;
     ctx->rdpos = buf;
-
-#if !PB_NO_ERRMSG
-    ctx->errmsg = NULL;
-#endif
-
-#if !PB_NO_STREAM_CALLBACK
-    ctx->callback = NULL;
-    ctx->state = NULL;
-    ctx->buffer = NULL;
-    ctx->buffer_size = 0;
-#endif
-
-    ctx->walk_state = NULL;
-
-#if !PB_NO_CONTEXT_ALLOCATOR
-    ctx->allocator = NULL;
-#endif
 }
 
 #if !PB_NO_STREAM_CALLBACK
@@ -306,35 +289,12 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
     pb_decode_ctx_read_callback_t callback, void *state,
     pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize)
 {
-    ctx->flags = 0;
+    memset(ctx, 0, sizeof(pb_decode_ctx_t));
     ctx->bytes_left = msglen;
-    ctx->rdpos = NULL;
-
     ctx->callback = callback;
     ctx->state = state;
-
-    if (bufsize >= 10)
-    {
-        // We need at least one 64-bit varint worth of buffer
-        // for it to be useful.
-        ctx->buffer = buf;
-        ctx->buffer_size = bufsize;
-    }
-    else
-    {
-        ctx->buffer = NULL;
-        ctx->buffer_size = 0;
-    }
-
-#if !PB_NO_ERRMSG
-    ctx->errmsg = NULL;
-#endif
-
-    ctx->walk_state = NULL;
-
-#if !PB_NO_CONTEXT_ALLOCATOR
-    ctx->allocator = NULL;
-#endif
+    ctx->buffer = buf;
+    ctx->buffer_size = bufsize;
 }
 #endif
 

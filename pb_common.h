@@ -23,11 +23,6 @@ static inline bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msg
     return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
 }
 
-/* Reset iterator back to beginning.
- * Returns false if the message type is empty.
- */
-bool pb_field_iter_reset(pb_field_iter_t *iter);
-
 /* Advance the iterator to the next field.
  * Returns false when the iterator wraps back to the first field. */
 bool pb_field_iter_next(pb_field_iter_t *iter);
