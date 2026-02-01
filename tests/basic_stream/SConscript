@@ -2,6 +2,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
+
 enc = env.Program(["encode_stream.c", "$COMMON/person.pb.c", env['NANOPB_ENCODER_OBJS']])
 dec = env.Program(["decode_stream.c", "$COMMON/person.pb.c", env['NANOPB_DECODER_OBJS']])
 

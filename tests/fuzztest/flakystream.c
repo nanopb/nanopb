@@ -1,6 +1,8 @@
 #include "flakystream.h"
 #include <string.h>
 
+#if !PB_NO_STREAM_CALLBACK
+
 bool flakystream_callback(pb_decode_ctx_t *stream, pb_byte_t *buf, size_t count)
 {
     flakystream_t *state = (flakystream_t*)stream;
@@ -32,3 +34,5 @@ void flakystream_init(flakystream_t *stream, const uint8_t *buffer,
     stream->msglen = msglen;
     stream->fail_after = fail_after;
 }
+
+#endif

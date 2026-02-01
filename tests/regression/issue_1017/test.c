@@ -10,6 +10,7 @@ const uint8_t input_data[] = {
 
 const size_t input_len = sizeof(input_data);
 
+#if !PB_NO_STREAM_CALLBACK
 bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     size_t cursor = (size_t)(uintptr_t)stream->state;
@@ -27,6 +28,7 @@ bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 
     return true;
 }
+#endif
 
 int main()
 {
@@ -45,6 +47,7 @@ int main()
 #endif
     }
 
+#if !PB_NO_STREAM_CALLBACK
     /* test callback stream */
     {
         TestMessage msg = TestMessage_init_zero;
@@ -57,6 +60,7 @@ int main()
         TEST(stream.errmsg == NULL);
 #endif
     }
+#endif
 
     return status;
 }

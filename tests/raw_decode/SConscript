@@ -4,6 +4,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
+
 dec = env.Program(["raw_decode.c", env['NANOPB_DECODER_OBJS']])
 
 env.RunTest([dec, "$BUILD/alltypes/encode_alltypes.output"])
