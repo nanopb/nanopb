@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "unittests.h"
+#include "test_helpers.h"
 #include "unittestproto.pb.h"
 
 bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
@@ -420,7 +421,7 @@ int main()
 
         COMMENT("Testing wrong message type detection")
         TEST(!pb_encode(&s, IntegerContainer_fields, &msg));
-        TEST(strcmp(s.errmsg, "struct_size mismatch") == 0);
+        TEST(COMPARE_ERRMSG(&s, "struct_size mismatch"));
     }
     
     {

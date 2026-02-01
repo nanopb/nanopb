@@ -74,9 +74,13 @@ int main()
                 fprintf(stderr, "Unexpected success in decode\n");
                 return 2;
             }
+#if !PB_NO_ERRMSG
             else if (strcmp(stream.errmsg, "simulated") != 0)
+#else
+            else if (fs.fail_after > 0)
+#endif
             {
-                fprintf(stderr, "Wrong error in decode: %s\n", stream.errmsg);
+                fprintf(stderr, "Wrong error in decode: %s\n", PB_GET_ERROR(&stream));
                 return 3;
             }
         }
@@ -89,7 +93,7 @@ int main()
         
         if (!status)
         {
-            fprintf(stderr, "Decoding failed: %s\n", stream.errmsg);
+            fprintf(stderr, "Decoding failed: %s\n", PB_GET_ERROR(&stream));
             return 4;
         }
     }
@@ -116,9 +120,13 @@ int main()
                 fprintf(stderr, "Unexpected success in encode\n");
                 return 5;
             }
+#if !PB_NO_ERRMSG
             else if (strcmp(stream.errmsg, "simulated") != 0)
+#else
+            else if (fs.fail_after > 0)
+#endif
             {
-                fprintf(stderr, "Wrong error in encode: %s\n", stream.errmsg);
+                fprintf(stderr, "Wrong error in encode: %s\n", PB_GET_ERROR(&stream));
                 return 6;
             }
         }
@@ -132,7 +140,7 @@ int main()
         
         if (!status)
         {
-            fprintf(stderr, "Encoding failed: %s\n", stream.errmsg);
+            fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(&stream));
             return 7;
         }
     }

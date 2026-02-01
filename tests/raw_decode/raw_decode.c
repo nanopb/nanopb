@@ -167,7 +167,10 @@ bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
                     }
                     
                     pb_decode_close_substream(stream, old_length);
+
+#if !PB_NO_ERRMSG
                     stream->errmsg = NULL;
+#endif
                 }
             }
         }

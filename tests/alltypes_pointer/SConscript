@@ -3,6 +3,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_MALLOC')
+
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 

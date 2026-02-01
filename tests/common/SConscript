@@ -3,7 +3,7 @@
 Import('env')
 
 malloc_objs = []
-if 'PB_NO_MALLOC' not in env.get('CPPDEFINES', {}).keys():
+if not env.HasFlag('PB_NO_MALLOC'):
     # Use wrappers for detecting malloc bugs
     env.Append(CPPDEFINES = {'PB_EXTRA_HEADER_NAME': 'malloc_wrappers.h'})
     malloc = env.Object("malloc_wrappers.o", "malloc_wrappers.c")

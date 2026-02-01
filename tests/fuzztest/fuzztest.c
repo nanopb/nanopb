@@ -43,8 +43,12 @@ static size_t g_bufsize = FUZZTEST_BUFSIZE;
     !defined(FUZZTEST_IO_ERRORS)
 #define FUZZTEST_PROTO2_STATIC
 #define FUZZTEST_PROTO3_STATIC
+
+#if !PB_NO_MALLOC
 #define FUZZTEST_PROTO2_POINTER
 #define FUZZTEST_PROTO3_POINTER
+#endif
+
 #define FUZZTEST_IO_ERRORS
 #endif
 
@@ -263,9 +267,17 @@ void do_roundtrip(const uint8_t *buffer, size_t msglen, size_t structsize,
         stream.flags |= enc_flags;
         status = pb_encode_s(&stream, msgtype, msg, structsize);
 
-        /* Some messages expand when re-encoding and might no longer fit
-         * in the buffer. */
-        if (!status && strcmp(PB_GET_ERROR(&stream), "stream full") != 0)
+#if !PB_NO_ERRMSG
+        // Some messages expand when re-encoding and might no longer fit
+        // in the buffer.
+        bool stream_full = (strcmp(PB_GET_ERROR(&stream), "stream full") == 0);
+#else
+        // We can't accurately know the error cause for testing when errmsg
+        // is disabled.
+        bool stream_full = (!status && stream.bytes_written > msglen);
+#endif
+
+        if (!status && !stream_full)
         {
             fprintf(stderr, "pb_encode: %s\n", PB_GET_ERROR(&stream));
             assert(status);

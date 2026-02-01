@@ -3,6 +3,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_MALLOC')
+
 env.NanopbProto("test")
 
 test = env.Program(["test.c", "test.pb.c", env['NANOPB_OBJS']])

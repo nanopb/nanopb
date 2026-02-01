@@ -17,7 +17,8 @@ int main()
 
     status = pb_decode(&stream, MyMessage_fields, &msg);
     assert(!status);
-    assert(strcmp(stream.errmsg, "realloc failed") == 0);
+    assert(COMPARE_ERRMSG(&stream, "realloc failed"));
+
     return 0;
 }
 

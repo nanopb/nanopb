@@ -1,5 +1,6 @@
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_MALLOC')
 
 env.NanopbProto("mem_release.proto")
 

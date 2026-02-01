@@ -2,7 +2,7 @@
 # are correctly initialized.
 
 Import('env')
-
+env.SkipTestIfFlag('PB_NO_MALLOC')
 
 env.NanopbProto('callback_pointer')
 

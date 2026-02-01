@@ -2,7 +2,7 @@
 # Ill-formed oneof message leads to calling free on an arbitrary pointer
 
 Import("env")
-
+env.SkipTestIfFlag('PB_NO_MALLOC')
 
 env.NanopbProto("repro.proto")
 
