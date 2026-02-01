@@ -8,7 +8,7 @@ env.Command("alltypes.proto", "#alltypes/alltypes.proto", c)
 env.NanopbProto(["alltypes", "alltypes.options"])
 
 ioerr = env.Program(["io_errors.c", "alltypes.pb.c",
-                     "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+                     env['NANOPB_OBJS']])
 
 env.RunTest("io_errors.output", [ioerr, "$BUILD/alltypes/encode_alltypes.output"])
 

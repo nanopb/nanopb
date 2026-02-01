@@ -4,8 +4,8 @@ Import("env")
 
 env.NanopbProto(["deep"])
 
-enc = env.Program(["encode_deep.c", "deep.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
-dec = env.Program(["decode_deep.c", "deep.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+enc = env.Program(["encode_deep.c", "deep.pb.c", env['NANOPB_ENCODER_OBJS']])
+dec = env.Program(["decode_deep.c", "deep.pb.c", env['NANOPB_DECODER_OBJS']])
 
 # Same output is expected, no matter if stream is written
 # out directly or through a memory buffer.

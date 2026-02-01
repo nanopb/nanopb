@@ -7,9 +7,8 @@ env.NanopbProto('submsg_array')
 
 p = env.Program(['submsg_array.c',
                  'submsg_array.pb.c', 
-                 "$COMMON/pb_decode.o",
-                 "$COMMON/pb_encode.o",
-                 "$COMMON/pb_common.o"])
+                 env['NANOPB_OBJS']
+                 ])
 
 env.RunTest(p)
 

@@ -9,6 +9,7 @@ CC          Name of C compiler
 CXX         Name of C++ compiler
 CCFLAGS     Flags to pass to the C compiler
 CXXFLAGS    Flags to pass to the C++ compiler
+PBFLAGS     Feature flags to define for nanopb
 LINK        Name of linker (usually same as CC)
 LINKFLAGS   Flags to pass to linker
 LINKLIBS    Flags to pass to linker after object files
@@ -28,7 +29,7 @@ import platform
 env = Environment(ENV = os.environ)
 
 # Allow giving environment flags on command line.
-list_vars = ['CCFLAGS', 'CXXFLAGS', 'LINKFLAGS', 'LINKLIBS', 'PROTOCFLAGS']
+list_vars = ['CCFLAGS', 'CXXFLAGS', 'PBFLAGS', 'LINKFLAGS', 'LINKLIBS', 'PROTOCFLAGS']
 for var,val in ARGUMENTS.items():
     if var in list_vars:
         env.Append(**{var: val})
@@ -48,6 +49,10 @@ if ARGUMENTS.get('PLATFORM'):
         raise Exception("Unsupported platform: " + ARGUMENTS.get('PLATFORM'))
     else:
         platform_func(env)
+
+# Convert PBFLAGS to CPPDEFINES
+for flag in env.get('PBFLAGS', '').split():
+    env.Append(CPPDEFINES = {flag: 1})
 
 # Load nanopb generator build rules from site_scons/site_tools/nanopb.py
 env.Tool("nanopb")
@@ -134,12 +139,6 @@ if not env.GetOption('clean'):
     # Initialize compiler arguments with defaults, unless overridden on
     # command line.
     if not env.get('NODEFARGS'):
-        # Check if libmudflap is available (only with GCC)
-        if 'gcc' in env['CC']:
-            if conf.CheckLib('mudflap'):
-                conf.env.Append(CCFLAGS = '-fmudflap')
-                conf.env.Append(LINKFLAGS = '-fmudflap')
-
         # Check if we can use extra strict warning flags (only with GCC)
         extra = '-Wcast-qual -Wlogical-op -Wconversion'
         extra += ' -fstrict-aliasing -Wstrict-aliasing=1'
@@ -149,10 +148,11 @@ if not env.GetOption('clean'):
             if conf.CheckCCFLAGS(extra):
                 conf.env.Append(CORECFLAGS = extra)
 
-        # Check if we can use undefined behaviour sanitizer (only with clang)
+        # Check if we can use undefined behaviour sanitizers
         # TODO: Fuzz test triggers the bool sanitizer, figure out whether to
         #       modify the fuzz test or to keep ignoring the check.
-        extra = '-fsanitize=undefined,integer -fno-sanitize-recover=undefined,integer '
+        #       Address sanitizer is incompatible with valgrind.
+        extra = '-fsanitize=undefined,integer -fno-sanitize-recover=undefined,integer -fstack-protector '
         if 'clang' in env['CC']:
             if conf.CheckCCFLAGS(extra, linkflags = extra):
                 conf.env.Append(CORECFLAGS = extra)

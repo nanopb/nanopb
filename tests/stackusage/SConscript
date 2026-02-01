@@ -6,5 +6,5 @@ Import("env")
 
 if not env.get("NOUNSAFE"):
     env.NanopbProto(["stackusage", "stackusage.options"])
-    test = env.Program(["stackusage.c", "stackusage.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+    test = env.Program(["stackusage.c", "stackusage.pb.c", env['NANOPB_OBJS']])
     env.RunTest(test)

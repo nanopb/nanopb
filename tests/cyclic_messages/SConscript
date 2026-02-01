@@ -6,8 +6,8 @@ c = Copy("$TARGET", "$SOURCE")
 env.Command("cyclic_callback.proto", "cyclic.proto", c)
 env.NanopbProto(["cyclic_callback", "cyclic_callback.options"])
 
-enc_callback = env.Program(["encode_cyclic_callback.c", "cyclic_callback.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
-dec_callback = env.Program(["decode_cyclic_callback.c", "cyclic_callback.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+enc_callback = env.Program(["encode_cyclic_callback.c", "cyclic_callback.pb.c", env['NANOPB_ENCODER_OBJS']])
+dec_callback = env.Program(["decode_cyclic_callback.c", "cyclic_callback.pb.c", env['NANOPB_DECODER_OBJS']])
 
 if env.get('EMBEDDED') != 'AVR':
     # The main test case contains a deep recursion, which would overflow

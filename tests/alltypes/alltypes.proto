@@ -33,7 +33,7 @@ message Limits {
     required uint64     uint64_max =  8 [default = 0];
     required HugeEnum   enum_min   =  9 [default = Positive];
     required HugeEnum   enum_max   = 10 [default = Negative];
-    required int32      largetag   = 65535 [default = 0];
+    required int32      largetag   = 500000000 [default = 0];
 }
 
 message IntSizes {

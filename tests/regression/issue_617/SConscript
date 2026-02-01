@@ -5,6 +5,6 @@ Import("env")
 
 env.NanopbProto(["oneof.proto", "oneof.options"])
 
-test = env.Program(["test_oneof.c", "oneof.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+test = env.Program(["test_oneof.c", "oneof.pb.c", env['NANOPB_DECODER_OBJS']])
 env.RunTest(test)
 

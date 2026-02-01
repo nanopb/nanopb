@@ -11,8 +11,8 @@ if 'clang' in env['CC'] or 'gcc' in env['CC']:
 
     dec = env2.Program(['decode_oneof.c',
                         'oneof.pb.c',
-                        '$COMMON/pb_decode.o',
-                        '$COMMON/pb_common.o'])
+                        env['NANOPB_DECODER_OBJS'],
+                        ])
 
     env2.RunTest("message1.txt", [dec, '$BUILD/oneof/message1.pb'], ARGS = ['1'])
     env2.RunTest("message2.txt", [dec, '$BUILD/oneof/message2.pb'], ARGS = ['2'])

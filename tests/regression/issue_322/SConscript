@@ -7,8 +7,8 @@ env.NanopbProto('defaults')
 
 p = env.Program(["defaults.c",
                  "defaults.pb.c",
-                 "$COMMON/pb_decode.o",
-                 "$COMMON/pb_common.o"])
+                 env['NANOPB_DECODER_OBJS']
+                 ])
 
 env.RunTest(p)
 

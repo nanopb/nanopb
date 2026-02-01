@@ -6,13 +6,13 @@ env.NanopbProto('msgid_example')
 
 enc = env.Program(['encode_msgid.c',
                 'msgid_example.pb.c',
-                '$COMMON/pb_encode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_ENCODER_OBJS'],
+                ])
 
 dec = env.Program(['decode_msgid.c',
                 'msgid_example.pb.c',
-                '$COMMON/pb_decode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_DECODER_OBJS'],
+                ])
 
 env.RunTest("message1.pb", enc, ARGS = ['1'])
 env.RunTest("message1.txt", [dec, 'message1.pb'])

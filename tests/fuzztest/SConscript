@@ -6,7 +6,7 @@ import zipfile
 import random
 import subprocess
 
-Import("env", "malloc_env")
+Import("env")
 
 def set_pkgname(src, dst, pkgname):
     data = open(str(src)).read()
@@ -46,17 +46,10 @@ common_objs = [env.Object("random_data.c"),
                env.Object("alltypes_callback.pb.c"),
                env.Object("alltypes_proto3_pointer.pb.c"),
                env.Object("alltypes_proto3_static.pb.c"),
-                "$COMMON/malloc_wrappers.o"]
-objs_malloc = ["$COMMON/pb_encode_with_malloc.o",
-               "$COMMON/pb_decode_with_malloc.o",
-               "$COMMON/pb_common_with_malloc.o",
-               malloc_env.Object("flakystream_malloc.o", "flakystream.c")] + common_objs
-objs_static = ["$COMMON/pb_encode.o",
-               "$COMMON/pb_decode.o",
-               "$COMMON/pb_common.o",
-               env.Object("flakystream.c")] + common_objs
+               env.Object("flakystream.o", "flakystream.c"),
+               env['NANOPB_OBJS']]
 
-fuzz = malloc_env.Program(["fuzztest.c"] + objs_malloc)
+fuzz = env.Program(["fuzztest.c"] + common_objs)
 
 # Run the stand-alone fuzz tester
 seed = int(time.time())
@@ -66,7 +59,7 @@ else:
     iterations = 1000
 env.RunTest(fuzz, ARGS = [str(seed), str(iterations)])
 
-generate_message = malloc_env.Program(["generate_message.c"] + objs_static)
+generate_message = env.Program(["generate_message.c"] + common_objs)
 
 # Test the message generator
 env.RunTest(generate_message, ARGS = [str(seed)])
@@ -132,25 +125,25 @@ env.Command("regressions.zip.fuzzed", [fuzz, "regressions.zip"], run_against_cor
 env_proto2_static = env.Clone()
 env_proto2_static.Append(CPPDEFINES = {'FUZZTEST_PROTO2_STATIC': '1'})
 env_proto2_static.Program("fuzztest_proto2_static",
-    [env_proto2_static.Object("fuzztest_proto2_static.o", "fuzztest.c")] + objs_static)
+    [env_proto2_static.Object("fuzztest_proto2_static.o", "fuzztest.c")] + common_objs)
 
-env_proto2_pointer = malloc_env.Clone()
+env_proto2_pointer = env.Clone()
 env_proto2_pointer.Append(CPPDEFINES = {'FUZZTEST_PROTO2_POINTER': '1'})
 env_proto2_pointer.Program("fuzztest_proto2_pointer",
-    [env_proto2_pointer.Object("fuzztest_proto2_pointer.o", "fuzztest.c")] + objs_malloc)
+    [env_proto2_pointer.Object("fuzztest_proto2_pointer.o", "fuzztest.c")] + common_objs)
 
 env_proto3_static = env.Clone()
 env_proto3_static.Append(CPPDEFINES = {'FUZZTEST_PROTO3_STATIC': '1'})
 env_proto3_static.Program("fuzztest_proto3_static",
-    [env_proto3_static.Object("fuzztest_proto3_static.o", "fuzztest.c")] + objs_static)
+    [env_proto3_static.Object("fuzztest_proto3_static.o", "fuzztest.c")] + common_objs)
 
-env_proto3_pointer = malloc_env.Clone()
+env_proto3_pointer = env.Clone()
 env_proto3_pointer.Append(CPPDEFINES = {'FUZZTEST_PROTO3_POINTER': '1'})
 env_proto3_pointer.Program("fuzztest_proto3_pointer",
-    [env_proto3_pointer.Object("fuzztest_proto3_pointer.o", "fuzztest.c")] + objs_malloc)
+    [env_proto3_pointer.Object("fuzztest_proto3_pointer.o", "fuzztest.c")] + common_objs)
 
-env_io_errors = malloc_env.Clone()
+env_io_errors = env.Clone()
 env_io_errors.Append(CPPDEFINES = {'FUZZTEST_IO_ERRORS': '1'})
 env_io_errors.Program("fuzztest_io_errors",
-    [env_io_errors.Object("fuzztest_io_errors.o", "fuzztest.c")] + objs_malloc)
+    [env_io_errors.Object("fuzztest_io_errors.o", "fuzztest.c")] + common_objs)
 

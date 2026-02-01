@@ -17,8 +17,8 @@ if env.GetOption('clean') or (version and (version[0] > 3 or (version[0] == 3 an
     
     env2.NanopbProto("optional.proto")
     opt = env2.Program(["optional.c", "optional.pb.c",
-                     "$COMMON/pb_decode.o", "$COMMON/pb_encode.o",
-                     "$COMMON/pb_common.o"])
+                     env['NANOPB_OBJS']
+                     ])
     env2.RunTest(opt)
 
 

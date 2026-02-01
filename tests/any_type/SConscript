@@ -12,11 +12,11 @@ incpath.NanopbProto("google/protobuf/duration")
 
 enc = incpath.Program(["encode_any.c", "anytest.pb.c", "google/protobuf/any.pb.c",
                        "google/protobuf/duration.pb.c",
-                       "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+                       env['NANOPB_ENCODER_OBJS']])
 
 dec = incpath.Program(["decode_any.c", "anytest.pb.c", "google/protobuf/any.pb.c",
                        "google/protobuf/duration.pb.c",
-                       "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+                       env['NANOPB_DECODER_OBJS']])
 
 env.RunTest(enc)
 env.RunTest([dec, "encode_any.output"])

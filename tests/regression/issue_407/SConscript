@@ -3,6 +3,6 @@
 Import("env")
 
 env.NanopbProto("extensions")
-test = env.Program(["test_extensions.c", "extensions.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+test = env.Program(["test_extensions.c", "extensions.pb.c", env['NANOPB_OBJS']])
 env.RunTest(test)
 
