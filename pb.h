@@ -34,8 +34,10 @@
 #else
 
 #ifdef __cplusplus
+#ifndef __STDC_LIMIT_MACROS
 // In older C++ versions, this is required to UINT32_MAX etc. defined
 #define __STDC_LIMIT_MACROS 1
+#endif
 #endif
 
 #include <stdint.h>

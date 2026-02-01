@@ -26,34 +26,34 @@ jobs:
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_MALLOC" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_MALLOC" CC=clang CXX=clang++
 
       - name: Test with PB_NO_ERRMSG
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_ERRMSG" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_ERRMSG" CC=clang CXX=clang++
 
       - name: Test with PB_NO_DEFAULT_ALLOCATOR
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_DEFAULT_ALLOCATOR" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_DEFAULT_ALLOCATOR" CC=clang CXX=clang++
 
       - name: Test with PB_NO_STREAM_CALLBACK
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_STREAM_CALLBACK" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_STREAM_CALLBACK" CC=clang CXX=clang++
 
       - name: Test with PB_NO_RECURSION
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_RECURSION" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_RECURSION" CC=clang CXX=clang++
 
       - name: Test with PB_NO_MALLOC PB_NO_RECURSION PB_NO_ERRMSG
         run: |
           cd nanopb/tests
           rm -rf build
-          scons PBFLAGS="PB_NO_MALLOC PB_NO_RECURSION PB_NO_ERRMSG" CC=clang CXX=clang
+          scons PBFLAGS="PB_NO_MALLOC PB_NO_RECURSION PB_NO_ERRMSG" CC=clang CXX=clang++
