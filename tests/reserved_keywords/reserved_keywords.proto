@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+message Message1
+{
+  required int32 bool = 1;
+  required bool int = 2;
+  required int32 const = 3;
+  required string void = 4;
+}

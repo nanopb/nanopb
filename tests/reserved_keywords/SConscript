@@ -1,0 +1,7 @@
+# Test fallback_type option
+
+Import("env")
+
+env.NanopbProto(["reserved_keywords", "reserved_keywords.options"])
+env.Object("reserved_keywords.pb.c")
+env.Match(['reserved_keywords.pb.h', 'reserved_keywords.expected'])
