@@ -8,6 +8,9 @@ jobs:
   compiler_tests:
     uses: ./.github/workflows/compiler_tests.yml
   
+  config_tests:
+    uses: ./.github/workflows/config_tests.yml
+
   simulator_tests:
     uses: ./.github/workflows/simulator_tests.yml
   
