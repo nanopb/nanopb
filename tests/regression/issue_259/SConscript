@@ -3,6 +3,7 @@
 
 Import('env')
 env.SkipTestIfFlag('PB_NO_MALLOC')
+env.SkipTestIfFlag('PB_NO_DEFAULT_ALLOCATOR')
 
 env.NanopbProto('callback_pointer')
 

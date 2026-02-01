@@ -821,10 +821,10 @@ struct pb_allocator_s {
     // If ptr is not NULL, adjust the size of the old allocation,
     // or make a new one and copy the old data.
     // On failed allocation, return NULL.
-    void* (*realloc)(pb_allocator_t *ctx, void *ptr, size_t size);
+    void* (*realloc)(pb_allocator_t *actx, void *ptr, size_t size);
 
     // Release previously allocated memory
-    void (*free)(pb_allocator_t *ctx, void *ptr);
+    void (*free)(pb_allocator_t *actx, void *ptr);
 
     // Free pointer that can be used by realloc/free implementation
     void *ctx;

@@ -19,6 +19,9 @@ size_t get_max_alloc_bytes();
 #define pb_realloc(ptr,size) realloc_with_check(ptr,size)
 #define pb_free(ptr) free_with_check(ptr)
 
+struct pb_allocator_s;
+extern struct pb_allocator_s* malloc_wrappers_allocator;
+
 #ifdef __cplusplus
 }
 #endif

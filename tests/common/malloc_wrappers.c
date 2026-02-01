@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <pb.h>
 
 #define GUARD_SIZE (sizeof(size_t)*3)
 #define PREFIX_SIZE (sizeof(size_t)*2)
@@ -199,3 +200,24 @@ size_t get_max_alloc_bytes()
 {
     return g_max_alloc_bytes;
 }
+
+// Functions with the signature expected by context allocator
+void* mw_realloc(pb_allocator_t *actx, void *ptr, size_t size)
+{
+    assert(actx == malloc_wrappers_allocator);
+    return realloc_with_check(ptr, size);
+}
+
+void mw_free(pb_allocator_t *actx, void *ptr)
+{
+    assert(actx == malloc_wrappers_allocator);
+    free_with_check(ptr);
+}
+
+pb_allocator_t mwalloc = {
+    &mw_realloc,
+    &mw_free,
+    NULL
+};
+
+struct pb_allocator_s* malloc_wrappers_allocator = &mwalloc;

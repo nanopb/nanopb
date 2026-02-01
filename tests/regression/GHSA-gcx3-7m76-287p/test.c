@@ -10,6 +10,10 @@ int main()
     pb_decode_ctx_t stream;
     init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
 
+#if PB_NO_DEFAULT_ALLOCATOR
+    stream.allocator = malloc_wrappers_allocator;
+#endif
+
     MyMessage msg = MyMessage_init_default;
     bool status;
 

@@ -7,6 +7,7 @@
 #include <pb_encode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
+#include "malloc_wrappers.h"
 
 typedef struct
 {
@@ -60,6 +61,10 @@ int main()
         pb_init_decode_ctx_for_callback(&stream, &read_callback, NULL, PB_SIZE_MAX, NULL, 0);
         faulty_stream_t fs;
         size_t i;
+
+#if PB_NO_DEFAULT_ALLOCATOR && !PB_NO_MALLOC
+        stream.allocator = malloc_wrappers_allocator;
+#endif
         
         for (i = 0; i < msglen; i++)
         {
@@ -144,6 +149,18 @@ int main()
             return 7;
         }
     }
+
+#if !PB_NO_DEFAULT_ALLOCATOR
+    pb_release(NULL, AllTypes_fields, &msg);
+#else
+    {
+        pb_decode_ctx_t stream;
+        stream.allocator = malloc_wrappers_allocator;
+        pb_release(&stream, AllTypes_fields, &msg);
+    }
+#endif
+
+    assert(get_alloc_count() == 0);
 
     return 0;   
 }

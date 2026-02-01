@@ -136,7 +136,7 @@ int main()
       TEST(memcmp(&msg_b, &msg_a, sizeof(msg_a)) == 0);
     }
 
-#if !PB_NO_MALLOC
+#if !PB_NO_MALLOC && !PB_NO_DEFAULT_ALLOCATOR
     {
       pb_byte_t buffer[256];
       Message4 msg_a = Message4_init_zero;

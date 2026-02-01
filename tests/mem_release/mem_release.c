@@ -80,6 +80,11 @@ static bool test_TestMessage()
         ext2.next = NULL;
         
         pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
+
+#if PB_NO_DEFAULT_ALLOCATOR
+        stream.allocator = malloc_wrappers_allocator;
+#endif
+
         if (!pb_decode(&stream, TestMessage_fields, &msg))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&stream));
@@ -179,6 +184,11 @@ static bool test_OneofMessage()
         OneofMessage msg = OneofMessage_init_zero;
         pb_decode_ctx_t stream;
         pb_init_decode_ctx_for_buffer(&stream, buffer, msgsize);
+
+#if PB_NO_DEFAULT_ALLOCATOR
+        stream.allocator = malloc_wrappers_allocator;
+#endif
+
         if (!pb_decode(&stream, OneofMessage_fields, &msg))
         {
             fprintf(stderr, "Decode failed: %s\n", PB_GET_ERROR(&stream));
