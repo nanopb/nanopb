@@ -9,7 +9,7 @@ env.NanopbProto(["cyclic_callback", "cyclic_callback.options"])
 enc_callback = env.Program(["encode_cyclic_callback.c", "cyclic_callback.pb.c", env['NANOPB_ENCODER_OBJS']])
 dec_callback = env.Program(["decode_cyclic_callback.c", "cyclic_callback.pb.c", env['NANOPB_DECODER_OBJS']])
 
-if env.get('EMBEDDED') != 'AVR':
+if env.get('EMBEDDED') != 'AVR' and not env.HasFlag('PB_NO_RECURSION'):
     # The main test case contains a deep recursion, which would overflow
     # AVR stack. For AVRs only run the short message test case.
 

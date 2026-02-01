@@ -3,6 +3,7 @@
 Import("env")
 
 env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
+env.SkipTestIfFlag('PB_NO_RECURSION')
 
 env.NanopbProto(["deep"])
 
