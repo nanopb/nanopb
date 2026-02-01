@@ -62,3 +62,6 @@ jobs:
     needs: smoke_test
     uses: ./.github/workflows/binary_packages.yml
 
+  config_tests:
+    needs: smoke_test
+    uses: ./.github/workflows/config_tests.yml
