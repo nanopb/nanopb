@@ -4,6 +4,7 @@
 #include <pb_encode.h>
 #include <malloc_wrappers.h>
 #include "unittests.h"
+#include "test_helpers.h"
 #include "fixed_count.pb.h"
 
 int main()
@@ -49,11 +50,11 @@ int main()
 
       pb_init_decode_ctx_for_buffer(&stream, input, 8);
       TEST(!pb_decode(&stream, Message1_fields, &msg));
-      TEST(strcmp(stream.errmsg, "array overflow") == 0);
+      TEST(COMPARE_ERRMSG(&stream, "array overflow"));
 
       pb_init_decode_ctx_for_buffer(&stream, input, 4);
       TEST(!pb_decode(&stream, Message1_fields, &msg));
-      TEST(strcmp(stream.errmsg, "wrong size for fixed count field") == 0);
+      TEST(COMPARE_ERRMSG(&stream, "wrong size for fixed count field"));
     }
 
     {
@@ -135,6 +136,7 @@ int main()
       TEST(memcmp(&msg_b, &msg_a, sizeof(msg_a)) == 0);
     }
 
+#if !PB_NO_MALLOC
     {
       pb_byte_t buffer[256];
       Message4 msg_a = Message4_init_zero;
@@ -190,6 +192,7 @@ int main()
 
       TEST(get_alloc_count() == 0);
     }
+#endif
 
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");

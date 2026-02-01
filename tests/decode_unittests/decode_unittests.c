@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "test_helpers.h"
 #include "unittests.h"
 #include "unittestproto.pb.h"
 
@@ -422,7 +423,7 @@ int main()
 
         COMMENT("Testing wrong message type detection")
         TEST((S(&s,"\x0A\x07\x0A\x05\x01\x02\x03\x04\x05"), !pb_decode(&s, CallbackArray_fields, &dest)));
-        TEST(strcmp(s.errmsg, "struct_size mismatch") == 0);
+        TEST(COMPARE_ERRMSG(&s, "struct_size mismatch"));
     }
 
     {
@@ -435,6 +436,7 @@ int main()
         TEST(pb_decode(&s, IntegerContainer_fields, &dest) && dest.submsg.data_count == 5)
     }
 
+#if !PB_NO_MALLOC
     {
         pb_decode_ctx_t s = {0};
         void *data = NULL;
@@ -456,6 +458,7 @@ int main()
 
         pb_release_field(&s, data);
     }
+#endif
 
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");

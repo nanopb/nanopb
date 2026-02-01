@@ -51,8 +51,31 @@ if ARGUMENTS.get('PLATFORM'):
         platform_func(env)
 
 # Convert PBFLAGS to CPPDEFINES
+env['CPPDEFINES'] = {}
 for flag in env.get('PBFLAGS', '').split():
     env.Append(CPPDEFINES = {flag: 1})
+
+# Handy function for skipping tests based on CPPDEFINES
+def get_flag(flag, env = env):
+    for item in env['CPPDEFINES']:
+        if item[0] == flag:
+            return '1'
+        elif item[0] == flag:
+            return item[1]
+
+    return None
+
+def has_flag(flag, env = env):
+    return get_flag(flag, env) not in [0, '0', None]
+
+def skip_test_if_flag(*flags, env = env):
+    for flag in flags:
+        if has_flag(flag, env):
+            Return()
+
+env.GetFlag = get_flag
+env.HasFlag = has_flag
+env.SkipTestIfFlag = skip_test_if_flag
 
 # Load nanopb generator build rules from site_scons/site_tools/nanopb.py
 env.Tool("nanopb")

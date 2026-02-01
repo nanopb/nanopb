@@ -39,7 +39,10 @@ int main()
         pb_init_decode_ctx_for_buffer(&stream, input_data, input_len);
         TEST(pb_decode(&stream, TestMessage_fields, &msg));
         TEST(msg.foo == 0x1);
+
+#if !PB_NO_ERRMSG
         TEST(stream.errmsg == NULL);
+#endif
     }
 
     /* test callback stream */
@@ -49,7 +52,10 @@ int main()
         pb_init_decode_ctx_for_callback(&stream, &stream_callback, 0, PB_SIZE_MAX, NULL, 0);
         TEST(pb_decode(&stream, TestMessage_fields, &msg));
         TEST(msg.foo == 0x1);
+
+#if !PB_NO_ERRMSG
         TEST(stream.errmsg == NULL);
+#endif
     }
 
     return status;

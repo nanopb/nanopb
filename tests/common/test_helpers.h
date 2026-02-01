@@ -52,4 +52,10 @@ static inline void init_decode_ctx_for_stdio(pb_decode_ctx_t *ctx, FILE* file, p
 
 #endif
 
+#if !PB_NO_ERRMSG
+#define COMPARE_ERRMSG(stream, text) (strcmp((stream)->errmsg, text) == 0)
+#else
+#define COMPARE_ERRMSG(stream, text) true
+#endif
+
 #endif

@@ -599,7 +599,7 @@ typedef uint16_t pb_type_t;
  */
 #if defined(PB_SIZE_T_OVERRIDE)
     typedef PB_SIZE_T_OVERRIDE pb_size_t;
-#elif defined(PB_NO_LARGEMSG)
+#elif PB_NO_LARGEMSG
     typedef uint_least16_t pb_size_t;
 #elif SIZE_MAX > UINT32_MAX
     typedef uint32_t pb_size_t;
