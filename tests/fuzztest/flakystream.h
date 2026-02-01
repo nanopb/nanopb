@@ -6,6 +6,8 @@
 
 #include <pb_decode.h>
 
+#if !PB_NO_STREAM_CALLBACK
+
 typedef struct {
     pb_decode_ctx_t stream;
     const uint8_t *buffer;
@@ -17,5 +19,7 @@ typedef struct {
 void flakystream_init(flakystream_t *stream, const uint8_t *buffer,
     size_t msglen, size_t fail_after,
     uint8_t *tmpbuf, size_t tmpbuf_size);
+
+#endif
 
 #endif

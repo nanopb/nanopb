@@ -11,6 +11,7 @@
 
 #define S(s,x) pb_init_decode_ctx_for_buffer(s,(uint8_t*)x, sizeof(x) - 1)
 
+#if !PB_NO_STREAM_CALLBACK
 bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
     if (stream->state != NULL)
@@ -20,6 +21,7 @@ bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
         memset(buf, 'x', count);
     return true;
 }
+#endif
 
 /* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
 bool callback_check(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
@@ -60,6 +62,7 @@ int main()
         TEST(!pb_read(&stream, buffer2, 1))
     }
 
+#if !PB_NO_STREAM_CALLBACK
     {
         uint8_t buffer[20];
         pb_decode_ctx_t stream;
@@ -74,6 +77,7 @@ int main()
         stream.state = NULL;
         TEST(pb_read(&stream, buffer, 15))
     }
+#endif
 
     {
         pb_decode_ctx_t s;

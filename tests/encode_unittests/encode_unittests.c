@@ -65,6 +65,7 @@ int main()
         TEST(stream.bytes_written == sizeof(buffer1));
     }
     
+#if !PB_NO_STREAM_CALLBACK
     {
         uint8_t buffer1[] = "xxxxxxx";
         pb_encode_ctx_t stream;
@@ -75,6 +76,7 @@ int main()
         buffer1[0] = 'a';
         TEST(!pb_write(&stream, buffer1, 5));
     }
+#endif
     
     {
         uint8_t buffer[30];

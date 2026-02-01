@@ -123,6 +123,9 @@ static bool do_decode(const uint8_t *buffer, size_t msglen, size_t structsize,
 static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_after, size_t structsize,
     const pb_msgdesc_t *msgtype, pb_decode_ctx_flags_t flags, bool assert_success)
 {
+#if PB_NO_STREAM_CALLBACK
+    return true;
+#else
     bool status;
     flakystream_t stream;
     size_t initial_alloc_count = get_alloc_count();
@@ -157,6 +160,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
     assert(get_alloc_count() == initial_alloc_count);
 
     return status;
+#endif
 }
 
 static int g_sentinel;

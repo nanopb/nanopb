@@ -4,6 +4,7 @@
 Import("env")
 
 env.SkipTestIfFlag('PB_NO_MALLOC')
+env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
 
 env.NanopbProto("test")
 
