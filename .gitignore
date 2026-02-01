@@ -33,3 +33,4 @@ bazel-*
 extra/poetry/build
 build/
 .idea
+.venv
