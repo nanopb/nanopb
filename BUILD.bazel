@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 
@@ -17,12 +18,12 @@ licenses(["notice"])
 exports_files(["LICENSE.txt"])
 
 cc_library(
-    name = "nanopb_compilation_options_default"
+    name = "nanopb_compilation_options_default",
 )
 
 label_flag(
     name = "nanopb_compilation_options",
-    build_setting_default = ":nanopb_compilation_options_default"
+    build_setting_default = ":nanopb_compilation_options_default",
 )
 
 cc_library(
@@ -72,22 +73,25 @@ py_binary(
 
 string_flag(
     name = "nanopb_extension",
-    values = [".pb", ".nanopb"],
     build_setting_default = ".pb",
+    values = [
+        ".pb",
+        ".nanopb",
+    ],
 )
 
 config_setting(
     name = "nanopb_extension_default",
     flag_values = {
-        ":nanopb_extension": ".pb"
-    }
+        ":nanopb_extension": ".pb",
+    },
 )
 
 config_setting(
     name = "nanopb_extension_nanopb",
     flag_values = {
-        ":nanopb_extension": ".nanopb"
-    }
+        ":nanopb_extension": ".nanopb",
+    },
 )
 
 proto_plugin(
@@ -150,11 +154,11 @@ cc_nanopb_proto_library(
 cc_test(
     name = "bazel_options_support",
     srcs = ["tests/bazel_options_support/bazel_options_support.cc"],
-    deps = [":all_types_nanopb"],
     copts = select({
         ":nanopb_extension_nanopb": ["-DUSE_NANOPB_EXTENSION_NAME"],
         ":nanopb_extension_default": [],
     }),
+    deps = [":all_types_nanopb"],
 )
 
 # Run `bazel run //:requirements.update` if you want to update the requirements.
