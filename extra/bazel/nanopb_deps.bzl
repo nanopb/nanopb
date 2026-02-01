@@ -13,7 +13,7 @@ def nanopb_deps():
                 "https://github.com/bazelbuild/bazel-skylib/releases/download/1.5.0/bazel-skylib-1.5.0.tar.gz",
             ],
         )
-        
+
     # Setup proto rules.
     # Used by: com_github_nanopb_nanopb, rules_proto_grpc.
     # Used in modules: root.

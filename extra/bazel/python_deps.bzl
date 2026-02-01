@@ -1,6 +1,6 @@
 load("@rules_python//python:pip.bzl", "pip_parse")
 
-def nanopb_python_deps(interpreter=None):
+def nanopb_python_deps(interpreter = None):
     # Required for python deps for generator plugin.
     # Used by: nanopb.
     # Used in modules: generator.
