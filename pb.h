@@ -7,6 +7,9 @@
 #ifndef PB_H_INCLUDED
 #define PB_H_INCLUDED
 
+#define PB_HDRNAME2(x) #x
+#define PB_HDRNAME(x) PB_HDRNAME2(x)
+
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
  * - strlen, memcpy, memmove, memset functions
@@ -16,12 +19,25 @@
  * - realloc() and free() unless PB_NO_DEFAULT_ALLOCATOR is defined
  *
  * If you don't have the standard header files, you can instead provide
- * a custom header that defines or includes all this. In that case,
- * define PB_SYSTEM_HEADER to the path of this file.
+ * a custom header that defines or includes all this.
+ * Note that for legacy reasons, PB_SYSTEM_HEADER value has to include
+ * either quotes or brackets, such as:
+ * '-DPB_SYSTEM_HEADER="myhdr.h"'
+ *
+ * Alternatively PB_SYSTEM_HEADER_NAME can be used without quotes:
+ * -DPB_SYSTEM_HEADER_NAME=myhdr.h
  */
-#ifdef PB_SYSTEM_HEADER
+#if defined(PB_SYSTEM_HEADER)
 #include PB_SYSTEM_HEADER
+#elif defined(PB_SYSTEM_HEADER_NAME)
+#include PB_HDRNAME(PB_SYSTEM_HEADER_NAME)
 #else
+
+#ifdef __cplusplus
+// In older C++ versions, this is required to UINT32_MAX etc. defined
+#define __STDC_LIMIT_MACROS 1
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -30,9 +46,28 @@
 #include <limits.h>
 #endif
 
+/* Configuration options can be defined in a pb_config.h file.
+ * On most compilers its existence can be automatically detected,
+ * but otherwise you can declare PB_CONFIG_HEADER_NAME.
+ */
+#if defined(PB_CONFIG_HEADER_NAME)
+#include PB_HDRNAME(PB_CONFIG_HEADER_NAME)
+#elif defined(__has_include)
+# if __has_include("pb_config.h")
+#  include "pb_config.h"
+# endif
+#endif
+
+/* Extra include file that can be used to provide e.g. default
+ * allocator definition. */
+#ifdef PB_EXTRA_HEADER_NAME
+#include PB_HDRNAME(PB_EXTRA_HEADER_NAME)
+#endif
+
 /*****************************************************************
  * Nanopb compilation time options. You can change these here by *
- * uncommenting the lines, or on the compiler command line.      *
+ * uncommenting the lines, on the compiler command line or in    *
+ * a pb_config.h file (see pb_config_example.h).                 *
  *                                                               *
  * By default all features default to enabled.                   *
  * They can be individually disabled by defining PB_NO_xxxx to 1.*
