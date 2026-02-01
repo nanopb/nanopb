@@ -6,20 +6,11 @@ Import("env")
 env.NanopbProto("submsg_ft_callback.proto")
 env.NanopbProto("variant.proto")
 
-poc_master = env.Program(["poc_master.c", "submsg_ft_callback.pb.c",
-                          "$COMMON/pb_decode.o",
-                          "$COMMON/pb_common.o"])
-
+poc_master = env.Program(["poc_master.c", "submsg_ft_callback.pb.c", env['NANOPB_DECODER_OBJS']])
 env.RunTest([poc_master])
 
-poc_release = env.Program(["poc_release.c", "variant.pb.c",
-                          "$COMMON/pb_decode.o",
-                          "$COMMON/pb_common.o"])
-
+poc_release = env.Program(["poc_release.c", "variant.pb.c", env['NANOPB_DECODER_OBJS']])
 env.RunTest([poc_release])
 
-poc_positive = env.Program(["poc_positive.c", "variant.pb.c",
-                          "$COMMON/pb_decode.o",
-                          "$COMMON/pb_common.o"])
-
+poc_positive = env.Program(["poc_positive.c", "variant.pb.c", env['NANOPB_DECODER_OBJS']])
 env.RunTest([poc_positive])

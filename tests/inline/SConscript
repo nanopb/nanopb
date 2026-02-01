@@ -9,8 +9,7 @@ env.Match(["inline.pb.h", "inline.expected"])
 
 p = env.Program(["inline_unittests.c",
                  "inline.pb.c",
-                 "$COMMON/pb_encode.o",
-                 "$COMMON/pb_decode.o",
-                 "$COMMON/pb_common.o"])
+                 env['NANOPB_OBJS']
+                 ])
 
 env.RunTest(p)

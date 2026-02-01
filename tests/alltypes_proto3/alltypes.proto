@@ -28,6 +28,7 @@ message Limits {
     uint64     uint64_max =  8;
     HugeEnum   enum_min   =  9;
     HugeEnum   enum_max   = 10;
+    int32      largetag = 500000000;
 }
 
 enum MyEnum {

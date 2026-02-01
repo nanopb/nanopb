@@ -4,7 +4,7 @@ env.NanopbProto("doublemsg")
 
 # Define the compilation options
 opts = env.Clone()
-opts.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1})
+opts.Append(CPPDEFINES = {'PB_CONVERT_DOUBLE_FLOAT': 1, 'PB_NO_MALLOC': 1})
 
 if opts.get('EMBEDDED') == 'AVR':
     opts.Append(CFLAGS = "-Wno-overflow")

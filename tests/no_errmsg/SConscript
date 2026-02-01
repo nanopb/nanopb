@@ -11,7 +11,7 @@ env.Command("decode_alltypes.c", "$BUILD/alltypes/decode_alltypes.c", c)
 
 # Define the compilation options
 opts = env.Clone()
-opts.Append(CPPDEFINES = {'PB_NO_ERRMSG': 1})
+opts.Append(CPPDEFINES = {'PB_NO_ERRMSG': 1, 'PB_NO_MALLOC': 1})
 
 # Build new version of core
 strict = opts.Clone()

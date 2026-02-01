@@ -1,4 +1,5 @@
-# Run the alltypes test case, but compile with PB_BUFFER_ONLY=1
+# Run the alltypes test case, but compile with PB_NO_STREAM_CALLBACK=1
+# (option was previously called PB_BUFFER_ONLY)
 
 Import("env")
 
@@ -11,7 +12,7 @@ env.Command("decode_alltypes.c", "$BUILD/alltypes/decode_alltypes.c", c)
 
 # Define the compilation options
 opts = env.Clone()
-opts.Append(CPPDEFINES = {'PB_BUFFER_ONLY': 1})
+opts.Append(CPPDEFINES = {'PB_NO_STREAM_CALLBACK': 1, 'PB_NO_MALLOC': 1})
 
 # Build new version of core
 strict = opts.Clone()

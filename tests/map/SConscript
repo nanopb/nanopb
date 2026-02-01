@@ -8,13 +8,13 @@ env.NanopbProto(['map', 'map.options'])
 
 enc = env.Program(['encode_map.c',
                 'map.pb.c',
-                '$COMMON/pb_encode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_ENCODER_OBJS'],
+                ])
 
 dec = env.Program(['decode_map.c',
                 'map.pb.c',
-                '$COMMON/pb_decode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_DECODER_OBJS'],
+                ])
 
 env.RunTest("message.pb", enc)
 env.RunTest("message.txt", [dec, 'message.pb'])

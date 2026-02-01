@@ -6,13 +6,13 @@ env.NanopbProto('oneof')
 
 enc = env.Program(['encode_oneof.c',
                 'oneof.pb.c',
-                '$COMMON/pb_encode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_ENCODER_OBJS'],
+                ])
 
 dec = env.Program(['decode_oneof.c',
                 'oneof.pb.c',
-                '$COMMON/pb_decode.o',
-                '$COMMON/pb_common.o'])
+                env['NANOPB_DECODER_OBJS'],
+                ])
 
 for i in range(1,7):
     # Encode message, then decode with protoc and test program and compare.

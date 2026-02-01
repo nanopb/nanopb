@@ -7,7 +7,7 @@ env.NanopbProto("test.proto")
 
 p = env.Program(["test.c",
                  "test.pb.c",
-                 "$COMMON/pb_decode.o",
-                 "$COMMON/pb_common.o"])
+                 env['NANOPB_DECODER_OBJS']
+                 ])
 
 env.RunTest(p)

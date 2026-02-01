@@ -6,7 +6,10 @@ env.NanopbProto(["alltypes", "alltypes.options"])
 
 # Define the compilation options
 opts = env.Clone()
-opts.Append(CPPDEFINES = {'PB_WITHOUT_64BIT': 1, 'HAVE_STDINT_H': 0, 'PB_SYSTEM_HEADER': '\\"no_64bit_syshdr.h\\"'})
+opts.Append(CPPDEFINES = {'PB_WITHOUT_64BIT': 1,
+                          'HAVE_STDINT_H': 0,
+                          'PB_SYSTEM_HEADER': '\\"no_64bit_syshdr.h\\"',
+                          'PB_NO_MALLOC': 1})
 opts.Append(CPPPATH = "#without_64bit")
 
 if 'SYSHDR' in opts:
