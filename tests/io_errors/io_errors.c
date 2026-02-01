@@ -152,7 +152,7 @@ int main()
 
 #if !PB_NO_DEFAULT_ALLOCATOR
     pb_release(NULL, AllTypes_fields, &msg);
-#else
+#elif !PB_NO_MALLOC
     {
         pb_decode_ctx_t stream;
         stream.allocator = malloc_wrappers_allocator;
@@ -160,7 +160,9 @@ int main()
     }
 #endif
 
+#if !PB_NO_MALLOC
     assert(get_alloc_count() == 0);
+#endif
 
     return 0;   
 }
