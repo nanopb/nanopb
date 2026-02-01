@@ -3,9 +3,9 @@
 
 #define ALLOC_ALIGNMENT sizeof(double)
 
-void* arena_realloc(pb_allocator_t *ctx, void *ptr, size_t size)
+void* arena_realloc(pb_allocator_t *actx, void *ptr, size_t size)
 {
-    arena_allocator_t *arena = (arena_allocator_t*)ctx;
+    arena_allocator_t *arena = (arena_allocator_t*)actx;
 
     // Align to void* size
     if (size % ALLOC_ALIGNMENT != 0)
@@ -59,9 +59,9 @@ void* arena_realloc(pb_allocator_t *ctx, void *ptr, size_t size)
     }
 }
 
-void arena_free(pb_allocator_t *ctx, void *ptr)
+void arena_free(pb_allocator_t *actx, void *ptr)
 {
-    arena_allocator_t *arena = (arena_allocator_t*)ctx;
+    arena_allocator_t *arena = (arena_allocator_t*)actx;
 
     if (ptr != NULL)
     {

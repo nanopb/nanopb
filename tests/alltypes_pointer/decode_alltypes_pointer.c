@@ -184,6 +184,10 @@ int main(int argc, char **argv)
     pb_byte_t tmpbuf[32];
     init_decode_ctx_for_stdio(&ctx, stdin, 2048, tmpbuf, sizeof(tmpbuf));
 
+#if PB_NO_DEFAULT_ALLOCATOR
+    ctx.allocator = malloc_wrappers_allocator;
+#endif
+
     /* Decode and verify the message */
     if (!check_alltypes(&ctx, mode))
     {

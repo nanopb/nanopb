@@ -8,6 +8,7 @@
 #include "test_helpers.h"
 #include "unittests.h"
 #include "unittestproto.pb.h"
+#include "malloc_wrappers.h"
 
 #define S(s,x) pb_init_decode_ctx_for_buffer(s,(uint8_t*)x, sizeof(x) - 1)
 
@@ -444,6 +445,10 @@ int main()
     {
         pb_decode_ctx_t s = {0};
         void *data = NULL;
+
+#if PB_NO_DEFAULT_ALLOCATOR
+        s.allocator = malloc_wrappers_allocator;
+#endif
 
         COMMENT("Testing pb_allocate_field")
         TEST(pb_allocate_field(&s, &data, 10, 10) && data != NULL);
