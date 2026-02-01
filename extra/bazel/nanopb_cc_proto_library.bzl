@@ -8,6 +8,7 @@ load(
     "ProtoPluginInfo",
     "proto_compile",
     "proto_compile_attrs",
+    "proto_compile_toolchains"
 )
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
@@ -51,7 +52,7 @@ cc_nanopb_proto_compile = rule(
             doc = "List of protoc plugins to apply",
         ),
     ),
-    toolchains = [str(Label("@rules_proto//proto:toolchain_type"))],
+    toolchains = proto_compile_toolchains,
 )
 
 def cc_nanopb_proto_library(name, **kwargs):  # buildifier: disable=function-docstring
