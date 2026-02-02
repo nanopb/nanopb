@@ -107,6 +107,14 @@ The data type of `pb_size_t` is always smaller or equal to `size_t`.
 
 **Required actions:** In some cases `SIZE_MAX` in user code may need to be replaced with `PB_SIZE_MAX` to silence compiler warnings.
 
+### Generated struct name for forward declaration
+
+**Rationale:** Previously nanopb generator made definitions such as `typedef struct _MyMessage { ... } MyMessage;`. The `struct _MyMessage` name allows forward declaration of the structs, which can be useful. However identifiers beginning with underscore are reserved in C.
+
+**Changes:** Generator now uses format `typedef struct MyMessage { ... } MyMessage;`.
+
+**Required actions:** If forward declarations are used in user code, remove the underscore from the names.
+
 ### Proto3 singular submessages are unconditionally encoded
 
 **Rationale:** Since nanopb-0.4.0, proto3 submessages have had a separate `has_` field,

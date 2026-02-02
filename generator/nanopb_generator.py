@@ -126,13 +126,13 @@ datatypes = {
 
 class NamingStyle:
     def enum_name(self, name):
-        return "_%s" % (name)
+        return "%s" % (name)
 
     def struct_name(self, name):
-        return "_%s" % (name)
+        return "%s" % (name)
 
     def union_name(self, name):
-        return "_%s" % (name)
+        return "%s" % (name)
 
     def type_name(self, name):
         return "%s" % (name)
