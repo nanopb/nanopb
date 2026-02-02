@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 
     {
         int status = 0;
-        TEST(sizeof(union _OneOfMessage_values) == pb_membersize(OneOfMessage, values));
+        TEST(sizeof(union OneOfMessage_values) == pb_membersize(OneOfMessage, values));
 
         if (status != 0)
             return status;
