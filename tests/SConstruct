@@ -40,6 +40,13 @@ env.SetDefault(BUILDDIR = "build")
 env.SConsignFile(env['BUILDDIR'] + "/sconsign")
 env.Replace(CONFIGUREDIR = env['BUILDDIR'] + "/config")
 
+if not 'CPPDEFINES' in env:
+    env['CPPDEFINES'] = {}
+
+# Convert PBFLAGS to CPPDEFINES
+for flag in env.get('PBFLAGS', '').split():
+    env.Append(CPPDEFINES = {flag: 1})
+
 # If a cross compilation platform is given, apply the environment settings
 # from site_scons/platforms/X/X.py
 if ARGUMENTS.get('PLATFORM'):
@@ -50,23 +57,18 @@ if ARGUMENTS.get('PLATFORM'):
     else:
         platform_func(env)
 
-# Convert PBFLAGS to CPPDEFINES
-env['CPPDEFINES'] = {}
-for flag in env.get('PBFLAGS', '').split():
-    env.Append(CPPDEFINES = {flag: 1})
-
 # Handy function for skipping tests based on CPPDEFINES
-def get_flag(flag, env = env):
+def get_flag(flag, default = None, env = env):
     for item in env['CPPDEFINES']:
         if item[0] == flag:
             return '1'
         elif item[0] == flag:
             return item[1]
 
-    return None
+    return default
 
 def has_flag(flag, env = env):
-    return get_flag(flag, env) not in [0, '0', None]
+    return get_flag(flag, '0', env) not in [0, '0', None]
 
 def skip_test_if_flag(*flags, env = env):
     for flag in flags:
