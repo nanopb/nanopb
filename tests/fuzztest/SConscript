@@ -95,7 +95,7 @@ def run_against_corpus(target, source, env):
 
         count += 1
 
-        maxsize = env.GetFlag('FUZZTEST_BUFSIZE') or 256*1024
+        maxsize = int(env.GetFlag('FUZZTEST_BUFSIZE', 0)) or 256*1024
         data_in = corpus.read(filename)[:maxsize]
 
         try:
