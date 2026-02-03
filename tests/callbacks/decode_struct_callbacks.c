@@ -1,5 +1,19 @@
-/* Decoding testcase for callback fields.
- * Run e.g. ./test_encode_callbacks | ./test_decode_callbacks
+/* Testcase and example for decoding using field callbacks
+ * defined in pb_callback_t structure. 
+ *
+ * This was the primary callback mechanism before nanopb-0.4.0.
+ * 
+ * It has the downside of mixing callback pointers with other message
+ * data. This works for normal static fields, but for e.g. oneof or
+ * pointer submessages it is difficult to setup the callbacks during
+ * decoding.
+ * 
+ * Run e.g. ./test_encode_struct_callbacks | ./test_decode_struct_callbacks
+ * 
+ * NOTE: Field callbacks are an advanced mechanism for
+ * custom handling of field data. In this example, every
+ * field is a callback, but that is purely for demonstration.
+ * Normally callback fields are only used for special requirements.
  */
 
 #include <stdio.h>

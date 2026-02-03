@@ -1,4 +1,17 @@
-/* Encoding testcase for callback fields */
+/* Testcase and example for encoding using field callbacks
+ * defined in pb_callback_t structure.
+ *
+ * This was the primary callback mechanism before nanopb-0.4.0.
+ * 
+ * It works fine for encoding, though name- and context-bound
+ * callbacks provide flexibility in customizing the data members
+ * in the message structure.
+ * 
+ * NOTE: Field callbacks are an advanced mechanism for
+ * custom handling of field data. In this example, every
+ * field is a callback, but that is purely for demonstration.
+ * Normally callback fields are only used for special requirements.
+ */
 
 #include <stdio.h>
 #include <string.h>

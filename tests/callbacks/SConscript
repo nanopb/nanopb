@@ -2,13 +2,46 @@
 
 Import("env")
 
-env.NanopbProto("callbacks")
-enc = env.Program(["encode_callbacks.c", "callbacks.pb.c", env['NANOPB_ENCODER_OBJS']])
-dec = env.Program(["decode_callbacks.c", "callbacks.pb.c", env['NANOPB_DECODER_OBJS']])
+# Test case using pb_callback_t bound callbacks
+if not env.HasFlag('PB_NO_STRUCT_FIELD_CALLBACK'):
+    env.NanopbProto("callbacks")
+    enc = env.Program(["encode_struct_callbacks.c", "callbacks.pb.c", env['NANOPB_ENCODER_OBJS']])
+    dec = env.Program(["decode_struct_callbacks.c", "callbacks.pb.c", env['NANOPB_DECODER_OBJS']])
 
-env.RunTest(enc)
-env.RunTest([dec, "encode_callbacks.output"])
+    env.RunTest(enc)
+    env.RunTest([dec, "encode_struct_callbacks.output"])
 
-env.Decode(["encode_callbacks.output", "callbacks.proto"], MESSAGE = "TestMessage")
-env.Compare(["decode_callbacks.output", "encode_callbacks.decoded"])
+    env.Decode(["encode_struct_callbacks.output", "callbacks.proto"], MESSAGE = "TestMessage")
+    env.Compare(["decode_struct_callbacks.output", "encode_struct_callbacks.decoded"])
 
+# Same test case, but with name-bound callbacks
+if not env.HasFlag('PB_NO_NAME_FIELD_CALLBACK'):
+    env.NanopbProto("callbacks_name")
+    enc2 = env.Program(["encode_name_callbacks.c", "callbacks_name.pb.c", env['NANOPB_ENCODER_OBJS']])
+    dec2 = env.Program(["decode_name_callbacks.c", "callbacks_name.pb.c", env['NANOPB_DECODER_OBJS']])
+
+    env.RunTest(enc2)
+    env.RunTest([dec2, "encode_name_callbacks.output"])
+
+    env.Decode(["encode_name_callbacks.output", "callbacks.proto"], MESSAGE = "TestMessage")
+    env.Compare(["decode_name_callbacks.output", "encode_name_callbacks.decoded"])
+
+    # Compare against the other test case
+    if not env.HasFlag('PB_NO_STRUCT_FIELD_CALLBACK'):
+        env.Compare(["encode_name_callbacks.output", "encode_struct_callbacks.output"])
+
+# Yet again, but with context-bound callbacks
+if not env.HasFlag('PB_NO_CONTEXT_FIELD_CALLBACK'):
+    env.NanopbProto("callbacks")
+    enc3 = env.Program(["encode_ctx_callbacks.c", "callbacks.pb.c", env['NANOPB_ENCODER_OBJS']])
+    dec3 = env.Program(["decode_ctx_callbacks.c", "callbacks.pb.c", env['NANOPB_DECODER_OBJS']])
+
+    env.RunTest(enc3)
+    env.RunTest([dec3, "encode_ctx_callbacks.output"])
+
+    env.Decode(["encode_ctx_callbacks.output", "callbacks.proto"], MESSAGE = "TestMessage")
+    env.Compare(["decode_ctx_callbacks.output", "encode_ctx_callbacks.decoded"])
+
+    # Compare against the other test case
+    if not env.HasFlag('PB_NO_STRUCT_FIELD_CALLBACK'):
+        env.Compare(["encode_ctx_callbacks.output", "encode_struct_callbacks.output"])
