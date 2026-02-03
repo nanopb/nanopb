@@ -1,4 +1,4 @@
-# Test fallback_type option
+# Test renaming of C reserved identifiers
 
 Import("env")
 
