@@ -888,7 +888,7 @@ static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
         {
-            /* Don't overwrite callback */
+            /* Don't overwrite callback field contents */
             continue;
         }
         else if (PB_ATYPE(iter->type) == PB_ATYPE_STATIC)
@@ -1664,11 +1664,41 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             do
             {
                 prev_bytes_left = ctx->bytes_left;
-                if (!iter->descriptor->field_callback(ctx, NULL, iter))
+
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+                if (ctx->field_callback)
+                {
+                    if (!ctx->field_callback(ctx, iter))
+                    {
+                        status = false;
+                        break;
+                    }
+                    else if (ctx->bytes_left < prev_bytes_left)
+                    {
+                        // Field was handled
+                        continue;
+                    }
+                }
+#endif
+
+#if !PB_NO_NAME_FIELD_CALLBACK
+                if (iter->descriptor->field_callback)
+                {
+                    // Note: pb_default_field_callback() handles pb_callback_t
+                    if (!iter->descriptor->field_callback(ctx, NULL, iter))
+                    {
+                        status = false;
+                        break;
+                    }
+                }
+#elif !PB_NO_STRUCT_FIELD_CALLBACK
+                if (!pb_default_field_callback(ctx, NULL, iter))
                 {
                     status = false;
+                    break;
                 }
-            } while (status && ctx->bytes_left > 0 && ctx->bytes_left < prev_bytes_left);
+#endif
+            } while (ctx->bytes_left > 0 && ctx->bytes_left < prev_bytes_left);
 
             if (!close_callback_substream(ctx, &tmp) || !status)
             {

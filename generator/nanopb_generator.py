@@ -1358,6 +1358,8 @@ class Message(ProtoElement):
         if not message_options.HasField('callback_function'):
             # Automatically assign a per-message callback if any field has
             # a special callback_datatype.
+            # The callback_function can be set to "" to disable name-bound
+            # callbacks for the message.
             for field in self.fields:
                 if field.requires_custom_field_callback():
                     self.callback_function = "%s_callback" % self.name
@@ -1571,7 +1573,7 @@ class Message(ProtoElement):
 
         has_callbacks = bool([f for f in self.fields if f.has_callbacks()])
         if has_callbacks:
-            if self.callback_function != 'pb_default_field_callback':
+            if self.callback_function not in ['', 'pb_default_field_callback']:
                 result += "extern bool %s(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field);\n" % self.callback_function
             result += "#define %s_CALLBACK %s\n" % (
                 Globals.naming_style.define_name(self.name),

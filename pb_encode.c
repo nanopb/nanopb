@@ -542,14 +542,35 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
         if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
         {
             // Pass control to a callback function provided by user
+
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+            if (ctx->field_callback)
+            {
+                if (!ctx->field_callback(ctx, iter))
+                {
+                    PB_SET_ERROR(ctx, "callback error");
+                    return PB_WALK_EXIT_ERR;
+                }
+            }
+#endif
+
+#if !PB_NO_NAME_FIELD_CALLBACK
             if (iter->descriptor->field_callback != NULL)
             {
+                // pb_default_field_callback() handles pb_callback_t
                 if (!iter->descriptor->field_callback(NULL, ctx, iter))
                 {
                     PB_SET_ERROR(ctx, "callback error");
                     return PB_WALK_EXIT_ERR;
                 }
             }
+#elif !PB_NO_STRUCT_FIELD_CALLBACK
+            if (!pb_default_field_callback(NULL, ctx, iter))
+            {
+                PB_SET_ERROR(ctx, "callback error");
+                return PB_WALK_EXIT_ERR;
+            }
+#endif
         }
         else if (PB_LTYPE_IS_SUBMSG(iter->type))
         {
