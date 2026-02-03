@@ -6,8 +6,9 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load(
     "@rules_proto_grpc//:defs.bzl",
     "ProtoPluginInfo",
-    "proto_compile_attrs",
     "proto_compile",
+    "proto_compile_attrs",
+    "proto_compile_toolchains"
 )
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 
@@ -18,13 +19,13 @@ def cc_nanopb_proto_compile_impl(ctx):
     for options_target in ctx.attr.nanopb_options_files:
         for options_file in options_target.files.to_list():
             extra_protoc_args = extra_protoc_args + [
-                "--nanopb_plugin_opt=-f{}".format(options_file.path)]
+                "--nanopb_plugin_opt=-f{}".format(options_file.path),
+            ]
             extra_protoc_files = extra_protoc_files + [options_file]
     extra_protoc_args = extra_protoc_args + [
-        "--nanopb_plugin_opt=--extension={}".format(ctx.attr._extension[BuildSettingInfo].value)
+        "--nanopb_plugin_opt=--extension={}".format(ctx.attr._extension[BuildSettingInfo].value),
     ]
     return proto_compile(ctx, ctx.attr.options, extra_protoc_args, extra_protoc_files)
-
 
 nanopb_proto_compile_attrs = dict(
     nanopb_options_files = attr.label_list(
@@ -35,9 +36,8 @@ nanopb_proto_compile_attrs = dict(
         doc = "Private field to allow //:nanopb_extension string_flag to apply",
         default = "//:nanopb_extension",
     ),
-    **proto_compile_attrs,
+    **proto_compile_attrs
 )
-
 
 # Create compile rule
 cc_nanopb_proto_compile = rule(
@@ -52,9 +52,8 @@ cc_nanopb_proto_compile = rule(
             doc = "List of protoc plugins to apply",
         ),
     ),
-    toolchains = [str(Label("@rules_proto//proto:toolchain_type"))],
+    toolchains = proto_compile_toolchains,
 )
-
 
 def cc_nanopb_proto_library(name, **kwargs):  # buildifier: disable=function-docstring
     # Compile protos
