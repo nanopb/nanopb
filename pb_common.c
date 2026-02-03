@@ -118,7 +118,7 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
     // Get pointer to submessage type
     if (PB_LTYPE_IS_SUBMSG(iter->type))
     {
-        iter->submsg_desc = iter->descriptor->submsg_info[iter->submessage_index];
+        iter->submsg_desc = (const pb_msgdesc_t*)PB_PROGMEM_READPTR(iter->descriptor->submsg_info[iter->submessage_index]);
     }
     else
     {
