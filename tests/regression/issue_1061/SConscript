@@ -2,6 +2,8 @@
 # submsg_callback with FT_CALLBACK
 
 Import("env")
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
+
 env.NanopbProto("submsg_ft_callback")
 env.Object("submsg_ft_callback.pb.c")
 

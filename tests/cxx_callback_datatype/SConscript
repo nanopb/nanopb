@@ -1,5 +1,6 @@
 # Test wrapping of a C++ class inside struct using callback_datatype option.
 Import('env')
+env.SkipTestIfFlag('PB_NO_NAME_FIELD_CALLBACK')
 
 if env.get('EMBEDDED') == 'AVR':
     Return() # No <vector> on AVR g++

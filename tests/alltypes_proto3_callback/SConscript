@@ -2,6 +2,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
+
 c = Copy("$TARGET", "$SOURCE")
 env.Command("alltypes.proto", "#alltypes_proto3/alltypes.proto", c)
 

@@ -1,6 +1,7 @@
 Import("env")
 
 # Encode cyclic messages with callback fields
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
 
 c = Copy("$TARGET", "$SOURCE")
 env.Command("cyclic_callback.proto", "cyclic.proto", c)

@@ -3,6 +3,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
+
 env.NanopbProto("extensions")
 testprog = env.Program(["test_extensions.c", "extensions.pb.c", env['NANOPB_OBJS']])
 
