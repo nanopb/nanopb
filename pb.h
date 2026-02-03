@@ -161,6 +161,24 @@
 #define PB_NO_EXTENSIONS PB_MINIMAL
 #endif
 
+// PB_NO_CONTEXT_FIELD_CALLBACK: Disable support for field callbacks
+// using ctx->field_callback() mechanism.
+#ifndef PB_NO_CONTEXT_FIELD_CALLBACK
+#define PB_NO_CONTEXT_FIELD_CALLBACK PB_MINIMAL
+#endif
+
+// PB_NO_NAME_FIELD_CALLBACK: Disable support for name-bound field
+// callbacks using generator 'callback_function' option.
+#ifndef PB_NO_NAME_FIELD_CALLBACK
+#define PB_NO_NAME_FIELD_CALLBACK PB_MINIMAL
+#endif
+
+// PB_NO_STRUCT_FIELD_CALLBACK: Disable support for field callbacks
+// defined using the pb_callback_t mechanism.
+#ifndef PB_NO_STRUCT_FIELD_CALLBACK
+#define PB_NO_STRUCT_FIELD_CALLBACK PB_MINIMAL
+#endif
+
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *
@@ -677,10 +695,12 @@ struct pb_msgdesc_s {
      */
     const pb_byte_t *default_value;
 
+#if !PB_NO_NAME_FIELD_CALLBACK
     /* If the message uses name-bound callbacks, this is the function
      * pointer to the callback function.
      */
     bool (*field_callback)(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_iter_t *field);
+#endif
 };
 
 /* Iterator for message descriptor */
@@ -776,7 +796,12 @@ struct pb_callback_s {
     void *arg;
 };
 
+#if !PB_NO_NAME_FIELD_CALLBACK || !PB_NO_STRUCT_FIELD_CALLBACK
+// Default field callback which implements handling of pb_callback_t structure.
+// Implemented in pb_common.c but defined here, because pb_common.h is not usually
+// directly included.
 extern bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field);
+#endif
 
 /* Wire types. Library user needs these only in encoder callbacks. */
 typedef enum {
@@ -918,7 +943,7 @@ typedef struct {
        structname ## _field_info, \
        structname ## _submsg_info, \
        msgname ## _DEFAULT, \
-       msgname ## _CALLBACK, \
+       PB_DECL_CALLBACK_PTR(msgname ## _CALLBACK) \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
 
@@ -928,6 +953,12 @@ typedef struct {
 #else
 #define PB_MSGFLAG_DESCWIDTH_S 0
 #define PB_MSGFLAG_DESCWIDTH_L 0
+#endif
+
+#if !PB_NO_NAME_FIELD_CALLBACK
+#define PB_DECL_CALLBACK_PTR(x) x,
+#else
+#define PB_DECL_CALLBACK_PTR(x)
 #endif
 
 #define PB_GEN_FIELD_COUNT(structname, atype, htype, ltype, fieldname, tag) +1

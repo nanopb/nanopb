@@ -94,6 +94,24 @@
 // #define PB_NO_EXTENSIONS 1
 
 
+// PB_NO_CONTEXT_FIELD_CALLBACK: Disable support for field callbacks
+// using ctx->field_callback() mechanism.
+
+// #define PB_NO_CONTEXT_FIELD_CALLBACK 1
+
+
+// PB_NO_NAME_FIELD_CALLBACK: Disable support for name-bound field
+// callbacks using generator 'callback_function' option.
+
+// #define PB_NO_NAME_FIELD_CALLBACK 1
+
+
+// PB_NO_STRUCT_FIELD_CALLBACK: Disable support for field callbacks
+// defined using the pb_callback_t mechanism.
+
+// #define PB_NO_STRUCT_FIELD_CALLBACK 1
+
+
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *

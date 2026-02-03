@@ -372,8 +372,10 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
     return false;
 }
 
+#if !PB_NO_NAME_FIELD_CALLBACK || !PB_NO_STRUCT_FIELD_CALLBACK
 bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
 {
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     if (field->data_size == sizeof(pb_callback_t))
     {
         pb_callback_t *pCallback = (pb_callback_t*)field->pData;
@@ -391,9 +393,15 @@ bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx,
             }
         }
     }
+#else
+    PB_UNUSED(decctx);
+    PB_UNUSED(encctx);
+    PB_UNUSED(field);
+#endif
 
     return true; /* Success, but didn't do anything */
 }
+#endif
 
 bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback)
 {

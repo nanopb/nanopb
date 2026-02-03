@@ -29,6 +29,38 @@ extern "C" {
 typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
 #endif
 
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+/* Field callback function for encoding.
+ *
+ * This lets you implement custom generation of outgoing data without storing
+ * it into temporary RAM buffers. For example, you can directly read the data
+ * from microcontroller peripherals or custom data structures.
+ * The callback implementation should:
+ *
+ * 1. Check field->descriptor and field->tag to see which field is being processed, e.g.:
+ *    if (field->descriptor == &MyMessage_msg && field->tag == MyMessage_myfield_tag)
+ *
+ * 2. Write protobuf tag for the field. See protobuf encoding guide for more information:
+ *        https://protobuf.dev/programming-guides/encoding/
+ *    Example code:
+ *    pb_encode_tag_for_field(ctx, field);
+ *
+ * 3. Write data payload for the field, including a length prefix if the field has
+ *    string, bytes or submessage type. You can use helper functions such as
+ *    pb_encode_string() and pb_encode_submessage() which handle the length prefix.
+ *    You can access the structure field at field->pField.
+ *
+ * 4. For repeated fields, repeat 2. and 3. for each item in the array.
+ *
+ * 5. When using pb_init_encode_ctx_for_callback(), your field callback may get
+ *    called multiple times. It should write the same data each time.
+ *    When using pb_init_encode_ctx_for_buffer(), the callback is only called once.
+ *
+ * 6. If no errors occur, return true. The callback does not have to write anything.
+ */
+typedef bool (*pb_encode_ctx_field_callback_t)(pb_encode_ctx_t *ctx, const pb_field_t *field);
+#endif
+
 /* Flags for encode context state */
 typedef uint16_t pb_encode_ctx_flags_t;
 
@@ -97,9 +129,15 @@ struct pb_encode_ctx_s
     pb_size_t buffer_count;
 #endif
 
-    // Outer pb_walk() stackframe, used for memory usage optimizations during
-    // callback handling. This is initialized to NULL and later set by pb_encode().
+    // Outer pb_walk() stackframe, internally used for memory usage optimizations
+    // during callback handling. This is initialized to NULL and later set by
+    // pb_encode().
     pb_walk_state_t *walk_state;
+
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+    // User-provided field callback function, applies to all callback-type fields.
+    pb_encode_ctx_field_callback_t field_callback;
+#endif
 };
 
 /***************************
@@ -226,8 +264,9 @@ bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value);
 
 /* Encode a submessage field.
  * You need to pass the pb_field_t array and pointer to struct, just like
- * with pb_encode(). This internally encodes the submessage twice, first to
- * calculate message size and then to actually write it out.
+ * with pb_encode(). This function automatically determines the length of
+ * the submessage and writes the length prefix (using either one-pass or
+ * two-pass approach).
  */
 bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct);
 

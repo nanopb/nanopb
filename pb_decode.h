@@ -29,6 +29,29 @@ extern "C" {
 typedef bool (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 #endif
 
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+/* Field callback function for decoding.
+ *
+ * This lets you implement custom processing for incoming data, such as formatting it into
+ * custom data structures or storing it into a filesystem. The callback implementation should:
+ *
+ * 1. Check field->descriptor and field->tag to see which field is being processed, e.g.:
+ *      if (field->descriptor == &MyMessage_msg && field->tag == MyMessage_myfield_tag)
+ *
+ * 2. Process data from the stream. The ctx->bytes_left is automatically set to the field
+ *    payload length. The field tag number and length prefix (if any) has already been read.
+ *    For example to read bytes fields payload, call pb_read(ctx, mybuffer, ctx->bytes_left).
+ *
+ * 3. Return true if you processed the field successfully, or false on e.g. IO errors.
+ *    You can use PB_RETURN_ERROR(ctx, "...") to set diagnostics error message.
+ *
+ * 4. If you don't recognize the field, just return true.
+ *    If name-bound or struct-bound callbacks are defined, control is passed to them.
+ *    If no callbacks handle the field, the data is discarded.
+ */
+typedef bool (*pb_decode_ctx_field_callback_t)(pb_decode_ctx_t *ctx, const pb_field_t *field);
+#endif
+
 /* Flags for decode context state */
 typedef uint16_t pb_decode_ctx_flags_t;
 
@@ -58,7 +81,7 @@ typedef uint16_t pb_decode_ctx_flags_t;
 struct pb_decode_ctx_s
 {
 #if !PB_NO_STREAM_CALLBACK
-    // Optional callback for reading from input directly, instead
+    // Optional stream callback for reading from input directly, instead
     // of the memory buffer. State is a free field for use by the callback.
     // It's also allowed to extend the pb_encode_ctx_t struct with your own
     // fields by wrapping it.
@@ -93,12 +116,20 @@ struct pb_decode_ctx_s
     pb_size_t buffer_size;
 #endif
 
-    // Outer pb_walk() stackframe, used for memory usage optimizations during
-    // callback handling. This is initialized to NULL and later set by pb_decode().
+    // Outer pb_walk() stackframe, internally used for memory usage optimizations
+    // during callback handling. This is initialized to NULL and later set by
+    // pb_decode().
     pb_walk_state_t *walk_state;
 
 #if !PB_NO_CONTEXT_ALLOCATOR
+    // User-provided memory allocator to use for any FT_POINTER fields.
+    // If NULL, default allocator is used.
     pb_allocator_t *allocator;
+#endif
+
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+    // User-provided field callback function, applies to all callback-type fields.
+    pb_decode_ctx_field_callback_t field_callback;
 #endif
 };
 
