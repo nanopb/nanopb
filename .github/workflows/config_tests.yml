@@ -52,6 +52,12 @@ jobs:
           rm -rf build
           scons PBFLAGS="PB_NO_RECURSION" CC=clang CXX=clang++
 
+      - name: Test with PB_NO_NAME_FIELD_CALLBACK PB_NO_STRUCT_FIELD_CALLBACK
+        run: |
+          cd nanopb/tests
+          rm -rf build
+          scons PBFLAGS="PB_NO_NAME_FIELD_CALLBACK PB_NO_STRUCT_FIELD_CALLBACK" CC=clang CXX=clang++
+
       - name: Test with PB_NO_MALLOC PB_NO_RECURSION PB_NO_ERRMSG
         run: |
           cd nanopb/tests

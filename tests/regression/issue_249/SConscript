@@ -1,6 +1,8 @@
 # Regression test for Issue 249: proto3 mode pb_decode() corrupts callback fields
 Import('env')
 
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
+
 env.NanopbProto('test')
 
 p = env.Program(["test.c",

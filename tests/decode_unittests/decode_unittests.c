@@ -357,6 +357,7 @@ int main()
             && dest.data_count == 1 && dest.data[0] == 1))
     }
 
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     {
         pb_decode_ctx_t s;
         CallbackArray dest;
@@ -387,6 +388,7 @@ int main()
         ref.size = 1; ref.bytes[0] = 0x56;
         TEST((S(&s,"\x08\x55"), !pb_decode(&s, CallbackArray_fields, &dest)))
     }
+#endif
 
     {
         pb_decode_ctx_t s;

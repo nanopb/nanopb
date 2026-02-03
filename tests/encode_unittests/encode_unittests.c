@@ -320,6 +320,7 @@ int main()
         TEST((msg.data_count = 11) && !pb_encode(&s, FloatArray_fields, &msg))
     }
     
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     {
         uint8_t buffer[10];
         pb_encode_ctx_t s;
@@ -330,6 +331,7 @@ int main()
         COMMENT("Test pb_encode with callback field.")
         TEST(WRITES(pb_encode(&s, CallbackArray_fields, &msg), "\x08\x55"))
     }
+#endif
     
     {
         uint8_t buffer[10];
@@ -375,6 +377,7 @@ int main()
              size == 9);
     }
     
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     {
         uint8_t buffer[10];
         pb_encode_ctx_t s;
@@ -400,6 +403,7 @@ int main()
         state = 1;
         TEST(!pb_encode(&s, CallbackContainerContainer_fields, &msg2))
     }
+#endif
     
     {
         uint8_t buffer[StringMessage_size];
