@@ -228,6 +228,7 @@
 // on platforms where const variables are not automatically stored in ROM.
 /* #define PB_PROGMEM             ...attribute... */
 /* #define PB_PROGMEM_READU32(x)  ...access function... */
+/* #define PB_PROGMEM_READPTR(x)  ...access function... */
 
 // PB_WALK_STACK_ALIGN_TYPE: Alignment requirement for pb_walk() stack.
 // By default this is void*, which should have large enough alignment
@@ -431,9 +432,11 @@ extern "C" {
 #include <avr/pgmspace.h>
 #define PB_PROGMEM             PROGMEM
 #define PB_PROGMEM_READU32(x)  pgm_read_dword(&x)
+#define PB_PROGMEM_READPTR(x)  pgm_read_ptr(&x)
 #else
 #define PB_PROGMEM
 #define PB_PROGMEM_READU32(x)  (x)
+#define PB_PROGMEM_READPTR(x)  (x)
 #endif
 #endif
 
@@ -928,7 +931,7 @@ typedef struct {
         msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ ## width, structname) \
         0 \
     }; \
-    const pb_msgdesc_t* const structname ## _submsg_info[] = \
+    const pb_msgdesc_t* const structname ## _submsg_info[] PB_PROGMEM = \
     { \
         msgname ## _FIELDLIST(PB_GEN_SUBMSG_INFO, structname) \
         NULL \
