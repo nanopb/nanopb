@@ -19,12 +19,13 @@ extern "C" {
  *
  * The callback must conform to these rules:
  *
- * 1) Return false on IO errors. This will cause encoding to abort.
- * 2) You can use state to store your own data (e.g. buffer pointer).
- * 3) pb_write will update bytes_written after your callback runs.
- * 4) Substreams will modify max_size and bytes_written. Don't use them
- *    to calculate any pointers. The ctx pointer remains the same even
- *    for substreams.
+ * 1. Return false on IO errors. This will cause encoding to abort.
+ *
+ * 2. You can use stream_callback_state to store your own data.
+ *    Alternatively you can wrap pb_encode_ctx_t to extend it with
+ *    your own fields.
+ *
+ * 3. pb_write will update bytes_written after your callback runs.
  */
 typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
 #endif
@@ -86,40 +87,47 @@ typedef uint16_t pb_encode_ctx_flags_t;
 // Can also be applied globally with PB_NO_VALIDATE_UTF8 define.
 #define PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8  (pb_encode_ctx_flags_t)(1 << 4)
 
-/* Structure containing the state associated with message encoding.
- * For the common case of writing a message to a memory buffer, this
- * is initialized with pb_init_encode_ctx_for_buffer().
+/* pb_encode_ctx_t contains the state associated with message encoding.
+ *
+ * Structure should be initialized using one of the following:
+ *   pb_init_encode_ctx_for_buffer(...);
+ *   pb_init_encode_ctx_for_callback(...);
+ *   pb_init_encode_ctx_sizing(...);
+ *
+ * After that, user code can optionally set the following:
+ *   - flags                    to enable e.g. DELIMITED encoding
+ *   - field_callback           for fields with FT_CALLBACK type
+ *   - field_callback_state     for information to field_callback
  */
 struct pb_encode_ctx_s
 {
-#if !PB_NO_STREAM_CALLBACK
-    // Optional callback function for writing to output directly, instead
-    // of the memory buffer. State is a free field for use by the callback.
-    // It's also allowed to extend the pb_encode_ctx_t struct with your own
-    // fields by wrapping it.
-    pb_encode_ctx_write_callback_t callback;
-    void *state;
-#endif
+    // Flags that affect encoding behavior, combination of PB_ENCODE_CTX_FLAG_*
+    pb_encode_ctx_flags_t flags;
 
-    // Limit number of output bytes written. Can be set to PB_SIZE_MAX.
+    // Limit number of output bytes written.
+    // Can be set to PB_SIZE_MAX.
     pb_size_t max_size;
 
     // Number of bytes written so far.
     pb_size_t bytes_written;
-    
-#if !PB_NO_ERRMSG
-    /* Pointer to constant (ROM) string when decoding function returns error */
-    const char *errmsg;
-#endif
-
-    // Flags that affect encoding behavior, combination of PB_ENCODE_CTX_FLAG_*
-    pb_encode_ctx_flags_t flags;
 
     // Memory buffer used to store encoded data.
-    // If callback is provided, this is optional and used as cache.
+    // If a stream_callback is provided, this may be NULL.
     pb_byte_t *buffer;
 
+    // Stack-allocated pb_walk() state, internally used for memory usage
+    // optimizations during callback handling. This is initialized to NULL
+    // and later set by pb_encode().
+    pb_walk_state_t *walk_state;
+
 #if !PB_NO_STREAM_CALLBACK
+    // Optional callback function for writing to output directly, instead
+    // of the memory buffer. Stream_state is a free field for use by the callback.
+    // It's also allowed to extend the pb_encode_ctx_t struct with your own
+    // fields by wrapping it.
+    pb_encode_ctx_write_callback_t stream_callback;
+    void *stream_callback_state;
+
     // Total size of memory buffer
     // If callback is not used, this is equal to max_size.
     pb_size_t buffer_size;
@@ -129,14 +137,16 @@ struct pb_encode_ctx_s
     pb_size_t buffer_count;
 #endif
 
-    // Outer pb_walk() stackframe, internally used for memory usage optimizations
-    // during callback handling. This is initialized to NULL and later set by
-    // pb_encode().
-    pb_walk_state_t *walk_state;
+#if !PB_NO_ERRMSG
+    /* Pointer to constant (ROM) string when decoding function returns error */
+    const char *errmsg;
+#endif
 
 #if !PB_NO_CONTEXT_FIELD_CALLBACK
     // User-provided field callback function, applies to all callback-type fields.
+    // Field_callback_state is a free field for use by the callback implementation.
     pb_encode_ctx_field_callback_t field_callback;
+    void *field_callback_state;
 #endif
 };
 
@@ -195,7 +205,7 @@ void pb_init_encode_ctx_for_buffer(pb_encode_ctx_t *ctx, pb_byte_t *buf, pb_size
  * A memory buffer can optionally be provided for caching.
  */
 void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
-    pb_encode_ctx_write_callback_t callback, void *state,
+    pb_encode_ctx_write_callback_t stream_callback, void *stream_callback_state,
     pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize);
 #endif
 
@@ -282,19 +292,7 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 }
 
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
-#if !PB_NO_STREAM_CALLBACK
-# if !PB_NO_ERRMSG
-#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
-# else
-#  define PB_OSTREAM_SIZING {NULL, NULL, 0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, 0, 0, NULL}
-# endif
-#else
-# if !PB_NO_ERRMSG
-#  define PB_OSTREAM_SIZING {0, 0, NULL, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}
-# else
-#  define PB_OSTREAM_SIZING {0, 0, PB_ENCODE_CTX_FLAG_SIZING, NULL, NULL}
-# endif
-#endif
+#define PB_OSTREAM_SIZING {PB_ENCODE_CTX_FLAG_SIZING, 0, 0, NULL, NULL}
 
 /* Extended version of pb_encode, with several options to control the
  * encoding process:

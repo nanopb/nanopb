@@ -19,12 +19,15 @@ extern "C" {
  * 
  * The callback must conform to these rules:
  *
- * 1) Return false on IO errors. This will cause decoding to abort.
- * 2) You can use state to store your own data (e.g. buffer pointer),
- *    and rely on pb_read to verify that no-body reads past bytes_left.
- * 3) Your callback may be used with substreams, in which case bytes_left
- *    is different than from the main stream. Don't use bytes_left to compute
- *    any pointers. The ctx pointer remains the same even for substreams.
+ * 1. Return false on IO errors. This will cause decoding to abort.
+ *
+ * 2. You can use stream_callback_state to store your own data.
+ *    Alternatively you can wrap pb_decode_ctx_t to extend it with
+ *    your own fields.
+ *
+ * 3. During submessage decoding, bytes_left is set to smaller value
+ *    than the main stream. Don't use bytes_left to compute any pointers.
+ *    The ctx pointer remains the same even for substreams.
  */
 typedef bool (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
 #endif
@@ -74,40 +77,52 @@ typedef uint16_t pb_decode_ctx_flags_t;
 // Can also be applied globally with PB_NO_VALIDATE_UTF8 define.
 #define PB_DECODE_CTX_FLAG_NO_VALIDATE_UTF8  (pb_decode_ctx_flags_t)(1 << 4)
 
-/* Structure containing the state associated with message decoding.
- * For the common case of message coming from a memory buffer, this
- * is initialized with pb_init_decode_ctx_for_buffer().
+/* pb_decode_ctx_t contains the state associated with message decoding.
+ *
+ * Structure should be initialized using either
+ *   pb_init_decode_ctx_for_buffer(...);
+ * or
+ *   pb_init_decode_ctx_for_callback(...);
+ *
+ * After that, user code can optionally set the following:
+ *   - flags                   to enable e.g. DELIMITED decoding
+ *   - allocator               for fields with FT_POINTER type
+ *   - field_callback          for fields with FT_CALLBACK type
+ *   - field_callback_state    for information to field_callback
  */
 struct pb_decode_ctx_s
 {
-#if !PB_NO_STREAM_CALLBACK
-    // Optional stream callback for reading from input directly, instead
-    // of the memory buffer. State is a free field for use by the callback.
-    // It's also allowed to extend the pb_encode_ctx_t struct with your own
-    // fields by wrapping it.
-    pb_decode_ctx_read_callback_t callback;
-    void *state;
-#endif
-
-    // Maximum number of bytes left in this stream. Callback can report
-    // EOF before this limit is reached. Setting a limit is recommended
-    // when decoding directly from file or network streams to avoid
-    // denial-of-service by excessively long messages.
-    pb_size_t bytes_left;
-    
-#if !PB_NO_ERRMSG
-    // Pointer to constant (ROM) string when decoding function returns error
-    const char *errmsg;
-#endif
-
     // Flags that affect decoding behavior, combination of PB_DECODE_CTX_FLAG_*
     pb_decode_ctx_flags_t flags;
 
+    // Maximum number of bytes left in this stream.
+    // Normally this should equal the total message length, which has
+    // to be conveyed by other means. If DELIMITED flag is provided,
+    // the message length is taken from prefix at start of the message.
+    //
+    // For callback streams, message size may be unknown. In that case
+    // bytes_left should be a sane maximum length limit, to avoid denial
+    // of service through unexpectedly long input messages. The stream
+    // callback can report EOF before this limit is reached.
+    pb_size_t bytes_left;
+
     // Memory buffer with the data to decode.
-    // The pointer is advanced when data has been read
+    // The pointer is advanced by pb_read() when data has been read.
+    // This may be NULL for callback streams.
     const pb_byte_t *rdpos;
 
+    // Stack-allocated pb_walk() state, internally used for memory usage
+    // optimizations during callback handling. This is initialized to NULL
+    // and later set by pb_decode().
+    pb_walk_state_t *walk_state;
+
 #if !PB_NO_STREAM_CALLBACK
+    // Optional stream callback for reading from input directly, instead
+    // of the memory buffer. The callback can use stream_callback_state
+    // for its own purposes, it is not modified by nanopb.
+    pb_decode_ctx_read_callback_t stream_callback;
+    void *stream_callback_state;
+
     // Pointer to the beginning of the memory buffer usable as cache
     // Bytes are stored aligned to the end of the buffer.
     pb_byte_t *buffer;
@@ -116,10 +131,10 @@ struct pb_decode_ctx_s
     pb_size_t buffer_size;
 #endif
 
-    // Outer pb_walk() stackframe, internally used for memory usage optimizations
-    // during callback handling. This is initialized to NULL and later set by
-    // pb_decode().
-    pb_walk_state_t *walk_state;
+#if !PB_NO_ERRMSG
+    // Pointer to constant (ROM) string when decoding function returns error
+    const char *errmsg;
+#endif
 
 #if !PB_NO_CONTEXT_ALLOCATOR
     // User-provided memory allocator to use for any FT_POINTER fields.
@@ -129,7 +144,9 @@ struct pb_decode_ctx_s
 
 #if !PB_NO_CONTEXT_FIELD_CALLBACK
     // User-provided field callback function, applies to all callback-type fields.
+    // The callback can use field_callback_state for its own purposes.
     pb_decode_ctx_field_callback_t field_callback;
+    void *field_callback_state;
 #endif
 };
 
@@ -197,7 +214,7 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
  * A memory buffer can optionally be provided for caching.
  */
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
-    pb_decode_ctx_read_callback_t callback, void *state,
+    pb_decode_ctx_read_callback_t stream_callback, void *stream_callback_state,
     pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize);
 #endif
 
@@ -321,7 +338,7 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
 
 // PB_ISTREAM_EMPTY has been replaced by pb_init_decode_ctx_buffer() function
 // called with zero length.
-#define PB_ISTREAM_EMPTY {0}
+#define PB_ISTREAM_EMPTY {0, 0, NULL, NULL}
 
 /* Extended version of pb_decode, with several options to control
  * the decoding process:

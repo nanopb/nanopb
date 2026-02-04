@@ -17,7 +17,7 @@ typedef struct
 
 bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
-    faulty_stream_t *state = stream->state;
+    faulty_stream_t *state = stream->stream_callback_state;
     
     while (count--)
     {
@@ -31,7 +31,7 @@ bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 }
 bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
 {
-    faulty_stream_t *state = stream->state;
+    faulty_stream_t *state = stream->stream_callback_state;
     
     while (count--)
     {
@@ -69,7 +69,7 @@ int main()
         for (i = 0; i < msglen; i++)
         {
             stream.bytes_left = msglen;
-            stream.state = &fs;
+            stream.stream_callback_state = &fs;
             fs.buffer = buffer;
             fs.fail_after = i;
 
@@ -91,7 +91,7 @@ int main()
         }
         
         stream.bytes_left = msglen;
-        stream.state = &fs;
+        stream.stream_callback_state = &fs;
         fs.buffer = buffer;
         fs.fail_after = msglen;
         status = pb_decode(&stream, AllTypes_fields, &msg);
@@ -115,7 +115,7 @@ int main()
         {
             stream.max_size = msglen;
             stream.bytes_written = 0;
-            stream.state = &fs;
+            stream.stream_callback_state = &fs;
             fs.buffer = buffer;
             fs.fail_after = i;
 
@@ -138,7 +138,7 @@ int main()
         
         stream.max_size = msglen;
         stream.bytes_written = 0;
-        stream.state = &fs;
+        stream.stream_callback_state = &fs;
         fs.buffer = buffer;
         fs.fail_after = msglen;
         status = pb_encode(&stream, AllTypes_fields, &msg);

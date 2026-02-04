@@ -13,7 +13,7 @@ const size_t input_len = sizeof(input_data);
 #if !PB_NO_STREAM_CALLBACK
 bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
-    size_t cursor = (size_t)(uintptr_t)stream->state;
+    size_t cursor = (size_t)(uintptr_t)stream->stream_callback_state;
 
     if ((cursor + count) > input_len)
     {
@@ -24,7 +24,7 @@ bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
     memcpy(buf, &input_data[cursor], count);
     cursor += count;
 
-    stream->state = (void*)(uintptr_t)cursor;
+    stream->stream_callback_state = (void*)(uintptr_t)cursor;
 
     return true;
 }

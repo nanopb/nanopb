@@ -22,12 +22,12 @@
 // Bind stdio streams to nanopb streams
 static bool stdio_write_cb(pb_encode_ctx_t *ctx, const uint8_t *buf, size_t count)
 {
-    return fwrite(buf, 1, count, (FILE*)ctx->state) == count;
+    return fwrite(buf, 1, count, (FILE*)ctx->stream_callback_state) == count;
 }
 
 static bool stdio_read_cb(pb_decode_ctx_t *ctx, uint8_t *buf, size_t count)
 {
-    FILE *file = (FILE*)ctx->state;
+    FILE *file = (FILE*)ctx->stream_callback_state;
     size_t ret = fread(buf, 1, count, file);
     if (ret != count && feof(file))
     {

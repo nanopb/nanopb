@@ -857,7 +857,7 @@ struct pb_allocator_s {
     void (*free)(pb_allocator_t *actx, void *ptr);
 
     // Free pointer that can be used by realloc/free implementation
-    void *ctx;
+    void *state;
 };
 #endif /* !PB_NO_CONTEXT_ALLOCATOR */
 
