@@ -54,23 +54,6 @@ bool print_person(pb_decode_ctx_t *stream)
     return true;
 }
 
-/* This binds the pb_istream_t to stdin */
-bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
-{
-    FILE *file = (FILE*)stream->state;
-    size_t len = fread(buf, 1, count, file);
-    
-    if (len == count)
-    {
-        return true;
-    }
-    else
-    {
-        stream->bytes_left = 0;
-        return false;
-    }
-}
-
 int main()
 {
     pb_decode_ctx_t stream;

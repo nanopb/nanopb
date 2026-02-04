@@ -16,7 +16,7 @@ static int g_position;
 /* This binds the pb_istream_t to stdin and logs the most recent bytes read. */
 bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
-    FILE *file = (FILE*)stream->state;
+    FILE *file = (FILE*)stream->stream_callback_state;
     size_t len = fread(buf, 1, count, file);
     
     if (len < HISTORY_LEN)
@@ -186,8 +186,7 @@ bool raw_decode(pb_decode_ctx_t *stream, const char *indent)
 int main()
 {
     pb_decode_ctx_t stream;
-    pb_init_decode_ctx_for_callback(&stream, &callback, NULL, PB_SIZE_MAX, NULL, 0);
-    stream.state = stdin;
+    pb_init_decode_ctx_for_callback(&stream, &callback, stdin, PB_SIZE_MAX, NULL, 0);
     SET_BINARY_MODE(stdin);
 
     if (!raw_decode(&stream, ""))

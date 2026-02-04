@@ -35,6 +35,15 @@ were given varying `stream` pointers when substreams were processed.
 
 **Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
 
+### Stream/context structure members renamed
+
+**Rationale:** To distinguish it from the field callback, `ctx->callback` is renamed to
+`ctx->stream_callback` and its state variable to `stream_callback_state`.
+
+**Required actions:** In custom stream callbacks, change `state` to `stream_callback_state`.
+For initializing `pb_decode_ctx_t` and `pb_encode_ctx_t`, use the new function such as
+`pb_init_encode_ctx_for_callback()`.
+
 ### All features are enabled by default
 
 **Rationale:** Previously some features were disabled with `PB_NO_xxxx` macro,

@@ -15,7 +15,7 @@
 #if !PB_NO_STREAM_CALLBACK
 bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 {
-    if (stream->state != NULL)
+    if (stream->stream_callback_state != NULL)
         return false; /* Simulate error */
 
     if (buf != NULL)
@@ -73,9 +73,9 @@ int main()
         TEST(pb_read(&stream, buffer, 5))
         TEST(memcmp(buffer, "xxxxx", 5) == 0)
         TEST(!pb_read(&stream, buffer, 50))
-        stream.state = (void*)1; /* Simulated error return from callback */
+        stream.stream_callback_state = (void*)1; /* Simulated error return from callback */
         TEST(!pb_read(&stream, buffer, 5))
-        stream.state = NULL;
+        stream.stream_callback_state = NULL;
         TEST(pb_read(&stream, buffer, 15))
     }
 #endif

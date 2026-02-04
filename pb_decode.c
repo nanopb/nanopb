@@ -141,7 +141,7 @@ static inline pb_size_t pb_bytes_available(const pb_decode_ctx_t *ctx)
 // This should only be called when the remaining length of message is known.
 static bool checkreturn pb_fill_stream_cache(pb_decode_ctx_t *ctx)
 {
-    if (ctx->callback != NULL && ctx->buffer_size > 0)
+    if (ctx->stream_callback != NULL && ctx->buffer_size > 0)
     {
         // Check how many bytes we can buffer in total
         pb_size_t total = ctx->buffer_size;
@@ -168,7 +168,7 @@ static bool checkreturn pb_fill_stream_cache(pb_decode_ctx_t *ctx)
             ctx->rdpos = buf;
 
             // Fill buffer with new data
-            if (!ctx->callback(ctx, buf + bytes_in_buf, (size_t)(total - bytes_in_buf)))
+            if (!ctx->stream_callback(ctx, buf + bytes_in_buf, (size_t)(total - bytes_in_buf)))
             {
                 PB_RETURN_ERROR(ctx, c_errmsg_io_error);
             }
@@ -215,7 +215,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
     }
 
 #if !PB_NO_STREAM_CALLBACK
-    if (ctx->callback != NULL && bufcount < count)
+    if (ctx->stream_callback != NULL && bufcount < count)
     {
         // Read rest of the data directly from callback
         pb_size_t cbcount = count - bufcount;
@@ -223,7 +223,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
 
         if (buf != NULL)
         {
-            if (!ctx->callback(ctx, buf + bufcount, (size_t)cbcount))
+            if (!ctx->stream_callback(ctx, buf + bufcount, (size_t)cbcount))
                 PB_RETURN_ERROR(ctx, c_errmsg_io_error);
         }
         else
@@ -234,7 +234,7 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
             while (remain > 0)
             {
                 pb_size_t block = (remain > sizeof(tmp)) ? sizeof(tmp) : remain;
-                if (!ctx->callback(ctx, tmp, (size_t)block))
+                if (!ctx->stream_callback(ctx, tmp, (size_t)block))
                     PB_RETURN_ERROR(ctx, c_errmsg_io_error);
 
                 remain -= block;
@@ -265,7 +265,7 @@ static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
         // No more data in cache, read directly from callback
         ctx->rdpos = NULL;
         ctx->bytes_left--;
-        if (!ctx->callback(ctx, buf, 1))
+        if (!ctx->stream_callback(ctx, buf, 1))
             PB_RETURN_ERROR(ctx, c_errmsg_io_error);
         return true;
     }
@@ -286,13 +286,13 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
 
 #if !PB_NO_STREAM_CALLBACK
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
-    pb_decode_ctx_read_callback_t callback, void *state,
+    pb_decode_ctx_read_callback_t stream_callback, void *stream_callback_state,
     pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize)
 {
     memset(ctx, 0, sizeof(pb_decode_ctx_t));
     ctx->bytes_left = msglen;
-    ctx->callback = callback;
-    ctx->state = state;
+    ctx->stream_callback = stream_callback;
+    ctx->stream_callback_state = stream_callback_state;
     ctx->buffer = buf;
     ctx->buffer_size = bufsize;
 }
@@ -426,7 +426,7 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
     {
 #if !PB_NO_STREAM_CALLBACK
         // Callbacks might detect eof only after first unsuccessful read
-        if (ctx->callback != NULL && ctx->bytes_left == 0)
+        if (ctx->stream_callback != NULL && ctx->bytes_left == 0)
         {
 #if !PB_NO_ERRMSG
             // Workaround issue #1017 where the "io error" message set by pb_readbyte()
@@ -535,7 +535,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
         length = 8;
     }
 #if !PB_NO_STREAM_CALLBACK
-    else if (wire_type == PB_WT_VARINT && ctx->callback != NULL &&
+    else if (wire_type == PB_WT_VARINT && ctx->stream_callback != NULL &&
              pb_bytes_available(ctx) < 10)
     {
         // Varint size is not known in advance, we need to read it into a temporary buffer.
@@ -661,7 +661,7 @@ static pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_fiel
     else
     {
 #if !PB_NO_STREAM_CALLBACK
-        if (ctx->callback != NULL && pb_bytes_available(ctx) < ctx->bytes_left)
+        if (ctx->stream_callback != NULL && pb_bytes_available(ctx) < ctx->bytes_left)
         {
             // Stream contents not available, make a guess.
             result = (pb_size_t)((ctx->bytes_left - 1) / field->data_size + 1);
@@ -700,7 +700,7 @@ static pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, 
     pb_size_t count = 0;
 
 #if !PB_NO_STREAM_CALLBACK
-    if (ctx->callback)
+    if (ctx->stream_callback)
     {
         // Don't read more than what is available in memory buffer
         pb_size_t available = pb_bytes_available(ctx);
@@ -1631,7 +1631,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
                 return PB_WALK_EXIT_ERR;
 
 #if !PB_NO_STREAM_CALLBACK
-            if (PB_LTYPE_IS_SUBMSG(iter->type) && ctx->callback != NULL)
+            if (PB_LTYPE_IS_SUBMSG(iter->type) && ctx->stream_callback != NULL)
             {
                 // We now know the submessage data length, so preload it into cache.
                 if (!pb_fill_stream_cache(ctx))

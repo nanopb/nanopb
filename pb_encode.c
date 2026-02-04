@@ -88,7 +88,7 @@ void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 
 #if !PB_NO_STREAM_CALLBACK
 void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
-    pb_encode_ctx_write_callback_t callback, void *state,
+    pb_encode_ctx_write_callback_t stream_callback, void *stream_callback_state,
     pb_size_t max_size, pb_byte_t *buf, pb_size_t bufsize)
 {
     memset(ctx, 0, sizeof(pb_encode_ctx_t));
@@ -98,8 +98,8 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
     ctx->buffer = buf;
     ctx->buffer_size = bufsize;
 
-    ctx->callback = callback;
-    ctx->state = state;
+    ctx->stream_callback = stream_callback;
+    ctx->stream_callback_state = stream_callback_state;
 }
 #endif
 
@@ -107,7 +107,7 @@ void pb_init_encode_ctx_for_callback(pb_encode_ctx_t *ctx,
 // Flush any buffered data to callback
 inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
 {
-    if (ctx->callback != NULL && ctx->buffer_count > 0)
+    if (ctx->stream_callback != NULL && ctx->buffer_count > 0)
     {
         if (ctx->flags & PB_ENCODE_CTX_FLAG_ONEPASS_SIZING)
         {
@@ -115,7 +115,7 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
             PB_RETURN_ERROR(ctx, "onepass flush");
         }
 
-        if (!ctx->callback(ctx, ctx->buffer, (size_t)ctx->buffer_count))
+        if (!ctx->stream_callback(ctx, ctx->buffer, (size_t)ctx->buffer_count))
             PB_RETURN_ERROR(ctx, "io error");
 
         ctx->buffer_count = 0;
@@ -176,11 +176,11 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t 
         ctx->bytes_written = new_bytes_written;
         return true;
     }
-    else if (ctx->callback)
+    else if (ctx->stream_callback)
     {
         // Flush any preceding data and write to output callback directly
         if (pb_flush_write_buffer(ctx) &&
-            ctx->callback(ctx, buf, (size_t)count))
+            ctx->stream_callback(ctx, buf, (size_t)count))
         {
             ctx->bytes_written = new_bytes_written;
             return true;
@@ -694,7 +694,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
                     return PB_WALK_EXIT_ERR;
             }
 #if !PB_NO_STREAM_CALLBACK
-            else if (ctx->callback != NULL && ctx->buffer_size < PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
+            else if (ctx->stream_callback != NULL && ctx->buffer_size < PB_ENCODE_MIN_ONEPASS_BUFFER_SIZE)
             {
                 // Buffer is too small for one-pass sizing, do it with two passes.
                 // Message data will be encoded after the size is known.
@@ -768,7 +768,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             }
 
 #if !PB_NO_STREAM_CALLBACK
-            if (!nested && ctx->callback != NULL)
+            if (!nested && ctx->stream_callback != NULL)
             {
                 // We can write the size to callback directly.
                 pb_byte_t tmpbuf[5];
@@ -776,8 +776,8 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 
                 ctx->buffer_count = 0;
 
-                if (!ctx->callback(ctx, tmpbuf, (size_t)prefixlen) ||
-                    !ctx->callback(ctx, msgstart, (size_t)submsgsize))
+                if (!ctx->stream_callback(ctx, tmpbuf, (size_t)prefixlen) ||
+                    !ctx->stream_callback(ctx, msgstart, (size_t)submsgsize))
                 {
                     return PB_WALK_EXIT_ERR;
                 }
@@ -810,7 +810,7 @@ static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
             {
                 ctx->bytes_written = frame->msg_start_pos - 1;
 
-                if (ctx->callback != NULL)
+                if (ctx->stream_callback != NULL)
                     ctx->buffer_count = 0; // Buffer was flushed before sizing
                 else
                     ctx->buffer_count = ctx->bytes_written;
