@@ -67,6 +67,7 @@ py_binary(
         "generator",
     ],
     deps = [
+        "@nanopb_pypi//grpcio_tools:pkg",
         ":nanopb_py_proto",
     ],
 )
