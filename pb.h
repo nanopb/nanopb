@@ -223,6 +223,14 @@
 // detected from compiler type.
 /* #define PB_LITTLE_ENDIAN_8BIT 1 */
 
+// PB_NO_FUNCTION_POINTERS: Disable usage of function pointers in the library.
+// Useful for platforms where function pointers are either expensive, or for
+// compatibility with code safety standards such as MISRA-C.
+// Removes support for any callback-based features.
+#ifndef PB_NO_FUNCTION_POINTERS
+#define PB_NO_FUNCTION_POINTERS 0
+#endif
+
 // PB_PROGMEM: Attribute and access method for storing constants in ROM.
 // This is automatically enabled for AVR platform. It can be used
 // on platforms where const variables are not automatically stored in ROM.
@@ -249,6 +257,11 @@
 // On 64 bit platforms, pb_size_t defaults to uint32_t.
 // This option can be used to override the type.
 /* #define PB_SIZE_T_OVERRIDE uint16_t */
+
+// Attribute for weak function declarations.
+// Used only with PB_NO_FUNCTION_POINTERS and other special features.
+// By default autodetected by compiler type.
+/* #define PB_WEAK_FUNCTION __attribute__((weak)) */
 
 /*******************************************************************
  * Protobuf compatibility options                                  *
@@ -363,6 +376,20 @@
 #error PB_MESSAGE_NESTING must be >= 1
 #endif
 
+#if PB_NO_FUNCTION_POINTERS
+// Callbacks cannot be used without function pointers
+#undef PB_NO_CONTEXT_ALLOCATOR
+#undef PB_NO_STREAM_CALLBACK
+#undef PB_NO_CONTEXT_FIELD_CALLBACK
+#undef PB_NO_NAME_FIELD_CALLBACK
+#undef PB_NO_STRUCT_FIELD_CALLBACK
+#define PB_NO_CONTEXT_ALLOCATOR         1
+#define PB_NO_STREAM_CALLBACK           1
+#define PB_NO_CONTEXT_FIELD_CALLBACK    1
+#define PB_NO_NAME_FIELD_CALLBACK       1
+#define PB_NO_STRUCT_FIELD_CALLBACK     1
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -396,6 +423,19 @@ extern "C" {
 #   define PB_PACKED_STRUCT_START
 #   define PB_PACKED_STRUCT_END
 #   define pb_packed
+#endif
+
+/* Macro for declaring a weak function definition.
+ * This is used to allow linking only one of pb_decode.c
+ * and pb_encode.c even when special features such as
+ * PB_NO_FUNCTION_POINTERS are in use.
+ */
+#ifndef PB_WEAK_FUNCTION
+#  if defined(__GNUC__) || defined(__clang__)
+#    define PB_WEAK_FUNCTION __attribute__((weak))
+#  elif defined(__ICCARM__) || defined(__CC_ARM)
+#    define PB_WEAK_FUNCTION __weak
+#  endif
 #endif
 
 /* Detect endianness and size of char type */
@@ -787,6 +827,7 @@ struct pb_bytes_s {
  * The callback can be null if you want to skip a field.
  */
 struct pb_callback_s {
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     /* Callback functions receive a pointer to the arg field.
      * You can access the value of the field as *arg, and modify it if needed.
      */
@@ -794,6 +835,7 @@ struct pb_callback_s {
         bool (*decode)(pb_decode_ctx_t *ctx, const pb_field_t *field, void **arg);
         bool (*encode)(pb_encode_ctx_t *ctx, const pb_field_t *field, void * const *arg);
     } funcs;
+#endif
 
     /* Free arg for use by callback */
     void *arg;

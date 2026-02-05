@@ -661,7 +661,7 @@ static bool update_message_size(pb_encode_ctx_t *ctx, pb_byte_t *msgstart, pb_si
     }
 }
 
-static pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
+PB_WALK_CB_STATIC pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 {
     pb_encode_ctx_t *ctx = (pb_encode_ctx_t *)state->ctx;
     pb_encode_walk_stackframe_t *frame = (pb_encode_walk_stackframe_t*)state->stack;
@@ -863,7 +863,7 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
     pb_walk_state_t state;
-    (void)pb_walk_init(&state, fields, src_struct, pb_encode_walk_cb);
+    (void)pb_walk_init(&state, fields, src_struct, PB_WALK_CB(pb_encode_walk_cb));
 
     PB_WALK_DECLARE_STACKBUF(PB_ENCODE_INITIAL_STACKSIZE) stackbuf;
     PB_WALK_SET_STACKBUF(&state, stackbuf);
@@ -1118,7 +1118,7 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
     bool status;
 
     if (ctx->walk_state != NULL &&
-        ctx->walk_state->callback == pb_encode_walk_cb &&
+        ctx->walk_state->callback == PB_WALK_CB(pb_encode_walk_cb) &&
         ctx->walk_state->ctx == ctx)
     {
         // Reuse existing walk state variable to conserve stack space

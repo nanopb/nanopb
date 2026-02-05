@@ -462,6 +462,31 @@ static bool alloc_stackframe(pb_walk_state_t *state, pb_walk_stacksize_t size)
     return true;
 }
 
+// If function pointers are disabled, we only allow dispatching to predefined functions.
+#if !PB_NO_FUNCTION_POINTERS
+#define pb_walk_do_callback(state) state->callback(state)
+#else
+
+#ifdef PB_WEAK_FUNCTION
+PB_WEAK_FUNCTION pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)     { PB_UNUSED(state); return PB_WALK_EXIT_ERR; }
+PB_WEAK_FUNCTION pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)     { PB_UNUSED(state); return PB_WALK_EXIT_ERR; }
+PB_WEAK_FUNCTION pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)   { PB_UNUSED(state); return PB_WALK_EXIT_ERR; }
+PB_WEAK_FUNCTION pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)    { PB_UNUSED(state); return PB_WALK_EXIT_ERR; }
+#endif
+
+static pb_walk_retval_t pb_walk_do_callback(pb_walk_state_t *state)
+{
+    switch (state->callback)
+    {
+        case PB_WALK_CB_pb_encode_walk_cb:      return pb_encode_walk_cb(state);
+        case PB_WALK_CB_pb_decode_walk_cb:      return pb_decode_walk_cb(state);
+        case PB_WALK_CB_pb_defaults_walk_cb:    return pb_defaults_walk_cb(state);
+        case PB_WALK_CB_pb_release_walk_cb:     return pb_release_walk_cb(state);
+        default:                                return PB_WALK_EXIT_ERR;
+    }
+}
+#endif
+
 bool pb_walk(pb_walk_state_t *state)
 {
     pb_walk_stacksize_t stack_remain_initial = state->stack_remain;
@@ -480,7 +505,7 @@ bool pb_walk(pb_walk_state_t *state)
         }
 
         // Invoke the first callback
-        state->retval = state->callback(state);
+        state->retval = pb_walk_do_callback(state);
     }
 
     while (state->retval > 0)
@@ -676,7 +701,7 @@ bool pb_walk(pb_walk_state_t *state)
             }
         }
 
-        state->retval = state->callback(state);
+        state->retval = pb_walk_do_callback(state);
     }
 
     return state->retval == PB_WALK_EXIT_OK;

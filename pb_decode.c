@@ -35,9 +35,11 @@ static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 #if !PB_NO_MALLOC
 static pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, const pb_field_iter_t *field);
-
 static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
-static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
+
+#if !PB_NO_FUNCTION_POINTERS
+PB_WALK_CB_STATIC pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
+#endif
 #endif
 
 #if PB_WITHOUT_64BIT
@@ -801,7 +803,7 @@ static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
 }
 
 //  Initialize message fields to default values, recursively
-static pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
+PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
 {
     pb_field_iter_t *iter = &state->iter;
 
@@ -1410,6 +1412,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
         }
     }
 
+#if !PB_NO_STRUCT_FIELD_CALLBACK
     /* Submessages can have a separate message-level callback that is called
      * before decoding the message. Typically it is used to set callback fields
      * inside oneofs. */
@@ -1433,6 +1436,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
                 return PB_WALK_EXIT_ERR;
         }
     }
+#endif
 
     /* Descend to iterate through submessage fields */
     PB_OPT_ASSERT(field->submsg_desc->struct_size == field->data_size);
@@ -1440,7 +1444,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
     return PB_WALK_IN;
 }
 
-static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
+PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 {
     pb_field_iter_t *iter = &state->iter;
     pb_decode_ctx_t *ctx = (pb_decode_ctx_t*)state->ctx;
@@ -1639,6 +1643,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             }
 #endif
 
+#if !PB_NO_STRUCT_FIELD_CALLBACK
             /* SUBMSG_W_CB is meant to be used with oneof fields, where it permits
              * configuring fields inside a oneof.
              * TODO: consider replacing with some different approach
@@ -1657,6 +1662,7 @@ static pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
                     }
                 }
             }
+#endif
 
             // Call callback until all data has been processed
             bool status = true;
@@ -1762,7 +1768,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     /* Set default values, if needed */
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
-        (void)pb_walk_init(&state, fields, dest_struct, pb_defaults_walk_cb);
+        (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_defaults_walk_cb));
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         if (!pb_walk(&state))
         {
@@ -1771,7 +1777,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     }
 
     /* Decode the message */
-    (void)pb_walk_init(&state, fields, dest_struct, pb_decode_walk_cb);
+    (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_decode_walk_cb));
     PB_WALK_SET_STACKBUF(&state, stackbuf);
     state.ctx = ctx;
     state.next_stacksize = stacksize_for_msg(fields);
@@ -1786,7 +1792,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
         PB_SET_ERROR(ctx, state.errmsg);
 
 #if !PB_NO_MALLOC
-        (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
+        (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_release_walk_cb));
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         state.ctx = ctx;
         (void)pb_walk(&state);
@@ -1813,14 +1819,14 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
         state->iter.pData = dest_struct;
         state->iter.submsg_desc = fields;
         state->retval = PB_WALK_IN;
-        state->callback = pb_defaults_walk_cb;
+        state->callback = PB_WALK_CB(pb_defaults_walk_cb);
         state->next_stacksize = 0;
         if (!pb_walk(state))
         {
             PB_SET_ERROR(ctx, "failed to set defaults");
             status = false;
         }
-        state->callback = pb_decode_walk_cb;
+        state->callback = PB_WALK_CB(pb_decode_walk_cb);
     }
 
     /* Decode message contents */
@@ -1846,10 +1852,10 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
         state->iter.pData = dest_struct;
         state->iter.submsg_desc = fields;
         state->retval = PB_WALK_IN;
-        state->callback = pb_release_walk_cb;
+        state->callback = PB_WALK_CB(pb_release_walk_cb);
         state->next_stacksize = 0;
         (void)pb_walk(state);
-        state->callback = pb_decode_walk_cb;
+        state->callback = PB_WALK_CB(pb_decode_walk_cb);
     }
 #endif
 
@@ -1884,7 +1890,7 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
     }
 
     if (ctx->walk_state != NULL &&
-        ctx->walk_state->callback == pb_decode_walk_cb &&
+        ctx->walk_state->callback == PB_WALK_CB(pb_decode_walk_cb) &&
         ctx->walk_state->ctx == ctx)
     {
         // Reuse existing walk state variable to conserve stack space
@@ -1994,14 +2000,15 @@ void pb_release_field(pb_decode_ctx_t *ctx, void *ptr)
     if (ctx != NULL && ctx->allocator != NULL)
     {
         ctx->allocator->free(ctx->allocator, ptr);
+        return;
     }
-    else
+#else
+    PB_UNUSED(ctx);
 #endif
-    {
+
 #if !PB_NO_DEFAULT_ALLOCATOR
-        pb_free(ptr);
+    pb_free(ptr);
 #endif
-    }
 }
 
 /* Release a single structure field based on its field_iter information. */
@@ -2079,7 +2086,7 @@ static void pb_release_single_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field
     }
 }
 
-static pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
+PB_WALK_CB_STATIC pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
 {
     pb_field_iter_t *iter = &state->iter;
     pb_decode_ctx_t *ctx = (pb_decode_ctx_t *)state->ctx;
@@ -2189,7 +2196,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_s
     pb_walk_state_t state;
     PB_WALK_DECLARE_STACKBUF(PB_RELEASE_INITIAL_STACKSIZE) stackbuf;
 
-    (void)pb_walk_init(&state, fields, dest_struct, pb_release_walk_cb);
+    (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_release_walk_cb));
     PB_WALK_SET_STACKBUF(&state, stackbuf);
     state.ctx = ctx;
 

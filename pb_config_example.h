@@ -111,7 +111,6 @@
 
 // #define PB_NO_STRUCT_FIELD_CALLBACK 1
 
-
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *
@@ -158,6 +157,14 @@
 // #define PB_LITTLE_ENDIAN_8BIT 1
 
 
+// PB_NO_FUNCTION_POINTERS: Disable usage of function pointers in the library.
+// Useful for platforms where function pointers are either expensive, or for
+// compatibility with code safety standards such as MISRA-C.
+// Removes support for any callback-based features.
+
+// #define PB_NO_FUNCTION_POINTERS 1
+
+
 // PB_PROGMEM: Attribute and access method for storing constants in ROM.
 // This is automatically enabled for AVR platform. It can be used
 // on platforms where const variables are not automatically stored in ROM.
@@ -189,6 +196,13 @@
 // This option can be used to override the type.
 
 // #define PB_SIZE_T_OVERRIDE uint16_t
+
+
+// Attribute for weak function declarations.
+// Used only with PB_NO_FUNCTION_POINTERS and other special features.
+// By default autodetected by compiler type.
+
+/* #define PB_WEAK_FUNCTION __attribute__((weak)) */
 
 /*******************************************************************
  * Protobuf compatibility options                                  *
