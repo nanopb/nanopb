@@ -1,0 +1,23 @@
+# Run framing examples/test cases
+
+Import("env")
+
+env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
+
+enc = env.Program(["encode_nullterminated.c", "$COMMON/person.pb.c", env['NANOPB_ENCODER_OBJS']])
+dec = env.Program(["decode_nullterminated.c", "$COMMON/person.pb.c", env['NANOPB_DECODER_OBJS']])
+env.RunTest(enc)
+env.RunTest([dec, "encode_nullterminated.output"])
+env.Compare(["decode_nullterminated.output", "decoded.txt"])
+
+enc2 = env.Program(["encode_delimited.c", "$COMMON/person.pb.c", env['NANOPB_ENCODER_OBJS']])
+dec2 = env.Program(["decode_delimited.c", "$COMMON/person.pb.c", env['NANOPB_DECODER_OBJS']])
+env.RunTest(enc2)
+env.RunTest([dec2, "encode_delimited.output"])
+env.Compare(["decode_delimited.output", "decoded.txt"])
+
+enc3 = env.Program(["encode_slip.c", "$COMMON/person.pb.c", env['NANOPB_ENCODER_OBJS']])
+dec3 = env.Program(["decode_slip.c", "$COMMON/person.pb.c", env['NANOPB_DECODER_OBJS']])
+env.RunTest(enc3)
+env.RunTest([dec3, "encode_slip.output"])
+env.Compare(["decode_slip.output", "decoded.txt"])

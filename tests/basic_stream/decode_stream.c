@@ -5,65 +5,21 @@
 #include <pb_decode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
-
-/* This function is called once from main(), it handles
-   the decoding and printing.
-   Ugly copy-paste from test_decode1.c. */
-bool print_person(pb_decode_ctx_t *stream)
-{
-    int i;
-    Person person = Person_init_zero;
-    
-    if (!pb_decode(stream, Person_fields, &person))
-        return false;
-    
-    /* Now the decoding is done, rest is just to print stuff out. */
-
-    printf("name: \"%s\"\n", person.name);
-    printf("id: %ld\n", (long)person.id);
-    
-    if (person.has_email)
-        printf("email: \"%s\"\n", person.email);
-    
-    for (i = 0; i < person.phone_count; i++)
-    {
-        Person_PhoneNumber *phone = &person.phone[i];
-        printf("phone {\n");
-        printf("  number: \"%s\"\n", phone->number);
-        
-        if (phone->has_type)
-        {
-            switch (phone->type)
-            {
-                case Person_PhoneType_WORK:
-                    printf("  type: WORK\n");
-                    break;
-                
-                case Person_PhoneType_HOME:
-                    printf("  type: HOME\n");
-                    break;
-                
-                case Person_PhoneType_MOBILE:
-                    printf("  type: MOBILE\n");
-                    break;
-            }
-        }
-        printf("}\n");
-    }
-    
-    return true;
-}
+#include "print_person.h"
 
 int main()
 {
     pb_decode_ctx_t stream;
     init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
 
-    if (!print_person(&stream))
+    /* Decode and print out the stuff */
+    Person person = Person_init_zero;
+    if (!pb_decode(&stream, Person_fields, &person))
     {
         printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));
         return 1;
-    } else {
-        return 0;
     }
+
+    print_person(&person);
+    return 0;
 }

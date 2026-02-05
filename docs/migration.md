@@ -61,7 +61,7 @@ This is a non-standard feature which does not exist in other protobuf libraries.
 Retaining it in the core would expand size for a fairly rarely used feature.
 
 **Required actions:** Null-terminated streams can now be handled using a custom stream
-callback. TODO: provide example.
+callback. See [tests/framing/](../tests/framing/) for an example.
 
 ### All features are enabled by default
 
