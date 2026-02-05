@@ -201,7 +201,7 @@ size_t get_max_alloc_bytes()
     return g_max_alloc_bytes;
 }
 
-#if !PB_NO_MALLOC
+#if !PB_NO_MALLOC && !PB_NO_CONTEXT_ALLOCATOR
 
 // Functions with the signature expected by context allocator
 void* mw_realloc(pb_allocator_t *actx, void *ptr, size_t size)

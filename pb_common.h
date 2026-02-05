@@ -72,8 +72,34 @@ typedef enum {
     PB_WALK_NEXT_FIELD = 4,
 } pb_walk_retval_t;
 
+#if !PB_NO_FUNCTION_POINTERS
+
 // Callback function type that is called by pb_walk()
 typedef pb_walk_retval_t (*pb_walk_cb_t)(pb_walk_state_t *state);
+
+// Helper macros to support PB_NO_FUNCTION_POINTERS in the core
+#define PB_WALK_CB(funcname)    &funcname
+#define PB_WALK_CB_STATIC       static
+
+#else
+
+// Statically allow only specific callback functions
+typedef enum {
+    PB_WALK_CB_pb_encode_walk_cb,
+    PB_WALK_CB_pb_decode_walk_cb,
+    PB_WALK_CB_pb_defaults_walk_cb,
+    PB_WALK_CB_pb_release_walk_cb,
+} pb_walk_cb_t;
+
+extern pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state);
+extern pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state);
+extern pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state);
+extern pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
+
+#define PB_WALK_CB(funcname)    PB_WALK_CB_ ## funcname
+#define PB_WALK_CB_STATIC
+
+#endif
 
 // This structure stores state associated with pb_walk() operation.
 // Pointer to it is passed unchanged to callbacks, so it is allowed
