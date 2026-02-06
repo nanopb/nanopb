@@ -20,9 +20,19 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
     /* Uses _init_default to just make sure that the macro works. */
     AllTypes alltypes = AllTypes_init_default;
     
-    /* Fill with garbage to better detect initialization errors */
+#if !PB_NO_DEFAULT_VALUES
+    /* Fill with garbage to better detect initialization errors
+     * pb_decode() should set all fields to defaults before decoding
+     */
     memset(&alltypes, 0xAA, sizeof(alltypes));
     alltypes.extensions = 0;
+#else
+    /* Runtime setting of default values is disabled.
+     * We can set NOINIT so that the defaults set by _init_default
+     * above are kept.
+     */
+    stream->flags |= PB_DECODE_CTX_FLAG_NOINIT;
+#endif
     
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
         return false;
@@ -76,8 +86,10 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
 
         TEST(alltypes.rep_submsg_count == 5);
         TEST(strcmp(alltypes.rep_submsg[4].substuff1, "2016") == 0 && alltypes.rep_submsg[0].substuff1[0] == '\0');
-        TEST(alltypes.rep_submsg[4].substuff2 == 2016 && alltypes.rep_submsg[0].substuff2 == 0);
-        TEST(alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == 3);
+        TEST(alltypes.rep_submsg[4].substuff2 == 2016);
+        TEST(alltypes.rep_submsg[0].substuff2 == 0);
+        TEST(alltypes.rep_submsg[4].substuff3 == 2016);
+        TEST(!alltypes.rep_submsg[0].has_substuff3 && (PB_NO_DEFAULT_VALUES || alltypes.rep_submsg[0].substuff3 == 3));
         
         TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
         TEST(alltypes.rep_emptymsg_count == 5);
@@ -219,7 +231,7 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
         TEST(alltypes.which_oneof == AllTypes_oneof_msg1_tag);
         TEST(strcmp(alltypes.oneof.oneof_msg1.substuff1, "4059") == 0);
         TEST(alltypes.oneof.oneof_msg1.substuff2 == 4059);
-        TEST(alltypes.oneof.oneof_msg1.substuff3 == 3);
+        TEST(PB_NO_DEFAULT_VALUES || alltypes.oneof.oneof_msg1.substuff3 == 3);
 
         TEST(alltypes.has_opt_non_zero_based_enum == true);
         TEST(alltypes.opt_non_zero_based_enum == NonZeroBasedEnum_Three);

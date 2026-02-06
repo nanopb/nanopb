@@ -31,6 +31,7 @@ int main()
         status += check_defaults(&msg);
     }
 
+#if !PB_NO_DEFAULT_VALUES
     {
         DefaultsMsg msg = DefaultsMsg_init_zero;
         pb_decode_ctx_t empty;
@@ -39,6 +40,7 @@ int main()
         COMMENT("Checking defaults set at runtime");
         status += check_defaults(&msg);
     }
+#endif
 
     return status;
 }

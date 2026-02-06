@@ -438,6 +438,7 @@ static bool field_present(const pb_field_iter_t *field)
     {
         // Proto3 singular fields
 
+#if !PB_NO_DEFAULT_VALUES
         if (field->descriptor->default_value)
         {
             // Proto3 messages do not have default values, but proto2 messages
@@ -446,6 +447,7 @@ static bool field_present(const pb_field_iter_t *field)
             // non-zero default value is overwritten.
             return true;
         }
+#endif
 
         switch (PB_LTYPE(field->type))
         {
