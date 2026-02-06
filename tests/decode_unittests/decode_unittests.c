@@ -128,112 +128,76 @@ int main()
 
     {
         pb_istream_t s = S("\x01\x00");
-        pb_field_iter_t f;
         uint32_t d;
 
-        f.type = PB_LTYPE_VARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint using uint32_t")
-        TEST(pb_dec_varint(&s, &f) && d == 1)
+        TEST(pb_dec_varint(&s, &d, sizeof(d)) && d == 1)
 
         /* Verify that no more than data_size is written. */
         d = 0xFFFFFFFF;
-        f.data_size = 1;
-        TEST(pb_dec_varint(&s, &f) && (d == 0xFFFFFF00 || d == 0x00FFFFFF))
+        TEST(pb_dec_varint(&s, &d, 1) && (d == 0xFFFFFF00 || d == 0x00FFFFFF))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         int32_t d;
-
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
 
         COMMENT("Test pb_dec_varint using sint32_t")
-        TEST((s = S("\x01"), pb_dec_varint(&s, &f) && d == -1))
-        TEST((s = S("\x02"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == INT32_MAX))
-        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == INT32_MIN))
+        TEST((s = S("\x01"), pb_dec_svarint(&s, &d, sizeof(d)) && d == -1))
+        TEST((s = S("\x02"), pb_dec_svarint(&s, &d, sizeof(d)) && d == 1))
+        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_svarint(&s, &d, sizeof(d)) && d == INT32_MAX))
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_svarint(&s, &d, sizeof(d)) && d == INT32_MIN))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         int64_t d;
 
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint using sint64_t")
-        TEST((s = S("\x01"), pb_dec_varint(&s, &f) && d == -1))
-        TEST((s = S("\x02"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((s = S("\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == INT64_MAX))
-        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == INT64_MIN))
+        TEST((s = S("\x01"), pb_dec_svarint(&s, &d, sizeof(d)) && d == -1))
+        TEST((s = S("\x02"), pb_dec_svarint(&s, &d, sizeof(d)) && d == 1))
+        TEST((s = S("\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &d, sizeof(d)) && d == INT64_MAX))
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_svarint(&s, &d, sizeof(d)) && d == INT64_MIN))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         int32_t d;
 
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint overflow detection using sint32_t");
-        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((s = S("\xfe\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
-        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
+        TEST((s = S("\xfe\xff\xff\xff\x0f"), pb_dec_svarint(&s, &d, sizeof(d))));
+        TEST((s = S("\xfe\xff\xff\xff\x10"), !pb_dec_svarint(&s, &d, sizeof(d))));
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_svarint(&s, &d, sizeof(d))));
+        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_svarint(&s, &d, sizeof(d))));
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         uint32_t d;
-
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
 
         COMMENT("Test pb_dec_varint using uint32_t")
-        TEST((s = S("\x01"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((s = S("\x02"), pb_dec_varint(&s, &f) && d == 2))
-        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == UINT32_MAX))
+        TEST((s = S("\x01"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == 1))
+        TEST((s = S("\x02"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == 2))
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == UINT32_MAX))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         uint64_t d;
 
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint using uint64_t")
-        TEST((s = S("\x01"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((s = S("\x02"), pb_dec_varint(&s, &f) && d == 2))
-        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == UINT64_MAX))
+        TEST((s = S("\x01"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == 1))
+        TEST((s = S("\x02"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == 2))
+        TEST((s = S("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_uvarint(&s, &d, sizeof(d)) && d == UINT64_MAX))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         uint32_t d;
 
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint overflow detection using uint32_t");
-        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
+        TEST((s = S("\xff\xff\xff\xff\x0f"), pb_dec_uvarint(&s, &d, sizeof(d))));
+        TEST((s = S("\xff\xff\xff\xff\x10"), !pb_dec_uvarint(&s, &d, sizeof(d))));
     }
 
     {
@@ -262,17 +226,12 @@ int main()
     {
         pb_istream_t s;
         struct { pb_size_t size; uint8_t bytes[5]; } d;
-        pb_field_iter_t f;
-
-        f.type = PB_LTYPE_BYTES;
-        f.data_size = sizeof(d);
-        f.pData = &d;
 
         COMMENT("Test pb_dec_bytes")
-        TEST((s = S("\x00"), pb_dec_bytes(&s, &f) && d.size == 0))
-        TEST((s = S("\x01\xFF"), pb_dec_bytes(&s, &f) && d.size == 1 && d.bytes[0] == 0xFF))
-        TEST((s = S("\x05xxxxx"), pb_dec_bytes(&s, &f) && d.size == 5))
-        TEST((s = S("\x05xxxx"), !pb_dec_bytes(&s, &f)))
+        TEST((s = S("\x00"), pb_dec_bytes(&s, &d, sizeof(d)) && d.size == 0))
+        TEST((s = S("\x01\xFF"), pb_dec_bytes(&s, &d, sizeof(d)) && d.size == 1 && d.bytes[0] == 0xFF))
+        TEST((s = S("\x05xxxxx"), pb_dec_bytes(&s, &d, sizeof(d)) && d.size == 5))
+        TEST((s = S("\x05xxxx"), !pb_dec_bytes(&s, &d, sizeof(d))))
 
         /* Note: the size limit on bytes-fields is not strictly obeyed, as
          * the compiler may add some padding to the struct. Using this padding
@@ -281,22 +240,17 @@ int main()
          * Therefore this tests against a 10-byte string, while otherwise even
          * 6 bytes should error out.
          */
-        TEST((s = S("\x10xxxxxxxxxx"), !pb_dec_bytes(&s, &f)))
+        TEST((s = S("\x10xxxxxxxxxx"), !pb_dec_bytes(&s, &d, sizeof(d))))
     }
 
     {
         pb_istream_t s;
-        pb_field_iter_t f;
         char d[5];
 
-        f.type = PB_LTYPE_STRING;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_string")
-        TEST((s = S("\x00"), pb_dec_string(&s, &f) && d[0] == '\0'))
-        TEST((s = S("\x04xyzz"), pb_dec_string(&s, &f) && strcmp(d, "xyzz") == 0))
-        TEST((s = S("\x05xyzzy"), !pb_dec_string(&s, &f)))
+        TEST((s = S("\x00"), pb_dec_string(&s, d, sizeof(d)) && d[0] == '\0'))
+        TEST((s = S("\x04xyzz"), pb_dec_string(&s, d, sizeof(d)) && strcmp(d, "xyzz") == 0))
+        TEST((s = S("\x05xyzzy"), !pb_dec_string(&s, d, sizeof(d))))
     }
 
     {
