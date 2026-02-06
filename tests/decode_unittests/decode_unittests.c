@@ -13,14 +13,15 @@
 #define S(s,x) pb_init_decode_ctx_for_buffer(s,(uint8_t*)x, sizeof(x) - 1)
 
 #if !PB_NO_STREAM_CALLBACK
-bool stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
+pb_size_t stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, pb_size_t count)
 {
     if (stream->stream_callback_state != NULL)
-        return false; /* Simulate error */
+        return PB_READ_ERROR; /* Simulate error */
 
     if (buf != NULL)
         memset(buf, 'x', count);
-    return true;
+
+    return count;
 }
 #endif
 
@@ -398,21 +399,6 @@ int main()
         TEST((S(&s,""), pb_decode(&s, IntegerArray_fields, &dest)))
         TEST((S(&s,"\x08\x01"), pb_decode(&s, IntegerArray_fields, &dest)))
         TEST((S(&s,"\x08"), !pb_decode(&s, IntegerArray_fields, &dest)))
-    }
-
-    {
-        pb_decode_ctx_t s;
-        IntegerArray dest;
-
-        COMMENT("Testing pb_decode_ex null termination")
-
-        S(&s,"\x00");
-        s.flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;
-        TEST(pb_decode(&s, IntegerArray_fields, &dest))
-
-        S(&s,"\x08\x01\x00");
-        s.flags |= PB_DECODE_CTX_FLAG_NULLTERMINATED;
-        TEST(pb_decode(&s, IntegerArray_fields, &dest))
     }
 
     {

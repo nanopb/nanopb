@@ -115,7 +115,7 @@ inline bool pb_flush_write_buffer(pb_encode_ctx_t *ctx)
             PB_RETURN_ERROR(ctx, "onepass flush");
         }
 
-        if (!ctx->stream_callback(ctx, ctx->buffer, (size_t)ctx->buffer_count))
+        if (!ctx->stream_callback(ctx, ctx->buffer, ctx->buffer_count))
             PB_RETURN_ERROR(ctx, "io error");
 
         ctx->buffer_count = 0;
@@ -179,8 +179,7 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t 
     else if (ctx->stream_callback)
     {
         // Flush any preceding data and write to output callback directly
-        if (pb_flush_write_buffer(ctx) &&
-            ctx->stream_callback(ctx, buf, (size_t)count))
+        if (pb_flush_write_buffer(ctx) && ctx->stream_callback(ctx, buf, count))
         {
             ctx->bytes_written = new_bytes_written;
             return true;
@@ -776,8 +775,8 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
 
                 ctx->buffer_count = 0;
 
-                if (!ctx->stream_callback(ctx, tmpbuf, (size_t)prefixlen) ||
-                    !ctx->stream_callback(ctx, msgstart, (size_t)submsgsize))
+                if (!ctx->stream_callback(ctx, tmpbuf, (pb_size_t)prefixlen) ||
+                    !ctx->stream_callback(ctx, msgstart, submsgsize))
                 {
                     return PB_WALK_EXIT_ERR;
                 }
@@ -880,7 +879,7 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
     // Top level flags shouldn't be applied to any recursive pb_encode() calls from
     // user callbacks, so unset them.
     pb_encode_ctx_flags_t old_flags = ctx->flags;
-    ctx->flags &= (pb_encode_ctx_flags_t)~(PB_ENCODE_CTX_FLAG_DELIMITED | PB_ENCODE_CTX_FLAG_NULLTERMINATED);
+    ctx->flags &= (pb_encode_ctx_flags_t)~(PB_ENCODE_CTX_FLAG_DELIMITED);
 
     // Store pointer to the walk state so that it can be reused by pb_encode_submessage()
     // when called from user callbacks.
@@ -895,13 +894,6 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
     if (!status)
     {
         PB_RETURN_ERROR(ctx, state.errmsg);
-    }
-
-    if (ctx->flags & PB_ENCODE_CTX_FLAG_NULLTERMINATED)
-    {
-        const pb_byte_t zero = 0;
-        if (!pb_write(ctx, &zero, 1))
-            return false;
     }
 
     return pb_flush_write_buffer(ctx);
@@ -967,7 +959,7 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 #if PB_WITHOUT_64BIT
     return pb_encode_varint32(ctx, value);
 #else
-    pb_byte_t buffer[10];
+    pb_byte_t buffer[PB_VARINT_MAX_LENGTH];
     uint_fast8_t len = 0;
 
     do
@@ -997,7 +989,7 @@ bool checkreturn pb_encode_varint(pb_encode_ctx_t *ctx, pb_uint64_t value)
 // need to be encoded as-if they were 64-bit.
 static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t value)
 {
-    pb_byte_t buffer[10];
+    pb_byte_t buffer[PB_VARINT_MAX_LENGTH];
 
     PB_OPT_ASSERT(value < 0);
     pb_encode_buffer_varint32(buffer, (uint32_t)value);
@@ -1008,7 +1000,7 @@ static bool checkreturn pb_encode_negative_varint(pb_encode_ctx_t *ctx, int32_t 
     buffer[8] = 0xFF;
     buffer[9] = 0x01;
 
-    return pb_write(ctx, buffer, 10);
+    return pb_write(ctx, buffer, PB_VARINT_MAX_LENGTH);
 }
 #endif
 

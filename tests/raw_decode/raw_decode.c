@@ -14,7 +14,7 @@ static pb_byte_t g_history[HISTORY_LEN];
 static int g_position;
 
 /* This binds the pb_istream_t to stdin and logs the most recent bytes read. */
-bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
+pb_size_t callback(pb_decode_ctx_t *stream, uint8_t *buf, pb_size_t count)
 {
     FILE *file = (FILE*)stream->stream_callback_state;
     size_t len = fread(buf, 1, count, file);
@@ -31,15 +31,13 @@ bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
     
     g_position += len;
     
-    if (len == count)
+    if (len != count && !feof(file))
     {
-        return true;
+        PB_SET_ERROR(stream, "fread failed");
+        return PB_READ_ERROR;
     }
-    else
-    {
-        stream->bytes_left = 0;
-        return false;
-    }
+
+    return (pb_size_t)len;
 }
 
 void print_history(int position)

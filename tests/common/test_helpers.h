@@ -20,20 +20,24 @@
 #if !PB_NO_STREAM_CALLBACK
 
 // Bind stdio streams to nanopb streams
-static bool stdio_write_cb(pb_encode_ctx_t *ctx, const uint8_t *buf, size_t count)
+static bool stdio_write_cb(pb_encode_ctx_t *ctx, const uint8_t *buf, pb_size_t count)
 {
-    return fwrite(buf, 1, count, (FILE*)ctx->stream_callback_state) == count;
+    return fwrite(buf, 1, (size_t)count, (FILE*)ctx->stream_callback_state) == count;
 }
 
-static bool stdio_read_cb(pb_decode_ctx_t *ctx, uint8_t *buf, size_t count)
+static pb_size_t stdio_read_cb(pb_decode_ctx_t *ctx, uint8_t *buf, pb_size_t count)
 {
     FILE *file = (FILE*)ctx->stream_callback_state;
     size_t ret = fread(buf, 1, count, file);
-    if (ret != count && feof(file))
+
+    if (ret != count && !feof(file))
     {
-        ctx->bytes_left = 0;
+        PB_SET_ERROR(ctx, "fread failed");
+        return PB_READ_ERROR;
     }
-    return ret == count;
+
+    // EOF is indicated by return value less than count
+    return (pb_size_t)ret;
 }
 
 static inline void init_encode_ctx_for_stdio(pb_encode_ctx_t *ctx, FILE* file, pb_size_t max_len,

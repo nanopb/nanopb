@@ -50,14 +50,6 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #define pb_uint64_t uint64_t
 #endif
 
-#if !PB_NO_ERRMSG
-#if !PB_NO_STREAM_CALLBACK
-// This is used in pb_decode_tag() to workaround corner case
-// in EOF detection with input stream callbacks.
-static const char c_errmsg_io_error[] = "io error";
-#endif
-#endif
-
 // Structure used to store information per each message level
 // during the decoding operation.
 typedef struct {
@@ -121,59 +113,86 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
  * pb_istream_t implementation *
  *******************************/
 
-#if !PB_NO_STREAM_CALLBACK
-
 // Return how many bytes are available at rdpos
 static inline pb_size_t pb_bytes_available(const pb_decode_ctx_t *ctx)
 {
-    if (ctx->rdpos != NULL)
+#if !PB_NO_STREAM_CALLBACK
+    if (ctx->stream_callback != NULL)
     {
-        PB_OPT_ASSERT(ctx->rdpos >= ctx->buffer &&
-                      ctx->rdpos <= ctx->buffer + ctx->buffer_size);
+        if (ctx->rdpos != NULL)
+        {
+            pb_byte_t *endptr = ctx->buffer + ctx->buffer_size;
+            PB_OPT_ASSERT(ctx->rdpos >= ctx->buffer && ctx->rdpos <= endptr);
+            pb_size_t len = (pb_size_t)(endptr - ctx->rdpos);
+            if (len > ctx->bytes_left) len = ctx->bytes_left;
+            return len;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+#endif
 
-        return ctx->buffer_size - (pb_size_t)(ctx->rdpos - ctx->buffer);
-    }
-    else
-    {
-        return 0;
-    }
+    return ctx->bytes_left;
 }
 
+#if !PB_NO_STREAM_CALLBACK
+// Return true if at least one byte is available at rdpos
+static inline bool pb_has_byte_available(const pb_decode_ctx_t *ctx)
+{
+    if (ctx->bytes_left == 0) return false; // Stream has ended
+    if (ctx->stream_callback == NULL) return true; // Memory buffer stream, rdpos is always valid
+    if (ctx->rdpos == NULL) return false; // No buffered data
+    return (ctx->rdpos < ctx->buffer + ctx->buffer_size); // Check for buffer end
+}
+#endif
+
+#if !PB_NO_STREAM_CALLBACK
 // Fill up cache buffer that is used for accessing callback streams.
-// This should only be called when the remaining length of message is known.
-static bool checkreturn pb_fill_stream_cache(pb_decode_ctx_t *ctx)
+// Attempts to read 'count' bytes into the buffer.
+//
+// Returns false if there is error from stream callback.
+static bool checkreturn pb_fill_stream_buffer(pb_decode_ctx_t *ctx, pb_size_t count)
 {
     if (ctx->stream_callback != NULL && ctx->buffer_size > 0)
     {
-        // Check how many bytes we can buffer in total
-        pb_size_t total = ctx->buffer_size;
-        if (total > ctx->bytes_left)
+        // Check how many bytes we can buffer in total and whether
+        // we already have enough bytes in the buffer.
+        pb_size_t total = (ctx->bytes_left > ctx->buffer_size) ? ctx->buffer_size : ctx->bytes_left;
+        pb_size_t bytes_in_buf = pb_bytes_available(ctx);
+        if (bytes_in_buf >= total || bytes_in_buf >= count)
         {
-            total = ctx->bytes_left;
+            return true;
         }
 
-        // Don't refill if already over half.
-        // There is a memcpy overhead in refilling too often.
-        pb_size_t bytes_in_buf = pb_bytes_available(ctx);
-        if (total > 2 * bytes_in_buf)
+        // Buffer is always end-aligned
+        pb_byte_t *buf = ctx->buffer + ctx->buffer_size - total;
+
+        // If there is old data, move it into beginning of new buffer
+        if (bytes_in_buf > 0)
         {
-            // Buffer is always end-aligned
-            pb_byte_t *buf = ctx->buffer + ctx->buffer_size - total;
+            memmove(buf, ctx->rdpos, bytes_in_buf);
+        }
 
-            // If there is old data, move it into place
-            if (bytes_in_buf > 0)
-            {
-                PB_OPT_ASSERT(total < bytes_in_buf);
-                memmove(buf, ctx->rdpos, bytes_in_buf);
-            }
+        ctx->rdpos = buf;
 
-            ctx->rdpos = buf;
-
-            // Fill buffer with new data
-            if (!ctx->stream_callback(ctx, buf + bytes_in_buf, (size_t)(total - bytes_in_buf)))
-            {
-                PB_RETURN_ERROR(ctx, c_errmsg_io_error);
-            }
+        // Fill buffer with new data
+        pb_size_t to_read = total - bytes_in_buf;
+        pb_size_t was_read = ctx->stream_callback(ctx, buf + bytes_in_buf, to_read);
+        if (was_read > to_read)
+        {
+            PB_RETURN_ERROR(ctx, "io error");
+        }
+        else if (was_read < to_read)
+        {
+            // On EOF, we need to move the data again to be
+            // aligned to the end of the buffer
+            bytes_in_buf += was_read;
+            ctx->bytes_left = bytes_in_buf;
+            pb_byte_t *newpos = ctx->buffer + ctx->buffer_size - bytes_in_buf;
+            memmove(newpos, buf, bytes_in_buf);
+            ctx->rdpos = newpos;
         }
     }
 
@@ -197,13 +216,10 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
 
 #if !PB_NO_STREAM_CALLBACK
         // Check how much data is available from cache
-        if (ctx->buffer_size > 0)
+        pb_size_t buf_remain = pb_bytes_available(ctx);
+        if (bufcount > buf_remain)
         {
-            pb_size_t buf_remain = pb_bytes_available(ctx);
-            if (bufcount > buf_remain)
-            {
-                bufcount = buf_remain;
-            }
+            bufcount = buf_remain;
         }
 #endif
     
@@ -220,68 +236,125 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
     if (ctx->stream_callback != NULL && bufcount < count)
     {
         // Read rest of the data directly from callback
-        pb_size_t cbcount = count - bufcount;
+        pb_size_t remain = count - bufcount;
         ctx->rdpos = NULL;
 
-        if (buf != NULL)
+        while (remain > 0)
         {
-            if (!ctx->stream_callback(ctx, buf + bufcount, (size_t)cbcount))
-                PB_RETURN_ERROR(ctx, c_errmsg_io_error);
-        }
-        else
-        {
-            // Discard bytes coming from the callback
-            pb_byte_t tmp[16];
-            pb_size_t remain = cbcount;
-            while (remain > 0)
+            pb_byte_t tmpbuf[16];
+            pb_byte_t *dest;
+            pb_size_t to_read = remain;
+
+            if (buf == NULL)
             {
-                pb_size_t block = (remain > sizeof(tmp)) ? sizeof(tmp) : remain;
-                if (!ctx->stream_callback(ctx, tmp, (size_t)block))
-                    PB_RETURN_ERROR(ctx, c_errmsg_io_error);
-
-                remain -= block;
+                // Bytes should be discarded, but we need to provide the callback
+                // a buffer. Fields being ignored is a rare enough case that it is
+                // better handled here than in the callback implementation.
+                if (ctx->buffer_size < sizeof(tmpbuf))
+                {
+                    dest = tmpbuf;
+                    if (to_read > sizeof(tmpbuf)) to_read = sizeof(tmpbuf);
+                }
+                else
+                {
+                    dest = ctx->buffer;
+                    if (to_read > ctx->buffer_size) to_read = ctx->buffer_size;
+                }
             }
-        }
+            else
+            {
+                dest = buf + count - remain;
+            }
 
-        if (ctx->bytes_left < cbcount)
-            ctx->bytes_left = 0;
-        else
-            ctx->bytes_left -= cbcount;
+            pb_size_t was_read = ctx->stream_callback(ctx, dest, to_read);
+            if (was_read < to_read)
+            {
+                // EOF occurred at a location we didn't expect.
+                ctx->bytes_left = 0;
+                PB_RETURN_ERROR(ctx, "end-of-stream");
+            }
+            else if (was_read > to_read)
+            {
+                // Callback indicated error
+                PB_RETURN_ERROR(ctx, "io error");
+            }
+
+            remain -= was_read;
+            ctx->bytes_left -= was_read;
+        }
     }
 #endif
 
     return true;
 }
 
-/* Read a single byte from input stream. buf may not be NULL.
- * This is an optimization for the varint decoding. */
-static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf)
+// Read a single byte from input stream.
+// On success returns true.
+// On end-of-stream returns false and sets eof to true, but does not set errmsg.
+// On io error returns false and sets error message
+static bool checkreturn pb_readbyte(pb_decode_ctx_t *ctx, pb_byte_t *buf, bool *eof)
 {
     if (ctx->bytes_left == 0)
-        PB_RETURN_ERROR(ctx, "end-of-stream");
+    {
+        *eof = true;
+        return false;
+    }
 
 #if !PB_NO_STREAM_CALLBACK
-    if (!ctx->rdpos ||
-        (ctx->buffer_size > 0 && ctx->rdpos >= ctx->buffer + ctx->buffer_size))
+    if (!pb_has_byte_available(ctx))
     {
-        // No more data in cache, read directly from callback
-        ctx->rdpos = NULL;
-        ctx->bytes_left--;
-        if (!ctx->stream_callback(ctx, buf, 1))
-            PB_RETURN_ERROR(ctx, c_errmsg_io_error);
-        return true;
+        // Need to read from callback directly
+        pb_size_t was_read = ctx->stream_callback(ctx, buf, 1);
+        if (was_read == 1)
+        {
+            ctx->bytes_left--;
+            return true;
+        }
+        else if (was_read == 0)
+        {
+            *eof = true;
+            ctx->bytes_left = 0;
+            return false;
+        }
+        else
+        {
+            PB_RETURN_ERROR(ctx, "io error");
+        }
     }
 #endif
 
     *buf = *ctx->rdpos++;
     ctx->bytes_left--;
-    
-    return true;    
+    return true;
+}
+
+// Read a complete varint into memory buffer byte-by-byte.
+// This avoids reading more than strictly the varint.
+// Buf must be at least PB_VARINT_MAX_LENGTH long.
+// On success, it contains a varint that ends with byte with top bit unset.
+// If varint is not terminated, end-of-stream occurs or io error occurs, this returns false.
+static bool checkreturn pb_read_varint_to_mem(pb_decode_ctx_t *ctx, pb_byte_t *buf)
+{
+    bool eof = false;
+    uint_fast8_t i;
+    for (i = 0; i < PB_VARINT_MAX_LENGTH; i++)
+    {
+        if (!pb_readbyte(ctx, &buf[i], &eof))
+        {
+            PB_RETURN_ERROR(ctx, eof ? "end-of-stream" : "io error");
+        }
+
+        if ((buf[i] & 0x80) == 0)
+            return true;
+    }
+
+    PB_RETURN_ERROR(ctx, "varint overflow");
 }
 
 void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t msglen)
 {
     memset(ctx, 0, sizeof(pb_decode_ctx_t));
+
     ctx->bytes_left = msglen;
     ctx->rdpos = buf;
 }
@@ -289,10 +362,14 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
 #if !PB_NO_STREAM_CALLBACK
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
     pb_decode_ctx_read_callback_t stream_callback, void *stream_callback_state,
-    pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize)
+    pb_size_t max_msglen, pb_byte_t *buf, pb_size_t bufsize)
 {
     memset(ctx, 0, sizeof(pb_decode_ctx_t));
-    ctx->bytes_left = msglen;
+
+    // Reserve PB_READ_ERROR for callback return value.
+    if (max_msglen >= PB_READ_ERROR) max_msglen = PB_SIZE_MAX - 1;
+
+    ctx->bytes_left = max_msglen;
     ctx->stream_callback = stream_callback;
     ctx->stream_callback_state = stream_callback_state;
     ctx->buffer = buf;
@@ -304,97 +381,131 @@ void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
  * Helper functions *
  ********************/
 
+// Decode an unsigned varint from memory buffer.
+// Buffer should be at least 10 bytes long.
+// Returns number of bytes read, or 0 on failure.
+static uint_fast8_t pb_decode_uvarint_mem(const pb_byte_t *buf, uint32_t *low, uint32_t *high)
+{
+    uint_fast8_t len;
+    uint_fast8_t bitpos = 0;
+    uint32_t result = 0;
+    uint32_t *dest = low;
+    *high = 0;
+
+    pb_byte_t byte;
+    for (len = 1; len < PB_VARINT_MAX_LENGTH; len++)
+    {
+        byte = *buf++;
+
+        if (bitpos <= 24)
+        {
+            result |= (uint32_t)(byte & 0x7F) << bitpos;
+            bitpos = (uint_fast8_t)(bitpos + 7);
+        }
+        else
+        {
+            // Fifth byte straddles low and high part
+            result |= ((uint32_t)(byte & 0x0F) << 28);
+            *dest = result;
+            dest = high;
+            result = (pb_byte_t)((byte & 0x7F) >> 4);
+            bitpos = 3;
+        }
+
+        if ((byte & 0x80) == 0)
+        {
+            break;
+        }
+    }
+
+    if (len >= PB_VARINT_MAX_LENGTH)
+    {
+        // Tenth byte has only one significant bit
+        byte = *buf++;
+        if ((byte & 0xFE) != 0) return 0; // Overrun
+        result |= ((uint32_t)byte << 31);
+    }
+
+    *dest = result;
+    return len;
+}
+
+static bool checkreturn pb_decode_varint64(pb_decode_ctx_t *ctx, uint32_t *low, uint32_t *high)
+{
+    pb_size_t available = pb_bytes_available(ctx);
+
+    uint_fast8_t len;
+    if (available >= PB_VARINT_MAX_LENGTH)
+    {
+        len = pb_decode_uvarint_mem(ctx->rdpos, low, high);
+        ctx->rdpos += len;
+        ctx->bytes_left -= (pb_size_t)len;
+    }
+    else
+    {
+        pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
+
+        if (!pb_read_varint_to_mem(ctx, tmpbuf))
+            return false;
+        
+        len = pb_decode_uvarint_mem(tmpbuf, low, high);
+    }
+
+    if (len == 0)
+    {
+        PB_RETURN_ERROR(ctx, "varint overflow");
+    }
+
+    return true;
+}
+
 bool checkreturn pb_decode_varint32(pb_decode_ctx_t *ctx, uint32_t *dest)
 {
-    pb_byte_t byte;
-    uint32_t result;
-    
-    if (!pb_readbyte(ctx, &byte))
+    if (pb_has_byte_available(ctx))
+    {
+        // Fast case of a single-byte varint
+        pb_byte_t byte = *ctx->rdpos;
+        if (byte < 0x80)
+        {
+            *dest = byte;
+            ctx->rdpos++;
+            ctx->bytes_left--;
+            return true;
+        }
+    }
+
+    uint32_t high;
+    if (!pb_decode_varint64(ctx, dest, &high))
     {
         return false;
     }
     
-    if ((byte & 0x80) == 0)
+    // Allow sign extension to 64 bits
+    if (high != 0 && ((*dest & ((uint32_t)1 << 31)) == 0 || ~high != 0))
     {
-        /* Quick case, 1 byte value */
-        result = byte;
+        PB_RETURN_ERROR(ctx, "varint overflow");
     }
-    else
-    {
-        /* Multibyte case */
-        uint_fast8_t bitpos = 7;
-        result = byte & 0x7F;
-        
-        do
-        {
-            if (!pb_readbyte(ctx, &byte))
-                return false;
-            
-            if (bitpos >= 32)
-            {
-                /* Note: The varint could have trailing 0x80 bytes, or 0xFF for negative. */
-                pb_byte_t sign_extension = (bitpos < 63) ? 0xFF : 0x01;
-                bool valid_extension = ((byte & 0x7F) == 0x00 ||
-                         ((result >> 31) != 0 && byte == sign_extension));
 
-                if (bitpos >= 64 || !valid_extension)
-                {
-                    PB_RETURN_ERROR(ctx, "varint overflow");
-                }
-            }
-            else if (bitpos == 28)
-            {
-                if ((byte & 0x70) != 0 && (byte & 0x78) != 0x78)
-                {
-                    PB_RETURN_ERROR(ctx, "varint overflow");
-                }
-                result |= (uint32_t)(byte & 0x0F) << bitpos;
-            }
-            else
-            {
-                result |= (uint32_t)(byte & 0x7F) << bitpos;
-            }
-            bitpos = (uint_fast8_t)(bitpos + 7);
-        } while ((byte & 0x80) != 0);
-   }
-   
-   *dest = result;
-   return true;
+    return true;
 }
 
 #if !PB_WITHOUT_64BIT
 bool checkreturn pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest)
 {
-    pb_byte_t byte;
-    uint_fast8_t bitpos = 0;
-    uint64_t result = 0;
-    
-    do
-    {
-        if (!pb_readbyte(ctx, &byte))
-            return false;
+    uint32_t low, high;
+    if (!pb_decode_varint64(ctx, &low, &high))
+        return false;
 
-        if (bitpos >= 63 && (byte & 0xFE) != 0)
-            PB_RETURN_ERROR(ctx, "varint overflow");
-
-        result |= (uint64_t)(byte & 0x7F) << bitpos;
-        bitpos = (uint_fast8_t)(bitpos + 7);
-    } while ((byte & 0x80) != 0);
-    
-    *dest = result;
+    *dest = ((uint64_t)high << 32) | low;
     return true;
 }
 #endif
 
+// Read and discard one varint from the input stream.
 bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx)
 {
-    pb_byte_t byte;
-    do
-    {
-        if (!pb_read(ctx, &byte, 1))
-            return false;
-    } while ((byte & 0x80) != 0);
-    return true;
+    pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
+    return pb_read_varint_to_mem(ctx, tmpbuf);
 }
 
 bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx)
@@ -413,48 +524,63 @@ bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx)
 
 bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, pb_tag_t *tag, bool *eof)
 {
-    uint32_t temp;
     *eof = false;
     *wire_type = (pb_wire_type_t) 0;
     *tag = 0;
 
-    if (ctx->bytes_left == 0)
+    // Read first byte so that we can detect EOF without raising error
+    pb_byte_t first_byte;
+    if (!pb_readbyte(ctx, &first_byte, eof))
     {
-        *eof = true;
         return false;
     }
 
-    if (!pb_decode_varint32(ctx, &temp))
+    *wire_type = (pb_wire_type_t)(first_byte & 7);
+    *tag = (pb_byte_t)((first_byte & 0x7F) >> 3);
+
+    if ((first_byte & 0x80) == 0)
     {
+        // Fast case, single byte varint
+        return true;
+    }
+
 #if !PB_NO_STREAM_CALLBACK
-        // Callbacks might detect eof only after first unsuccessful read
-        if (ctx->stream_callback != NULL && ctx->bytes_left == 0)
-        {
-#if !PB_NO_ERRMSG
-            // Workaround issue #1017 where the "io error" message set by pb_readbyte()
-            // will cause other error messages to be overridden later.
-            if (ctx->errmsg == c_errmsg_io_error)
-                ctx->errmsg = NULL;
-#endif
-            *eof = true;
-        }
-#endif
+    if (!pb_fill_stream_buffer(ctx, PB_VARINT_MAX_LENGTH))
+    {
         return false;
     }
+#endif
+
+    // Read rest of the varint
+    // Note that the value is shifted by 7 bits because
+    // first byte was already processed.
+    uint32_t temp;
+    if (!pb_decode_varint32(ctx, &temp))
+    {
+        return false;
+    }
+
+    // The rest of the varint should have at most 25 bits
+    if ((temp >> 25) != 0)
+    {
+        PB_RETURN_ERROR(ctx, "varint overflow");
+    }
+
+    pb_tag_t tagval = (pb_tag_t)(temp << 4);
+    *tag |= tagval;
     
 #if PB_NO_LARGEMSG
     // Range of tags in messages is limited to 4096,
     // make sure large tag numbers are not confused
-    // after truncation to pb_tag_t.
-    pb_tag_t tag_val = (pb_tag_t)(temp >> 3);
-    if (tag_val != (temp >> 3))
-        tag_val = 65535;
-    *tag = tag_val;
-#else
-    *tag = temp >> 3;
+    // after truncation to 16-bit pb_tag_t. A tag of 65535
+    // can never occur in in a small message, so this
+    // will cause the field data to be skipped.
+    if (tagval != (temp << 4))
+    {
+        *tag = 65535;
+    }
 #endif
 
-    *wire_type = (pb_wire_type_t)(temp & 7);
     return true;
 }
 
@@ -493,11 +619,10 @@ bool pb_decode_open_substream(pb_decode_ctx_t *ctx, pb_size_t *old_length)
 
 #if !PB_NO_STREAM_CALLBACK
     // We can prefill stream cache now that we know substream length
-    if (!pb_fill_stream_cache(ctx))
-        return false;
-#endif
-
+    return pb_fill_stream_buffer(ctx, ctx->bytes_left);
+#else
     return true;
+#endif
 }
 
 bool pb_decode_close_substream(pb_decode_ctx_t *ctx, pb_size_t old_length)
@@ -521,6 +646,10 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
 
 #if !PB_NO_STREAM_CALLBACK
     pb_byte_t *buf = NULL;
+
+    // It helps if we already have at least a varint worth in cache
+    if (!pb_fill_stream_buffer(ctx, PB_VARINT_MAX_LENGTH))
+        return false;
 #endif
 
     if (wire_type == PB_WT_STRING)
@@ -537,28 +666,14 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
         length = 8;
     }
 #if !PB_NO_STREAM_CALLBACK
-    else if (wire_type == PB_WT_VARINT && ctx->stream_callback != NULL &&
-             pb_bytes_available(ctx) < 10)
+    else if (wire_type == PB_WT_VARINT && pb_bytes_available(ctx) < PB_VARINT_MAX_LENGTH)
     {
         // Varint size is not known in advance, we need to read it into a temporary buffer.
-        unsigned int i;
-        for (i = 0; i < 10; i++)
-        {
-            if (!pb_read(ctx, &tmp->varintbuf[i], 1))
-                return false;
-
-            if ((tmp->varintbuf[i] & 0x80) == 0)
-            {
-                length = i + 1;
-                break;
-            }
-        }
-
-        if (length == 0)
-        {
-            PB_RETURN_ERROR(ctx, "varint overflow");
-        }
-
+        pb_size_t bytes_left_orig = ctx->bytes_left;
+        if (!pb_read_varint_to_mem(ctx, tmp->varintbuf))
+            return false;
+        length = (uint32_t)(bytes_left_orig - ctx->bytes_left);
+        ctx->bytes_left = bytes_left_orig;
         buf = tmp->varintbuf;
     }
 #endif
@@ -620,14 +735,8 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
 // Restore state after callback invocation
 static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substream_tmp_t *tmp)
 {
-    if (ctx->bytes_left > 0)
-    {
-        /* Read any left-over bytes from the field data */
-        if (!pb_read(ctx, NULL, ctx->bytes_left))
-            return false;
-    }
-
-    ctx->bytes_left = tmp->bytes_left;
+    if (!pb_decode_close_substream(ctx, tmp->bytes_left))
+        return false;
 
 #if !PB_NO_STREAM_CALLBACK
     // Check if temporary buffer was used
@@ -827,7 +936,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     if (iter->descriptor->default_value)
     {
         // Field default values are stored as a protobuf stream
-        pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, PB_SIZE_MAX);
+        pb_init_decode_ctx_for_buffer(&defctx, iter->descriptor->default_value, iter->descriptor->struct_size * 4);
         if (!pb_decode_tag(&defctx, &wire_type, &tag, &eof))
         {
             return PB_WALK_EXIT_ERR;
@@ -1513,16 +1622,8 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
         // Check for the optional zero tag termination
         if (tag == 0)
         {
-            if (ctx->flags & PB_DECODE_CTX_FLAG_NULLTERMINATED)
-            {
-                eof = true;
-                break;
-            }
-            else
-            {
-                PB_SET_ERROR(ctx, "zero tag");
-                return PB_WALK_EXIT_ERR;
-            }
+            PB_SET_ERROR(ctx, "zero tag");
+            return PB_WALK_EXIT_ERR;
         }
 
         // Find the descriptor for this field
@@ -1633,15 +1734,6 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             callback_substream_tmp_t tmp;
             if (!open_callback_substream(ctx, wire_type, &tmp))
                 return PB_WALK_EXIT_ERR;
-
-#if !PB_NO_STREAM_CALLBACK
-            if (PB_LTYPE_IS_SUBMSG(iter->type) && ctx->stream_callback != NULL)
-            {
-                // We now know the submessage data length, so preload it into cache.
-                if (!pb_fill_stream_cache(ctx))
-                    return PB_WALK_EXIT_ERR;
-            }
-#endif
 
 #if !PB_NO_STRUCT_FIELD_CALLBACK
             /* SUBMSG_W_CB is meant to be used with oneof fields, where it permits

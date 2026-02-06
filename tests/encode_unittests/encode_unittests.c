@@ -8,7 +8,7 @@
 #include "test_helpers.h"
 #include "unittestproto.pb.h"
 
-bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
+bool streamcallback(pb_encode_ctx_t *stream, const uint8_t *buf, pb_size_t count)
 {
     /* Allow only 'x' to be written */
     while (count--)

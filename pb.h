@@ -669,6 +669,13 @@ typedef uint16_t pb_type_t;
 // Maximum value that can be stored in pb_size_t
 #define PB_SIZE_MAX ((pb_size_t)-1)
 
+// Decode stream callback pb_decode_ctx_read_callback_t uses PB_SIZE_MAX
+// as a sentinel value for signalling errors.
+#define PB_READ_ERROR PB_SIZE_MAX
+
+// Maximum length of an encoded varint (from protobuf encoding spec)
+#define PB_VARINT_MAX_LENGTH 10
+
 // The code assumes that any value that fits in pb_size_t
 // will also fit in platform size_t.
 PB_STATIC_ASSERT(PB_SIZE_MAX <= (size_t)-1, PB_SIZE_T_TOO_BIG)

@@ -389,7 +389,6 @@ void do_roundtrips(const uint8_t *data, size_t size, bool expect_valid)
 
     /* Test pb_decode_ex() modes */
     do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_CTX_FLAG_NOINIT | PB_DECODE_CTX_FLAG_DELIMITED, false);
-    do_decode(data, size, sizeof(alltypes_static_AllTypes), alltypes_static_AllTypes_fields, PB_DECODE_CTX_FLAG_NULLTERMINATED, false);
 
     /* Test callbacks also when message is not valid */
     do_callback_decode(data, size, dec_flags, false);
