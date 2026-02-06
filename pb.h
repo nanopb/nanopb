@@ -253,8 +253,9 @@
 /* #define PB_BYTE_T_OVERRIDE uint_least8_t */
 
 // PB_SIZE_T_OVERRIDE: Override size type used for messages and streams.
-// On 8-32 bit platforms, pb_size_t defaults to size_t.
-// On 64 bit platforms, pb_size_t defaults to uint32_t.
+// Default type depends on PB_NO_LARGEMSG setting:
+//    PB_NO_LARGEMSG = 0  =>  pb_size_t == size_t
+//    PB_NO_LARGEMSG = 1  =>  pb_size_t == uint_least16_t
 // This option can be used to override the type.
 /* #define PB_SIZE_T_OVERRIDE uint16_t */
 
@@ -656,16 +657,11 @@ typedef uint16_t pb_type_t;
 /* Data type used for storing field sizes and array counts.
  * If large descriptor is disabled, all messages are limited to max 4 kB
  * and we can use 16-bit size type.
- *
- * Even when running on 64-bit platforms, we have pb_size_t limited to
- * 32 bits by default. It's not typical to have messages over 4 GB.
  */
 #if defined(PB_SIZE_T_OVERRIDE)
     typedef PB_SIZE_T_OVERRIDE pb_size_t;
 #elif PB_NO_LARGEMSG
     typedef uint_least16_t pb_size_t;
-#elif SIZE_MAX > UINT32_MAX
-    typedef uint32_t pb_size_t;
 #else
     typedef size_t pb_size_t;
 #endif

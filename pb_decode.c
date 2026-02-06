@@ -2376,8 +2376,10 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     if (!pb_decode_varint32(ctx, &size_u32))
         return false;
     
-    if (size_u32 > PB_SIZE_MAX - offsetof(pb_bytes_array_t, bytes))
+    if ((pb_size_t)(size_u32 + offsetof(pb_bytes_array_t, bytes)) < size_u32)
+    {
         PB_RETURN_ERROR(ctx, "bytes overflow");
+    }
     
     size = (pb_size_t)size_u32;
 
