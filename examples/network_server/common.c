@@ -8,15 +8,15 @@
 
 #include "common.h"
 
-static bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
+static bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, pb_size_t count)
 {
-    int fd = (intptr_t)stream->state;
+    int fd = (intptr_t)stream->stream_callback_state;
     return send(fd, buf, count, 0) == count;
 }
 
-static bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
+static pb_size_t read_callback(pb_decode_ctx_t *stream, uint8_t *buf, pb_size_t count)
 {
-    int fd = (intptr_t)stream->state;
+    int fd = (intptr_t)stream->stream_callback_state;
     int result;
     
     if (count == 0)
@@ -24,22 +24,20 @@ static bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
 
     result = recv(fd, buf, count, MSG_WAITALL);
     
-    if (result == 0)
-        stream->bytes_left = 0; /* EOF */
+    if (result < 0)
+        return PB_READ_ERROR;
     
-    return result == count;
+    return result;
 }
 
-pb_encode_ctx_t pb_ostream_from_socket(int fd)
+void init_pb_encode_ctx_for_socket(pb_encode_ctx_t *ctx, int fd, pb_byte_t *tmpbuf, pb_size_t bufsize)
 {
-    pb_encode_ctx_t stream;
-    pb_init_encode_ctx_for_callback(&stream, &write_callback, (void*)(intptr_t)fd, PB_SIZE_MAX, NULL, 0);
-    return stream;
+    pb_init_encode_ctx_for_callback(ctx, &write_callback, (void*)(intptr_t)fd, PB_SIZE_MAX, tmpbuf, bufsize);
+
 }
 
-pb_decode_ctx_t pb_istream_from_socket(int fd)
+void init_pb_decode_ctx_for_socket(pb_decode_ctx_t *ctx, int fd, pb_size_t max_msglen,
+                                   pb_byte_t *tmpbuf, pb_size_t bufsize)
 {
-    pb_decode_ctx_t stream;
-    pb_init_decode_ctx_for_callback(&stream, &read_callback, (void*)(intptr_t)fd, PB_SIZE_MAX, NULL, 0);
-    return stream;
+    pb_init_decode_ctx_for_callback(ctx, &read_callback, (void*)(intptr_t)fd, max_msglen, tmpbuf, bufsize);
 }

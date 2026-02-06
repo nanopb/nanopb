@@ -28,12 +28,14 @@
  * This is accomplished by fetching the filenames one at a time and encoding them
  * immediately.
  */
-bool ListFilesResponse_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
+bool send_file_list_callback(pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
-    PB_UNUSED(istream);
-    if (ostream != NULL && field->tag == ListFilesResponse_file_tag)
+    if (field->descriptor == &ListFilesResponse_msg && field->tag == ListFilesResponse_file_tag)
     {
         DIR *dir = *(DIR**)field->pData;
+
+        if (dir == NULL) return true; // No directory => no data
+
         struct dirent *file;
         FileInfo fileinfo = {};
 
@@ -44,7 +46,7 @@ bool ListFilesResponse_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostre
             fileinfo.name[sizeof(fileinfo.name) - 1] = '\0';
 
             /* This encodes the header for the field, based on the constant info
-            * from pb_field_t. */
+             * from pb_field_t. */
             if (!pb_encode_tag_for_field(ostream, field))
                 return false;
 
@@ -72,7 +74,9 @@ void handle_connection(int connfd)
     /* Decode the message from the client and open the requested directory. */
     {
         ListFilesRequest request = {};
-        pb_decode_ctx_t input = pb_istream_from_socket(connfd);
+        pb_decode_ctx_t input;
+        pb_byte_t tmpbuf[16];
+        init_pb_decode_ctx_for_socket(&input, connfd, ListFilesRequest_size, tmpbuf, sizeof(tmpbuf));
         
         input.flags |= PB_DECODE_CTX_FLAG_DELIMITED;
         if (!pb_decode(&input, ListFilesRequest_fields, &request))
@@ -88,7 +92,10 @@ void handle_connection(int connfd)
     /* List the files in the directory and transmit the response to client */
     {
         ListFilesResponse response = {};
-        pb_encode_ctx_t output = pb_ostream_from_socket(connfd);
+        pb_encode_ctx_t output;
+        pb_byte_t tmpbuf[16];
+        init_pb_encode_ctx_for_socket(&output, connfd, tmpbuf, sizeof(tmpbuf));
+        output.field_callback = send_file_list_callback;
         
         if (directory == NULL)
         {
