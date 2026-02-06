@@ -391,6 +391,13 @@
 #define PB_NO_STRUCT_FIELD_CALLBACK     1
 #endif
 
+#undef PB_NO_CALLBACKS
+#if PB_NO_CONTEXT_FIELD_CALLBACK && PB_NO_NAME_FIELD_CALLBACK && PB_NO_STRUCT_FIELD_CALLBACK
+#define PB_NO_CALLBACKS 1
+#else
+#define PB_NO_CALLBACKS 0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -857,7 +864,7 @@ typedef enum {
     PB_WT_64BIT  = 1,
     PB_WT_STRING = 2,
     PB_WT_32BIT  = 5,
-    PB_WT_PACKED = 255 /* PB_WT_PACKED is internal marker for packed arrays. */
+    PB_WT_INVALID = 255,
 } pb_wire_type_t;
 
 /* Structure for defining the handling of extension fields.

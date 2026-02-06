@@ -22,7 +22,7 @@
  * Declarations internal to this file *
  **************************************/
 
-static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
+static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -105,9 +105,6 @@ typedef struct {
     pb_byte_t varintbuf[10];
 #endif
 } callback_substream_tmp_t;
-
-static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, callback_substream_tmp_t *tmp);
-static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substream_tmp_t *tmp);
 
 /*******************************
  * pb_istream_t implementation *
@@ -592,11 +589,7 @@ bool checkreturn pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type)
         case PB_WT_64BIT: return pb_read(ctx, NULL, 8);
         case PB_WT_STRING: return pb_skip_string(ctx);
         case PB_WT_32BIT: return pb_read(ctx, NULL, 4);
-        case PB_WT_PACKED:
-            /* Calling pb_skip_field with a PB_WT_PACKED is an error.
-             * Explicitly handle this case and fallthrough to default to avoid
-             * compiler warnings.
-             */
+        case PB_WT_INVALID:
         default: PB_RETURN_ERROR(ctx, "invalid wire_type");
     }
 }
@@ -637,6 +630,8 @@ bool pb_decode_close_substream(pb_decode_ctx_t *ctx, pb_size_t old_length)
     ctx->bytes_left = old_length;
     return true;
 }
+
+#if !PB_NO_CALLBACKS
 
 // Prepare ctx as a substream for invoking a callback.
 // tmp is a buffer for storing the state.
@@ -733,10 +728,9 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
 }
 
 // Restore state after callback invocation
-static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substream_tmp_t *tmp)
+static inline bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substream_tmp_t *tmp)
 {
-    if (!pb_decode_close_substream(ctx, tmp->bytes_left))
-        return false;
+    bool status = pb_decode_close_substream(ctx, tmp->bytes_left);
 
 #if !PB_NO_STREAM_CALLBACK
     // Check if temporary buffer was used
@@ -748,8 +742,9 @@ static bool close_callback_substream(pb_decode_ctx_t *ctx, const callback_substr
     }
 #endif
 
-    return true;
+    return status;
 }
+#endif
 
 #if !PB_NO_MALLOC
 // Estimate the array allocation size of packed array.
@@ -1032,34 +1027,23 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
  * Decode a single field *
  *************************/
 
-static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field)
+static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field)
 {
+    // Wire type is already checked in pb_decode_walk_cb().
     switch (PB_LTYPE(field->type))
     {
         case PB_LTYPE_BOOL:
-            if (wire_type != PB_WT_VARINT && wire_type != PB_WT_PACKED)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_decode_bool(ctx, (bool*)field->pData);
 
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
         case PB_LTYPE_SVARINT:
-            if (wire_type != PB_WT_VARINT && wire_type != PB_WT_PACKED)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_dec_varint(ctx, field);
 
         case PB_LTYPE_FIXED32:
-            if (wire_type != PB_WT_32BIT && wire_type != PB_WT_PACKED)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_decode_fixed32(ctx, field->pData);
 
         case PB_LTYPE_FIXED64:
-            if (wire_type != PB_WT_64BIT && wire_type != PB_WT_PACKED)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
 #if PB_CONVERT_DOUBLE_FLOAT
             if (field->data_size == sizeof(float))
             {
@@ -1074,21 +1058,12 @@ static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_wire_type_t 
 #endif
 
         case PB_LTYPE_BYTES:
-            if (wire_type != PB_WT_STRING)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_dec_bytes(ctx, field);
 
         case PB_LTYPE_STRING:
-            if (wire_type != PB_WT_STRING)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_dec_string(ctx, field);
 
         case PB_LTYPE_FIXED_LENGTH_BYTES:
-            if (wire_type != PB_WT_STRING)
-                PB_RETURN_ERROR(ctx, "wrong wire type");
-
             return pb_dec_fixed_length_bytes(ctx, field);
 
         default:
@@ -1101,12 +1076,12 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
     switch (PB_HTYPE(field->type))
     {
         case PB_HTYPE_REQUIRED:
-            return decode_basic_field(ctx, wire_type, field);
+            return decode_basic_field(ctx, field);
             
         case PB_HTYPE_OPTIONAL:
             if (field->pSize != NULL)
                 *(bool*)field->pSize = true;
-            return decode_basic_field(ctx, wire_type, field);
+            return decode_basic_field(ctx, field);
     
         case PB_HTYPE_REPEATED:
             if (wire_type == PB_WT_STRING
@@ -1123,7 +1098,7 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
 
                 while (ctx->bytes_left > 0 && *size < field->array_size)
                 {
-                    if (!decode_basic_field(ctx, PB_WT_PACKED, field))
+                    if (!decode_basic_field(ctx, field))
                     {
                         status = false;
                         break;
@@ -1148,12 +1123,12 @@ static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t
                 if ((*size)++ >= field->array_size)
                     PB_RETURN_ERROR(ctx, "array overflow");
 
-                return decode_basic_field(ctx, wire_type, field);
+                return decode_basic_field(ctx, field);
             }
 
         case PB_HTYPE_ONEOF:
             *(pb_tag_t*)field->pSize = field->tag;
-            return decode_basic_field(ctx, wire_type, field);
+            return decode_basic_field(ctx, field);
 
         default:
             PB_RETURN_ERROR(ctx, "invalid field type");
@@ -1177,7 +1152,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
             {
                 /* pb_dec_string and pb_dec_bytes handle allocation themselves */
                 field->pData = field->pField;
-                return decode_basic_field(ctx, wire_type, field);
+                return decode_basic_field(ctx, field);
             }
             else
             {
@@ -1190,7 +1165,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     *(pb_tag_t*)field->pSize = field->tag;
                 }
 
-                return decode_basic_field(ctx, wire_type, field);
+                return decode_basic_field(ctx, field);
             }
     
         case PB_HTYPE_REPEATED:
@@ -1245,7 +1220,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     field->pData = *(char**)field->pField + field->data_size * (*size);
 
                     memset(field->pData, 0, field->data_size);
-                    if (!decode_basic_field(ctx, PB_WT_PACKED, field))
+                    if (!decode_basic_field(ctx, field))
                     {
                         status = false;
                         break;
@@ -1282,7 +1257,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                     // Decode field data
                     (*size)++;
                     remain--;
-                    if (!decode_basic_field(ctx, wire_type, field))
+                    if (!decode_basic_field(ctx, field))
                     {
                         return false;
                     }
@@ -1300,6 +1275,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
 
                         if (new_tag != field->tag || new_wt != wire_type)
                         {
+                            // Shouldn't happen
                             PB_RETURN_ERROR(ctx, "wrong tag");
                         }
 
@@ -1424,6 +1400,87 @@ static pb_walk_retval_t release_oneof(pb_walk_state_t *state, pb_field_iter_t *f
     }
 
     return PB_WALK_NEXT_ITEM;
+}
+#endif
+
+#if !PB_NO_CALLBACKS
+static bool decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field)
+{
+    // Open a substream with limited length.
+    // This informs the callback how much it can read.
+    callback_substream_tmp_t tmp;
+    if (!open_callback_substream(ctx, wire_type, &tmp))
+        return false;
+
+#if !PB_NO_STRUCT_FIELD_CALLBACK
+    /* SUBMSG_W_CB is meant to be used with oneof fields, where it permits
+        * configuring fields inside a oneof.
+        * TODO: consider replacing with some different approach
+        */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL) {
+        pb_callback_t* callback;
+        *(pb_tag_t*)field->pSize = field->tag;
+        callback = (pb_callback_t*)field->pSize - 1;
+
+        if (callback->funcs.decode)
+        {
+            if (!callback->funcs.decode(ctx, field, &callback->arg)) {
+                (void)close_callback_substream(ctx, &tmp);
+                PB_SET_ERROR(ctx, "submsg callback failed");
+                return false;
+            }
+        }
+    }
+#endif
+
+    // Call callback until all data has been processed
+    bool status = true;
+    pb_size_t prev_bytes_left;
+    do
+    {
+        prev_bytes_left = ctx->bytes_left;
+
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+        if (ctx->field_callback)
+        {
+            if (!ctx->field_callback(ctx, field))
+            {
+                status = false;
+                break;
+            }
+            else if (ctx->bytes_left < prev_bytes_left)
+            {
+                // Field was handled
+                continue;
+            }
+        }
+#endif
+
+#if !PB_NO_NAME_FIELD_CALLBACK
+        if (field->descriptor->field_callback)
+        {
+            // Note: pb_default_field_callback() handles pb_callback_t
+            if (!field->descriptor->field_callback(ctx, NULL, field))
+            {
+                status = false;
+                break;
+            }
+        }
+#elif !PB_NO_STRUCT_FIELD_CALLBACK
+        if (!pb_default_field_callback(ctx, NULL, iter))
+        {
+            status = false;
+            break;
+        }
+#endif
+    } while (ctx->bytes_left > 0 && ctx->bytes_left < prev_bytes_left);
+
+    if (!close_callback_substream(ctx, &tmp) || !status)
+    {
+        PB_RETURN_ERROR(ctx, "callback failed");
+    }
+
+    return true;
 }
 #endif
 
@@ -1654,14 +1711,45 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             }
 
             extension->found = true;
+#else
+            if (!pb_skip_field(ctx, wire_type))
+            {
+                return PB_WALK_EXIT_ERR;
+            }
+
+            continue;
 #endif
         }
         else if (PB_HTYPE(iter->type) == PB_HTYPE_REQUIRED)
         {
             set_required_field_present(state);
         }
-        else if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
-                 (iter->pSize == &iter->array_size || iter->pSize == &frame->fixarray_count))
+
+        if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
+        {
+#if !PB_NO_CALLBACKS
+            if (!decode_callback_field(ctx, wire_type, iter))
+            {
+                return PB_WALK_EXIT_ERR;
+            }
+#else
+            if (!pb_skip_field(ctx, wire_type))
+            {
+                return PB_WALK_EXIT_ERR;
+            }
+#endif
+            continue;
+        }
+
+        if (wire_type != pb_ltype_to_wire_type(iter->type) &&
+            (wire_type != PB_WT_STRING || PB_LTYPE(iter->type) > PB_LTYPE_LAST_PACKABLE))
+        {
+            PB_SET_ERROR(ctx, "wrong wire type");
+            return PB_WALK_EXIT_ERR;
+        }
+
+        if (PB_HTYPE(iter->type) == PB_HTYPE_REPEATED &&
+            (iter->pSize == &iter->array_size || iter->pSize == &frame->fixarray_count))
         {
             // This is a fixed count array
             // There is no count field in the message structure, so the count is tracked
@@ -1726,83 +1814,6 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
         {
             if (!decode_pointer_field(ctx, wire_type, iter))
                 return PB_WALK_EXIT_ERR;
-        }
-        else if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
-        {
-            // Open a substream with limited length.
-            // This informs the callback how much it can read.
-            callback_substream_tmp_t tmp;
-            if (!open_callback_substream(ctx, wire_type, &tmp))
-                return PB_WALK_EXIT_ERR;
-
-#if !PB_NO_STRUCT_FIELD_CALLBACK
-            /* SUBMSG_W_CB is meant to be used with oneof fields, where it permits
-             * configuring fields inside a oneof.
-             * TODO: consider replacing with some different approach
-             */
-            if (PB_LTYPE(iter->type) == PB_LTYPE_SUBMSG_W_CB && iter->pSize != NULL) {
-                pb_callback_t* callback;
-                *(pb_tag_t*)iter->pSize = iter->tag;
-                callback = (pb_callback_t*)iter->pSize - 1;
-
-                if (callback->funcs.decode)
-                {
-                    if (!callback->funcs.decode(ctx, iter, &callback->arg)) {
-                        (void)close_callback_substream(ctx, &tmp);
-                        PB_SET_ERROR(ctx, "submsg callback failed");
-                        return PB_WALK_EXIT_ERR;
-                    }
-                }
-            }
-#endif
-
-            // Call callback until all data has been processed
-            bool status = true;
-            pb_size_t prev_bytes_left;
-            do
-            {
-                prev_bytes_left = ctx->bytes_left;
-
-#if !PB_NO_CONTEXT_FIELD_CALLBACK
-                if (ctx->field_callback)
-                {
-                    if (!ctx->field_callback(ctx, iter))
-                    {
-                        status = false;
-                        break;
-                    }
-                    else if (ctx->bytes_left < prev_bytes_left)
-                    {
-                        // Field was handled
-                        continue;
-                    }
-                }
-#endif
-
-#if !PB_NO_NAME_FIELD_CALLBACK
-                if (iter->descriptor->field_callback)
-                {
-                    // Note: pb_default_field_callback() handles pb_callback_t
-                    if (!iter->descriptor->field_callback(ctx, NULL, iter))
-                    {
-                        status = false;
-                        break;
-                    }
-                }
-#elif !PB_NO_STRUCT_FIELD_CALLBACK
-                if (!pb_default_field_callback(ctx, NULL, iter))
-                {
-                    status = false;
-                    break;
-                }
-#endif
-            } while (ctx->bytes_left > 0 && ctx->bytes_left < prev_bytes_left);
-
-            if (!close_callback_substream(ctx, &tmp) || !status)
-            {
-                PB_SET_ERROR(ctx, "callback failed");
-                return PB_WALK_EXIT_ERR;
-            }
         }
         else
         {

@@ -1065,35 +1065,13 @@ bool pb_encode_tag_for_field(pb_encode_ctx_t* ctx, const pb_field_iter_t* field)
 {
     pb_tag_t tag = (pb_tag_t)(field->tag << 3);
 
-    switch (PB_LTYPE(field->type))
+    pb_wire_type_t wt = pb_ltype_to_wire_type(field->type);
+    if (wt >= PB_WT_INVALID)
     {
-        case PB_LTYPE_BOOL:
-        case PB_LTYPE_VARINT:
-        case PB_LTYPE_UVARINT:
-        case PB_LTYPE_SVARINT:
-            tag |= (pb_tag_t)PB_WT_VARINT;
-            break;
-
-        case PB_LTYPE_FIXED32:
-            tag |= (pb_tag_t)PB_WT_32BIT;
-            break;
-
-        case PB_LTYPE_FIXED64:
-            tag |= (pb_tag_t)PB_WT_64BIT;
-            break;
-
-        case PB_LTYPE_BYTES:
-        case PB_LTYPE_STRING:
-        case PB_LTYPE_SUBMESSAGE:
-        case PB_LTYPE_SUBMSG_W_CB:
-        case PB_LTYPE_FIXED_LENGTH_BYTES:
-            tag |= (pb_tag_t)PB_WT_STRING;
-            break;
-
-        default:
-            PB_RETURN_ERROR(ctx, "invalid field type");
+        PB_RETURN_ERROR(ctx, "invalid field type");
     }
 
+    tag |= (pb_tag_t)wt;
     return pb_encode_varint32(ctx, tag);
 }
 

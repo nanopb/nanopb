@@ -48,6 +48,13 @@ bool pb_field_iter_load_extension(pb_field_iter_t *iter, pb_extension_t *extensi
 void *pb_get_extension_data_ptr(pb_extension_t *extension);
 #endif
 
+// Mapping between PB_LTYPE and wire types
+extern const pb_byte_t pb_ltype_to_wire_type_map[PB_LTYPE_MASK + 1];
+static inline pb_wire_type_t pb_ltype_to_wire_type(pb_type_t type)
+{
+    return (pb_wire_type_t)pb_ltype_to_wire_type_map[PB_LTYPE(type)];
+}
+
 // Return value type for pb_walk() callback function
 typedef enum {
     // Negative values cause pb_walk() to exit.
