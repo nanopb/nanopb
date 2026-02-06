@@ -12,4 +12,5 @@
 
 #define uint64_t disabled_uint64_t
 #define int64_t disabled_int64_t
+#define PB_SIZE_T_OVERRIDE uint16_t
 
