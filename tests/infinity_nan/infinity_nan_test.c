@@ -50,6 +50,7 @@ int main()
         TEST(check_floats(&floats));
     }
 
+#if !PB_NO_DEFAULT_VALUES
     {
         Floats floats = {0};
         pb_decode_ctx_t stream;
@@ -58,6 +59,7 @@ int main()
         TEST(pb_decode(&stream, Floats_fields, &floats));
         TEST(check_floats(&floats));
     }
+#endif
 
     return status;
 }

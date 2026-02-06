@@ -100,7 +100,7 @@ static bool read_submsg(pb_decode_ctx_t *stream, const pb_field_t *field, void *
     TEST(strcmp(submsg.substuff1, ref->substuff1) == 0);
     TEST(submsg.substuff2 == ref->substuff2);
     TEST(submsg.has_substuff3 == ref->has_substuff3);
-    TEST(submsg.substuff3 == ref->substuff3); 
+    TEST((PB_NO_DEFAULT_VALUES && !submsg.has_substuff3) || submsg.substuff3 == ref->substuff3);
     return true;
 }
 
@@ -201,7 +201,7 @@ static bool read_repeated_submsg(pb_decode_ctx_t *stream, const pb_field_t *fiel
     TEST(strcmp(submsg.substuff1, (*expected)->substuff1) == 0);
     TEST(submsg.substuff2 == (*expected)->substuff2);
     TEST(submsg.has_substuff3 == (*expected)->has_substuff3);
-    TEST(submsg.substuff3 == (*expected)->substuff3);
+    TEST((PB_NO_DEFAULT_VALUES && !submsg.has_substuff3) || submsg.substuff3 == (*expected)->substuff3);
     (*expected)++;
 
     return true;

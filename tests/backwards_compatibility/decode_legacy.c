@@ -18,9 +18,17 @@
    the decoding and checks the fields. */
 bool check_alltypes(pb_decode_ctx_t *stream, int mode)
 {
-    AllTypes alltypes = {0};
     int status = 0;
     
+#if !PB_NO_DEFAULT_VALUES
+    // Default values will be applied during decoding
+    AllTypes alltypes = {0};
+#else
+    // Use initializer for default values
+    AllTypes alltypes = AllTypes_init_default;
+    stream->flags |= PB_DECODE_CTX_FLAG_NOINIT;
+#endif
+
     if (!pb_decode(stream, AllTypes_fields, &alltypes))
         return false;
     
@@ -71,7 +79,8 @@ bool check_alltypes(pb_decode_ctx_t *stream, int mode)
     TEST(alltypes.rep_submsg_count == 5);
     TEST(strcmp(alltypes.rep_submsg[4].substuff1, "2016") == 0 && alltypes.rep_submsg[0].substuff1[0] == '\0');
     TEST(alltypes.rep_submsg[4].substuff2 == 2016 && alltypes.rep_submsg[0].substuff2 == 0);
-    TEST(alltypes.rep_submsg[4].substuff3 == 2016 && alltypes.rep_submsg[0].substuff3 == 3);
+    TEST(alltypes.rep_submsg[4].substuff3 == 2016);
+    TEST(!alltypes.rep_submsg[0].has_substuff3 && (PB_NO_DEFAULT_VALUES || alltypes.rep_submsg[0].substuff3 == 3));
     
     TEST(alltypes.rep_enum_count == 5 && alltypes.rep_enum[4] == MyEnum_Truth && alltypes.rep_enum[0] == MyEnum_Zero);
     

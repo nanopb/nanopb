@@ -111,6 +111,13 @@
 
 // #define PB_NO_STRUCT_FIELD_CALLBACK 1
 
+
+// PB_NO_DEFAULT_VALUES: Disable support for runtime-initialization
+// of field default values. MyMessage_init_default macro is still
+// available.
+
+// #define PB_NO_DEFAULT_VALUES PB_MINIMAL
+
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *

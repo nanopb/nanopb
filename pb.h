@@ -179,6 +179,13 @@
 #define PB_NO_STRUCT_FIELD_CALLBACK PB_MINIMAL
 #endif
 
+// PB_NO_DEFAULT_VALUES: Disable support for runtime-initialization
+// of field default values. MyMessage_init_default macro is still
+// available.
+#ifndef PB_NO_DEFAULT_VALUES
+#define PB_NO_DEFAULT_VALUES PB_MINIMAL
+#endif
+
 /*********************************************************************
  * Platform feature options.                                         *
  *                                                                   *
@@ -743,10 +750,12 @@ struct pb_msgdesc_s {
      */
     const pb_msgdesc_t * const * submsg_info;
 
+#if !PB_NO_DEFAULT_VALUES
     /* If the message has proto2 default values, this is a pointer
      * to a serialized protobuf message with them.
      */
     const pb_byte_t *default_value;
+#endif
 
 #if !PB_NO_NAME_FIELD_CALLBACK
     /* If the message uses name-bound callbacks, this is the function
@@ -997,7 +1006,7 @@ typedef struct {
        (msgname ## _FLAGS) | (PB_MSGFLAG_DESCWIDTH_ ## width), \
        structname ## _field_info, \
        structname ## _submsg_info, \
-       msgname ## _DEFAULT, \
+       PB_DECL_DEFAULT_PTR(msgname ## _DEFAULT) \
        PB_DECL_CALLBACK_PTR(msgname ## _CALLBACK) \
     }; \
     msgname ## _FIELDLIST(PB_GEN_FIELD_INFO_ASSERT_ ## width, structname)
@@ -1008,6 +1017,12 @@ typedef struct {
 #else
 #define PB_MSGFLAG_DESCWIDTH_S 0
 #define PB_MSGFLAG_DESCWIDTH_L 0
+#endif
+
+#if !PB_NO_DEFAULT_VALUES
+#define PB_DECL_DEFAULT_PTR(x) x,
+#else
+#define PB_DECL_DEFAULT_PTR(x)
 #endif
 
 #if !PB_NO_NAME_FIELD_CALLBACK

@@ -47,6 +47,15 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state);
 #define pb_uint64_t uint64_t
 #endif
 
+// If callbacks, defaults and extensions are disabled, we know that
+// all messages can be memset to 0 and there is no need to have the
+// initialization code.
+#if PB_NO_CALLBACKS && PB_NO_DEFAULT_VALUES && PB_NO_EXTENSIONS
+#define PB_CAN_ZEROINIT_MESSAGES 1
+#else
+#define PB_CAN_ZEROINIT_MESSAGES 0
+#endif
+
 // Structure used to store information per each message level
 // during the decoding operation.
 typedef struct {
@@ -887,6 +896,8 @@ static pb_size_t get_array_size(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, 
  * Field initialization  *
  *************************/
 
+#if !PB_CAN_ZEROINIT_MESSAGES
+
 // Initialize statically allocated fields, possibly descending
 // into submessages.
 static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
@@ -917,9 +928,12 @@ static pb_walk_retval_t pb_init_static_field(pb_walk_state_t *state)
         // Submessage needs recursive initialization if it has callbacks
         // that must be skipped or fields with default values.
         // Otherwise it can be memset to 0, which is faster.
-        pb_msgflag_t init_flags = (PB_MSGFLAG_R_HAS_DEFVAL |
-                                   PB_MSGFLAG_R_HAS_CBS |
-                                   PB_MSGFLAG_R_HAS_EXTS);
+        pb_msgflag_t init_flags = (
+            (PB_NO_DEFAULT_VALUES ? 0 : PB_MSGFLAG_R_HAS_DEFVAL) |
+            (PB_NO_CALLBACKS      ? 0 : PB_MSGFLAG_R_HAS_CBS) |
+            (PB_NO_EXTENSIONS     ? 0 : PB_MSGFLAG_R_HAS_EXTS)
+        );
+
         if (PB_LTYPE_IS_SUBMSG(iter->type) &&
             (iter->submsg_desc->msg_flags & init_flags) != 0)
         {
@@ -953,6 +967,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
         return PB_WALK_NEXT_ITEM;
     }
 
+#if !PB_NO_DEFAULT_VALUES
     pb_decode_ctx_t defctx;
     pb_tag_t tag = 0;
     pb_wire_type_t wire_type = PB_WT_VARINT;
@@ -981,6 +996,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
     {
         pb_init_decode_ctx_for_buffer(&defctx, NULL, 0);
     }
+#endif
 
     do
     {
@@ -1033,6 +1049,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
             if (retval == PB_WALK_IN)
                 return retval;
 
+#if !PB_NO_DEFAULT_VALUES
             /* Only static fields can have default values */
             if (iter->tag == tag)
             {
@@ -1047,11 +1064,14 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_defaults_walk_cb(pb_walk_state_t *state)
                 if (PB_HTYPE(iter->type) == PB_HTYPE_OPTIONAL && iter->pSize != NULL)
                     *(bool*)iter->pSize = false;
             }
+#endif
         }
     } while (pb_field_iter_next(iter));
 
     return PB_WALK_OUT;
 }
+
+#endif
 
 /*************************
  * Decode a single field *
@@ -1328,12 +1348,17 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
  *********************/
 
 // State flags apply to all recursion levels.
-#define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
-#define PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD     (uint_least16_t)2
-
 // Frame flags apply to single level, and are used for unsetting state flags.
+
+#if !PB_NO_DEFAULT_VALUES
+#define PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS      (uint_least16_t)1
 #define PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS      (uint_least16_t)1
+#endif
+
+#if !PB_NO_MALLOC
+#define PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD     (uint_least16_t)2
 #define PB_DECODE_WALK_FRAME_FLAG_END_RELEASE       (uint_least16_t)2
+#endif
 
 static inline pb_walk_stacksize_t stacksize_for_msg(const pb_msgdesc_t *msgdesc)
 {
@@ -1598,6 +1623,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
         // First clear the submessage to zeros
         memset(field->pData, 0, field->data_size);
 
+#if !PB_NO_DEFAULT_VALUES
         // Check if it has default values to apply
         // The default values will get applied recursively, and normal
         // decoding resumes when WALK_OUT is returned to this frame.
@@ -1606,6 +1632,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
             state->flags |= PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS;
             frame->flags |= PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS;
         }
+#endif
     }
 
 #if !PB_NO_STRUCT_FIELD_CALLBACK
@@ -1652,6 +1679,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
     bool eof = false;
     bool skip_decode_tag = false;
 
+#if !PB_NO_DEFAULT_VALUES
     if (state->flags & PB_DECODE_WALK_STATE_FLAG_SET_DEFAULTS)
     {
         if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_DEFAULTS)
@@ -1667,8 +1695,11 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             return pb_defaults_walk_cb(state);
         }
     }
+    else
+#endif
+
 #if !PB_NO_MALLOC
-    else if (state->flags & PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD)
+    if (state->flags & PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD)
     {
         if (frame->flags & PB_DECODE_WALK_FRAME_FLAG_END_RELEASE)
         {
@@ -1691,8 +1722,9 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             return pb_release_walk_cb(state);
         }
     }
+    else
 #endif
-    else if (state->retval == PB_WALK_OUT)
+    if (state->retval == PB_WALK_OUT)
     {
         // Close the substream opened for the submessage
         if (!pb_decode_close_substream(ctx, frame->old_length))
@@ -1901,12 +1933,16 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     /* Set default values, if needed */
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
+#if PB_CAN_ZEROINIT_MESSAGES
+        memset(dest_struct, 0, fields->struct_size);
+#else
         (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_defaults_walk_cb));
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         if (!pb_walk(&state))
         {
             PB_RETURN_ERROR(ctx, "failed to set defaults");
         }
+#endif
     }
 
     /* Decode the message */
@@ -1948,6 +1984,9 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
     /* Set default values, if needed */
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
+#if PB_CAN_ZEROINIT_MESSAGES
+        memset(dest_struct, 0, fields->struct_size);
+#else
         state->flags = 0;
         state->iter.pData = dest_struct;
         state->iter.submsg_desc = fields;
@@ -1960,6 +1999,7 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
             status = false;
         }
         state->callback = PB_WALK_CB(pb_decode_walk_cb);
+#endif
     }
 
     /* Decode message contents */
