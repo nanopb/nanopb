@@ -1355,7 +1355,7 @@ class Message(ProtoElement):
             self.load_fields(desc, message_options)
 
         self.callback_function = message_options.callback_function
-        if not message_options.HasField('callback_function'):
+        if not message_options.HasField('callback_function') and message_options.name_bound_callbacks:
             # Automatically assign a per-message callback if any field has
             # a special callback_datatype.
             # The callback_function can be set to "" to disable name-bound

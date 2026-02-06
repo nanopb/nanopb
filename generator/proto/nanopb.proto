@@ -140,6 +140,11 @@ message NanoPBOptions {
   // will be called for all callback fields in a message type.
   optional string callback_function = 19 [default = "pb_default_field_callback"];
 
+  // Automatically assign name-bound callback functions with the
+  // name of form 'MyMessage_callback()' when callback_datatype is given.
+  // Disable this to use context-based callbacks only.
+  optional bool name_bound_callbacks = 36 [default = true];
+
   // Select the size of field descriptors. This option has to be defined
   // for the whole message, not per-field. Usually automatic selection is
   // ok, but if it results in compilation errors you can increase the field
