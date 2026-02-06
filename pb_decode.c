@@ -25,12 +25,9 @@
 static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type, pb_field_iter_t *field);
-static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
-static bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx);
-static bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx);
 
 #if !PB_NO_MALLOC
 static pb_size_t get_packed_array_size(const pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
@@ -427,28 +424,99 @@ static uint_fast8_t pb_decode_uvarint_mem(const pb_byte_t *buf, uint32_t *low, u
     return len;
 }
 
-static bool checkreturn pb_decode_varint64(pb_decode_ctx_t *ctx, uint32_t *low, uint32_t *high)
+// Decode any length and sign type of a varint, checking for overflow.
+// dest must point to (u)int8_t, (u)int16_t, (u)int32_t or (u)int64_t.
+// data_size must match the size of the type
+// ltype should be PB_LTYPE_UVARINT for unsigned, SVARINT or VARINT for signed.
+static bool checkreturn pb_decode_varint_internal(pb_decode_ctx_t *ctx, void *dest,
+                                                  uint_fast8_t data_size, uint_fast8_t ltype)
 {
     pb_size_t available = pb_bytes_available(ctx);
+    uint32_t low;
+    uint32_t high = 0;
+    bool valid = true;
 
-    uint_fast8_t len;
-    if (available >= PB_VARINT_MAX_LENGTH)
+    if (available > 0 && (*ctx->rdpos & 0x80) == 0)
     {
-        len = pb_decode_uvarint_mem(ctx->rdpos, low, high);
-        ctx->rdpos += len;
-        ctx->bytes_left -= (pb_size_t)len;
+        // Fast case of a single-byte varint, it fits in any format without clamping
+        low = *ctx->rdpos++;
+        ctx->bytes_left--;
     }
     else
     {
-        pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
+        // Have to decode full 64 bits and check for overflow
+        if (available >= PB_VARINT_MAX_LENGTH)
+        {
+            // Data is available in memory buffer
+            uint_fast8_t len = pb_decode_uvarint_mem(ctx->rdpos, &low, &high);
+            ctx->rdpos += len;
+            ctx->bytes_left -= (pb_size_t)len;
+            valid = (len != 0);
+        }
+        else
+        {
+            // Have to go byte-by-byte to avoid over-reading
+            pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
 
-        if (!pb_read_varint_to_mem(ctx, tmpbuf))
-            return false;
-        
-        len = pb_decode_uvarint_mem(tmpbuf, low, high);
+            if (!pb_read_varint_to_mem(ctx, tmpbuf))
+                return false;
+
+            valid = (pb_decode_uvarint_mem(tmpbuf, &low, &high) != 0);
+        }
+
+        if (data_size <= sizeof(uint32_t))
+        {
+            uint32_t sign_extension = 0;
+            uint_fast8_t valid_bits = (uint_fast8_t)(data_size * 8);
+            if (ltype == PB_LTYPE_VARINT && (int32_t)low < 0)
+            {
+                sign_extension = ~(uint32_t)0;
+                valid_bits = (uint_fast8_t)(valid_bits - 1);
+            }
+
+            // Check that sign-extension to 64 bits matches.
+            // For negative 32-bit integers, we allow high part of 0 for
+            // compatibility with Google's C++ protobuf (see issue #97).
+            // This is also needed because pb_decode_varint() does not
+            // include the signedness information.
+            if (high != 0 && high != sign_extension)
+            {
+                valid = false;
+            }
+
+            // For types less than 32 bits, check bits that would be truncated
+            if (data_size < sizeof(uint32_t))
+            {
+                if ((low ^ sign_extension) >> valid_bits != 0)
+                {
+                    valid = false;
+                }
+            }
+        }
     }
 
-    if (len == 0)
+    if (ltype == PB_LTYPE_SVARINT)
+    {
+        // Zig-zagged encoding for signed varints
+        uint32_t flip = (low & 1) ? ~(uint32_t)0 : 0;
+        low = ((low >> 1) | ((high & 1) << 31)) ^ flip;
+        high = (high >> 1) ^ flip;
+    }
+
+    if (data_size == sizeof(uint32_t))
+        *(uint32_t*)dest = low;
+    else if (data_size == sizeof(uint_least16_t))
+        *(uint_least16_t*)dest = (uint_least16_t)low;
+    else if (data_size == sizeof(uint_least8_t))
+        *(uint_least8_t*)dest = (uint_least8_t)low;
+#if !PB_WITHOUT_64BIT
+    else if (data_size == sizeof(uint64_t))
+        *(uint64_t*)dest = ((uint64_t)high << 32) | low;
+#endif
+    else
+        valid = false;
+
+    if (!valid)
     {
         PB_RETURN_ERROR(ctx, "varint overflow");
     }
@@ -458,66 +526,15 @@ static bool checkreturn pb_decode_varint64(pb_decode_ctx_t *ctx, uint32_t *low, 
 
 bool checkreturn pb_decode_varint32(pb_decode_ctx_t *ctx, uint32_t *dest)
 {
-    if (pb_has_byte_available(ctx))
-    {
-        // Fast case of a single-byte varint
-        pb_byte_t byte = *ctx->rdpos;
-        if (byte < 0x80)
-        {
-            *dest = byte;
-            ctx->rdpos++;
-            ctx->bytes_left--;
-            return true;
-        }
-    }
-
-    uint32_t high;
-    if (!pb_decode_varint64(ctx, dest, &high))
-    {
-        return false;
-    }
-    
-    // Allow sign extension to 64 bits
-    if (high != 0 && ((*dest & ((uint32_t)1 << 31)) == 0 || ~high != 0))
-    {
-        PB_RETURN_ERROR(ctx, "varint overflow");
-    }
-
-    return true;
+    return pb_decode_varint_internal(ctx, dest, sizeof(uint32_t), PB_LTYPE_VARINT);
 }
 
 #if !PB_WITHOUT_64BIT
 bool checkreturn pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest)
 {
-    uint32_t low, high;
-    if (!pb_decode_varint64(ctx, &low, &high))
-        return false;
-
-    *dest = ((uint64_t)high << 32) | low;
-    return true;
+    return pb_decode_varint_internal(ctx, dest, sizeof(uint64_t), PB_LTYPE_VARINT);
 }
 #endif
-
-// Read and discard one varint from the input stream.
-bool checkreturn pb_skip_varint(pb_decode_ctx_t *ctx)
-{
-    pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
-    return pb_read_varint_to_mem(ctx, tmpbuf);
-}
-
-bool checkreturn pb_skip_string(pb_decode_ctx_t *ctx)
-{
-    uint32_t size_u32;
-    if (!pb_decode_varint32(ctx, &size_u32))
-        return false;
-    
-    if ((pb_size_t)size_u32 != size_u32)
-    {
-        PB_RETURN_ERROR(ctx, "size too large");
-    }
-
-    return pb_read(ctx, NULL, (pb_size_t)size_u32);
-}
 
 bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, pb_tag_t *tag, bool *eof)
 {
@@ -552,7 +569,7 @@ bool checkreturn pb_decode_tag(pb_decode_ctx_t *ctx, pb_wire_type_t *wire_type, 
     // Note that the value is shifted by 7 bits because
     // first byte was already processed.
     uint32_t temp;
-    if (!pb_decode_varint32(ctx, &temp))
+    if (!pb_decode_varint_internal(ctx, &temp, sizeof(uint32_t), PB_LTYPE_UVARINT))
     {
         return false;
     }
@@ -585,12 +602,25 @@ bool checkreturn pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type)
 {
     switch (wire_type)
     {
-        case PB_WT_VARINT: return pb_skip_varint(ctx);
         case PB_WT_64BIT: return pb_read(ctx, NULL, 8);
-        case PB_WT_STRING: return pb_skip_string(ctx);
         case PB_WT_32BIT: return pb_read(ctx, NULL, 4);
+
+        case PB_WT_VARINT:
+        {
+            pb_byte_t tmpbuf[PB_VARINT_MAX_LENGTH];
+            return pb_read_varint_to_mem(ctx, tmpbuf);
+        }
+
+        case PB_WT_STRING:
+        {
+            pb_size_t size;
+            return pb_decode_varint_internal(ctx, &size, sizeof(size), PB_LTYPE_UVARINT) &&
+                   pb_read(ctx, NULL, size);
+        }
+
         case PB_WT_INVALID:
-        default: PB_RETURN_ERROR(ctx, "invalid wire_type");
+        default:
+            PB_RETURN_ERROR(ctx, "invalid wire_type");
     }
 }
 
@@ -601,7 +631,7 @@ bool checkreturn pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type)
 bool pb_decode_open_substream(pb_decode_ctx_t *ctx, pb_size_t *old_length)
 {
     uint32_t size;
-    if (!pb_decode_varint32(ctx, &size))
+    if (!pb_decode_varint_internal(ctx, &size, sizeof(uint32_t), PB_LTYPE_UVARINT))
         return false;
     
     if (ctx->bytes_left < size)
@@ -649,7 +679,7 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
 
     if (wire_type == PB_WT_STRING)
     {
-        if (!pb_decode_varint32(ctx, &length))
+        if (!pb_decode_varint_internal(ctx, &length, sizeof(uint32_t), PB_LTYPE_UVARINT))
             return false;
     }
     else if (wire_type == PB_WT_32BIT)
@@ -1038,7 +1068,7 @@ static bool checkreturn decode_basic_field(pb_decode_ctx_t *ctx, pb_field_iter_t
         case PB_LTYPE_VARINT:
         case PB_LTYPE_UVARINT:
         case PB_LTYPE_SVARINT:
-            return pb_dec_varint(ctx, field);
+            return pb_decode_varint_internal(ctx, field->pData, (uint_fast8_t)field->data_size, PB_LTYPE(field->type));
 
         case PB_LTYPE_FIXED32:
             return pb_decode_fixed32(ctx, field->pData);
@@ -2327,165 +2357,68 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_s
 bool pb_decode_bool(pb_decode_ctx_t *ctx, bool *dest)
 {
     uint32_t value;
-    if (!pb_decode_varint32(ctx, &value))
+    if (!pb_decode_varint_internal(ctx, &value, sizeof(uint32_t), PB_LTYPE_UVARINT))
         return false;
 
+    // Note: this ensures that the bool value is valid.
+    // It is undefined behavior to write value other than 0 or 1 to C bool field.
     *(bool*)dest = (value != 0);
     return true;
 }
 
 bool pb_decode_svarint(pb_decode_ctx_t *ctx, pb_int64_t *dest)
 {
-    pb_uint64_t value;
-    if (!pb_decode_varint(ctx, &value))
-        return false;
-    
-    if (value & 1)
-        *dest = (pb_int64_t)(~(value >> 1));
-    else
-        *dest = (pb_int64_t)(value >> 1);
-    
-    return true;
+    return pb_decode_varint_internal(ctx, dest, sizeof(pb_int64_t), PB_LTYPE_SVARINT);
 }
 
 bool pb_decode_fixed32(pb_decode_ctx_t *ctx, void *dest)
 {
-    union {
-        uint32_t fixed32;
-        pb_byte_t bytes[4];
-    } u = {0};
-
-    if (!pb_read(ctx, u.bytes, 4))
+#if PB_LITTLE_ENDIAN_8BIT
+    return pb_read(ctx, (pb_byte_t*)dest, 4);
+#else
+    pb_byte_t bytes[4];
+    if (!pb_read(ctx, bytes, 4))
         return false;
 
-#if PB_LITTLE_ENDIAN_8BIT
-    /* fast path - if we know that we're on little endian, assign directly */
-    *(uint32_t*)dest = u.fixed32;
-#else
-    *(uint32_t*)dest = ((uint32_t)u.bytes[0] << 0) |
-                       ((uint32_t)u.bytes[1] << 8) |
-                       ((uint32_t)u.bytes[2] << 16) |
-                       ((uint32_t)u.bytes[3] << 24);
-#endif
+    *(uint32_t*)dest = ((uint32_t)bytes[0] << 0) |
+                       ((uint32_t)bytes[1] << 8) |
+                       ((uint32_t)bytes[2] << 16) |
+                       ((uint32_t)bytes[3] << 24);
     return true;
+#endif
 }
 
 #if !PB_WITHOUT_64BIT
 bool pb_decode_fixed64(pb_decode_ctx_t *ctx, void *dest)
 {
-    union {
-        uint64_t fixed64;
-        pb_byte_t bytes[8];
-    } u = {0};
-
-    if (!pb_read(ctx, u.bytes, 8))
+#if PB_LITTLE_ENDIAN_8BIT
+    return pb_read(ctx, (pb_byte_t*)dest, 8);
+#else
+    pb_byte_t bytes[8];
+    if (!pb_read(ctx, bytes, 8))
         return false;
 
-#if PB_LITTLE_ENDIAN_8BIT
-    /* fast path - if we know that we're on little endian, assign directly */
-    *(uint64_t*)dest = u.fixed64;
-#else
-    *(uint64_t*)dest = ((uint64_t)u.bytes[0] << 0) |
-                       ((uint64_t)u.bytes[1] << 8) |
-                       ((uint64_t)u.bytes[2] << 16) |
-                       ((uint64_t)u.bytes[3] << 24) |
-                       ((uint64_t)u.bytes[4] << 32) |
-                       ((uint64_t)u.bytes[5] << 40) |
-                       ((uint64_t)u.bytes[6] << 48) |
-                       ((uint64_t)u.bytes[7] << 56);
-#endif
+    *(uint64_t*)dest = ((uint64_t)bytes[0] << 0) |
+                       ((uint64_t)bytes[1] << 8) |
+                       ((uint64_t)bytes[2] << 16) |
+                       ((uint64_t)bytes[3] << 24) |
+                       ((uint64_t)bytes[4] << 32) |
+                       ((uint64_t)bytes[5] << 40) |
+                       ((uint64_t)bytes[6] << 48) |
+                       ((uint64_t)bytes[7] << 56);
     return true;
+#endif
 }
 #endif
-
-static bool checkreturn pb_dec_varint(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
-{
-    if (PB_LTYPE(field->type) == PB_LTYPE_UVARINT)
-    {
-        pb_uint64_t value, clamped;
-        if (!pb_decode_varint(ctx, &value))
-            return false;
-
-        /* Cast to the proper field size, while checking for overflows */
-        if (field->data_size == sizeof(pb_uint64_t))
-            clamped = *(pb_uint64_t*)field->pData = value;
-        else if (field->data_size == sizeof(uint32_t))
-            clamped = *(uint32_t*)field->pData = (uint32_t)value;
-        else if (field->data_size == sizeof(uint_least16_t))
-            clamped = *(uint_least16_t*)field->pData = (uint_least16_t)value;
-        else if (field->data_size == sizeof(uint_least8_t))
-            clamped = *(uint_least8_t*)field->pData = (uint_least8_t)value;
-        else
-            PB_RETURN_ERROR(ctx, "invalid data_size");
-
-        if (clamped != value)
-            PB_RETURN_ERROR(ctx, "integer too large");
-
-        return true;
-    }
-    else
-    {
-        pb_uint64_t value;
-        pb_int64_t svalue;
-        pb_int64_t clamped;
-
-        if (PB_LTYPE(field->type) == PB_LTYPE_SVARINT)
-        {
-            if (!pb_decode_svarint(ctx, &svalue))
-                return false;
-        }
-        else
-        {
-            if (!pb_decode_varint(ctx, &value))
-                return false;
-
-            /* See issue 97: Google's C++ protobuf allows negative varint values to
-            * be cast as int32_t, instead of the int64_t that should be used when
-            * encoding. Nanopb versions before 0.2.5 had a bug in encoding. In order to
-            * not break decoding of such messages, we cast <=32 bit fields to
-            * int32_t first to get the sign correct.
-            */
-            if (field->data_size == sizeof(pb_int64_t))
-                svalue = (pb_int64_t)value;
-            else
-                svalue = (int32_t)value;
-        }
-
-        /* Cast to the proper field size, while checking for overflows */
-        if (field->data_size == sizeof(pb_int64_t))
-            clamped = *(pb_int64_t*)field->pData = svalue;
-        else if (field->data_size == sizeof(int32_t))
-            clamped = *(int32_t*)field->pData = (int32_t)svalue;
-        else if (field->data_size == sizeof(int_least16_t))
-            clamped = *(int_least16_t*)field->pData = (int_least16_t)svalue;
-        else if (field->data_size == sizeof(int_least8_t))
-            clamped = *(int_least8_t*)field->pData = (int_least8_t)svalue;
-        else
-            PB_RETURN_ERROR(ctx, "invalid data_size");
-
-        if (clamped != svalue)
-            PB_RETURN_ERROR(ctx, "integer too large");
-
-        return true;
-    }
-}
 
 static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    uint32_t size_u32;
     pb_size_t size;
     pb_byte_t *dest;
     
-    if (!pb_decode_varint32(ctx, &size_u32))
+    if (!pb_decode_varint_internal(ctx, &size, sizeof(pb_size_t), PB_LTYPE_UVARINT))
         return false;
     
-    if ((pb_size_t)(size_u32 + offsetof(pb_bytes_array_t, bytes)) < size_u32)
-    {
-        PB_RETURN_ERROR(ctx, "bytes overflow");
-    }
-    
-    size = (pb_size_t)size_u32;
-
     if (size > ctx->bytes_left)
         PB_RETURN_ERROR(ctx, "end-of-stream");
     
@@ -2506,9 +2439,10 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
     }
     else
     {
-        pb_size_t alloc_size = PB_BYTES_ARRAY_T_ALLOCSIZE(size);
-        if (alloc_size > field->data_size)
+        if (size > field->data_size - offsetof(pb_bytes_array_t, bytes))
+        {
             PB_RETURN_ERROR(ctx, "bytes overflow");
+        }
 
         pb_bytes_array_t *bytes = (pb_bytes_array_t*)field->pData;
         bytes->size = size;
@@ -2520,23 +2454,21 @@ static bool checkreturn pb_dec_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t
 
 static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    uint32_t size_u32;
     pb_size_t size;
     pb_size_t alloc_size;
     pb_byte_t *dest = (pb_byte_t*)field->pData;
 
-    if (!pb_decode_varint32(ctx, &size_u32))
+    if (!pb_decode_varint_internal(ctx, &size, sizeof(pb_size_t), PB_LTYPE_UVARINT))
         return false;
 
     // Note: this comparison also ensures that
-    // size_u32 < PB_SIZE_MAX - 1
-    // because ctx->bytes_left was decremented by at least
-    // one when the varint was read.
-    if ((pb_size_t)size_u32 > ctx->bytes_left)
+    // size <= PB_SIZE_MAX - 1 because ctx->bytes_left
+    // was decremented by at least one when the varint was read.
+    // Therefore the alloc_size calculation is safe from overflow.
+    if (size > ctx->bytes_left)
         PB_RETURN_ERROR(ctx, "end-of-stream");
 
     /* Space for null terminator */
-    size = (pb_size_t)size_u32;
     alloc_size = (pb_size_t)(size + 1);
 
     if (PB_ATYPE(field->type) == PB_ATYPE_POINTER)
@@ -2573,19 +2505,19 @@ static bool checkreturn pb_dec_string(pb_decode_ctx_t *ctx, const pb_field_iter_
 
 static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb_field_iter_t *field)
 {
-    uint32_t size_u32;
+    pb_size_t size;
 
-    if (!pb_decode_varint32(ctx, &size_u32))
+    if (!pb_decode_varint_internal(ctx, &size, sizeof(pb_size_t), PB_LTYPE_UVARINT))
         return false;
 
-    if (size_u32 == 0)
+    if (size == 0)
     {
         /* As a special case, treat empty bytes string as all zeros for fixed_length_bytes. */
         memset(field->pData, 0, (size_t)field->data_size);
         return true;
     }
 
-    if (size_u32 != field->data_size)
+    if (size != field->data_size)
         PB_RETURN_ERROR(ctx, "incorrect fixed length bytes size");
 
     return pb_read(ctx, (pb_byte_t*)field->pData, field->data_size);

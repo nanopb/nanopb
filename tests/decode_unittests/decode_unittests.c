@@ -118,133 +118,97 @@ int main()
 
     {
         pb_decode_ctx_t s;
-        COMMENT("Test pb_skip_varint");
-        TEST((S(&s,"\x00""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
-        TEST((S(&s,"\xAC\x02""foobar"), pb_skip_varint(&s) && s.bytes_left == 6))
+        COMMENT("Test pb_skip_field using PB_WT_VARINT");
+        TEST((S(&s,"\x00""foobar"), pb_skip_field(&s, PB_WT_VARINT) && s.bytes_left == 6))
+        TEST((S(&s,"\xAC\x02""foobar"), pb_skip_field(&s, PB_WT_VARINT) && s.bytes_left == 6))
         TEST((S(&s,"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01""foobar"),
-              pb_skip_varint(&s) && s.bytes_left == 6))
-        TEST((S(&s,"\xFF"), !pb_skip_varint(&s)))
+              pb_skip_field(&s, PB_WT_VARINT) && s.bytes_left == 6))
+        TEST((S(&s,"\xFF"), !pb_skip_field(&s, PB_WT_VARINT)))
     }
 
     {
         pb_decode_ctx_t s;
-        COMMENT("Test pb_skip_string")
-        TEST((S(&s,"\x00""foobar"), pb_skip_string(&s) && s.bytes_left == 6))
-        TEST((S(&s,"\x04""testfoobar"), pb_skip_string(&s) && s.bytes_left == 6))
-        TEST((S(&s,"\x04"), !pb_skip_string(&s)))
-        TEST((S(&s,"\xFF"), !pb_skip_string(&s)))
+        COMMENT("Test pb_skip_field using PB_WT_STRING")
+        TEST((S(&s,"\x00""foobar"), pb_skip_field(&s, PB_WT_STRING) && s.bytes_left == 6))
+        TEST((S(&s,"\x04""testfoobar"), pb_skip_field(&s, PB_WT_STRING) && s.bytes_left == 6))
+        TEST((S(&s,"\x04"), !pb_skip_field(&s, PB_WT_STRING)))
+        TEST((S(&s,"\xFF"), !pb_skip_field(&s, PB_WT_STRING)))
     }
 
     {
         pb_decode_ctx_t s;
         S(&s,"\x01\x00");
 
-        pb_field_iter_t f;
         uint32_t d;
 
-        f.type = PB_LTYPE_VARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint using uint32_t")
-        TEST(pb_dec_varint(&s, &f) && d == 1)
+        COMMENT("Test pb_decode_varint_internal using uint32_t")
+        TEST(pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == 1)
 
         /* Verify that no more than data_size is written. */
         d = 0xFFFFFFFF;
-        f.data_size = 1;
-        TEST(pb_dec_varint(&s, &f) && (d == 0xFFFFFF00 || d == 0x00FFFFFF))
+        TEST(pb_decode_varint_internal(&s, &d, 1, PB_LTYPE_UVARINT) && (d == 0xFFFFFF00 || d == 0x00FFFFFF))
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         int32_t d;
 
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint using sint32_t")
-        TEST((S(&s,"\x01"), pb_dec_varint(&s, &f) && d == -1))
-        TEST((S(&s,"\x02"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((S(&s,"\xfe\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == INT32_MAX))
-        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == INT32_MIN))
+        COMMENT("Test pb_decode_varint_internal using sint32_t")
+        TEST((S(&s,"\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == -1))
+        TEST((S(&s,"\x02"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == 1))
+        TEST((S(&s,"\xfe\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == INT32_MAX))
+        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == INT32_MIN))
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         int64_t d;
 
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint using sint64_t")
-        TEST((S(&s,"\x01"), pb_dec_varint(&s, &f) && d == -1))
-        TEST((S(&s,"\x02"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((S(&s,"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == INT64_MAX))
-        TEST((S(&s,"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == INT64_MIN))
+        COMMENT("Test pb_decode_varint_internal using sint64_t")
+        TEST((S(&s,"\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == -1))
+        TEST((S(&s,"\x02"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == 1))
+        TEST((S(&s,"\xFE\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == INT64_MAX))
+        TEST((S(&s,"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT) && d == INT64_MIN))
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         int32_t d;
 
-        f.type = PB_LTYPE_SVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint overflow detection using sint32_t");
-        TEST((S(&s,"\xfe\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((S(&s,"\xfe\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
-        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((S(&s,"\xff\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
+        COMMENT("Test pb_decode_varint_internal overflow detection using sint32_t");
+        TEST((S(&s,"\xfe\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT)));
+        TEST((S(&s,"\xfe\xff\xff\xff\x10"), !pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT)));
+        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT)));
+        TEST((S(&s,"\xff\xff\xff\xff\x10"), !pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_SVARINT)));
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         uint32_t d;
 
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint using uint32_t")
-        TEST((S(&s,"\x01"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((S(&s,"\x02"), pb_dec_varint(&s, &f) && d == 2))
-        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f) && d == UINT32_MAX))
+        COMMENT("Test pb_decode_varint_internal using uint32_t")
+        TEST((S(&s,"\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == 1))
+        TEST((S(&s,"\x02"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == 2))
+        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == UINT32_MAX))
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         uint64_t d;
 
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
         COMMENT("Test pb_dec_varint using uint64_t")
-        TEST((S(&s,"\x01"), pb_dec_varint(&s, &f) && d == 1))
-        TEST((S(&s,"\x02"), pb_dec_varint(&s, &f) && d == 2))
-        TEST((S(&s,"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_dec_varint(&s, &f) && d == UINT64_MAX))
+        TEST((S(&s,"\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == 1))
+        TEST((S(&s,"\x02"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == 2))
+        TEST((S(&s,"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x01"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT) && d == UINT64_MAX))
     }
 
     {
         pb_decode_ctx_t s;
-        pb_field_iter_t f;
         uint32_t d;
 
-        f.type = PB_LTYPE_UVARINT;
-        f.data_size = sizeof(d);
-        f.pData = &d;
-
-        COMMENT("Test pb_dec_varint overflow detection using uint32_t");
-        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_dec_varint(&s, &f)));
-        TEST((S(&s,"\xff\xff\xff\xff\x10"), !pb_dec_varint(&s, &f)));
+        COMMENT("Test pb_decode_varint_internal overflow detection using uint32_t");
+        TEST((S(&s,"\xff\xff\xff\xff\x0f"), pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT)));
+        TEST((S(&s,"\xff\xff\xff\xff\x10"), !pb_decode_varint_internal(&s, &d, sizeof(d), PB_LTYPE_UVARINT)));
     }
 
     {
