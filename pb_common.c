@@ -5,6 +5,43 @@
 
 #include "pb_common.h"
 
+// The order of the pb_ltype_to_wire_type_map array must match PB_LTYPE definition.
+PB_STATIC_ASSERT( \
+    PB_LTYPE_BOOL               == 0 && \
+    PB_LTYPE_VARINT             == 1 && \
+    PB_LTYPE_UVARINT            == 2 && \
+    PB_LTYPE_SVARINT            == 3 && \
+    PB_LTYPE_FIXED32            == 4 && \
+    PB_LTYPE_FIXED64            == 5 && \
+    PB_LTYPE_BYTES              == 6 && \
+    PB_LTYPE_STRING             == 7 && \
+    PB_LTYPE_SUBMESSAGE         == 8 && \
+    PB_LTYPE_SUBMSG_W_CB        == 9  && \
+    PB_LTYPE_EXTENSION          == 10 && \
+    PB_LTYPE_FIXED_LENGTH_BYTES == 11, \
+    PB_LTYPE_ARRAY_WRONG_ORDER
+)
+
+const pb_byte_t pb_ltype_to_wire_type_map[PB_LTYPE_MASK + 1] =
+{
+    /* PB_LTYPE_BOOL               */ (pb_byte_t)PB_WT_VARINT,
+    /* PB_LTYPE_VARINT             */ (pb_byte_t)PB_WT_VARINT,
+    /* PB_LTYPE_UVARINT            */ (pb_byte_t)PB_WT_VARINT,
+    /* PB_LTYPE_SVARINT            */ (pb_byte_t)PB_WT_VARINT,
+    /* PB_LTYPE_FIXED32            */ (pb_byte_t)PB_WT_32BIT,
+    /* PB_LTYPE_FIXED64            */ (pb_byte_t)PB_WT_64BIT,
+    /* PB_LTYPE_BYTES              */ (pb_byte_t)PB_WT_STRING,
+    /* PB_LTYPE_STRING             */ (pb_byte_t)PB_WT_STRING,
+    /* PB_LTYPE_SUBMESSAGE         */ (pb_byte_t)PB_WT_STRING,
+    /* PB_LTYPE_SUBMSG_W_CB        */ (pb_byte_t)PB_WT_STRING,
+    /* PB_LTYPE_EXTENSION          */ (pb_byte_t)PB_WT_INVALID,
+    /* PB_LTYPE_FIXED_LENGTH_BYTES */ (pb_byte_t)PB_WT_STRING,
+    (pb_byte_t)PB_WT_INVALID,
+    (pb_byte_t)PB_WT_INVALID,
+    (pb_byte_t)PB_WT_INVALID,
+    (pb_byte_t)PB_WT_INVALID,
+};
+
 // Get the pointer to start of data, based on if the field is a pointer
 static inline void* field_data_base_ptr(const pb_field_iter_t *iter)
 {
