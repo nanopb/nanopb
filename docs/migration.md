@@ -44,6 +44,25 @@ were given varying `stream` pointers when substreams were processed.
 For initializing `pb_decode_ctx_t` and `pb_encode_ctx_t`, use the new function such as
 `pb_init_encode_ctx_for_callback()`.
 
+### Stream callback function signature changed
+
+**Rationale:** Previously input stream callback only reported success/failure, and the
+reporting of end-of-stream condition was complicated. Now input stream callback returns
+the number of bytes successfully read, which simplifies EOF handling. For output
+stream callbacks the only difference is used of `pb_size_t` instead of `size_t` in argument.
+
+**Required actions:** Update any custom input stream callbacks to follow the specification
+given in `pb_decode.h` comments.
+
+### Built-in support for null-terminated streams is removed
+
+**Rationale:** Previously nanopb implemented an option to terminate decoding on a null byte.
+This is a non-standard feature which does not exist in other protobuf libraries.
+Retaining it in the core would expand size for a fairly rarely used feature.
+
+**Required actions:** Null-terminated streams can now be handled using a custom stream
+callback. TODO: provide example.
+
 ### All features are enabled by default
 
 **Rationale:** Previously some features were disabled with `PB_NO_xxxx` macro,

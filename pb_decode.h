@@ -19,17 +19,24 @@ extern "C" {
  * 
  * The callback must conform to these rules:
  *
- * 1. Return false on IO errors. This will cause decoding to abort.
+ * 1. The callback should read up to 'count' bytes into 'buf'.
+ *    Value of 'count' is always smaller than PB_SIZE_MAX and
+ *    at most ctx->bytes_left.
  *
- * 2. You can use stream_callback_state to store your own data.
+ * 2. On EOF, return the actual number of bytes successfully read.
+ *    Any value less than 'count' is regarded as EOF condition.
+ *
+ * 3. On errors, return PB_READ_ERROR. This will cause decoding to abort.
+ *
+ * 4. You can use stream_callback_state to store your own data.
  *    Alternatively you can wrap pb_decode_ctx_t to extend it with
  *    your own fields.
  *
- * 3. During submessage decoding, bytes_left is set to smaller value
+ * 5. During submessage decoding, bytes_left is set to smaller value
  *    than the main stream. Don't use bytes_left to compute any pointers.
  *    The ctx pointer remains the same even for substreams.
  */
-typedef bool (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, size_t count);
+typedef pb_size_t (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count);
 #endif
 
 #if !PB_NO_CONTEXT_FIELD_CALLBACK
@@ -68,10 +75,6 @@ typedef uint16_t pb_decode_ctx_flags_t;
 // PB_DECODE_CTX_FLAG_DELIMITED: Read varint length prefix before message.
 // Corresponds to parseDelimitedFrom() in Google's protobuf API.
 #define PB_DECODE_CTX_FLAG_DELIMITED         (pb_decode_ctx_flags_t)(1 << 1)
-
-// PB_DECODE_CTX_FLAG_NULLTERMINATED: Terminate decoding on zero tag number.
-// NOTE: This behavior is not supported in most other protobuf implementations.
-#define PB_DECODE_CTX_FLAG_NULLTERMINATED    (pb_decode_ctx_flags_t)(1 << 2)
 
 // PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8: Disable UTF8 validation of strings.
 // Can also be applied globally with PB_NO_VALIDATE_UTF8 define.
@@ -123,8 +126,8 @@ struct pb_decode_ctx_s
     pb_decode_ctx_read_callback_t stream_callback;
     void *stream_callback_state;
 
-    // Pointer to the beginning of the memory buffer usable as cache
-    // Bytes are stored aligned to the end of the buffer.
+    // Pointer to the beginning of the optional memory buffer usable
+    // as cache. Bytes are stored aligned to the end of the buffer.
     pb_byte_t *buffer;
 
     // Total size of the cache buffer
@@ -211,15 +214,23 @@ void pb_init_decode_ctx_for_buffer(pb_decode_ctx_t *ctx, const pb_byte_t *buf, p
 #if !PB_NO_STREAM_CALLBACK
 /* Create encode context for a stream with a callback function.
  * State is a free pointer for use by the callback.
- * A memory buffer can optionally be provided for caching.
+ *
+ * max_msglen can be the actual length of the message, or an upper limit.
+ * The callback function can indicate EOF before max_msglen is exhausted.
+ *
+ * Note: if max_msglen is given as PB_SIZE_MAX, this function clamps
+ * it to PB_SIZE_MAX-1, as the highest value is used for error indicator
+ * in the stream callback.
  */
 void pb_init_decode_ctx_for_callback(pb_decode_ctx_t *ctx,
     pb_decode_ctx_read_callback_t stream_callback, void *stream_callback_state,
-    pb_size_t msglen, pb_byte_t *buf, pb_size_t bufsize);
+    pb_size_t max_msglen, pb_byte_t *buf, pb_size_t bufsize);
 #endif
 
-/* Function to read from the stream associated with decode context. You can use this if you need to
- * read some custom header data, or to read data in field callbacks.
+/* Function to read from the stream associated with decode context.
+ * You can use this if you need to read some custom header data, or to
+ * read data in field callbacks. It returns true when 'count' bytes were
+ * successfully read, and false on errors or EOF.
  */
 bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count);
 
@@ -354,13 +365,6 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
  *                           Corresponds to parseDelimitedFrom() in Google's
  *                           protobuf API.
  *
- * PB_DECODE_NULLTERMINATED: Stop reading when field tag is read as 0. This allows
- *                           reading null terminated messages.
- *                           NOTE: Until nanopb-0.4.0, pb_decode() also allows
- *                           null-termination. This behaviour is not supported in
- *                           most other protobuf implementations, so PB_DECODE_DELIMITED
- *                           is a better option for compatibility.
- *
  * Multiple flags can be combined with bitwise or (| operator)
  */
 static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
@@ -374,7 +378,6 @@ static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields
 }
 #define PB_DECODE_NOINIT          PB_DECODE_CTX_FLAG_NOINIT
 #define PB_DECODE_DELIMITED       PB_DECODE_CTX_FLAG_DELIMITED
-#define PB_DECODE_NULLTERMINATED  PB_DECODE_CTX_FLAG_NULLTERMINATED
 
 #undef pb_release
 /* Compatibility macro for old prototype of pb_release() that didn't take context argument.
@@ -392,7 +395,6 @@ static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields
 #define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)
 #define pb_decode_delimited(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED)
 #define pb_decode_delimited_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_DELIMITED | PB_DECODE_NOINIT)
-#define pb_decode_nullterminated(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NULLTERMINATED)
 
 #endif /* PB_API_VERSION */
 

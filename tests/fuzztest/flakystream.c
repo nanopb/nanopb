@@ -3,23 +3,24 @@
 
 #if !PB_NO_STREAM_CALLBACK
 
-bool flakystream_callback(pb_decode_ctx_t *stream, pb_byte_t *buf, size_t count)
+pb_size_t flakystream_callback(pb_decode_ctx_t *stream, pb_byte_t *buf, pb_size_t count)
 {
     flakystream_t *state = (flakystream_t*)stream;
 
     if (state->position + count > state->msglen)
     {
-        stream->bytes_left = 0;
-        return false;
+        count = state->msglen - state->position;
     }
-    else if (state->position + count > state->fail_after)
+
+    if (state->position + count > state->fail_after)
     {
-        PB_RETURN_ERROR(stream, "flaky error");
+        PB_SET_ERROR(stream, "flaky error");
+        return PB_READ_ERROR;
     }
 
     memcpy(buf, state->buffer + state->position, count);
     state->position += count;
-    return true;
+    return count;
 }
 
 void flakystream_init(flakystream_t *stream, const uint8_t *buffer,

@@ -15,11 +15,11 @@ typedef struct
     size_t fail_after;
 } faulty_stream_t;
 
-bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
+pb_size_t read_callback(pb_decode_ctx_t *stream, uint8_t *buf, pb_size_t count)
 {
     faulty_stream_t *state = stream->stream_callback_state;
     
-    while (count--)
+    for (pb_size_t i = 0; i < count; i++)
     {
         if (state->fail_after == 0)
             PB_RETURN_ERROR(stream, "simulated");
@@ -27,9 +27,9 @@ bool read_callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
         *buf++ = *state->buffer++;
     }
     
-    return true;
+    return count;
 }
-bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count)
+bool write_callback(pb_encode_ctx_t *stream, const uint8_t *buf, pb_size_t count)
 {
     faulty_stream_t *state = stream->stream_callback_state;
     

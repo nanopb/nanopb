@@ -19,15 +19,18 @@ extern "C" {
  *
  * The callback must conform to these rules:
  *
- * 1. Return false on IO errors. This will cause encoding to abort.
+ * 1. The callback should write exactly 'count' bytes from 'buf'.
+ *    Value of 'count' is at most ctx->max_size - ctx->bytes_written.
  *
- * 2. You can use stream_callback_state to store your own data.
+ * 2. Return false on IO errors. This will cause encoding to abort.
+ *
+ * 3. You can use stream_callback_state to store your own data.
  *    Alternatively you can wrap pb_encode_ctx_t to extend it with
  *    your own fields.
  *
- * 3. pb_write will update bytes_written after your callback runs.
+ * 4. pb_write will update bytes_written after your callback runs.
  */
-typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_byte_t *buf, size_t count);
+typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t count);
 #endif
 
 #if !PB_NO_CONTEXT_FIELD_CALLBACK
@@ -72,10 +75,6 @@ typedef uint16_t pb_encode_ctx_flags_t;
 // PB_ENCODE_CTX_FLAG_DELIMITED: Write data length as varint before the main message.
 // Corresponds to writeDelimitedTo() in Google's protobuf API.
 #define PB_ENCODE_CTX_FLAG_DELIMITED         (pb_encode_ctx_flags_t)(1 << 1)
-
-// PB_ENCODE_CTX_FLAG_NULLTERMINATED: Append a null byte after the message for termination.
-// NOTE: This behavior is not supported in most other protobuf implementations.
-#define PB_ENCODE_CTX_FLAG_NULLTERMINATED    (pb_encode_ctx_flags_t)(1 << 2)
 
 // PB_ENCODE_CTX_FLAG_ONEPASS_SIZING: Write output data normally, but if
 // callback would get invoked, switch to SIZING mode instead. Has no effect
@@ -294,20 +293,14 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
 #define PB_OSTREAM_SIZING {PB_ENCODE_CTX_FLAG_SIZING, 0, 0, NULL, NULL}
 
-/* Extended version of pb_encode, with several options to control the
+/* Extended version of pb_encode, with options to control the
  * encoding process:
  *
  * PB_ENCODE_DELIMITED:      Prepend the length of message as a varint.
  *                           Corresponds to writeDelimitedTo() in Google's
  *                           protobuf API.
- *
- * PB_ENCODE_NULLTERMINATED: Append a null byte to the message for termination.
- *                           NOTE: This behaviour is not supported in most other
- *                           protobuf implementations, so PB_ENCODE_DELIMITED
- *                           is a better option for compatibility.
  */
 #define PB_ENCODE_DELIMITED       PB_ENCODE_CTX_FLAG_DELIMITED
-#define PB_ENCODE_NULLTERMINATED  PB_ENCODE_CTX_FLAG_NULLTERMINATED
 static inline bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
     const void *src_struct, pb_encode_ctx_flags_t flags)
 {
@@ -320,7 +313,6 @@ static inline bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define pb_encode_delimited(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_DELIMITED)
-#define pb_encode_nullterminated(s,f,d) pb_encode_ex(s,f,d, PB_ENCODE_NULLTERMINATED)
 
 #endif /* PB_API_VERSION */
 
