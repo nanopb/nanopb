@@ -3,7 +3,8 @@
 
 #include <pb.h>
 
-pb_encode_ctx_t pb_ostream_from_socket(int fd);
-pb_decode_ctx_t pb_istream_from_socket(int fd);
+void init_pb_encode_ctx_for_socket(pb_encode_ctx_t *ctx, int fd, pb_byte_t *tmpbuf, pb_size_t bufsize);
+void init_pb_decode_ctx_for_socket(pb_decode_ctx_t *ctx, int fd, pb_size_t max_msglen,
+                                   pb_byte_t *tmpbuf, pb_size_t bufsize);
 
 #endif

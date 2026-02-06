@@ -23,14 +23,16 @@
 #include "fileproto.pb.h"
 #include "common.h"
 
+/* Safety limit for response length */
+#define MAX_RESPONSE_LEN 32768
+
 /* This callback function will be called once for each filename received
  * from the server. The filenames will be printed out immediately, so that
  * no memory has to be allocated for them.
  */
-bool ListFilesResponse_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
+bool print_file_list_callback(pb_decode_ctx_t *istream, const pb_field_iter_t *field)
 {
-    PB_UNUSED(ostream);
-    if (istream != NULL && field->tag == ListFilesResponse_file_tag)
+    if (field->descriptor == &ListFilesResponse_msg && field->tag == ListFilesResponse_file_tag)
     {
         FileInfo fileinfo = {};
 
@@ -52,7 +54,9 @@ bool listdir(int fd, char *path)
     /* Construct and send the request to server */
     {
         ListFilesRequest request = {};
-        pb_encode_ctx_t output = pb_ostream_from_socket(fd);
+        pb_encode_ctx_t output;
+        pb_byte_t tmpbuf[16];
+        init_pb_encode_ctx_for_socket(&output, fd, tmpbuf, sizeof(tmpbuf));
         
         /* In our protocol, path is optional. If it is not given,
          * the server will list the root directory. */
@@ -85,8 +89,11 @@ bool listdir(int fd, char *path)
     /* Read back the response from server */
     {
         ListFilesResponse response = {};
-        pb_decode_ctx_t input = pb_istream_from_socket(fd);
-        
+        pb_decode_ctx_t input;
+        pb_byte_t tmpbuf[16];
+        init_pb_decode_ctx_for_socket(&input, fd, MAX_RESPONSE_LEN, tmpbuf, sizeof(tmpbuf));
+        input.field_callback = print_file_list_callback;
+
         input.flags |= PB_DECODE_CTX_FLAG_DELIMITED;
         if (!pb_decode(&input, ListFilesResponse_fields, &response))
         {
