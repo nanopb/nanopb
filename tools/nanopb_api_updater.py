@@ -208,6 +208,8 @@ TSRule('''(
     ) @node
     (#eq? @type "pb_decode_ctx_t")
     )''',
+    '#error FIXME: nanopb_api_updater.py is not capable of doing this change automatically:\n' +
+    '// - stream callback must be updated to return pb_size_t.\n' +
     'pb_decode_ctx_t {var};\n' +
     'pb_init_decode_ctx_for_callback(&{var}, {func}, {state}, {size}, NULL, 0);'
 ),
@@ -227,6 +229,14 @@ TSRule('''(
     'pb_encode_ctx_t {var};\n' +
     'pb_init_encode_ctx_for_callback(&{var}, {func}, {state}, {size}, NULL, 0);'
 ),
+
+# Access to stream->state in stream callbacks (new name stream_callback_state)
+RERule(r'(?P<prefix>bool \w+\s*\(\s*pb_encode_ctx_t\s*\*\s*(?P<ctx>\w+),[^}]*(?P=ctx)->)state',
+       r'\g<prefix>stream_callback_state', re.MULTILINE | re.DOTALL),
+
+# Same for decode
+RERule(r'(?P<prefix>\(\s*pb_decode_ctx_t\s*\*\s*(?P<ctx>\w+),[^}]*(?P=ctx)->)state',
+       r'\g<prefix>stream_callback_state', re.MULTILINE | re.DOTALL),
 
 # SIZE_MAX to PB_SIZE_MAX in pb_init_decode_ctx_for_callback()
 TSRule('''(
