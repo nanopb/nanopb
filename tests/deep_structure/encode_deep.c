@@ -35,6 +35,7 @@ int main(int argc, const char **argv)
     {
         if (mode == 0)
         {
+            SET_BINARY_MODE(stdout);
             fwrite(buffer, stream.bytes_written, 1, stdout);
         }
 

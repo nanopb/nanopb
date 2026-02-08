@@ -2,6 +2,8 @@
 
 Import('env')
 
+env.SkipTestIfFlag('PB_NO_STRUCT_FIELD_CALLBACK')
+
 env.NanopbProto('oneof')
 
 enc = env.Program(['encode_oneof.c',
