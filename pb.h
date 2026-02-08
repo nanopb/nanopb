@@ -846,13 +846,18 @@ struct pb_bytes_s {
  * The callback can be null if you want to skip a field.
  */
 struct pb_callback_s {
-#if !PB_NO_STRUCT_FIELD_CALLBACK
+#if !PB_NO_FUNCTION_POINTERS
     /* Callback functions receive a pointer to the arg field.
      * You can access the value of the field as *arg, and modify it if needed.
      */
     union {
         bool (*decode)(pb_decode_ctx_t *ctx, const pb_field_t *field, void **arg);
         bool (*encode)(pb_encode_ctx_t *ctx, const pb_field_t *field, void * const *arg);
+    } funcs;
+#else
+    union {
+        void *decode;
+        void *encode;
     } funcs;
 #endif
 
