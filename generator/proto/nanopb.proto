@@ -172,10 +172,9 @@ message NanoPBOptions {
   // optional/required/repeated.
   optional google.protobuf.FieldDescriptorProto.Label label_override = 31;
 
-  // Due to historical reasons, nanopb orders fields in structs by their tag number
-  // instead of the order in .proto. Set this to false to keep the .proto order.
-  // The default value will probably change to false in nanopb-0.5.0.
-  optional bool sort_by_tag = 28 [default = true];
+  // Before nanopb-1.0, fields were sorted by tag number instead of their order in .proto file.
+  // This option can be set to true to restore the old behavior.
+  optional bool sort_by_tag = 28 [default = false];
 
   // Set the FT_DEFAULT field conversion strategy.
   // A field that can become a static member of a c struct (e.g. int, bool, etc)
