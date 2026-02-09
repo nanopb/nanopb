@@ -1516,9 +1516,9 @@ class Message(ProtoElement):
                 count += 1
         return count
 
-    def get_flags(self, dependencies, ancestors = None):
+    def get_flags(self, dependencies, ancestors = ()):
         '''Get PB_MSGFLAGs for this message and submessages.'''
-        if not ancestors: ancestors = set()
+        ancestors = set(ancestors)
         ancestors.add(self)
         flags = set()
 
@@ -1708,6 +1708,25 @@ class Message(ProtoElement):
             return int(nanopb_pb2.DS_SMALL)
         else:
             return int(nanopb_pb2.DS_LARGE)
+
+    def nesting_depth(self, dependencies, ancestors = ()):
+        '''Return depth of the message hierarchy, up to first cyclic
+        point. For example A->B->C->A has depth of 3.'''
+        ancestors = set(ancestors)
+        ancestors.add(self)
+
+        depth = 1
+        for f in self.fields:
+            if f.pbtype in ['MESSAGE', 'MSG_W_CB']:
+                submsg = dependencies.get(str(f.submsgname))
+                if submsg in ancestors:
+                    pass
+                elif submsg:
+                    depth = max(depth, submsg.nesting_depth(dependencies, ancestors) + 1)
+                else:
+                    # Assume the unknown submessage doesn't have submessages
+                    depth = max(depth, 2)
+        return depth
 
     def data_size(self, dependencies):
         '''Return approximate sizeof(struct) in the compiled code.'''
@@ -2386,19 +2405,18 @@ class ProtoFile:
         yield '#endif\n'
         yield '\n'
 
-        # Check if any messages exceed the 64 kB limit of 16-bit pb_size_t
-        exceeds_64kB = []
+        # Check if any messages require the larger descriptor format
+        # This check has to be before PB_BIND() to avoid excessive error messages about the same thing
+        needs_largedesc = []
         for msg in self.messages:
-            size = msg.data_size(self.dependencies)
-            if size >= 65536:
-                exceeds_64kB.append(str(msg.name))
+            if msg.required_descriptor_width(self.dependencies) > int(nanopb_pb2.DS_SMALL):
+                needs_largedesc.append(str(msg.name))
 
-        if exceeds_64kB:
-            yield '\n/* The following messages exceed 64kB in size: ' + ', '.join(exceeds_64kB) + ' */\n'
-            yield '\n/* The PB_FIELD_32BIT compilation option must be defined to support messages that exceed 64 kB in size. */\n'
-            yield '#ifndef PB_FIELD_32BIT\n'
-            yield '#error Enable PB_FIELD_32BIT to support messages exceeding 64kB in size: ' + ', '.join(exceeds_64kB) + '\n'
-            yield '#endif\n'
+        if needs_largedesc:
+            yield '\n/* The PB_NO_LARGEMSG setting limits message sizes and tags to max 4095. */\n'
+            yield '#if PB_NO_LARGEMSG\n'
+            yield '#error These messages are too large for PB_NO_LARGEMSG: ' + ', '.join(needs_largedesc) + '\n'
+            yield '#endif\n\n'
 
         # Generate the message field definitions (PB_BIND() call)
         for msg in self.messages:
@@ -2427,6 +2445,14 @@ class ProtoFile:
                 yield '       setting PB_MAX_REQUIRED_FIELDS to %d or more.\n' % largest_count
                 yield '#endif\n'
 
+            largest_depth_msg = max(self.messages, key = lambda m: m.nesting_depth(self.dependencies))
+            largest_depth = largest_depth_msg.nesting_depth(self.dependencies)
+            if largest_depth > 1:
+                yield '\n/* Check for nesting depth when recursion is disabled. */\n'
+                yield '#if (PB_MESSAGE_NESTING < %d && PB_NO_RECURSION)\n' % largest_depth
+                yield '#error Processing %s without recursion requires PB_MESSAGE_NESTING >= %d\n' % (largest_depth_msg.name, largest_depth)
+                yield "#endif\n"
+
         # Add check for sizeof(double)
         has_double = False
         for msg in self.messages:
@@ -2438,7 +2464,7 @@ class ProtoFile:
             yield '\n'
             yield '#ifndef PB_CONVERT_DOUBLE_FLOAT\n'
             yield '/* On some platforms (such as AVR), double is really float.\n'
-            yield ' * To be able to encode/decode double on these platforms, you need.\n'
+            yield ' * To be able to encode/decode double on these platforms, you need\n'
             yield ' * to define PB_CONVERT_DOUBLE_FLOAT in pb.h or compiler command line.\n'
             yield ' */\n'
             yield 'PB_STATIC_ASSERT(sizeof(double) == 8, DOUBLE_MUST_BE_8_BYTES)\n'
