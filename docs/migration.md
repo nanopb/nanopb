@@ -81,6 +81,18 @@ or `PB_NO_VALIDATE_UTF8` to `1` if preferred. If user code uses `#ifdef` on
 the `PB_` feature defines, convert it to `#if`. The `nanopb_api_updater.py`
 script can perform this automatically in most cases.
 
+### Fields keep their .proto file order by default
+
+**Rationale:** For technical reasons, nanopb-0.3.x and earlier required fields
+to be sorted by their tag number in the generated C struct. Nanopb-0.4.x allowed
+using the definition order from .proto file, but kept the old default sorting.
+
+**Changes:** Default value of generator setting `sort_by_tag` is now `false`.
+Fields in generated C structure are in the order they are listed in the `.proto` file.
+
+**Required actions:** If custom initializers or other code relies on the order
+of fields, the option `sort_by_tag = true` can be used to restore old behavior.
+
 ### Remove custom extension field callback support
 
 **Rationale:** Previously extension fields used extra `pb_extension_type_t`
