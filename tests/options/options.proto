@@ -150,3 +150,13 @@ message CompileTimeSizeMessage
     repeated int32 cts_intarray = 1;
     optional string cts_string = 2;
 }
+
+// Bool has_ fields sorted to beginning of message.
+message BoolsInBeginningMessage
+{
+    option (nanopb_msgopt).sort_has_beginning = true;
+    required Enum1 reqfield1 = 1;
+    optional string optfield2 = 2 [(nanopb).default_has = true];
+    required int32 reqfield3 = 3;
+    optional int32 optfield4 = 4;
+}

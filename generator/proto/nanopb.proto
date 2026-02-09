@@ -176,6 +176,10 @@ message NanoPBOptions {
   // This option can be set to true to restore the old behavior.
   optional bool sort_by_tag = 28 [default = false];
 
+  // Order all has_ fields in the beginning of the structure.
+  // This can decrease the structure size because of reduced amount of padding.
+  optional bool sort_has_beginning = 39 [default = false];
+
   // Set the FT_DEFAULT field conversion strategy.
   // A field that can become a static member of a c struct (e.g. int, bool, etc)
   // will be a a static field.

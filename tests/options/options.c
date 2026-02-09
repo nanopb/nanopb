@@ -24,5 +24,13 @@ int main()
         TEST(msg2.has_normal == false);
     }
 
+    {
+        BoolsInBeginningMessage msg1 = BoolsInBeginningMessage_init_default;
+        BoolsInBeginningMessage msg2 = BoolsInBeginningMessage_init_zero;
+        TEST(msg1.has_optfield2 == true);
+        TEST(msg2.has_optfield2 == false);
+        TEST(offsetof(BoolsInBeginningMessage, has_optfield2) < offsetof(BoolsInBeginningMessage, reqfield1));
+    }
+
     return status;
 }

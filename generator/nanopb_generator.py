@@ -594,6 +594,7 @@ class Field(ProtoElement):
         self.callback_datatype = field_options.callback_datatype
         self.math_include_required = False
         self.sort_by_tag = field_options.sort_by_tag
+        self.sort_has_beginning = field_options.sort_has_beginning
         self.submsg_callback_requested = False
         self.can_be_static = True
         self.default_max_size = field_options.default_max_size
@@ -813,7 +814,8 @@ class Field(ProtoElement):
                 result += '    pb_callback_t cb_' + var_name + ';\n'
 
             if self.rules == 'OPTIONAL':
-                result += '    bool has_' + var_name + ';\n'
+                if not self.sort_has_beginning:
+                    result += '    bool has_' + var_name + ';\n'
             elif self.rules == 'REPEATED':
                 result += '    pb_size_t ' + var_name + '_count;\n'
 
@@ -824,6 +826,13 @@ class Field(ProtoElement):
         if trailing_comment: result = result + " " + trailing_comment
 
         return result
+
+    def has_beginning(self):
+        '''Return has_ field definition if it should go at beginning of the struct.'''
+        if self.sort_has_beginning and self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+            return '    bool has_' + Globals.naming_style.var_name(self.name) + ';\n'
+        else:
+            return ''
 
     def types(self):
         '''Return definitions for any special types this field might need.'''
@@ -876,11 +885,21 @@ class Field(ProtoElement):
         # No default value for field
         return False
 
-    def get_initializer(self, null_init, inner_init_only = False):
+    def get_initializer(self, null_init, inner_init_only = False, beginning_init = False):
         '''Return literal expression for this field's default value.
         null_init: If True, initialize to a 0 value instead of default from .proto
         inner_init_only: If True, exclude initialization for any count/has fields
+        beginning_init: If True, return any has_ fields that have been moved to the beginning of struct
         '''
+
+        if beginning_init:
+            if self.sort_has_beginning and self.rules == 'OPTIONAL' and self.allocation == 'STATIC':
+                if null_init or not self.default_has:
+                    return 'false'
+                else:
+                    return 'true'
+            else:
+                return None
 
         inner_init = None
         if self.initializer is not None:
@@ -956,7 +975,9 @@ class Field(ProtoElement):
                 else:
                     outer_init = '0, {' + inner_init + '}'
             elif self.rules == 'OPTIONAL':
-                if null_init or not self.default_has:
+                if self.sort_has_beginning:
+                    outer_init = inner_init
+                elif null_init or not self.default_has:
                     outer_init = 'false, ' + inner_init
                 else:
                     outer_init = 'true, ' + inner_init
@@ -1190,6 +1211,7 @@ class ExtensionRange(Field):
         self.max_count = 0
         self.data_item_size = 0
         self.fixed_count = False
+        self.sort_has_beginning = False
         self.callback_datatype = 'pb_extension_t*'
         self.initializer = None
 
@@ -1280,6 +1302,7 @@ class OneOf(Field):
         self.rules = 'ONEOF'
         self.anonymous = oneof_options.anonymous_oneof
         self.sort_by_tag = oneof_options.sort_by_tag
+        self.sort_has_beginning = False
         self.has_msg_cb = False
 
     def add_field(self, field):
@@ -1331,8 +1354,10 @@ class OneOf(Field):
             deps += f.get_dependencies()
         return deps
 
-    def get_initializer(self, null_init):
-        if self.has_msg_cb:
+    def get_initializer(self, null_init, beginning_init = False):
+        if beginning_init:
+            return ''
+        elif self.has_msg_cb:
             return '{{NULL}, NULL}, 0, {' + self.fields[0].get_initializer(null_init) + '}'
         else:
             return '0, {' + self.fields[0].get_initializer(null_init) + '}'
@@ -1501,6 +1526,7 @@ class Message(ProtoElement):
             # Therefore add a dummy field if an empty message occurs.
             result += '    char dummy_field;'
 
+        result += ''.join([f.has_beginning() for f in self.fields])
         result += '\n'.join([str(f) for f in self.fields])
 
         if Globals.protoc_insertion_points:
@@ -1526,10 +1552,13 @@ class Message(ProtoElement):
         if not self.fields:
             return '{0}'
 
-        parts = []
+        parts1 = []
+        parts2 = []
         for field in self.fields:
-            parts.append(field.get_initializer(null_init))
-        return '{' + ', '.join(parts) + '}'
+            beginning = field.get_initializer(null_init, beginning_init = True)
+            if beginning: parts1.append(beginning)
+            parts2.append(field.get_initializer(null_init))
+        return '{' + ', '.join(parts1 + parts2) + '}'
 
     def count_required_fields(self):
         '''Returns number of required fields inside this message'''
