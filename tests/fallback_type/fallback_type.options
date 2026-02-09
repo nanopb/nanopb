@@ -1,1 +1,2 @@
 Message1.member2 fallback_type:FT_POINTER
+Message1.member3 fallback_type:FT_CALLBACK

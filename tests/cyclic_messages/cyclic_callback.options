@@ -4,3 +4,5 @@ TreeNode.right              type:FT_CALLBACK
 KeyValuePair.key            max_size:8
 KeyValuePair.stringValue    max_size:8
 KeyValuePair.treeValue      type:FT_CALLBACK
+
+Dictionary.dictItem         type:FT_CALLBACK

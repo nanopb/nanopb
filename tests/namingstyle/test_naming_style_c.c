@@ -25,11 +25,17 @@ int main()
     message.my_enum1 = MY_ENUM1_ENUM_THIRD;
     message.my_enum2 = MY_ENUM2_ENUM2_ENTRY;
     message.my_enum3 = MY_ENUM2_ENUM2_ENTRY;
-    message.my_enum4.arg = NULL;
+
+    message.my_enum4_count = 1;
+    message.my_enum4[0] = MY_ENUM2_ENUM2_ENTRY;
 
     message.string_values1 = NULL;
     message.string_values2[0][0] = 'a';
-    message.optional_string.arg = NULL;
+
+    message.has_optional_string = true;
+    strcpy(message.optional_string, "abc");
+    TEST(sizeof(message.optional_string) == MAIN_MESSAGE_OPTIONAL_STRING_MAX_SIZE);
+
     message.required_string[0] = 'a';
 
     message.repeated_fixed32[0] = 1;

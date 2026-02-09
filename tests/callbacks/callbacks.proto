@@ -1,5 +1,8 @@
 syntax = "proto2";
 
+import "nanopb.proto";
+option (nanopb_fileopt).fallback_type = FT_CALLBACK;
+
 message SubMessage {
     optional string stringvalue = 1;
     repeated int32 int32value = 2;
