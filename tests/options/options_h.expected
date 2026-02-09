@@ -24,4 +24,5 @@ uint32_t overridden
 ! discarded_deprecatedfield
 kept_deprecatedfield
 ! deprecatedmessagefield
-
+#define CompileTimeSizeMessage_cts_intarray_max_count
+#define CompileTimeSizeMessage_cts_string_max_size

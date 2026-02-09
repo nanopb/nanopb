@@ -596,6 +596,8 @@ class Field(ProtoElement):
         self.sort_by_tag = field_options.sort_by_tag
         self.submsg_callback_requested = False
         self.can_be_static = True
+        self.default_max_size = field_options.default_max_size
+        self.default_max_count = field_options.default_max_count
 
         if field_options.type == nanopb_pb2.FT_INLINE:
             # Before nanopb-0.3.8, fixed length bytes arrays were specified
@@ -605,7 +607,7 @@ class Field(ProtoElement):
             field_options.fixed_length = True
 
         # Parse field options
-        if field_options.HasField("max_size"):
+        if field_options.HasField("max_size") and field_options.max_size > 0:
             self.max_size = field_options.max_size
 
         if field_options.HasField("initializer"):
@@ -615,11 +617,11 @@ class Field(ProtoElement):
 
         self.default_has = field_options.default_has
 
-        if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length"):
+        if desc.type == FieldD.TYPE_STRING and field_options.HasField("max_length") and field_options.max_length > 0:
             # max_length overrides max_size for strings
             self.max_size = field_options.max_length + 1
 
-        if field_options.HasField("max_count"):
+        if field_options.HasField("max_count") and field_options.max_count > 0:
             self.max_count = field_options.max_count
 
         if desc.HasField('default_value'):
@@ -665,6 +667,14 @@ class Field(ProtoElement):
         if desc.type == FieldD.TYPE_BYTES and self.max_size is None:
             self.can_be_static = False
 
+        # Previously fallback_type was FT_CALLBACK, but in 1.0 it was
+        # changed to FT_STATIC with compile-time defines. To simplify
+        # code compatibility, assume FT_CALLBACK when any callback option
+        # is given.
+        has_callback_opt = (field_options.HasField('callback_datatype') or field_options.HasField('callback_function'))
+        if not field_options.HasField('fallback_type') and has_callback_opt:
+            field_options.fallback_type = nanopb_pb2.FT_CALLBACK
+
         # Decide how the field data will be allocated
         if field_options.type == nanopb_pb2.FT_DEFAULT:
             if self.can_be_static:
@@ -673,8 +683,16 @@ class Field(ProtoElement):
                 field_options.type = field_options.fallback_type
 
         if field_options.type == nanopb_pb2.FT_STATIC and not self.can_be_static:
-            raise Exception("Field '%s' is defined as static, but max_size or "
-                            "max_count is not given." % self.name)
+            # Use compile-time defines for the sizes
+            # This is mainly for situations where the user cannot or doesn't know
+            # how to set field options for the generator. Creating a define is more
+            # friendly than converting the field to a callback.
+            if self.max_size is None and desc.type in [FieldD.TYPE_STRING, FieldD.TYPE_BYTES]:
+                self.max_size = Globals.naming_style.define_name('%s_%s_max_size' % (struct_name, self.name))
+
+            if self.max_count is None and self.rules == 'REPEATED':
+                self.max_count = Globals.naming_style.define_name('%s_%s_max_count'  % (struct_name, self.name))
+                self.array_decl = '[%s]' % self.max_count
 
         if field_options.fixed_count and self.max_count is None:
             raise Exception("Field '%s' is defined as fixed count, "
@@ -711,10 +729,10 @@ class Field(ProtoElement):
             self.ctype = 'char'
             if self.allocation == 'STATIC':
                 self.ctype = 'char'
-                self.array_decl += '[%d]' % self.max_size
+                self.array_decl += '[%s]' % self.max_size
                 # -1 because of null terminator. Both pb_encode and pb_decode
                 # check the presence of it.
-            if self.can_be_static:
+            if isinstance(self.max_size, int):
                 self.enc_size = varint_max_size(self.max_size) + self.max_size - 1
         elif desc.type == FieldD.TYPE_BYTES:
             if field_options.fixed_length:
@@ -725,7 +743,7 @@ class Field(ProtoElement):
                                     "but max_size is not given." % self.name)
 
                 self.ctype = 'pb_byte_t'
-                self.array_decl += '[%d]' % self.max_size
+                self.array_decl += '[%s]' % self.max_size
             elif self.allocation == 'STATIC':
                 self.pbtype = 'BYTES'
                 self.ctype = Globals.naming_style.bytes_type(self.struct_name, self.name)
@@ -733,7 +751,7 @@ class Field(ProtoElement):
                 self.pbtype = 'BYTES'
                 self.ctype = 'pb_bytes_t'
 
-            if self.max_size is not None:
+            if isinstance(self.max_size, int):
                 self.enc_size = varint_max_size(self.max_size) + self.max_size
         elif desc.type == FieldD.TYPE_MESSAGE:
             self.pbtype = 'MESSAGE'
@@ -810,7 +828,7 @@ class Field(ProtoElement):
     def types(self):
         '''Return definitions for any special types this field might need.'''
         if self.pbtype == 'BYTES' and self.allocation == 'STATIC':
-            result = 'typedef PB_BYTES_ARRAY_T(%d) %s;\n' % (self.max_size, self.ctype)
+            result = 'typedef PB_BYTES_ARRAY_T(%s) %s;\n' % (self.max_size, self.ctype)
         else:
             result = ''
         return result
@@ -928,9 +946,15 @@ class Field(ProtoElement):
         outer_init = None
         if self.allocation == 'STATIC':
             if self.rules == 'REPEATED':
-                outer_init = '0, {' + ', '.join([inner_init] * self.max_count) + '}'
+                if isinstance(self.max_count, int):
+                    outer_init = '0, {' + ', '.join([inner_init] * self.max_count) + '}'
+                else:
+                    outer_init = '0, {' + inner_init + '}' # Best we can do
             elif self.rules == 'FIXARRAY':
-                outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
+                if isinstance(self.max_count, int):
+                    outer_init = '{' + ', '.join([inner_init] * self.max_count) + '}'
+                else:
+                    outer_init = '0, {' + inner_init + '}'
             elif self.rules == 'OPTIONAL':
                 if null_init or not self.default_has:
                     outer_init = 'false, ' + inner_init
@@ -969,6 +993,22 @@ class Field(ProtoElement):
         identifier = Globals.naming_style.define_name('%s_%s_tag' % (self.struct_name, self.name))
         return '#define %-40s %d\n' % (identifier, self.tag)
 
+    def size_defines(self):
+        '''Return default size #defines for this field, if needed.'''
+        result = ''
+
+        if isinstance(self.max_count, str):
+            result += '#ifndef %s\n' % self.max_count
+            result += '#define %s %d\n' % (self.max_count, self.default_max_count)
+            result += '#endif\n'
+
+        if isinstance(self.max_size, str):
+            result += '#ifndef %s\n' % self.max_size
+            result += '#define %s %d\n' % (self.max_size, self.default_max_size)
+            result += '#endif\n'
+
+        return result
+
     def fieldlist(self):
         '''Return the FIELDLIST macro entry for this field.
         Format is: X(a, ATYPE, HTYPE, LTYPE, field_name, tag)
@@ -1004,6 +1044,9 @@ class Field(ProtoElement):
         If the estimate is wrong, it will result in compile time error and
         user having to specify descriptor_width option.
         '''
+        max_size = self.max_size if isinstance(self.max_size, int) else self.default_max_size
+        max_count = self.max_count if isinstance(self.max_count, int) else self.default_max_count
+
         if self.allocation == 'POINTER' or self.pbtype == 'EXTENSION':
             size = 8
             alignment = 8
@@ -1022,10 +1065,10 @@ class Field(ProtoElement):
             if self.pbtype == 'MSG_W_CB':
                 size += 16
         elif self.pbtype in ['STRING', 'FIXED_LENGTH_BYTES']:
-            size = self.max_size
+            size = max_size
             alignment = 4
         elif self.pbtype == 'BYTES':
-            size = self.max_size + 4
+            size = max_size + 4
             alignment = 4
         elif self.data_item_size is not None:
             size = self.data_item_size
@@ -1035,11 +1078,11 @@ class Field(ProtoElement):
         else:
             raise Exception("Unhandled field type: %s" % self.pbtype)
 
-        if self.rules in ['REPEATED', 'FIXARRAY'] and self.allocation == 'STATIC':
-            size *= self.max_count
+        if self.rules in ['REPEATED', 'FIXARRAY']:
+            size *= max_count
 
         if self.rules not in ('REQUIRED', 'SINGULAR'):
-            size += 4
+            size += 8 # Maximum size of pb_size_t
 
         if size % alignment != 0:
             # Estimate how much alignment requirements will increase the size.
@@ -1172,6 +1215,14 @@ class ExtensionField(Field):
     def __init__(self, fullname, desc, field_options):
         self.fullname = fullname
         self.extendee_name = names_from_type_name(desc.extendee)
+
+        if not field_options.HasField('fallback_type'):
+            # The nanopb-1.0 change to fallback_type = FT_STATIC can cause
+            # bugs in code that expects the extension to have callback type.
+            # Because this is not detectable at compile-time, we play it safe
+            # and keep the old default for extensions.
+            field_options.fallback_type = nanopb_pb2.FT_CALLBACK
+
         Field.__init__(self, self.fullname + "extmsg", desc, field_options)
 
         if self.rules != 'OPTIONAL':
@@ -1498,6 +1549,12 @@ class Message(ProtoElement):
             else:
                 yield f
 
+    def size_defines(self):
+        '''Return default size defines needed for the fields, if any.'''
+        result = ''
+        for field in self.all_fields():
+            result += field.size_defines()
+        return result
 
     def field_for_tag(self, tag):
         '''Given a tag number, return the Field instance.'''
@@ -1693,7 +1750,8 @@ class Message(ProtoElement):
 
         max_tag = max(field.tag for field in self.all_fields())
         max_offset = self.data_size(dependencies)
-        max_arraysize = max((field.max_count or 0) for field in self.all_fields())
+        max_arraysize = max((field.max_count if isinstance(field.max_count, int) else 0)
+                            for field in self.all_fields())
         max_datasize = max(field.data_size(dependencies) for field in self.all_fields())
 
         # Bit counts must match the format definitions in pb.h.
@@ -2075,12 +2133,12 @@ class ProtoFile:
                 if field.type in (FieldD.TYPE_MESSAGE, FieldD.TYPE_ENUM):
                     field.type_name = self.manglenames.mangle_field_typename(field.type_name)
 
-            # Check for circular dependencies
+            # Check for circular dependencies and break them automatically
             msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             if check_recursive_dependencies(msgobject, self.messages):
                 message_options.type = message_options.fallback_type
-                sys.stderr.write('Breaking circular dependency at message %s by converting to %s\n'
-                                 % (msgobject.name, nanopb_pb2.FieldType.Name(message_options.type)))
+                if message_options.type == nanopb_pb2.FT_STATIC:
+                    message_options.type = nanopb_pb2.FT_CALLBACK
                 msgobject = Message(name, message, message_options, comment_path, self.comment_locations)
             self.messages.append(msgobject)
 
@@ -2207,6 +2265,13 @@ class ProtoFile:
         yield '#error Regenerate this file with the current version of nanopb generator.\n'
         yield '#endif\n'
         yield '\n'
+
+        size_defines = ''.join(m.size_defines() for m in self.messages + self.extensions)
+        if size_defines:
+            yield '/* Default sizes for fields. Can be overridden using compiler settings */\n'
+            yield '/* or using nanopb_generator options. */\n'
+            yield size_defines
+            yield '\n'
 
         if self.enums:
             yield '/* Enum definitions */\n'

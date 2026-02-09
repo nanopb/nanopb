@@ -143,6 +143,16 @@ The data type of `pb_size_t` is always smaller or equal to `size_t`.
 
 **Required actions:** If forward declarations are used in user code, remove the underscore from the names.
 
+### Default fallback type for fields without max size
+
+**Rationale:** Previously string/bytes/array fields without a maximum size or count option
+were converted into `pb_callback_t`. This was often confusing to new users of the library, and
+led to using callbacks even when the simpler maximum size define would have been easier.
+
+**Changes:** Default fallback type is now `FT_STATIC` with compile-time defines such as `MyMessage_myfield_max_size`. These can then be overridden using compiler options or (preferred) using generator options. In either case, it should make the maximum size options more discoverable.
+
+**Required actions:** If you want fields to remain callback type, either add `(nanopb).type = FT_CALLBACK` on the single field, or `(nanopb).fallback_type = FT_CALLBACK` globally.
+
 ### Proto3 singular submessages are unconditionally encoded
 
 **Rationale:** Since nanopb-0.4.0, proto3 submessages have had a separate `has_` field,

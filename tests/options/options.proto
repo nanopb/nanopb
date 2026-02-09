@@ -142,3 +142,11 @@ message DeprecatedMessage
     option deprecated = true;
     required int32 deprecatedmessagefield = 1;
 }
+
+// Compile-time size definition as fallback for static fields.
+message CompileTimeSizeMessage
+{
+    option (nanopb_msgopt).max_size = -1; // Test overriding size back to undefined
+    repeated int32 cts_intarray = 1;
+    optional string cts_string = 2;
+}

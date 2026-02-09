@@ -37,5 +37,5 @@ message OneofMessage
 message RepeatedMessage
 {
     required int32 first = 1;
-    repeated SubMessage subs = 2;
+    repeated SubMessage subs = 2 [(nanopb).type = FT_CALLBACK];
 }

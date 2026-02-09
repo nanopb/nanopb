@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "nanopb.proto";
+option (nanopb_fileopt).fallback_type = FT_CALLBACK;
 
 message SubMessage {
     option (nanopb_msgopt).callback_function = "SubMessage_callback";

@@ -180,8 +180,9 @@ message NanoPBOptions {
   // Set the FT_DEFAULT field conversion strategy.
   // A field that can become a static member of a c struct (e.g. int, bool, etc)
   // will be a a static field.
-  // Fields with dynamic length are converted to either a pointer or a callback.
-  optional FieldType fallback_type = 29 [default = FT_CALLBACK]; 
+  // Fields with dynamic length can be converted to either a pointer or a callback,
+  // or the maximum length can be converted into compile-time option.
+  optional FieldType fallback_type = 29 [default = FT_STATIC];
 
   // Override initializer used in generated MyMessage_init_zero and MyMessage_init_default macros
   // By default decided automatically based on field default value and datatype.
@@ -193,6 +194,12 @@ message NanoPBOptions {
 
   // Discard messages and fields marked with [deprecated = true] in the proto file.
   optional bool discard_deprecated = 35 [default = false];
+
+  // Default size and count for fields that don't have it defined.
+  // This will be converted to MyMessage_MyField_max_size macro, and
+  // can be modified at compile-time.
+  optional int32 default_max_size = 37 [default = 32];
+  optional int32 default_max_count = 38 [default = 8];
 }
 
 // Extensions to protoc 'Descriptor' type in order to define options

@@ -22,7 +22,7 @@ message CallbackArray {
     // We cheat a bit and use this message for testing other types, too.
     // Nanopb does not care about the actual defined data type for callback
     // fields.
-    repeated int32 data = 1;
+    repeated int32 data = 1 [(nanopb).type = FT_CALLBACK];
 }
 
 message IntegerContainer {

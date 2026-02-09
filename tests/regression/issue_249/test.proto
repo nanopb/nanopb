@@ -1,6 +1,8 @@
 syntax = "proto3";
 import "nanopb.proto";
 
+option (nanopb_fileopt).fallback_type = FT_CALLBACK;
+
 message SubMessage {
     repeated int32 foo = 1;
 }
