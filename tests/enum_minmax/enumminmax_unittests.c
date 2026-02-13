@@ -7,9 +7,9 @@ int main()
 
     COMMENT("Verify min/max on unsorted enum");
     {
-        TEST(_Language_MIN == Language_UNKNOWN);
-        TEST(_Language_MAX == Language_SPANISH_ES_MX);
-        TEST(_Language_ARRAYSIZE == (Language_SPANISH_ES_MX+1));
+        TEST(ENUM_Language_MIN == Language_UNKNOWN);
+        TEST(ENUM_Language_MAX == Language_SPANISH_ES_MX);
+        TEST(ENUM_Language_ARRAYSIZE == (Language_SPANISH_ES_MX+1));
     }
 
     return status;

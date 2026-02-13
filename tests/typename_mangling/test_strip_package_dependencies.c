@@ -16,12 +16,12 @@ int main()
 
     package_a_EnumA e1 = EnumA_VALUE_A_0;
     EnumA e2 = EnumA_VALUE_A_1;
-    e2 = _package_a_EnumA_MIN;
-    e2 = _EnumA_MIN;
-    e2 = _package_a_EnumA_MAX;
-    e2 = _EnumA_MAX;
-    e2 = _package_a_EnumA_ARRAYSIZE;
-    e2 = _EnumA_ARRAYSIZE;
+    e2 = ENUM_package_a_EnumA_MIN;
+    e2 = ENUM_EnumA_MIN;
+    e2 = ENUM_package_a_EnumA_MAX;
+    e2 = ENUM_EnumA_MAX;
+    e2 = ENUM_package_a_EnumA_ARRAYSIZE;
+    e2 = ENUM_EnumA_ARRAYSIZE;
 
     return msgA1.enum_a_field + msgA2.enum_a_field + msgB1.nested_enum + msgB2.nested_enum + e1 + e2; /* marks variables as used */
 }

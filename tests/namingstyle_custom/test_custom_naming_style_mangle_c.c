@@ -12,7 +12,7 @@ int main()
     int status = 0;
     MainMessage defaultMessage = MAIN_MESSAGE_INIT_DEFAULT;
     MainMessage message = MAIN_MESSAGE_INIT_ZERO;
-    MainMessageInnerEnum inner = _MAIN_MESSAGE_INNER_ENUM_MIN;
+    MainMessageInnerEnum inner = ENUM_MAIN_MESSAGE_INNER_ENUM_MIN;
 
     /* Satisfy the usage error, the test was just that the inner enum mapping works. */
     TEST(inner == MAIN_MESSAGE_INNER_ENUM_INSIDE)
