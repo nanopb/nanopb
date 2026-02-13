@@ -1,0 +1,21 @@
+# Regression test for issue #1065:
+# M_STRIP_PACKAGE did not apply to all symbol names
+
+Import("env")
+
+def set_pkgname(src, dst, pkgname):
+    data = open(str(src)).read()
+    placeholder = '// package name placeholder'
+    assert placeholder in data
+    data = data.replace(placeholder, 'package %s;' % pkgname)
+    open(str(dst), 'w').write(data)
+
+# Build a modified alltypes.proto
+env.Command("alltypes.proto", "#alltypes/alltypes.proto",
+            lambda target, source, env: set_pkgname(source[0], target[0], 'test.package'))
+
+# Test how it builds with M_STRIP_PACKAGE
+env.NanopbProto(["alltypes", "alltypes.options"])
+
+env.Match('alltypes_h.matched', ['alltypes.pb.h', 'strip_package.expected'])
+env.Match('alltypes_c.matched', ['alltypes.pb.c', 'strip_package.expected'])
