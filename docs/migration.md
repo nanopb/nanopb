@@ -147,13 +147,15 @@ The data type of `pb_size_t` is always smaller or equal to `size_t`.
 
 **Required actions:** In some cases `SIZE_MAX` in user code may need to be replaced with `PB_SIZE_MAX` to silence compiler warnings.
 
-### Generated struct name for forward declaration
+### Reserved identifiers in generated headers
 
-**Rationale:** Previously nanopb generator made definitions such as `typedef struct _MyMessage { ... } MyMessage;`. The `struct _MyMessage` name allows forward declaration of the structs, which can be useful. However identifiers beginning with underscore are reserved in C.
+**Rationale:** Previously nanopb generator made definitions such as `typedef struct _MyMessage { ... } MyMessage;` and `_MyEnum_MAX`. Identifiers beginning with underscore are reserved in C.
 
-**Changes:** Generator now uses format `typedef struct MyMessage { ... } MyMessage;`.
+**Changes:** Generator now uses format `typedef struct MyMessage { ... } MyMessage;` and `ENUM_MyEnum_MAX`.
 
-**Required actions:** If forward declarations are used in user code, remove the underscore from the names.
+**Required actions:** If forward declarations or enum defines are used in user code, update the identifier names.
+
+**Error indications:** `_MyEnum_MIN undeclared`
 
 ### Default fallback type for fields without max size
 

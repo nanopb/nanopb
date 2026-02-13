@@ -463,33 +463,33 @@ class Enum(ProtoElement):
         return result
 
     def auxiliary_defines(self):
-        # sort the enum by value
+        # Define X-macro for enum values in their numeric order
         sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
 
         unmangledName = self.protofile.manglenames.unmangle(self.names)
-        identifier = Globals.naming_style.define_name('_%s_MIN' % self.names)
+        identifier = Globals.naming_style.define_name('ENUM_%s_MIN' % self.names)
         result = '#define %s %s\n' % (
             identifier,
             Globals.naming_style.enum_entry(sorted_values[0][0]))
         if unmangledName:
-            unmangledIdentifier = Globals.naming_style.define_name('_%s_MIN' % unmangledName)
+            unmangledIdentifier = Globals.naming_style.define_name('ENUM_%s_MIN' % unmangledName)
             self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
 
-        identifier = Globals.naming_style.define_name('_%s_MAX' % self.names)
+        identifier = Globals.naming_style.define_name('ENUM_%s_MAX' % self.names)
         result += '#define %s %s\n' % (
             identifier,
             Globals.naming_style.enum_entry(sorted_values[-1][0]))
         if unmangledName:
-            unmangledIdentifier = Globals.naming_style.define_name('_%s_MAX' % unmangledName)
+            unmangledIdentifier = Globals.naming_style.define_name('ENUM_%s_MAX' % unmangledName)
             self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
 
-        identifier = Globals.naming_style.define_name('_%s_ARRAYSIZE' % self.names)
+        identifier = Globals.naming_style.define_name('ENUM_%s_ARRAYSIZE' % self.names)
         result += '#define %s ((%s)(%s+1))\n' % (
             identifier,
             Globals.naming_style.type_name(self.names),
             Globals.naming_style.enum_entry(sorted_values[-1][0]))
         if unmangledName:
-            unmangledIdentifier = Globals.naming_style.define_name('_%s_ARRAYSIZE' % unmangledName)
+            unmangledIdentifier = Globals.naming_style.define_name('ENUM_%s_ARRAYSIZE' % unmangledName)
             self.protofile.manglenames.reverse_name_mapping[identifier] = unmangledIdentifier
 
         if not self.options.long_names:
@@ -917,7 +917,7 @@ class Field(ProtoElement):
             elif self.pbtype == 'FIXED_LENGTH_BYTES':
                 inner_init = '{0}'
             elif self.pbtype in ('ENUM', 'UENUM'):
-                inner_init = '_%s_MIN' % Globals.naming_style.define_name(self.ctype)
+                inner_init = 'ENUM_%s_MIN' % Globals.naming_style.define_name(self.ctype)
             else:
                 inner_init = '0'
         else:
