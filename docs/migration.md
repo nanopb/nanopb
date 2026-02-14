@@ -31,7 +31,7 @@ information. The `ctx` pointer is always passed as-is to callbacks, only
 the fields inside are modified during processing. Previously the callbacks
 were given varying `stream` pointers when substreams were processed.
 
-**Changes:** `pb_istream_t` is now `pb_decode_ctx_t` and `pb_ostream_t` is `pb_encode_ctx_t`.
+**Changes:** `pb_decode_ctx_t` is now `pb_decode_ctx_t` and `pb_encode_ctx_t` is `pb_encode_ctx_t`.
 
 **Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
 
@@ -784,8 +784,8 @@ non-conflicting names as these are rarely used from user code.
      -   _pb_callback_t -> pb_callback_s
      -   _pb_extension_type_t -> pb_extension_type_s
      -   _pb_extension_t -> pb_extension_s
-     -   _pb_istream_t -> pb_istream_s
-     -   _pb_ostream_t -> pb_ostream_s
+     -   _pb_decode_ctx_t -> pb_istream_s
+     -   _pb_encode_ctx_t -> pb_ostream_s
 
 **Required actions:** Regenerate all `.pb.c` files. If you use any of
 the above identifiers in your application code, perform search-replace
