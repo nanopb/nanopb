@@ -48,7 +48,7 @@ manual.
 
 Nanopb uses streams for accessing the data in encoded format. The stream
 abstraction is very lightweight, and consists of a structure
-(`pb_ostream_t` or `pb_istream_t`) which contains a pointer to a
+(`pb_encode_ctx_t` or `pb_decode_ctx_t`) which contains a pointer to a
 callback function.
 
 There are a few generic rules for callback functions:
@@ -68,9 +68,9 @@ There are a few generic rules for callback functions:
 
 ### Output streams
 
-    struct _pb_ostream_t
+    struct _pb_encode_ctx_t
     {
-       bool (*callback)(pb_ostream_t *stream, const uint8_t *buf, size_t count);
+       bool (*callback)(pb_encode_ctx_t *stream, const uint8_t *buf, size_t count);
        void *state;
        size_t max_size;
        size_t bytes_written;
@@ -90,7 +90,7 @@ This is the way to get the size of the message without storing it
 anywhere:
 
     Person myperson = ...;
-    pb_ostream_t sizestream = {0};
+    pb_encode_ctx_t sizestream = {0};
     pb_encode(&sizestream, Person_fields, &myperson);
     printf("Encoded size is %d\n", sizestream.bytes_written);
 
@@ -98,13 +98,13 @@ anywhere:
 
 Writing to stdout:
 
-    bool callback(pb_ostream_t `stream, const uint8_t `buf, size_t count)
+    bool callback(pb_encode_ctx_t `stream, const uint8_t `buf, size_t count)
     {
        FILE *file = (FILE*) stream->state;
        return fwrite(buf, 1, count, file) == count;
     }
 
-    pb_ostream_t stdoutstream = {&callback, stdout, SIZE_MAX, 0};
+    pb_encode_ctx_t stdoutstream = {&callback, stdout, SIZE_MAX, 0};
 
 ### Input streams
 
@@ -117,9 +117,9 @@ For input streams, there is one extra rule:
 
 Here is the structure:
 
-    struct _pb_istream_t
+    struct _pb_decode_ctx_t
     {
-       bool (*callback)(pb_istream_t *stream, uint8_t *buf, size_t count);
+       bool (*callback)(pb_decode_ctx_t *stream, uint8_t *buf, size_t count);
        void *state;
        size_t bytes_left;
     };
@@ -132,7 +132,7 @@ SIZE_MAX if your callback handles EOF as described above.
 
 This function binds an input stream to stdin:
 
-    bool callback(pb_istream_t *stream, uint8_t *buf, size_t count)
+    bool callback(pb_decode_ctx_t *stream, uint8_t *buf, size_t count)
     {
        FILE *file = (FILE*)stream->state;
        bool status;
@@ -151,7 +151,7 @@ This function binds an input stream to stdin:
        return status;
     }
 
-    pb_istream_t stdinstream = {&callback, stdin, SIZE_MAX};
+    pb_decode_ctx_t stdinstream = {&callback, stdin, SIZE_MAX};
 
 ## Data types
 
@@ -256,7 +256,7 @@ To write more complex field callbacks, it is recommended to read the
 
 ### Encoding callbacks
 
-    bool (*encode)(pb_ostream_t *stream, const pb_field_iter_t *field, void * const *arg);
+    bool (*encode)(pb_encode_ctx_t *stream, const pb_field_iter_t *field, void * const *arg);
 
 |            |                                                                    |
 | ---------- | ------------------------------------------------------------------ |
@@ -282,7 +282,7 @@ callback is directly in the main message, it is called only once.
 
 This callback writes out a dynamically sized string:
 
-    bool write_string(pb_ostream_t *stream, const pb_field_iter_t *field, void * const *arg)
+    bool write_string(pb_encode_ctx_t *stream, const pb_field_iter_t *field, void * const *arg)
     {
         char *str = get_string_from_somewhere();
         if (!pb_encode_tag_for_field(stream, field))
@@ -293,7 +293,7 @@ This callback writes out a dynamically sized string:
 
 ### Decoding callbacks
 
-    bool (*decode)(pb_istream_t *stream, const pb_field_iter_t *field, void **arg);
+    bool (*decode)(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg);
 
 |            |                                                                    |
 | ---------- | ------------------------------------------------------------------ |
@@ -313,7 +313,7 @@ function over and over until all values have been read.
 
 This callback reads multiple integers and prints them:
 
-    bool read_ints(pb_istream_t *stream, const pb_field_iter_t *field, void **arg)
+    bool read_ints(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
     {
         while (stream->bytes_left)
         {
@@ -327,7 +327,7 @@ This callback reads multiple integers and prints them:
 
 ### Function name bound callbacks
 
-    bool MyMessage_callback(pb_istream_t *istream, pb_ostream_t *ostream, const pb_field_iter_t *field);
+    bool MyMessage_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field);
 
 |            |                                                                    |
 | ---------- | ------------------------------------------------------------------ |

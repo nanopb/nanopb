@@ -8,9 +8,13 @@ suitable for 32-bit microcontrollers.
 Documentation version
 ---------------------
 
-This documentation applies for nanopb 0.4.0 and later versions. For
-documentation of older releases,
-[see here](https://github.com/nanopb/nanopb/blob/maintenance_0.3/docs/index.rst).
+This documentation applies for nanopb 1.0 and later versions. For
+documentation of older releases, see:
+
+* [Nanopb 0.1.x documentation](https://github.com/nanopb/nanopb/blob/maintenance_0.1/docs/index.rst)
+* [Nanopb 0.2.x documentation](https://github.com/nanopb/nanopb/blob/maintenance_0.2/docs/index.rst)
+* [Nanopb 0.3.x documentation](https://github.com/nanopb/nanopb/blob/maintenance_0.3/docs/index.rst)
+* [Nanopb 0.4.x documentation](https://github.com/nanopb/nanopb/blob/maintenance_0.4/docs/index.md)
 
 Overall structure
 -----------------
@@ -104,7 +108,7 @@ Now in your main program do this to encode a message:
 
     Example mymessage = {42};
     uint8_t buffer[10];
-    pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_encode_ctx_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
     pb_encode(&stream, Example_fields, &mymessage);
 
 After that, buffer will contain the encoded message. The number of bytes

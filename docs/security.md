@@ -1,4 +1,4 @@
-# Nanopb: Security model
+# Security model
 
 Importance of security in a Protocol Buffers library
 ----------------------------------------------------
@@ -22,21 +22,20 @@ control of the application writer. Malicious data in these structures
 could cause security issues, such as execution of arbitrary code:
 
 1.  Callback, pointer and extension fields in message structures given
-    to pb_encode() and pb_decode(). These fields are memory pointers,
-    and are generated depending on the message definition in the .proto
+    to `pb_encode()` and `pb_decode()`. These fields are memory pointers,
+    and are generated depending on the message definition in the `.proto`
     file.
-2.  The automatically generated field definitions, i.e.
-    `pb_msgdesc_t`.
-3.  Contents of the `pb_istream_t` and `pb_ostream_t` structures
+2.  The automatically generated field definitions, i.e. `pb_msgdesc_t`.
+3.  The `pb_decode_ctx_t` and `pb_encode_ctx_t` structures
     (this does not mean the contents of the stream itself, just the
-    stream definition).
+    pointers and other fields in the context structure).
 
 The following data is regarded as **untrusted**. Invalid/malicious data
 in these will cause "garbage in, garbage out" behaviour. It will not
 cause buffer overflows, information disclosure or other security
 problems:
 
-1.  All data read from `pb_istream_t`.
+1.  All data read from the input stream represented by `pb_decode_ctx_t`.
 2.  All fields in message structures, except:
     -   callbacks (`pb_callback_t` structures)
     -   pointer fields and `_count` fields for pointers
@@ -49,9 +48,9 @@ The following invariants are maintained during operation, even if the
 untrusted data has been maliciously crafted:
 
 1.  Nanopb will never read more than `bytes_left` bytes from
-    `pb_istream_t`.
+    `pb_decode_ctx_t`.
 2.  Nanopb will never write more than `max_size` bytes to
-    `pb_ostream_t`.
+    `pb_encode_ctx_t`.
 3.  Nanopb will never access memory out of bounds of the message
     structure.
 4.  After `pb_decode()` returns successfully, the message structure will
@@ -59,8 +58,7 @@ untrusted data has been maliciously crafted:
     -   The `count` fields of arrays will not exceed the array size.
     -   The `size` field of bytes will not exceed the allocated size.
     -   All string fields will have null terminator.
-    -   bool fields will have valid true/false values (since
-        nanopb-0.3.9.4)
+    -   `bool` fields will have valid true/false values
     -   pointer fields will be either `NULL` or point to valid data
 5.  After `pb_encode()` returns successfully, the resulting message is a
     valid protocol buffers message. (Except if user-defined callbacks
@@ -82,7 +80,7 @@ consider. The following list is not comprehensive:
 2.  Callbacks can do anything. The code for the callbacks must be
     carefully checked if they are used with untrusted data.
 3.  If using stream input, a maximum size should be set in
-    `pb_istream_t` to stop a denial of service attack from using an
+    `pb_decode_ctx_t` to stop a denial of service attack from using an
     infinite message.
 4.  If using network sockets as streams, a timeout should be set to stop
     denial of service attacks.
@@ -90,3 +88,38 @@ consider. The following list is not comprehensive:
     should be employed. This can be done by defining custom
     `pb_realloc()` function. Nanopb will properly detect and handle
     failed memory allocations.
+
+Security hardening
+------------------
+
+Following steps will add deference-in-depth protections that make successful
+exploitation harder, even if there were an undiscovered vulnerability in nanopb
+or in the user application:
+
+1. Enable compiler memory protection features, such as `-fstack-protector` or
+   `-fsanitize=address`.
+
+2. Disable unneeded features using compilation option `PB_MINIMAL` or the individual
+   feature disables. This reduces the attack surface. In particular the following
+   options should be considered for security-critical applications:
+
+      * `PB_NO_STRUCT_FIELD_CALLBACK = 1`: Storing callbacks inline with structure
+        data creates a pathway to exploitation on a buffer overflow.
+      * `PB_NO_EXTENSIONS = 1`: To a lesser extent, the pointer to extension definition
+        can be used as exploitation pathway after another bug has caused memory corruption.
+      * `PB_NO_RECURSION = 1`: Disabling recursion makes the stack usage bounded and
+        largely independent of message contents.
+      * `PB_NO_FUNCTION_POINTERS = 1`: Disabling function-pointer usage reduces
+        exploitation methods if a buffer overflow were to occur.
+      * `PB_NO_MALLOC = 1`: Disable dynamic allocation if it is not needed. Alternatively,
+        use a custom arena allocator to reduce risks of heap corruption or malicious heap
+        fragmentation.
+      * `PB_NO_OPT_ASSERT = 0`: Keeping optional asserts enables can detect internal
+        errors before they lead to a security problem.
+
+3. Set `max_size` limits to all output streams and `bytes_left` limits to input streams.
+   The generator creates `MyMessage_size` defines that indicate the maximum expected size
+   for a particular message type.
+
+4. Perform fuzzing against your application. Start with valid messages and use a profiling-guided
+   fuzzer such as afl-fuzz to trigger otherwise dormant code paths.

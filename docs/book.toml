@@ -1,0 +1,17 @@
+# Configuration file for mdbook
+
+[book]
+authors = ["Petteri Aimonen"]
+language = "en"
+src = "."
+title = "Nanopb Documentation"
+description = "Nanopb is a C library for encoding and decoding messages in Google's Protocol Buffers format with minimal requirements for RAM and code space."
+
+[build]
+build-dir = "../build/mdbook"
+
+[output.html]
+sidebar-header-nav = true
+smart-punctuation = false
+git-repository-url = "https://github.com/nanopb/nanopb"
+
