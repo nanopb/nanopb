@@ -12,6 +12,7 @@ build-dir = "../build/mdbook"
 
 [output.html]
 sidebar-header-nav = true
-smart-punctuation = false
 git-repository-url = "https://github.com/nanopb/nanopb"
 
+[preprocessor.permalinks]
+#optional = true # Doesn't work, https://github.com/tonywu6/mdbookkit/issues/24
