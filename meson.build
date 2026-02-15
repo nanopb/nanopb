@@ -63,7 +63,7 @@ nanopb_dep = declare_dependency(
 )
 
 if get_option('examples').enabled()
-    subdir('examples/meson_simple')
+    subdir('build-tests/meson_simple')
 endif
 
 meson.override_dependency('nanopb', nanopb_dep)

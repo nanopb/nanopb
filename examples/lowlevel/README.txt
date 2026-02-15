@@ -1,25 +1,21 @@
-Nanopb example "using_union_messages"
-=====================================
+Nanopb example "lowlevel"
+=========================
 
-Union messages is a common technique in Google Protocol Buffers used to
-represent a group of messages, only one of which is passed at a time.
-It is described in Google's documentation:
-https://developers.google.com/protocol-buffers/docs/techniques#union
+This example demonstrates usage of low-level nanopb encoding
+and decoding functions to handle situations where more control
+over the processing is needed.
 
-This directory contains an example on how to encode and decode union messages
-with minimal memory usage. Usually, nanopb would allocate space to store
-all of the possible messages at the same time, even though at most one of
-them will be used at a time.
+The example shows a top-level `UnionMessage` type, which contains
+several submessages. One can encode and decode the `UnionMessage` directly,
+like any protocol buffers message. But sometimes it is easier to
+organize the user code so that each submessage type is handled in a
+separate part of the code.
 
 By using some of the lower level nanopb APIs, we can manually generate the
-top level message, so that we only need to allocate the one submessage that
+top level message, so that we only need to encode the one submessage that
 we actually want. Similarly when decoding, we can manually read the tag of
-the top level message, and only then allocate the memory for the submessage
+the top level message, and only then decode the submessage
 after we already know its type.
-
-NOTE: There is a newer protobuf feature called `oneof` that is also supported
-by nanopb. It might be a better option for new code.
-
 
 Example usage
 -------------

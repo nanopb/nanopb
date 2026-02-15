@@ -45,6 +45,7 @@ example Python or Java.
 
 fileproto.options contains the nanopb-specific options for the protocol file. This
 sets the amount of space allocated for file names when decoding messages.
+The total number of files is unlimited, as they are processed using callback functions.
 
 common.c/h contains functions that allow nanopb to read and write directly from
 network socket. This way there is no need to allocate a separate buffer to store
