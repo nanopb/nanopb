@@ -1937,7 +1937,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 }
 
 // Allocate stack buffer and run pb_walk() for decoding the message
-static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
+static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, void *dest_struct)
 {
     pb_walk_state_t state;
     bool status;
@@ -1947,9 +1947,9 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
 #if PB_CAN_ZEROINIT_MESSAGES
-        memset(dest_struct, 0, fields->struct_size);
+        memset(dest_struct, 0, msgdesc->struct_size);
 #else
-        (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_defaults_walk_cb));
+        (void)pb_walk_init(&state, msgdesc, dest_struct, PB_WALK_CB(pb_defaults_walk_cb));
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         if (!pb_walk(&state))
         {
@@ -1959,10 +1959,10 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
     }
 
     /* Decode the message */
-    (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_decode_walk_cb));
+    (void)pb_walk_init(&state, msgdesc, dest_struct, PB_WALK_CB(pb_decode_walk_cb));
     PB_WALK_SET_STACKBUF(&state, stackbuf);
     state.ctx = ctx;
-    state.next_stacksize = stacksize_for_msg(fields);
+    state.next_stacksize = stacksize_for_msg(msgdesc);
 
     pb_walk_state_t *old_walkstate = ctx->walk_state;
     ctx->walk_state = &state;
@@ -1974,7 +1974,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
         PB_SET_ERROR(ctx, state.errmsg);
 
 #if !PB_NO_MALLOC
-        (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_release_walk_cb));
+        (void)pb_walk_init(&state, msgdesc, dest_struct, PB_WALK_CB(pb_release_walk_cb));
         PB_WALK_SET_STACKBUF(&state, stackbuf);
         state.ctx = ctx;
         (void)pb_walk(&state);
@@ -1987,7 +1987,7 @@ static bool checkreturn pb_decode_walk_begin(pb_decode_ctx_t *ctx, const pb_msgd
 }
 
 // Reuse already allocated pb_walk_state_t and decode the message
-static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct)
+static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, void *dest_struct)
 {
     bool status = true;
     pb_walk_state_t *state = ctx->walk_state;
@@ -1998,11 +1998,11 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
     if ((ctx->flags & PB_DECODE_CTX_FLAG_NOINIT) == 0)
     {
 #if PB_CAN_ZEROINIT_MESSAGES
-        memset(dest_struct, 0, fields->struct_size);
+        memset(dest_struct, 0, msgdesc->struct_size);
 #else
         state->flags = 0;
         state->iter.pData = dest_struct;
-        state->iter.submsg_desc = fields;
+        state->iter.submsg_desc = msgdesc;
         state->retval = PB_WALK_IN;
         state->callback = PB_WALK_CB(pb_defaults_walk_cb);
         state->next_stacksize = 0;
@@ -2020,9 +2020,9 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
     {
         state->flags = 0;
         state->iter.pData = dest_struct;
-        state->iter.submsg_desc = fields;
+        state->iter.submsg_desc = msgdesc;
         state->retval = PB_WALK_IN;
-        state->next_stacksize = stacksize_for_msg(fields);
+        state->next_stacksize = stacksize_for_msg(msgdesc);
         if (!pb_walk(state))
         {
             PB_SET_ERROR(ctx, state->errmsg);
@@ -2036,7 +2036,7 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
     {
         state->flags = 0;
         state->iter.pData = dest_struct;
-        state->iter.submsg_desc = fields;
+        state->iter.submsg_desc = msgdesc;
         state->retval = PB_WALK_IN;
         state->callback = PB_WALK_CB(pb_release_walk_cb);
         state->next_stacksize = 0;
@@ -2052,13 +2052,13 @@ static bool checkreturn pb_decode_walk_reuse(pb_decode_ctx_t *ctx, const pb_msgd
 }
 
 
-bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                              void *dest_struct, size_t struct_size)
 {
     // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
     // or by it having different compilation options.
     // NOTE: On GCC, sizeof(*(void*)) == 1
-    if (fields->struct_size != struct_size && struct_size > 1)
+    if (msgdesc->struct_size != struct_size && struct_size > 1)
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
     bool status = true;
@@ -2080,12 +2080,12 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
         ctx->walk_state->ctx == ctx)
     {
         // Reuse existing walk state variable to conserve stack space
-        status = pb_decode_walk_reuse(ctx, fields, dest_struct);
+        status = pb_decode_walk_reuse(ctx, msgdesc, dest_struct);
     }
     else
     {
         // Allocate new walk state on stack
-        status = pb_decode_walk_begin(ctx, fields, dest_struct);
+        status = pb_decode_walk_begin(ctx, msgdesc, dest_struct);
     }
 
     ctx->flags = orig_flags;
@@ -2368,9 +2368,9 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_release_walk_cb(pb_walk_state_t *state)
     return PB_WALK_OUT;
 }
 
-bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, void *dest_struct, size_t struct_size)
 {
-    if (fields->struct_size != struct_size && struct_size > 1)
+    if (msgdesc->struct_size != struct_size && struct_size > 1)
     {
         if (ctx) PB_SET_ERROR(ctx, "struct_size mismatch");
         return false;
@@ -2382,20 +2382,20 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_s
     pb_walk_state_t state;
     PB_WALK_DECLARE_STACKBUF(PB_RELEASE_INITIAL_STACKSIZE) stackbuf;
 
-    (void)pb_walk_init(&state, fields, dest_struct, PB_WALK_CB(pb_release_walk_cb));
+    (void)pb_walk_init(&state, msgdesc, dest_struct, PB_WALK_CB(pb_release_walk_cb));
     PB_WALK_SET_STACKBUF(&state, stackbuf);
     state.ctx = ctx;
 
     return pb_walk(&state);
 }
 #else
-bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields, void *dest_struct, size_t struct_size)
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, void *dest_struct, size_t struct_size)
 {
     /* Nothing to release without PB_ENABLE_MALLOC. */
     PB_UNUSED(ctx);
     PB_UNUSED(dest_struct);
 
-    if (fields->struct_size != struct_size && struct_size > 1)
+    if (msgdesc->struct_size != struct_size && struct_size > 1)
     {
         if (ctx) PB_SET_ERROR(ctx, "struct_size mismatch");
         return false;

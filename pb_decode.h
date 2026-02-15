@@ -165,9 +165,9 @@ struct pb_decode_ctx_s
  * and the check will be skipped. The actual object at dest_struct must
  * still match the field descriptor.
  */
-bool pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+bool pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                  void *dest_struct, size_t struct_size);
-bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                   void *dest_struct, size_t struct_size);
 
 /* Decode a single protocol buffers message from input stream into a C structure.
@@ -186,7 +186,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  *    pb_init_decode_ctx_for_buffer(&ctx, buffer, count);
  *    pb_decode(&ctx, MyMessage_fields, &msg);
  */
-#define pb_decode(ctx, fields, dest_struct) pb_decode_s(ctx, fields, dest_struct, sizeof(*dest_struct))
+#define pb_decode(ctx, msgdesc, dest_struct) pb_decode_s(ctx, msgdesc, dest_struct, sizeof(*dest_struct))
 
 /* Release any allocated pointer fields. If you use dynamic allocation, you should
  * call this for any successfully decoded message when you are done with it. If
@@ -195,7 +195,7 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
  * If ctx is not NULL, releasing uses the allocator defined in the context.
  * If ctx is NULL or ctx->allocator is NULL, default allocator is used.
  */
-#define pb_release(ctx, fields, dest_struct) pb_release_s(ctx, fields, dest_struct, sizeof(*dest_struct))
+#define pb_release(ctx, msgdesc, dest_struct) pb_release_s(ctx, msgdesc, dest_struct, sizeof(*dest_struct))
 
 /**************************************
  * Functions for manipulating streams *
@@ -367,12 +367,12 @@ static inline bool pb_close_string_substream(pb_istream_t *stream, pb_istream_t 
  *
  * Multiple flags can be combined with bitwise or (| operator)
  */
-static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields,
+static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                                 void *dest_struct, pb_decode_ctx_flags_t flags)
 {
     pb_decode_ctx_flags_t old_flags = ctx->flags;
     ctx->flags |= flags;
-    bool status = pb_decode_s(ctx, fields, dest_struct, 0);
+    bool status = pb_decode_s(ctx, msgdesc, dest_struct, 0);
     ctx->flags = old_flags;
     return status;
 }
@@ -382,14 +382,14 @@ static inline bool pb_decode_ex(pb_decode_ctx_t *ctx, const pb_msgdesc_t *fields
 #undef pb_release
 /* Compatibility macro for old prototype of pb_release() that didn't take context argument.
  * This can be called as either
- *        pb_release(fields, dest_struct);       (old API, uses default allocator)
+ *        pb_release(msgdesc, dest_struct);       (old API, uses default allocator)
  * or
- *        pb_release(ctx, fields, dest_struct);  (new API, ctx can be NULL)
+ *        pb_release(ctx, msgdesc, dest_struct);  (new API, ctx can be NULL)
  */
 #define pb_release(...) PB_EXPAND(pb_release_varmacro(__VA_ARGS__, pb_release3, pb_release2)(__VA_ARGS__))
 #define pb_release_varmacro(PB_ARG1, PB_ARG2, PB_ARG3, PB_MACRONAME, ...) PB_MACRONAME
-#define pb_release2(fields, dest_struct) pb_release_s(NULL, fields, dest_struct, sizeof(*dest_struct))
-#define pb_release3(ctx, fields, dest_struct) pb_release_s(ctx, fields, dest_struct, sizeof(*dest_struct))
+#define pb_release2(msgdesc, dest_struct) pb_release_s(NULL, msgdesc, dest_struct, sizeof(*dest_struct))
+#define pb_release3(ctx, msgdesc, dest_struct) pb_release_s(ctx, msgdesc, dest_struct, sizeof(*dest_struct))
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
 #define pb_decode_noinit(s,f,d) pb_decode_ex(s,f,d, PB_DECODE_NOINIT)

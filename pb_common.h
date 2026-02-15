@@ -13,14 +13,14 @@ extern "C" {
 
 /* Initialize the field iterator structure to beginning.
  * Returns false if the message type is empty. */
-bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *message);
+bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *msgdesc, void *message);
 
 /* Same as pb_field_iter_begin(), but for const message pointer.
  * Note that the pointers in pb_field_iter_t will be non-const but shouldn't
  * be written to when using these functions. */
-static inline bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *desc, const void *message)
+static inline bool pb_field_iter_begin_const(pb_field_iter_t *iter, const pb_msgdesc_t *msgdesc, const void *message)
 {
-    return pb_field_iter_begin(iter, desc, PB_CONST_CAST(message));
+    return pb_field_iter_begin(iter, msgdesc, PB_CONST_CAST(message));
 }
 
 /* Advance the iterator to the next field.
@@ -165,7 +165,7 @@ struct pb_walk_state_s {
  * After this the caller can modify fields in state before calling pb_walk().
  * Returns false for empty message types.
  */
-bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback);
+bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *msgdesc, const void *message, pb_walk_cb_t callback);
 
 /* Perform a recursive tree walking operation.
  * Each time the callback is called it returns a direction:
@@ -201,9 +201,9 @@ bool pb_walk(pb_walk_state_t *state);
 /* Override the message pb_walk() with walk into, when PB_WALK_IN is next returned.
  * This should only be called from within pb_walk() callback function.
  */
-static inline pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *desc, void *message)
+static inline pb_walk_retval_t pb_walk_into(pb_walk_state_t *state, const pb_msgdesc_t *msgdesc, void *message)
 {
-    state->iter.submsg_desc = desc;
+    state->iter.submsg_desc = msgdesc;
     state->iter.pData = message;
     return PB_WALK_IN;
 }

@@ -193,19 +193,19 @@ static bool load_descriptor_values(pb_field_iter_t *iter)
 
 // Get field type without loading rest of the descriptor
 // All field info formats have type in highest 8 bits of second word
-static inline pb_type_t get_type_quick(const pb_msgdesc_t *descriptor, pb_fieldidx_t field_info_index)
+static inline pb_type_t get_type_quick(const pb_msgdesc_t *msgdesc, pb_fieldidx_t field_info_index)
 {
-    uint32_t word1 = PB_PROGMEM_READU32(descriptor->field_info[field_info_index + 1]);
+    uint32_t word1 = PB_PROGMEM_READU32(msgdesc->field_info[field_info_index + 1]);
     return (pb_type_t)(word1 >> 24);
 }
 
 // Get field tag without loading rest of the descriptor
-static inline pb_tag_t get_tag_quick(const pb_msgdesc_t *descriptor, pb_fieldidx_t field_info_index)
+static inline pb_tag_t get_tag_quick(const pb_msgdesc_t *msgdesc, pb_fieldidx_t field_info_index)
 {
-    uint32_t word0 = PB_PROGMEM_READU32(descriptor->field_info[field_info_index]);
+    uint32_t word0 = PB_PROGMEM_READU32(msgdesc->field_info[field_info_index]);
 
 #if !PB_NO_LARGEMSG
-    if (descriptor->msg_flags & PB_MSGFLAG_LARGEDESC)
+    if (msgdesc->msg_flags & PB_MSGFLAG_LARGEDESC)
         return (pb_tag_t)(word0 & 0x1FFFFFFF);
     else
 #endif
@@ -248,15 +248,15 @@ static void advance_iterator(pb_field_iter_t *iter, bool wrap)
     }
 }
 
-bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *desc, void *message)
+bool pb_field_iter_begin(pb_field_iter_t *iter, const pb_msgdesc_t *msgdesc, void *message)
 {
     memset(iter, 0, sizeof(*iter));
 
 #if PB_NO_LARGEMSG
-    PB_OPT_ASSERT(!(desc->msg_flags & PB_MSGFLAG_LARGEDESC));
+    PB_OPT_ASSERT(!(msgdesc->msg_flags & PB_MSGFLAG_LARGEDESC));
 #endif
 
-    iter->descriptor = desc;
+    iter->descriptor = msgdesc;
     iter->message = message;
 
     return load_descriptor_values(iter);
@@ -440,7 +440,7 @@ bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx,
 }
 #endif
 
-bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *message, pb_walk_cb_t callback)
+bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *msgdesc, const void *message, pb_walk_cb_t callback)
 {
     state->callback = callback;
     state->stack = NULL;
@@ -457,7 +457,7 @@ bool pb_walk_init(pb_walk_state_t *state, const pb_msgdesc_t *desc, const void *
     state->errmsg = NULL;
 #endif
 
-    return pb_field_iter_begin_const(&state->iter, desc, message);
+    return pb_field_iter_begin_const(&state->iter, msgdesc, message);
 }
 
 static bool pb_walk_recurse(pb_walk_state_t *state)
