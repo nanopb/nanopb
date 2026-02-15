@@ -41,7 +41,7 @@ an .options file with the same name as your .proto file:
     Foo.name max_size:16
 
 For more information on this, see the [Proto file
-options](reference.html#proto-file-options) section in the reference
+options](reference_generator.md#proto-file-options) section in the reference
 manual.
 
 ## Streams
@@ -240,7 +240,7 @@ the callback function when it gets to the specific field in the message.
 Your code can then handle the field in custom ways, for example decode
 the data piece-by-piece and store to filesystem.
 
-The [pb_callback_t](reference.html#pb-callback-t) structure contains a
+The [pb_callback_t](reference_pb_h.md#pb-callback-t) structure contains a
 function pointer and a `void` pointer called `arg` you can use for
 passing data to the callback. If the function pointer is NULL, the field
 will be skipped. A pointer to the `arg` is passed to the function, so
@@ -269,14 +269,14 @@ the wire type and field number tag. It can write as many or as few
 fields as it likes. For example, if you want to write out an array as
 `repeated` field, you should do it all in a single call.
 
-Usually you can use [pb_encode_tag_for_field](reference.html#pb-encode-tag-for-field) to
+Usually you can use [pb_encode_tag_for_field](reference_pb_encode_h.md#pb-encode-tag-for-field) to
 encode the wire type and tag number of the field. However, if you want
 to encode a repeated field as a packed array, you must call
-[pb_encode_tag](reference.html#pb-encode-tag) instead to specify a
+[pb_encode_tag](reference_pb_encode_h.md#pb-encode-tag) instead to specify a
 wire type of `PB_WT_STRING`.
 
 If the callback is used in a submessage, it will be called multiple
-times during a single call to [pb_encode](reference.html#pb-encode). In
+times during a single call to [pb_encode](reference_pb_encode_h.md#pb-encode). In
 this case, it must produce the same amount of data every time. If the
 callback is directly in the main message, it is called only once.
 
@@ -308,7 +308,7 @@ parsed, and is available at `stream->bytes_left`.
 
 The callback will be called multiple times for repeated fields. For
 packed fields, you can either read multiple values until the stream
-ends, or leave it to [pb_decode](reference.html#pb-decode) to call your
+ends, or leave it to [pb_decode](reference_pb_decode_h.md#pb-decode) to call your
 function over and over until all values have been read.
 
 This callback reads multiple integers and prints them:
