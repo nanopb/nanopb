@@ -62,10 +62,11 @@ typedef int bool;
 #endif
 
 /* stdlib.h subset */
-#ifdef PB_ENABLE_MALLOC
+#if !PB_NO_MALLOC
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #else
+// Function implementations need to be provided by user code
 void *realloc(void *ptr, size_t size);
 void free(void *ptr);
 #endif
@@ -106,6 +107,32 @@ static void * memset( void * s, int c, size_t n )
         *p++ = (unsigned char) c;
     }
     return s;
+}
+
+static void * memmove( void * s1, const void * s2, size_t n )
+{
+    char * dest = ( char * ) s1;
+    const char * src = ( const char * ) s2;
+
+    if ( dest <= src )
+    {
+        while ( n-- )
+        {
+            *dest++ = *src++;
+        }
+    }
+    else
+    {
+        src += n;
+        dest += n;
+
+        while ( n-- )
+        {
+            *--dest = *--src;
+        }
+    }
+
+    return s1;
 }
 #endif
 
