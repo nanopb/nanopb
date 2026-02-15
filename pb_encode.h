@@ -159,9 +159,9 @@ struct pb_encode_ctx_s
  * If you need to handle void pointers without knowing the size,
  * you can call pb_encode_s() directly with struct_size = 0.
  */
-bool pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+bool pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                  const void *src_struct, size_t struct_size);
-bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
+bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *msgdesc,
                            const void *src_struct, size_t struct_size);
 
 /* Encode a single protocol buffers message from C structure into a stream.
@@ -176,13 +176,13 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
  *
  *    msg.field1 = 42;
  *    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
- *    pb_encode(&stream, MyMessage_fields, &msg);
+ *    pb_encode(&stream, &MyMessage_msg, &msg);
  */
-#define pb_encode(ctx, fields, src_struct) pb_encode_s(ctx, fields, src_struct, sizeof(*src_struct))
+#define pb_encode(ctx, msgdesc, src_struct) pb_encode_s(ctx, msgdesc, src_struct, sizeof(*src_struct))
 
 /* Encode the message to get the size of the encoded data, but do not store
  * the data. */
-#define pb_get_encoded_size(size, fields, src_struct) pb_get_encoded_size_s(size, fields, src_struct, sizeof(*src_struct))
+#define pb_get_encoded_size(size, msgdesc, src_struct) pb_get_encoded_size_s(size, msgdesc, src_struct, sizeof(*src_struct))
 
 /**************************************
  * Functions for manipulating streams *
@@ -277,7 +277,7 @@ bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value);
  * the submessage and writes the length prefix (using either one-pass or
  * two-pass approach).
  */
-bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct);
+bool pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, const void *src_struct);
 
 /* API compatibility defines for code written before nanopb-1.0.0 */
 #if PB_API_VERSION < PB_API_VERSION_v1_0
@@ -301,12 +301,12 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
  *                           protobuf API.
  */
 #define PB_ENCODE_DELIMITED       PB_ENCODE_CTX_FLAG_DELIMITED
-static inline bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+static inline bool pb_encode_ex(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
     const void *src_struct, pb_encode_ctx_flags_t flags)
 {
     pb_encode_ctx_flags_t old_flags = ctx->flags;
     ctx->flags |= flags;
-    bool status = pb_encode_s(ctx, fields, src_struct, 0);
+    bool status = pb_encode_s(ctx, msgdesc, src_struct, 0);
     ctx->flags = old_flags;
     return status;
 }

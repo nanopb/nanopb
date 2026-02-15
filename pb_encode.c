@@ -854,17 +854,17 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_encode_walk_cb(pb_walk_state_t *state)
     return retval;
 }
 
-bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
+bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                              const void *src_struct, size_t struct_size)
 {
     // Error in struct_size is typically caused by forgetting to rebuild .pb.c file
     // or by it having different compilation options.
     // NOTE: On GCC, sizeof(*(void*)) == 1
-    if (fields->struct_size != struct_size && struct_size > 1)
+    if (msgdesc->struct_size != struct_size && struct_size > 1)
         PB_RETURN_ERROR(ctx, "struct_size mismatch");
 
     pb_walk_state_t state;
-    (void)pb_walk_init(&state, fields, src_struct, PB_WALK_CB(pb_encode_walk_cb));
+    (void)pb_walk_init(&state, msgdesc, src_struct, PB_WALK_CB(pb_encode_walk_cb));
 
     PB_WALK_DECLARE_STACKBUF(PB_ENCODE_INITIAL_STACKSIZE) stackbuf;
     PB_WALK_SET_STACKBUF(&state, stackbuf);
@@ -901,13 +901,13 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields,
     return pb_flush_write_buffer(ctx);
 }
 
-bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *fields,
+bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *msgdesc,
                 const void *src_struct, size_t struct_size)
 {
     pb_encode_ctx_t ctx;
     pb_init_encode_ctx_sizing(&ctx);
     
-    if (!pb_encode_s(&ctx, fields, src_struct, struct_size))
+    if (!pb_encode_s(&ctx, msgdesc, src_struct, struct_size))
         return false;
     
     *size = (size_t)ctx.bytes_written;
@@ -1085,7 +1085,7 @@ bool checkreturn pb_encode_string(pb_encode_ctx_t *ctx, const pb_byte_t *buffer,
     return pb_write(ctx, buffer, size);
 }
 
-bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *fields, const void *src_struct)
+bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, const void *src_struct)
 {
     bool status;
 
@@ -1098,7 +1098,7 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
         uint32_t old_flags = state->flags;
         state->flags = PB_ENCODE_WALK_STATE_FLAG_START_SUBMSG;
         state->iter.pData = PB_CONST_CAST(src_struct);
-        state->iter.submsg_desc = fields;
+        state->iter.submsg_desc = msgdesc;
         state->retval = PB_WALK_IN;
         state->depth += 1;
         state->next_stacksize = sizeof(pb_encode_walk_stackframe_t);
@@ -1118,7 +1118,7 @@ bool checkreturn pb_encode_submessage(pb_encode_ctx_t *ctx, const pb_msgdesc_t *
         // Go through normal pb_encode() to allocate a new walk state
         pb_encode_ctx_flags_t old_flags = ctx->flags;
         ctx->flags |= PB_ENCODE_CTX_FLAG_DELIMITED;
-        status = pb_encode_s(ctx, fields, src_struct, 0);
+        status = pb_encode_s(ctx, msgdesc, src_struct, 0);
         ctx->flags = old_flags;
     }
 
