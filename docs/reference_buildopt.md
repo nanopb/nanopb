@@ -8,8 +8,9 @@ The options can be specified in one of two ways:
 
 You can find a list of all the flags in the beginning of `pb.h`, or in the `pb_config_example.h` file.
 
-> **NOTE:** You must have the same compilation options for the nanopb library and all code that
-includes nanopb headers. [ABI](https: en.wikipedia.org/wiki/Application_binary_interface) compatibility is only tested for the fully-featured default configuration.
+> [!NOTE]
+> You must have the same compilation options for the nanopb library and all code that
+includes nanopb headers. [ABI](https://en.wikipedia.org/wiki/Application_binary_interface) compatibility is only tested for the fully-featured default configuration.
 
 ## API version compatibility flag
 
@@ -184,7 +185,7 @@ returned.
   can be processed by dynamically allocating more stack space.
 
 * `PB_WALK_STACK_SIZE`: Block size of recursive memory reservation.
-  Once the initial stack allocation is exhausted, [pb_walk()](reference_pb_common_h.md) will
+  Once the initial stack allocation is exhausted, `pb_walk()` will
   reserve more stack in blocks of this many bytes.
 
 * `PB_MAX_REQUIRED_FIELDS`: Expected number of required fields per message.

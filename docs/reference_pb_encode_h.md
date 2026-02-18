@@ -2,6 +2,8 @@
 
 ## Output stream management
 
+### pb_encode_ctx_t
+
 ### pb_ostream_from_buffer
 
 Constructs an output stream for writing into a memory buffer. It uses an internal callback that

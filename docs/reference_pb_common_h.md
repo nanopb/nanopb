@@ -45,6 +45,10 @@ Find a field specified by tag number in the message:
 This function is functionally identical to calling `pb_field_iter_next()` until `iter.tag` equals the searched value.
 Internally this function avoids fully processing the descriptor for intermediate fields.
 
+## Message hierarchy processing
+
+## pb_walk
+
 ## Other utility functions
 
 ### pb_validate_utf8
