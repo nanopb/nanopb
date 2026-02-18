@@ -2,6 +2,8 @@
 
 ## Input stream management
 
+### pb_decode_ctx_t
+
 ### pb_istream_from_buffer
 
 Helper function for creating an input stream that reads data from a
