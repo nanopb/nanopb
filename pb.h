@@ -10,6 +10,18 @@
 #define PB_HDRNAME2(x) #x
 #define PB_HDRNAME(x) PB_HDRNAME2(x)
 
+/* Configuration options can be defined in a pb_config.h file.
+ * On most compilers its existence can be automatically detected,
+ * but otherwise you can declare PB_CONFIG_HEADER_NAME.
+ */
+#if defined(PB_CONFIG_HEADER_NAME)
+#include PB_HDRNAME(PB_CONFIG_HEADER_NAME)
+#elif defined(__has_include)
+# if __has_include("pb_config.h")
+#  include "pb_config.h"
+# endif
+#endif
+
 /* Include all the system headers needed by nanopb. You will need the
  * definitions of the following:
  * - strlen, memcpy, memmove, memset functions
@@ -17,6 +29,8 @@
  * - size_t
  * - bool
  * - realloc() and free() unless PB_NO_DEFAULT_ALLOCATOR is defined
+ *
+ * There is an example implementation in extra/pb_syshdr.h
  *
  * If you don't have the standard header files, you can instead provide
  * a custom header that defines or includes all this.
@@ -46,18 +60,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#endif
-
-/* Configuration options can be defined in a pb_config.h file.
- * On most compilers its existence can be automatically detected,
- * but otherwise you can declare PB_CONFIG_HEADER_NAME.
- */
-#if defined(PB_CONFIG_HEADER_NAME)
-#include PB_HDRNAME(PB_CONFIG_HEADER_NAME)
-#elif defined(__has_include)
-# if __has_include("pb_config.h")
-#  include "pb_config.h"
-# endif
 #endif
 
 /* Extra include file that can be used to provide e.g. default
