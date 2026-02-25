@@ -17,6 +17,11 @@
  * Features can then be enabled by defining PB_NO_xxxx to 0.     *
  *****************************************************************/
 
+// PB_SYSTEM_HEADER: Instead of standard C system headers such as
+// stdint.h, include a user defined header file. For an example
+// implementation, see extra/pb_syshdr.h
+
+// #define PB_SYSTEM_HEADER "myhdr.h"
 
 // PB_API_VERSION: API compatibility level for old code.
 // This enables macros that ease porting of code written for older

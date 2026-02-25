@@ -24,6 +24,7 @@ typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef signed long long int64_t;
 typedef unsigned long long uint64_t;
+typedef uint64_t uintptr_t;
 
 /* These are ok for most platforms, unless uint8_t is actually not available,
  * in which case you should give the smallest available type. */
@@ -32,6 +33,7 @@ typedef uint8_t uint_least8_t;
 typedef uint8_t uint_fast8_t;
 typedef int16_t int_least16_t;
 typedef uint16_t uint_least16_t;
+
 #endif
 
 /* stddef.h subset */
