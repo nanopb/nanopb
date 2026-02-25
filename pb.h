@@ -594,7 +594,7 @@ typedef unsigned char pb_byte_t;
  *    Bits 6-7: Allocation type (PB_ATYPE_*)
  *    Bits 8-10: Reserved
  */
-typedef uint16_t pb_type_t;
+typedef uint_least16_t pb_type_t;
 
 /**** Field data types ****/
 
@@ -670,7 +670,7 @@ typedef uint16_t pb_type_t;
     typedef uint32_t pb_tag_t;
 #endif
 
-/* Data type used for storing field sizes and array counts.
+/* Data type used for storing stream, field and array sizes.
  * If large descriptor is disabled, all messages are limited to max 4 kB
  * and we can use 16-bit size type.
  */
@@ -924,7 +924,8 @@ struct pb_allocator_s {
     // Release previously allocated memory
     void (*free)(pb_allocator_t *actx, void *ptr);
 
-    // Free pointer that can be used by realloc/free implementation
+    // Free pointer that can be used by realloc/free implementation.
+    // Not modified or used by nanopb.
     void *state;
 };
 #endif /* !PB_NO_CONTEXT_ALLOCATOR */

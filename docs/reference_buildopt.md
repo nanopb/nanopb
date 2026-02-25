@@ -12,6 +12,19 @@ You can find a list of all the flags in the beginning of `pb.h`, or in the `pb_c
 > You must have the same compilation options for the nanopb library and all code that
 includes nanopb headers. [ABI](https://en.wikipedia.org/wiki/Application_binary_interface) compatibility is only tested for the fully-featured default configuration.
 
+## System and configuration header names
+
+If the compiler supports `__has_include()` preprocessor directive, nanopb will automatically include a file named `pb_config.h` if it exists. There is an example [pb_config_example.h](pb_config_example.h) that you
+can copy to your own project.
+
+Alternatively you can define `PB_CONFIG_HEADER_NAME` to the name of a configuration header you want to include.
+For example, you can use compiler command line argument `-DPB_CONFIG_HEADER_NAME=my_nanopb_config.h`.
+
+By default nanopb includes the standard C headers such as `stdint.h` and `string.h`.
+Alternatively `PB_SYSTEM_HEADER` or `PB_SYSTEM_HEADER_NAME` can be specified to provide a custom header which provides the necessary definitions.
+
+The `PB_SYSTEM_HEADER` value must include brackets or quotes around the text, while `PB_SYSTEM_HEADER_NAME` adds quotes automatically. The latter is easier to set from compiler command line parameters, as the command line shell may eat the quotes.
+
 ## API version compatibility flag
 
 Backwards compatibility functions and macros have been included to ease porting user code from older nanopb versions to the 1.0 version.
