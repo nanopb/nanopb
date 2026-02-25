@@ -620,3 +620,7 @@ Common reasons for static assertion errors are:
     compile time. Try setting the compiler to C11 standard mode if possible.
     If static assertions cannot be made to work on the compiler used, the
     compile-time option `PB_NO_STATIC_ASSERT` can be specified to turn them off.
+
+### Extensible structures
+
+TODO: Describe how `pb_encode_ctx_t`, `pb_allocator_t` etc. can be extended.
