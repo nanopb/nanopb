@@ -160,7 +160,7 @@ struct pb_encode_ctx_s
  */
 bool pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
                  const void *src_struct, size_t struct_size);
-bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *msgdesc,
+bool pb_get_encoded_size_s(pb_size_t *size, const pb_msgdesc_t *msgdesc,
                            const void *src_struct, size_t struct_size);
 
 /* Encode a single protocol buffers message from C structure into a stream.
