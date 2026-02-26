@@ -1558,6 +1558,20 @@ static bool decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type
 }
 #endif
 
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+static pb_type_t get_type_for_unknown_field(pb_wire_type_t wire_type)
+{
+    switch (wire_type)
+    {
+        case PB_WT_32BIT: return (PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | PB_LTYPE_FIXED32);
+        case PB_WT_64BIT: return (PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | PB_LTYPE_FIXED64);
+        case PB_WT_VARINT: return (PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | PB_LTYPE_VARINT);
+        case PB_WT_STRING:
+        default:           return (PB_ATYPE_CALLBACK | PB_HTYPE_OPTIONAL | PB_LTYPE_BYTES);
+    }
+}
+#endif
+
 static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *state)
 {
     pb_field_iter_t *field = &state->iter;
@@ -1772,13 +1786,32 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
         pb_extension_t *extension = NULL;
         if (!pb_field_iter_find(iter, tag, &extension))
         {
-            // Discard the input data for this field
-            if (!pb_skip_field(ctx, wire_type))
+#if !PB_NO_CONTEXT_FIELD_CALLBACK
+            if (ctx->field_callback)
             {
-                return PB_WALK_EXIT_ERR;
+                // Create a fake callback field that matches the unknown field,
+                // so that we can pass it to the field callback. If the callback
+                // does not handle the field, it gets skipped by
+                // decode_callback_field().
+                iter->tag = tag;
+                iter->type = get_type_for_unknown_field(wire_type);
+                iter->submsg_desc = NULL;
+                iter->index = iter->descriptor->field_count;
+                iter->pData = iter->pField = iter->pSize = NULL;
+                iter->data_size = 0;
+                iter->array_size = 0;
             }
+            else
+#endif
+            {
+                // Discard the input data for this field
+                if (!pb_skip_field(ctx, wire_type))
+                {
+                    return PB_WALK_EXIT_ERR;
+                }
 
-            continue;
+                continue;
+            }
         }
 
         if (extension)
