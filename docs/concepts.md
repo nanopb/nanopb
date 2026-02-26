@@ -567,6 +567,7 @@ means failure.
 
 The encoding and decoding contexts have a `errmsg` variable for a textual error message.
 This is meant primarily as a debugging aid, and can be disabled with the build option `PB_NO_ERRMSG`.
+There are helper macros `PB_GET_ERROR`, `PB_SET_ERROR` and `PB_RETURN_ERROR` for accessing the `errmsg` member variable.
 
 Common error messages are:
 
