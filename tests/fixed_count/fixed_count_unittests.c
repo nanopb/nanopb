@@ -54,7 +54,7 @@ int main()
 
       pb_init_decode_ctx_for_buffer(&stream, input, 4);
       TEST(!pb_decode(&stream, Message1_fields, &msg));
-      TEST(COMPARE_ERRMSG(&stream, "wrong size for fixed count field"));
+      TEST(COMPARE_ERRMSG(&stream, "fixed_count mismatch"));
     }
 
     {
