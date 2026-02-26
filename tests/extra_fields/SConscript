@@ -2,15 +2,24 @@
 
 Import("env")
 
+# Test that fields get correctly skipped when decoding from buffer
 dec = env.GetBuildPath('$BUILD/basic_buffer/${PROGPREFIX}decode_buffer${PROGSUFFIX}')
 env.RunTest('person_with_extra_field.output', [dec, "person_with_extra_field.pb"])
 env.Compare(["person_with_extra_field.output", "person_with_extra_field.expected"])
 
+# Test that fields get correctly skipped when decoding from stream
 if not env.HasFlag('PB_NO_STREAM_CALLBACK'):
     dec = env.GetBuildPath('$BUILD/basic_stream/${PROGPREFIX}decode_stream${PROGSUFFIX}')
     env.RunTest('person_with_extra_field_stream.output', [dec, "person_with_extra_field.pb"])
     env.Compare(["person_with_extra_field_stream.output", "person_with_extra_field.expected"])
 
+# Test that unknown fields can be handled by context field callback
+if not env.HasFlag('PB_NO_CONTEXT_FIELD_CALLBACK') and not env.HasFlag('PB_NO_STREAM_CALLBACK'):
+    dec2 = env.Program(["decode_extra_fields.c", "$COMMON/person.pb.c", env['NANOPB_DECODER_OBJS']])
+    env.RunTest('decode_extra_fields.output', [dec2, 'person_with_extra_field.pb'])
+    env.Compare(['decode_extra_fields.output', 'decode_extra_fields.expected'])
+
+# Test with the larger, AllTypes message.
 # This uses the backwards compatibility alltypes test, so that
 # alltypes_with_extra_fields.pb doesn't have to be remade so often.
 dec2 = env.GetBuildPath('$BUILD/backwards_compatibility/${PROGPREFIX}decode_legacy${PROGSUFFIX}')

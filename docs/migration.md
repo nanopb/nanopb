@@ -104,11 +104,13 @@ of fields, the option `sort_by_tag = true` can be used to restore old behavior.
 
 **Rationale:** Previously extension fields used extra `pb_extension_type_t`
 indirection level. This was rarely used, not well-tested and is overlapping
-in functionality with the new context-based callback mechanism that will be added.
+in functionality with the new context-based callback mechanism.
 
 **Changes:** Only automatically generated extension types are supported.
 
-**Required actions:** **TODO:** Document how to migrate to new context callback.
+**Required actions:** If custom extension field callback function was used,
+it can be converted to a context field callback. Any unknown fields are passed
+to the context field callback. See [tests/extra_fields/decode_extra_fields.c](../tests/extra_fields/decode_extra_fields.c).
 
 ### Structure size check in functions
 

@@ -1,0 +1,16 @@
+Got unknown field with tag 42, type 0x56, length 5
+Got unknown field with tag 14, type 0x56, length 32
+name: "Test Person 99"
+id: 99
+email: "test@person.com"
+phone {
+  number: "555-12345678"
+  type: MOBILE
+}
+phone {
+  number: "99-2342"
+}
+phone {
+  number: "1234-5678"
+  type: WORK
+}
