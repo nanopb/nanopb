@@ -104,6 +104,7 @@ can be used for encoding and decoding the field data:
 | `PB_LTYPE_SVARINT`               |0x03   |Integer, zigzag encoded.
 | `PB_LTYPE_FIXED32`               |0x04   |32-bit integer or floating point.
 | `PB_LTYPE_FIXED64`               |0x05   |64-bit integer or floating point.
+| `PB_LTYPE_LAST_PACKABLE`         |0x05   |LTYPEs up to this can be stored in a [packed](https://protobuf.dev/programming-guides/encoding/#packed) array
 | `PB_LTYPE_BYTES`                 |0x06   |Structure with `pb_size_t` field and byte array.
 | `PB_LTYPE_STRING`                |0x07   |Null-terminated string.
 | `PB_LTYPE_SUBMESSAGE`            |0x08   |Submessage structure.
