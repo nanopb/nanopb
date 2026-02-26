@@ -54,6 +54,13 @@ stream callbacks the only difference is used of `pb_size_t` instead of `size_t` 
 **Required actions:** Update any custom input stream callbacks to follow the specification
 given in `pb_decode.h` comments.
 
+### Initialization of encoding sizing streams changed
+
+**Changes:** Previously a `pb_ostream_t` initialized to zero values, such as with `= {}`,
+acted as a sizing stream. Now the flags and max_size have to be set.
+
+**Required actions:** Use `pb_init_encode_ctx_sizing()` to initialize the encoding context before a size calculating operation.
+
 ### Built-in support for null-terminated streams is removed
 
 **Rationale:** Previously nanopb implemented an option to terminate decoding on a null byte.

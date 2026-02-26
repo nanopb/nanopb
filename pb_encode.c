@@ -103,6 +103,7 @@ void pb_init_encode_ctx_sizing(pb_encode_ctx_t *ctx)
 {
     memset(ctx, 0, sizeof(pb_encode_ctx_t));
     ctx->flags = PB_ENCODE_CTX_FLAG_SIZING;
+    ctx->max_size = PB_SIZE_MAX;
 }
 
 #if !PB_NO_STREAM_CALLBACK
@@ -157,20 +158,16 @@ bool checkreturn pb_write(pb_encode_ctx_t *ctx, const pb_byte_t *buf, pb_size_t 
         return true;
 
     pb_size_t new_bytes_written = ctx->bytes_written + count;
-    if (new_bytes_written < ctx->bytes_written)
+    if (new_bytes_written < ctx->bytes_written ||
+        new_bytes_written > ctx->max_size)
     {
-        PB_RETURN_ERROR(ctx, "stream full"); // pb_size_t overflow
+        PB_RETURN_ERROR(ctx, "stream full");
     }
 
     if (ctx->flags & PB_ENCODE_CTX_FLAG_SIZING)
     {
         ctx->bytes_written = new_bytes_written;
         return true;
-    }
-
-    if (new_bytes_written > ctx->max_size)
-    {
-        PB_RETURN_ERROR(ctx, "stream full");
     }
 
 #if PB_NO_STREAM_CALLBACK

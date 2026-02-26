@@ -290,7 +290,7 @@ static inline pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize
 }
 
 /* PB_OSTREAM_SIZING has been replaced by pb_init_encode_ctx_sizing() */
-#define PB_OSTREAM_SIZING {PB_ENCODE_CTX_FLAG_SIZING, 0, 0, NULL, NULL}
+#define PB_OSTREAM_SIZING {PB_ENCODE_CTX_FLAG_SIZING, PB_SIZE_MAX, 0, NULL, NULL}
 
 /* Extended version of pb_encode, with options to control the
  * encoding process:
