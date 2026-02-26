@@ -65,11 +65,16 @@ function linkifyCodeElements(headingMap) {
         var originalHTML = codeEl.innerHTML;
 
         // Replace whole words only
+        var skip = false;
         var replacedHTML = originalHTML.replace(/\b([A-Za-z0-9_]+)(?!\.[hc])\b/g, function (match) {
             var lmatch = match.toLowerCase();
             if (headingMap.hasOwnProperty(lmatch)) {
                 var prev_hdr = findHeaderBackwards(codeEl)
-                if (prev_hdr.id != lmatch)
+                if (prev_hdr.id == lmatch)
+                {
+                    skip = true;
+                }
+                else
                 {
                     var url = headingMap[lmatch];
                     return '<a href="' + url + '" title="API Reference for ' + match + '">' + match + '</a>';
@@ -81,7 +86,7 @@ function linkifyCodeElements(headingMap) {
         if (replacedHTML !== originalHTML) {
             codeEl.innerHTML = replacedHTML;
         }
-        else
+        else if (!skip)
         {
             // Check if it is just a single identifier that we can add a search link for
             var text = originalHTML.trim();
