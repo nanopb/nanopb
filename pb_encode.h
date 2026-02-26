@@ -121,9 +121,8 @@ struct pb_encode_ctx_s
 
 #if !PB_NO_STREAM_CALLBACK
     // Optional callback function for writing to output directly, instead
-    // of the memory buffer. Stream_state is a free field for use by the callback.
-    // It's also allowed to extend the pb_encode_ctx_t struct with your own
-    // fields by wrapping it.
+    // of the memory buffer. The callback can use stream_callback_state
+    // for its own purposes, it is not modified by nanopb.
     pb_encode_ctx_write_callback_t stream_callback;
     void *stream_callback_state;
 
