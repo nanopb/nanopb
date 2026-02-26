@@ -1,6 +1,6 @@
 # API reference: pb.h
 
-The `pb.h` file contains type and macro definitions shared between nanopb components.
+The [pb.h](../pb.h) file contains type and macro definitions shared between nanopb components.
 It also validates feature enables for preprocessor `#if` directives and includes the needed system headers.
 
 ## Data types
@@ -292,25 +292,40 @@ extensions.
 
 ### PB_GET_ERROR
 
-Get the current error message from a context (which can be `pb_encode_ctx_t` or a `pb_decode_ctx_t`, or a placeholder string if there is no error message:
+Get the current error message from a context, or a placeholder string if there is no error message:
 
     #define PB_GET_ERROR(ctx) (string expression)
 
+The `ctx` can have type `pb_encode_ctx_t*` or `pb_decode_ctx_t*`.
+
+If the error message is not set, `"(none)"` is returned.
+If error messages are disabled with `PB_NO_ERRMSG`, `"(errmsg disabled)"` is returned.
+
 This should be used for printing errors, for example:
 
-    if (!pb_decode(...))
+    if (!pb_decode(&ctx, ...))
     {
-        printf("Decode failed: %s\n", PB_GET_ERROR(ctx));
+        printf("Decode failed: %s\n", PB_GET_ERROR(&ctx));
     }
 
 The macro only returns pointers to constant strings (in code memory), so
 that there is no need to release the returned pointer.
 
+### PB_SET_ERROR
+
+Set the error message if it has not been set yet.
+
+    #define PB_SET_ERROR(ctx, msg) (set errmsg if it is null)
+
+If multiple errors occur (for example IO error followed by failed decoding), the first error message will persist.
+
+The `msg` parameter must be a constant string.
+
 ### PB_RETURN_ERROR
 
-Set the error message and return false:
+Set the error message if it is not already set, and return false:
 
-    #define PB_RETURN_ERROR(ctx, msg) (sets error and returns false)
+    #define PB_RETURN_ERROR(ctx, msg) (PB_SET_ERROR() and returns false)
 
 This should be used to handle error conditions inside nanopb functions
 and user callback functions:
@@ -320,7 +335,7 @@ and user callback functions:
         PB_RETURN_ERROR(ctx, "something went wrong");
     }
 
-The *msg* parameter must be a constant string.
+The `msg` parameter must be a constant string.
 
 ### PB_BIND
 

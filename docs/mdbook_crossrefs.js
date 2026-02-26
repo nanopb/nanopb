@@ -66,11 +66,12 @@ function linkifyCodeElements(headingMap) {
 
         // Replace whole words only
         var replacedHTML = originalHTML.replace(/\b([A-Za-z0-9_]+)(?!\.[hc])\b/g, function (match) {
-            if (headingMap.hasOwnProperty(match)) {
+            var lmatch = match.toLowerCase();
+            if (headingMap.hasOwnProperty(lmatch)) {
                 var prev_hdr = findHeaderBackwards(codeEl)
-                if (prev_hdr.id != match)
+                if (prev_hdr.id != lmatch)
                 {
-                    var url = headingMap[match];
+                    var url = headingMap[lmatch];
                     return '<a href="' + url + '" title="API Reference for ' + match + '">' + match + '</a>';
                 }
             }
@@ -84,7 +85,7 @@ function linkifyCodeElements(headingMap) {
         {
             // Check if it is just a single identifier that we can add a search link for
             var text = originalHTML.trim();
-            const isSingleWord = /^[a-zA-Z][a-zA-Z0-9_]*$/.test(text);
+            const isSingleWord = /^[a-zA-Z][a-zA-Z0-9_\(\)]*$/.test(text);
             const ignored = [
                 'true', 'false', 'bool', 'uint32_t', 'int32_t', 'uint8_t', 'size_t',
                 'float', 'double', '0', 'NULL'
