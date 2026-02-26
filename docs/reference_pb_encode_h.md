@@ -102,7 +102,7 @@ Some of them are automatically set internally, but they can also be set by user 
 
 |                                        |                                                        |
 |----------------------------------------|--------------------------------------------------------|
-| `PB_ENCODE_CTX_FLAG_SIZING`            | Output data is not written, only `bytes_written` is updated. The `max_size` is ignored. This flag is used for calculating the size prefix of submessages before writing the data contents.
+| `PB_ENCODE_CTX_FLAG_SIZING`            | Output data is not written, only `bytes_written` is updated. If `max_size` is exceeded, `pb_write()` will fail. This flag is used for calculating the size prefix of submessages before writing the data contents.
 | `PB_ENCODE_CTX_FLAG_DELIMITED`         | Instructs `pb_encode()` to prefix the message length as a varint. This corresponds to `writeDelimitedTo()` in Google's protobuf API.
 | `PB_ENCODE_CTX_FLAG_ONEPASS_SIZING`    | Writes output data normally to memory buffer while it fits. If `stream_callback` would get called, `pb_write()` will instead set `PB_ENCODE_CTX_FLAG_SIZING` and stop writing data. This permits one-pass size prefix writing when a submessage fits into provided temporary buffer.
 | `PB_ENCODE_CTX_FLAG_NO_VALIDATE_UTF8`  | By default strings are validated to be UTF-8 encoded data. This flag disables the validation. Alternatively `PB_NO_VALIDATE_UTF8` build option can disable it globally.

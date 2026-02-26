@@ -77,6 +77,21 @@ int main()
         TEST(!pb_write(&stream, buffer1, 5));
     }
 #endif
+
+    {
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_sizing(&stream);
+        uint8_t buffer1[] = "xxxxxxx";
+
+        COMMENT("Test sizing streams");
+
+        TEST(pb_write(&stream, buffer1, 3))
+        TEST(stream.bytes_written == 3);
+
+        stream.max_size = 5;
+        TEST(!pb_write(&stream, buffer1, 3));
+        TEST(COMPARE_ERRMSG(&stream, "stream full"));
+    }
     
     {
         uint8_t buffer[30];
