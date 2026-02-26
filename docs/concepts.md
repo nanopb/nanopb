@@ -563,21 +563,52 @@ formats:
 ## Return values and error handling
 
 Most functions in nanopb return bool: `true` means success, `false`
-means failure. There is also support for error messages for
-debugging purposes: the error messages go in `stream->errmsg`.
+means failure.
 
-The error messages help in guessing what is the underlying cause of the
-error. The most common error conditions are:
+The encoding and decoding contexts have a `errmsg` variable for a textual error message.
+This is meant primarily as a debugging aid, and can be disabled with the build option `PB_NO_ERRMSG`.
 
-1)  Invalid protocol buffers binary message.
-2)  Mismatch between binary message and .proto message type.
-3)  Unterminated message (incorrect message length).
-4) Exceeding the max_size or bytes_left of a stream.
-5) Exceeding the max_size/max_count of a string or array field
-6) IO errors in your own stream callbacks.
-7) Errors that happen in your callback functions.
-8) Running out of memory, i.e. stack overflow.
-9) Invalid field descriptors (would usually mean a bug in the generator).
+Common error messages are:
+
+* **"array overflow"**:           Number of array entries exceeds the specified `max_count`.
+* **"bytes overflow"**:           Length of a `bytes` field exceeds the specified `max_size`.
+* **"callback failed"**:          Field callback returned `false` without setting `errmsg`.
+* **"end-of-stream"**:            Input data ended at the middle of a protobuf element.
+* **"failed to set defaults"**:   Internal error when decoding the default value for a field.
+* **"fixed_count mismatch"**:     Decoded length didn't match the size of a `fixed_count` array.
+* **"fixed_length mismatch"**:    Decoded length didn't match a `fixed_length` bytes field.
+* **"invalid data_size"**:        Internal error or using `uint64_t` with `PB_WITHOUT_64BIT` set.
+* **"invalid extension"**:        The `pb_extension_t` in a message did not point to a valid descriptor.
+* **"invalid field type"**:       Internal error or corrupted message descriptor data.
+* **"invalid oneof tag"**:        The value of `which_` for a `oneof` doesn't match any member.
+* **"invalid utf8"**:             String data was not valid UTF-8 encoded text.
+* **"io error"**:                 Stream callback returned `false` without setting `errmsg`.
+* **"max_depth exceeded"**:       Message hierarchy depth exceeded `PB_MESSAGE_NESTING_MAX`.
+* **"missing required field"**:   A field with proto2 `required` specifier was not present in a message.
+* **"no allocator"**:             `PB_NO_DEFAULT_ALLOCATOR` was set and no context allocator was provided.
+* **"no malloc support"**:        `PB_NO_MALLOC` was set and `FT_POINTER` field was being decoded.
+* **"null descriptor"**:          Internal error or corrupted message descriptor data.
+* **"onepass flush"**:            `pb_flush_write_buffer()` call during one-pass sizing (usually internal error).
+* **"realloc failed"**:           Allocator returned `NULL`, typically indicating out-of-memory condition.
+* **"recursion disabled"**:       `PB_NO_RECURSION` is set and `PB_MESSAGE_NESTING` was exceeded.
+* **"size too large"**:           Memory allocation would exceed the limits of `pb_size_t` type.
+* **"sizing failed"**:            Internal error when computing submessage size.
+* **"stackframe too large"**:     Internal error, single frame exceeded `PB_WALK_STACK_SIZE`.
+* **"stream full"**:              Stream `max_size` was hit when encoding.
+* **"string overflow"**:          Length of a `string` field exceeds the specified `max_size`.
+* **"struct_size mismatch"**:     Structure passed to `pb_en/decode()` did not match the descriptor.
+* **"submsg size changed"**:      Field callback wrote different amount of data on second pass.
+* **"unterminated string"**:      C string in the message structure does not have terminating 0-byte.
+* **"varint overflow"**:          Value of decoded `varint` exceeds the limits of the structure field datatype.
+* **"wrong tag"**:                Internal error when decoding a repeated pointer field.
+* **"wrong wire type"**:          Decoded `wire_type` didn't match the expected type of the field.
+* **"zero tag"**:                 Tag number 0 is forbidden in protobuf (maybe `msglen` is wrong?)
+
+Errors that cannot necessarily be detected by nanopb include:
+
+* **Invalid protobuf data**: Many types of corruption will just result in incorrect data contents being decoded.
+* **Incorrect message length**: If the message ends between protobuf elements, it is a valid message with just some fields missing.
+* **Stack overflow**: There is no standard C mechanism to detect running out of stack. `PB_MAX_MESSAGE_NESTING` and `PB_NO_RECURSION` can be used to limit stack usage.
 
 ## Static assertions
 

@@ -536,7 +536,7 @@ bool pb_walk(pb_walk_state_t *state)
         if (!alloc_stackframe(state, PB_WALK_ALIGN(state->next_stacksize)))
         {
             if (state->stacksize > PB_WALK_STACK_SIZE)
-                PB_RETURN_ERROR(state, "PB_WALK_STACK_SIZE exceeded");
+                PB_RETURN_ERROR(state, "stackframe too large");
 
             return pb_walk_recurse(state);
         }
@@ -701,7 +701,7 @@ bool pb_walk(pb_walk_state_t *state)
                     pb_size_t count = *(pb_size_t*)iter->pSize;
                     if (count > iter->array_size && PB_ATYPE(iter->type) != PB_ATYPE_POINTER)
                     {
-                        PB_RETURN_ERROR(state, "array max size exceeded");
+                        PB_RETURN_ERROR(state, "array overflow");
                     }
 
                     char *newptr = (char*)iter->pData + iter->data_size;

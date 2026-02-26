@@ -549,7 +549,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
             {
                 if (!ctx->field_callback(ctx, iter))
                 {
-                    PB_SET_ERROR(ctx, "callback error");
+                    PB_SET_ERROR(ctx, "callback failed");
                     return PB_WALK_EXIT_ERR;
                 }
             }
@@ -561,14 +561,14 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
                 // pb_default_field_callback() handles pb_callback_t
                 if (!iter->descriptor->field_callback(NULL, ctx, iter))
                 {
-                    PB_SET_ERROR(ctx, "callback error");
+                    PB_SET_ERROR(ctx, "callback failed");
                     return PB_WALK_EXIT_ERR;
                 }
             }
 #elif !PB_NO_STRUCT_FIELD_CALLBACK
             if (!pb_default_field_callback(NULL, ctx, iter))
             {
-                PB_SET_ERROR(ctx, "callback error");
+                PB_SET_ERROR(ctx, "callback failed");
                 return PB_WALK_EXIT_ERR;
             }
 #endif
@@ -589,7 +589,7 @@ static pb_walk_retval_t encode_all_fields(pb_encode_ctx_t *ctx, pb_walk_state_t 
 
             if (PB_ATYPE(iter->type) != PB_ATYPE_POINTER && count > iter->array_size)
             {
-                PB_SET_ERROR(ctx, "array max size exceeded");
+                PB_SET_ERROR(ctx, "array overflow");
                 return PB_WALK_EXIT_ERR;
             }
 
@@ -1207,7 +1207,7 @@ static bool checkreturn pb_enc_bytes(pb_encode_ctx_t *ctx, const pb_field_iter_t
 
         if (bytes->size > field->data_size - offsetof(pb_bytes_array_t, bytes))
         {
-            PB_RETURN_ERROR(ctx, "bytes size exceeded");
+            PB_RETURN_ERROR(ctx, "bytes overflow");
         }
     
         return pb_encode_string(ctx, bytes->bytes, bytes->size);
@@ -1238,7 +1238,7 @@ static bool checkreturn pb_enc_string(pb_encode_ctx_t *ctx, const pb_field_iter_
          * allow space for the null terminator.
          */
         if (max_size == 0)
-            PB_RETURN_ERROR(ctx, "zero-length string");
+            PB_RETURN_ERROR(ctx, "invalid data_size");
 
         max_size -= 1;
     }

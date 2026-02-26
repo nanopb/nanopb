@@ -18,7 +18,7 @@ int main()
         fprintf(stderr, "Failure: expected pb_encode() to fail.\n");
         return 1;
     }
-    else if (!COMPARE_ERRMSG(&stream, "bytes size exceeded"))
+    else if (!COMPARE_ERRMSG(&stream, "bytes overflow"))
     {
         fprintf(stderr, "Unexpected encoding error: %s\n", PB_GET_ERROR(&stream));
         return 2;

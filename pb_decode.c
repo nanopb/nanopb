@@ -629,7 +629,7 @@ bool checkreturn pb_skip_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type)
 
         case PB_WT_INVALID:
         default:
-            PB_RETURN_ERROR(ctx, "invalid wire_type");
+            PB_RETURN_ERROR(ctx, "wrong wire type");
     }
 }
 
@@ -644,7 +644,7 @@ bool pb_decode_open_substream(pb_decode_ctx_t *ctx, pb_size_t *old_length)
         return false;
     
     if (ctx->bytes_left < size)
-        PB_RETURN_ERROR(ctx, "parent stream too short");
+        PB_RETURN_ERROR(ctx, "end-of-stream");
 
     *old_length = (pb_size_t)(ctx->bytes_left - size);
     ctx->bytes_left = (pb_size_t)size;
@@ -736,13 +736,13 @@ static bool checkreturn open_callback_substream(pb_decode_ctx_t *ctx, pb_wire_ty
     }
     else
     {
-        PB_RETURN_ERROR(ctx, "invalid wire_type");
+        PB_RETURN_ERROR(ctx, "wrong wire type");
     }
 
     // Note: this comparison also ensures that length fits in pb_size_t
     if (length > ctx->bytes_left)
     {
-        PB_RETURN_ERROR(ctx, "parent stream too short");
+        PB_RETURN_ERROR(ctx, "end-of-stream");
     }
 
     // Store stream state for restoring
@@ -1235,7 +1235,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                 {
                     if (*size == PB_SIZE_MAX)
                     {
-                        PB_SET_ERROR(ctx, "too many array entries");
+                        PB_SET_ERROR(ctx, "array overflow");
                         status = false;
                         break;
                     }
@@ -1249,7 +1249,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
 
                         if (remain > PB_SIZE_MAX - allocated_size)
                         {
-                            PB_SET_ERROR(ctx, "too many array entries");
+                            PB_SET_ERROR(ctx, "array overflow");
                             status = false;
                             break;
                         }
@@ -1294,7 +1294,7 @@ static bool checkreturn decode_pointer_field(pb_decode_ctx_t *ctx, pb_wire_type_
                 pb_size_t remain = get_array_size(ctx, wire_type, field);
 
                 if (*size > PB_SIZE_MAX - remain)
-                    PB_RETURN_ERROR(ctx, "too many array entries");
+                    PB_RETURN_ERROR(ctx, "array overflow");
                 
                 if (!pb_allocate_field(ctx, (void**)field->pField, field->data_size, (pb_size_t)(*size + remain)))
                     return false;
@@ -1430,7 +1430,7 @@ static pb_walk_retval_t release_oneof(pb_walk_state_t *state, pb_field_iter_t *f
      * invalid data. */
     if (!pb_field_iter_find(&old_field, old_tag, NULL))
     {
-        PB_SET_ERROR(ctx, "invalid union tag");
+        PB_SET_ERROR(ctx, "invalid oneof tag");
         return PB_WALK_EXIT_ERR;
     }
 
@@ -1481,7 +1481,7 @@ static bool decode_callback_field(pb_decode_ctx_t *ctx, pb_wire_type_t wire_type
         {
             if (!callback->funcs.decode(ctx, field, &callback->arg)) {
                 (void)close_callback_substream(ctx, &tmp);
-                PB_SET_ERROR(ctx, "submsg callback failed");
+                PB_SET_ERROR(ctx, "callback failed");
                 return false;
             }
         }
@@ -1546,7 +1546,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
 
     if (field->submsg_desc == NULL)
     {
-        PB_SET_ERROR(ctx, "invalid field descriptor");
+        PB_SET_ERROR(ctx, "null descriptor");
         return PB_WALK_EXIT_ERR;
     }
 
@@ -1565,7 +1565,7 @@ static pb_walk_retval_t decode_submsg(pb_decode_ctx_t *ctx, pb_walk_state_t *sta
 
             if (*size > PB_SIZE_MAX - 1)
             {
-                PB_SET_ERROR(ctx, "too many array entries");
+                PB_SET_ERROR(ctx, "array overflow");
                 return PB_WALK_EXIT_ERR;
             }
 
@@ -1738,7 +1738,9 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
     {
         skip_decode_tag = false;
 
-        // Check for the optional zero tag termination
+        // Protobuf prohibits zero tag in messages, so this indicates an invalid
+        // message. Previously nanopb supported null terminated messages, but this
+        // support is now provided in user code. See tests/framing.
         if (tag == 0)
         {
             PB_SET_ERROR(ctx, "zero tag");
@@ -1820,7 +1822,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             {
                 if (frame->fixarray_count > 0)
                 {
-                    PB_SET_ERROR(ctx, "wrong size for fixed count field");
+                    PB_SET_ERROR(ctx, "fixed_count mismatch");
                     return PB_WALK_EXIT_ERR;
                 }
 
@@ -1889,7 +1891,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             {
                 // This can occur for dynamically allocated fixarrays.
                 // It would be better to detect this before the unnecessary memory allocation.
-                PB_SET_ERROR(ctx, "wrong size for fixed count field");
+                PB_SET_ERROR(ctx, "fixed_count mismatch");
                 return PB_WALK_EXIT_ERR;
             }
 
@@ -1916,7 +1918,7 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
 
     if (frame->fixarray_count > 0)
     {
-        PB_SET_ERROR(ctx, "wrong size for fixed count field");
+        PB_SET_ERROR(ctx, "fixed_count mismatch");
         return PB_WALK_EXIT_ERR;
     }
 
@@ -2558,7 +2560,7 @@ static bool checkreturn pb_dec_fixed_length_bytes(pb_decode_ctx_t *ctx, const pb
     }
 
     if (size != field->data_size)
-        PB_RETURN_ERROR(ctx, "incorrect fixed length bytes size");
+        PB_RETURN_ERROR(ctx, "fixed_length mismatch");
 
     return pb_read(ctx, (pb_byte_t*)field->pData, field->data_size);
 }
