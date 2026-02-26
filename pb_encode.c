@@ -920,7 +920,7 @@ bool checkreturn pb_encode_s(pb_encode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
     return pb_flush_write_buffer(ctx);
 }
 
-bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *msgdesc,
+bool pb_get_encoded_size_s(pb_size_t *size, const pb_msgdesc_t *msgdesc,
                 const void *src_struct, size_t struct_size)
 {
     pb_encode_ctx_t ctx;
@@ -929,7 +929,7 @@ bool pb_get_encoded_size_s(size_t *size, const pb_msgdesc_t *msgdesc,
     if (!pb_encode_s(&ctx, msgdesc, src_struct, struct_size))
         return false;
     
-    *size = (size_t)ctx.bytes_written;
+    *size = ctx.bytes_written;
     return true;
 }
 
