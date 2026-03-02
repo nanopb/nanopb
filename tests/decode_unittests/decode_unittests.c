@@ -73,7 +73,13 @@ int main()
         COMMENT("Test pb_read with custom callback");
         TEST(pb_read(&stream, buffer, 5))
         TEST(memcmp(buffer, "xxxxx", 5) == 0)
+
         TEST(!pb_read(&stream, buffer, 50))
+        TEST(COMPARE_ERRMSG(&stream, "end-of-stream"));
+        TEST(stream.bytes_left == 0);
+
+
+        pb_init_decode_ctx_for_callback(&stream, &stream_callback, NULL, 20, NULL, 0);
         stream.stream_callback_state = (void*)1; /* Simulated error return from callback */
         TEST(!pb_read(&stream, buffer, 5))
         stream.stream_callback_state = NULL;

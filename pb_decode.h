@@ -241,7 +241,9 @@ bool pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count);
 
 /* Allocate storage for 'array_size' entries each of 'data_size' bytes.
  * Uses either the allocator defined by ctx or the default allocator.
- * Pointer to allocate memory is stored in '*ptr'.
+ * ctx can be NULL.
+ *
+ * Pointer to the allocated memory is stored in '*ptr'.
  *
  * If old value of '*ptr' is not NULL, realloc is done to expand the allocation.
  * During realloc, the value of '*ptr' may change (old data is copied to new storage).
@@ -252,6 +254,7 @@ bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb
 
 /* Release storage previously allocated by pb_allocate_field().
  * Uses either the allocator defined by ctx or the default allocator.
+ * If ptr is NULL, does nothing.
  */
 void pb_release_field(pb_decode_ctx_t *ctx, void *ptr);
 
@@ -277,7 +280,8 @@ bool pb_decode_varint(pb_decode_ctx_t *ctx, uint64_t *dest);
 #endif
 
 /* Decode an integer in the varint format. This works for enum, int32,
- * and uint32 field types. */
+ * and uint32 field types. Returns error if the value exceeds 32-bit range.
+ */
 bool pb_decode_varint32(pb_decode_ctx_t *ctx, uint32_t *dest);
 
 /* Decode a bool value in varint format. */

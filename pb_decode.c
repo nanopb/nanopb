@@ -228,7 +228,10 @@ bool checkreturn pb_read(pb_decode_ctx_t *ctx, pb_byte_t *buf, pb_size_t count)
         return true;
 
     if (ctx->bytes_left < count)
+    {
+        ctx->bytes_left = 0;
         PB_RETURN_ERROR(ctx, "end-of-stream");
+    }
 
     pb_size_t bufcount = 0;
     
@@ -2156,7 +2159,7 @@ bool checkreturn pb_decode_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc,
  */
 bool pb_allocate_field(pb_decode_ctx_t *ctx, void **ptr, pb_size_t data_size, pb_size_t array_size)
 {
-    PB_OPT_ASSERT(ptr != NULL && ctx != NULL);
+    PB_OPT_ASSERT(ptr != NULL);
 
     /* Check for multiplication overflows.
      * This code avoids the costly division if the sizes are small enough.
