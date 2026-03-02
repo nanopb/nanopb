@@ -16,4 +16,4 @@ git-repository-url = "https://github.com/nanopb/nanopb"
 additional-js = ['mdbook_crossrefs.js']
 
 [preprocessor.permalinks]
-#optional = true # Doesn't work, https://github.com/tonywu6/mdbookkit/issues/24
+optional = true

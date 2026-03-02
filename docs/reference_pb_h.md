@@ -168,6 +168,25 @@ pointers to the field descriptors. Use functions defined in
 |`default_value`  | Default values for this message as an encoded protobuf message.
 |`field_callback` | Function used to handle all callback fields in this message. By default `pb_default_field_callback()`  which loads per-field callbacks from a `pb_callback_t` structure.
 
+### pb_msgflag_t
+
+Message flags are stored in the `pb_msgdesc_t` and provide high-level metadata about the message.
+They are primarily used for nanopb code to skip unnecessary steps if the message does not contain particular features.
+
+User code can use the flags to e.g. check if the message contains any pointers that need to be released.
+
+Currently defined message flags are listed below. Flags with `PB_MSGFLAG_R_` are recursive, they
+get set on the parent message if they apply to any submessages.
+
+|                                |                                                                |
+|--------------------------------|----------------------------------------------------------------|
+| `PB_MSGFLAG_LARGEDESC`         | Descriptor uses the 5 words per field descriptor format.
+| `PB_MSGFLAG_EXTENSIBLE`        | Message contains proto2 extension fields.
+| `PB_MSGFLAG_R_HAS_PTRS`        | Message or its submessages contain pointer fields.
+| `PB_MSGFLAG_R_HAS_DEFVAL`      | Message or its submessages have default values.
+| `PB_MSGFLAG_R_HAS_CBS`         | Message or its submessages have callback fields.
+| `PB_MSGFLAG_R_HAS_EXTS`        | Message or its submessages have extension fields.
+
 ### pb_field_iter_t
 
 Describes a single structure field with memory position in relation to
@@ -337,6 +356,14 @@ and user callback functions:
     }
 
 The `msg` parameter must be a constant string.
+
+## PB_READ_ERROR
+
+Sentinel value used by `pb_decode_ctx_t` stream callbacks to indicate error condition.
+
+    #define PB_READ_ERROR PB_SIZE_MAX
+
+The largest value representable by `pb_size_t` is reserved for error indication by `pb_init_decode_ctx_for_callback()` limiting the stream length to `PB_SIZE_MAX - 1`.
 
 ### PB_BIND
 
