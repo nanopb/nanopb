@@ -120,6 +120,11 @@ Once the buffer fills up, `pb_flush_write_buffer()` calls `stream_callback` to w
 The temporary storage speeds up encoding of any submessages small enough to fit in it.
 Larger submessages need to be encoded twice: first to determine the submessage length and then to write out the data.
 
+#### Walk state
+
+The `walk_state` field is internally set by the first `pb_encode()` call.
+It is used to share the `pb_walk()` stack when user callbacks recursively call `pb_encode_submessage()`.
+
 #### Stream callback
 
 The stream callback is a user-provided function, which takes encoded data from nanopb
@@ -149,7 +154,35 @@ There is an [optional error message](concepts.md#return-values-and-error-handlin
 #### Field callback
 
 Nanopb uses [field callbacks](concepts.md#field-callbacks) to handle message fields with unknown or large size.
-The `field_callback` function specified in the encoding context receives a call for each field that has `FT_CALLBACK` type.
+The callback function is provided by user code and can directly write to the output stream.
+
+The `field_callback` function specified in the encoding context receives a call for each field that has `FT_CALLBACK` type. It can write data using the [manual encoding functions](#manual-field-encoding), or just do nothing.
+The callback should return `false` on errors, which will terminate the encoding process.
+
+The callback can use `ctx->field_callback_state` member variable to store your own data.
+Alternatively you can [extend the structure](concepts.md#extensible-structures) to add your own fields.
+
+The data in the C structure can be accessed by pointers in `pb_field_iter_t`.
+The callback can determine which field is being encoded by comparing `field->descriptor` and `field->tag`.
+For example:
+
+    bool my_field_callback(pb_encode_ctx_t *ctx, const pb_field_iter_t *field)
+    {
+        if (field->descriptor == &SubMessage_msg && field->tag == SubMessage_stringvalue_tag)
+        {
+            return pb_encode_tag_for_field(ctx, field) &&
+                   pb_encode_varint(ctx, 42);
+        }
+
+        return true;
+    }
+
+    ....
+
+    pb_encode_ctx_t ctx;
+    pb_init_encode_ctx_for_buffer(&ctx, ...);
+    ctx.field_callback = &my_field_callback;
+
 
 ### pb_init_encode_ctx_for_buffer
 
@@ -185,6 +218,10 @@ Initializes an encoding context for passing data to a custom callback function.
 | buf                  | Temporary buffer or `NULL`
 | bufsize              | Size of the temporary buffer or `0`
 
+Providing a temporary buffer is optional.
+If the buffer is provided, it is used to temporarily store encoded submessages, so that their length prefix can be written after the encoded length is known.
+Without a temporary buffer, submessages will are internally processed twice to determine the length and then write the data.
+
 ### pb_init_encode_ctx_sizing
 
 Initializes an encoding context for just counting the number of bytes that would have been written.
@@ -218,10 +255,14 @@ Writes data to the output stream associated with the context.
 | count                | Number of bytes to write.
 |*returns*             | True on success, false if maximum length is exceeded or an IO error happens.
 
-If an error happens, `bytes_written` is not incremented.
+Before writing the data, this function checks that the stream `max_size` wouldn't be exceeded.
+If an error happens, `false` is returned, `errmsg` is set and `bytes_written` is not incremented.
 
-If the context was initialized with `pb_init_encode_ctx_for_callback()` and a temporary buffer was provided, calling `pb_flush_write_buffer()` is needed to make sure the data will be passed to the callback function
-after a manual `pb_write()` call.
+For memory streams, this copies the data to the output buffer and increments the `bytes_written` count.
+
+For sizing streams, only `bytes_written` is incremented.
+
+For callback streams, the data may be either copied to a temporary buffer or passed directly to the stream callback function. If a temporary buffer was provided, calling `pb_flush_write_buffer()` is needed to make sure the data will be passed to the callback function after a manual `pb_write()` call. The `pb_encode()` automatically flushes the buffer at the end of the message.
 
 ## Manual field encoding
 
