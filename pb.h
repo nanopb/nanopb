@@ -789,9 +789,6 @@ struct pb_field_iter_s {
     const pb_msgdesc_t *submsg_desc; /* For submessage fields, pointer to field descriptor for the submessage. */
 };
 
-/* For compatibility with legacy code */
-typedef pb_field_iter_t pb_field_t;
-
 /* Make sure that the standard integer types are of the expected sizes.
  * Otherwise fixed32/fixed64 fields can break.
  *
@@ -853,8 +850,8 @@ struct pb_callback_s {
      * You can access the value of the field as *arg, and modify it if needed.
      */
     union {
-        bool (*decode)(pb_decode_ctx_t *ctx, const pb_field_t *field, void **arg);
-        bool (*encode)(pb_encode_ctx_t *ctx, const pb_field_t *field, void * const *arg);
+        bool (*decode)(pb_decode_ctx_t *ctx, const pb_field_iter_t *field, void **arg);
+        bool (*encode)(pb_encode_ctx_t *ctx, const pb_field_iter_t *field, void * const *arg);
     } funcs;
 #else
     union {
@@ -871,7 +868,7 @@ struct pb_callback_s {
 // Default field callback which implements handling of pb_callback_t structure.
 // Implemented in pb_common.c but defined here, because pb_common.h is not usually
 // directly included.
-extern bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field);
+extern bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_iter_t *field);
 #endif
 
 /* Wire types. Library user needs these only in encoder callbacks. */
@@ -974,7 +971,7 @@ typedef struct {
 /* This is used to inform about need to regenerate .pb.h/.pb.c files. */
 #define PB_PROTO_HEADER_VERSION 93
 
-/* These macros are used to declare pb_field_t's in the constant array. */
+/* These macros are used to build the message descriptors. */
 /* Size of a structure member, in bytes. */
 #define pb_membersize(st, m) (sizeof ((st*)0)->m)
 /* Number of entries in an array. */
@@ -1350,6 +1347,9 @@ typedef struct {
 
 /* API compatibility defines for code written before nanopb-1.0.0 */
 #if PB_API_VERSION < PB_API_VERSION_v1_0
+
+/* For code from before 0.4.x */
+typedef pb_field_iter_t pb_field_t;
 
 /* Streams are similar to new context concept */
 typedef pb_decode_ctx_t pb_istream_t;

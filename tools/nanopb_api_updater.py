@@ -124,6 +124,9 @@ class TSRule:
 
 RULES = [
 
+# pb_field_t -> pb_field_iter_t
+TSRule('((type_identifier) @node (#eq? @node "pb_field_t"))', 'pb_field_iter_t'),
+
 # pb_istream_t -> pb_decode_ctx_t
 TSRule('((type_identifier) @node (#eq? @node "pb_istream_t"))', 'pb_decode_ctx_t'),
 

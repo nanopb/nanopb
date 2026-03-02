@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-bool encode_string_cb(pb_encode_ctx_t *stream, const pb_field_t *field, void * const * arg)
+bool encode_string_cb(pb_encode_ctx_t *stream, const pb_field_iter_t *field, void * const * arg)
 {
     const char* str = *arg;
     if (!pb_encode_tag_for_field(stream, field)) {
@@ -16,7 +16,7 @@ bool encode_string_cb(pb_encode_ctx_t *stream, const pb_field_t *field, void * c
     return pb_encode_string(stream, (const pb_byte_t*)str, strlen(str));
 }
 
-bool decode_string_cb(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool decode_string_cb(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     char* str = *arg;
     size_t len = stream->bytes_left;
@@ -30,7 +30,7 @@ bool decode_string_cb(pb_decode_ctx_t *stream, const pb_field_t *field, void **a
 }
 
 
-bool decode_msg_cb(pb_decode_ctx_t* stream, const pb_field_t* field, void** arg)
+bool decode_msg_cb(pb_decode_ctx_t* stream, const pb_field_iter_t* field, void** arg)
 {
     OneOfMessage *msg = field->message;
 

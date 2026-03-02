@@ -8,7 +8,7 @@
 #include <cstdio>
 
 // See tests/alltypes_callback, tests/oneoff_callback and examples/network_server for more...
-bool TestMessage_values_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
+bool TestMessage_values_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
 	if (ostream != NULL) {
 		// Encoding callback, serialize items from vector
@@ -36,7 +36,7 @@ bool TestMessage_values_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostr
 }
 
 extern "C"
-bool TestMessage_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
+bool TestMessage_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
 	if (field->tag == TestMessage_values_tag) {
 			return TestMessage_values_callback(istream, ostream, field);

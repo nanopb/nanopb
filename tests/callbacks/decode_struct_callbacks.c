@@ -21,7 +21,7 @@
 #include "callbacks.pb.h"
 #include "test_helpers.h"
 
-bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_string(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint8_t buffer[1024] = {0};
     
@@ -39,7 +39,7 @@ bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_int32(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -49,7 +49,7 @@ bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_fixed32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_fixed32(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint32_t value;
     if (!pb_decode_fixed32(stream, &value))
@@ -59,7 +59,7 @@ bool print_fixed32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_fixed64(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_fixed64(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_fixed64(stream, &value))

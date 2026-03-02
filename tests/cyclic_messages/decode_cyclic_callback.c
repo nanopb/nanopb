@@ -29,7 +29,7 @@ static bool print_stringvalue(pb_decode_ctx_t *stream)
     return true;
 }
 
-static bool decode_treenode(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool decode_treenode(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     if (field && field->tag == TreeNode_left_tag)
         printf("[");
@@ -54,7 +54,7 @@ static bool decode_treenode(pb_decode_ctx_t *stream, const pb_field_t *field, vo
     return true;
 }
 
-static bool decode_dictionary(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool decode_dictionary(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     pb_wire_type_t wt;
     pb_tag_t tag;
