@@ -1611,7 +1611,7 @@ class Message(ProtoElement):
         if self.has_default_value(dependencies):
             flags.add('PB_MSGFLAG_R_HAS_DEFVAL')
 
-        for f in self.fields:
+        for f in self.all_fields():
             if f.allocation == 'POINTER':
                 flags.add('PB_MSGFLAG_R_HAS_PTRS')
 

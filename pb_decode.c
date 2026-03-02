@@ -2420,6 +2420,9 @@ bool pb_release_s(pb_decode_ctx_t *ctx, const pb_msgdesc_t *msgdesc, void *dest_
     if (!dest_struct)
         return true; /* Ignore NULL pointers, similar to free() */
 
+    if ((msgdesc->msg_flags & PB_MSGFLAG_R_HAS_PTRS) == 0)
+        return true; /* No pointers inside this message */
+
     pb_walk_state_t state;
     PB_WALK_DECLARE_STACKBUF(PB_RELEASE_INITIAL_STACKSIZE) stackbuf;
 
