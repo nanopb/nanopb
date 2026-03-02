@@ -93,6 +93,8 @@ encoder/decoder behaviour.
 
     typedef uint_least16_t pb_type_t;
 
+The macros `PB_LTYPE()`, `PB_HTYPE()` and `PB_ATYPE()` can be used to access individual components of the field type.
+
 The low-order nibble of the enumeration values defines the function that
 can be used for encoding and decoding the field data:
 
@@ -402,3 +404,26 @@ This is done with care, so that no writes are done through the pointer.
 The macro implementation uses `uintptr_t` as an intermediate type to avoid warnings on most compilers:
 
     #define PB_CONST_CAST(x) ((void*)(uintptr_t)(x))
+
+### PB_UNUSED
+
+This macro is used to supress compiler warnings about unused function
+arguments. Typically needed when disabled features result in some arguments being ignored.
+
+    #define PB_UNUSED(x) (void)(x)
+
+### PB_OPT_ASSERT
+
+Optional assertions that are useful for early detection of problems.
+This is in particular targeted for nanopb developers, though the assertions do not have significant runtime cost either.
+All [security properties](security.md) are fulfilled even if assertions are disabled using `PB_NO_OPT_ASSERT`.
+
+    #define PB_OPT_ASSERT(cond) assert(cond)
+
+### PB_STATIC_ASSERT
+
+Compile-time assertions, using either C11 `_Static_assert` keyword or the negative-size-array mechanism in C99.
+
+    #define PB_STATIC_ASSERT(COND,MSG) _Static_assert(COND,#MSG);
+
+The implementation of static assertions can be controlled using build options `PB_NO_STATIC_ASSERT` and `PB_C99_STATIC_ASSERT`.

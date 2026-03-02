@@ -31,7 +31,7 @@ Backwards compatibility functions and macros have been included to ease porting 
 
 By default these compatibility features are disabled.
 To enable them, define `PB_API_VERSION` to a value corresponding to the nanopb version the code has been written against.
-For example, for nanopb-0.4.x compatibility set `PB_API_VERSION = 4`
+For example, for nanopb-0.4.x compatibility set `PB_API_VERSION = 40`
 
 The latest API remains fully usable even if compatibility features are enabled.
 This permits piece-by-piece migration of old code.
