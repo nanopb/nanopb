@@ -13,7 +13,7 @@
  * and does not have to be bound separately to the message. It also allows defining
  * a custom data type for the field in the structure.
  */
-bool SubMsg3_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field)
+bool SubMsg3_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field)
 {
     if (istream && field->tag == SubMsg3_strvalue_tag)
     {
@@ -42,7 +42,7 @@ bool SubMsg3_callback(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const 
 /* The two callbacks below are traditional callbacks that use function pointers
  * defined in pb_callback_t.
  */
-bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_int32(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint64_t value;
     if (!pb_decode_varint(stream, &value))
@@ -52,7 +52,7 @@ bool print_int32(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
     return true;
 }
 
-bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool print_string(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint8_t buffer[64];
     int strlen = stream->bytes_left;
@@ -78,7 +78,7 @@ bool print_string(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
  * storage inside oneof union, and before we know the message type we can't set
  * the callbacks without overwriting each other.
  */
-bool msg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool msg_callback(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     /* Print the prefix field before the submessages.
      * This also demonstrates how to access the top level message fields

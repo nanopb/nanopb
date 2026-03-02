@@ -165,7 +165,7 @@ static bool do_stream_decode(const uint8_t *buffer, size_t msglen, size_t fail_a
 
 static int g_sentinel;
 
-static bool field_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool field_callback(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     assert(stream);
     assert(field);
@@ -173,7 +173,7 @@ static bool field_callback(pb_decode_ctx_t *stream, const pb_field_t *field, voi
     return pb_read(stream, NULL, stream->bytes_left);
 }
 
-static bool submsg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool submsg_callback(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     assert(stream);
     assert(field);

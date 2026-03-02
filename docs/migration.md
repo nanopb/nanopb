@@ -34,6 +34,7 @@ were given varying `stream` pointers when substreams were processed.
 **Changes:** `pb_decode_ctx_t` is now `pb_decode_ctx_t` and `pb_encode_ctx_t` is `pb_encode_ctx_t`.
 
 **Required actions:** Rename types or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
+`tools/nanopb_api_updater.py` can rename types automatically.
 
 ### Stream/context structure members renamed
 
@@ -53,6 +54,18 @@ stream callbacks the only difference is used of `pb_size_t` instead of `size_t` 
 
 **Required actions:** Update any custom input stream callbacks to follow the specification
 given in `pb_decode.h` comments.
+
+### pb_field_t is now pb_field_iter_t in field callback signature
+
+**Rationale:** Back in 0.4.0, `pb_field_t` was renamed into `pb_field_iter_t` to reflect the
+iterator routines in `pb_common.h` that were introduced to access it. A typedef for `pb_field_t`
+was provided for backwards compatibility.
+
+**Changes:** `pb_field_t` typedef is now only defined if `PB_API_VERSION` is defined.
+In particular, this affects field callbacks in user code.
+
+**Required actions:** Rename type to `pb_field_iter_t` or define `PB_API_VERSION` as `PB_API_VERSION_v0_4`.
+`tools/nanopb_api_updater.py` can rename types automatically.
 
 ### Initialization of encoding sizing streams changed
 

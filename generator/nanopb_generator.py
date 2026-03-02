@@ -1660,7 +1660,7 @@ class Message(ProtoElement):
         has_callbacks = bool([f for f in self.fields if f.has_callbacks()])
         if has_callbacks:
             if self.callback_function not in ['', 'pb_default_field_callback']:
-                result += "extern bool %s(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_t *field);\n" % self.callback_function
+                result += "extern bool %s(pb_decode_ctx_t *istream, pb_encode_ctx_t *ostream, const pb_field_iter_t *field);\n" % self.callback_function
             result += "#define %s_CALLBACK %s\n" % (
                 Globals.naming_style.define_name(self.name),
                 self.callback_function)
@@ -2694,7 +2694,7 @@ optparser.add_option("--strip-path", dest="strip_path", action="store_true", def
 optparser.add_option("--no-strip-path", dest="strip_path", action="store_false",
     help="Opposite of --strip-path (default since 0.4.0)")
 optparser.add_option("--cpp-descriptors", action="store_true",
-    help="Generate C++ descriptors to lookup by type (e.g. pb_field_t for a message)")
+    help="Generate C++ descriptors to lookup by type (e.g. pb_msgdesc_t for a message)")
 optparser.add_option("-T", "--no-timestamp", dest="notimestamp", action="store_true", default=True,
     help="Don't add timestamp to .pb.h and .pb.c preambles (default since 0.4.0)")
 optparser.add_option("-t", "--timestamp", dest="notimestamp", action="store_false", default=True,

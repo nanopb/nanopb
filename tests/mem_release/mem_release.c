@@ -215,7 +215,7 @@ static bool test_OneofMessage()
     return true;
 }
 
-static bool dummy_decode_cb(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool dummy_decode_cb(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     return false;
 }

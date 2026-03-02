@@ -6,7 +6,7 @@
 #include "extensions.pb.h"
 #include "unittests.h"
 
-static bool write_string(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_string(pb_encode_ctx_t *stream, const pb_field_iter_t *field, void * const *arg)
 {
     return pb_encode_tag_for_field(stream, field) &&
            pb_encode_string(stream, (const void*)"abc", 3);

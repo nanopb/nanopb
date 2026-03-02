@@ -3,7 +3,7 @@
 #include <pb_decode.h>
 #include "unittests.h"
 
-bool msg_callback(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool msg_callback(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     /* This tests decoding the submessage already in the message level callback. */
 

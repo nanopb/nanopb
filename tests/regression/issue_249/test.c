@@ -3,7 +3,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 
-static bool write_array(pb_encode_ctx_t *stream, const pb_field_t *field, void * const *arg)
+static bool write_array(pb_encode_ctx_t *stream, const pb_field_iter_t *field, void * const *arg)
 {
     int i;
     for (i = 0; i < 5; i++)
@@ -17,7 +17,7 @@ static bool write_array(pb_encode_ctx_t *stream, const pb_field_t *field, void *
     return true;
 }
 
-static bool read_array(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+static bool read_array(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     uint32_t i;
     int *sum = *arg;

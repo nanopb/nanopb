@@ -62,7 +62,7 @@ typedef bool (*pb_encode_ctx_write_callback_t)(pb_encode_ctx_t *ctx, const pb_by
  *
  * 6. If no errors occur, return true. The callback does not have to write anything.
  */
-typedef bool (*pb_encode_ctx_field_callback_t)(pb_encode_ctx_t *ctx, const pb_field_t *field);
+typedef bool (*pb_encode_ctx_field_callback_t)(pb_encode_ctx_t *ctx, const pb_field_iter_t *field);
 #endif
 
 /* Flags for encode context state */
@@ -271,7 +271,7 @@ bool pb_encode_float_as_double(pb_encode_ctx_t *ctx, float value);
 #endif
 
 /* Encode a submessage field.
- * You need to pass the pb_field_t array and pointer to struct, just like
+ * You need to pass the message descriptor and pointer to struct, just like
  * with pb_encode(). This function automatically determines the length of
  * the submessage and writes the length prefix (using either one-pass or
  * two-pass approach).

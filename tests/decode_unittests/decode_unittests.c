@@ -26,7 +26,7 @@ pb_size_t stream_callback(pb_decode_ctx_t *stream, uint8_t *buf, pb_size_t count
 #endif
 
 /* Verifies that the stream passed to callback matches the byte array pointed to by arg. */
-bool callback_check(pb_decode_ctx_t *stream, const pb_field_t *field, void **arg)
+bool callback_check(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)
 {
     int i;
     uint8_t byte;

@@ -429,7 +429,7 @@ bool pb_field_iter_find(pb_field_iter_t *iter, pb_tag_t tag, pb_extension_t **ex
 }
 
 #if !PB_NO_NAME_FIELD_CALLBACK || !PB_NO_STRUCT_FIELD_CALLBACK
-bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_t *field)
+bool pb_default_field_callback(pb_decode_ctx_t *decctx, pb_encode_ctx_t *encctx, const pb_field_iter_t *field)
 {
 #if !PB_NO_STRUCT_FIELD_CALLBACK
     if (field->data_size == sizeof(pb_callback_t))

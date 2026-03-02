@@ -59,7 +59,7 @@ typedef pb_size_t (*pb_decode_ctx_read_callback_t)(pb_decode_ctx_t *ctx, pb_byte
  *    If name-bound or struct-bound callbacks are defined, control is passed to them.
  *    If no callbacks handle the field, the data is discarded.
  */
-typedef bool (*pb_decode_ctx_field_callback_t)(pb_decode_ctx_t *ctx, const pb_field_t *field);
+typedef bool (*pb_decode_ctx_field_callback_t)(pb_decode_ctx_t *ctx, const pb_field_iter_t *field);
 #endif
 
 /* Flags for decode context state */
