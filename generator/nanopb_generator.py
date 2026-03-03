@@ -630,7 +630,18 @@ class Field(ProtoElement):
 
         # Check field rules, i.e. required/optional/repeated.
         if field_options.HasField("label_override"):
+            # Process overrides from nanopb options
             desc.label = field_options.label_override
+        elif hasattr(desc.options, "features"):
+            # For protobuf 'editions', the field presence is set under features
+            field_presence = desc.options.features.field_presence
+            if field_presence == descriptor.FeatureSet.LEGACY_REQUIRED:
+                desc.label = FieldD.LABEL_REQUIRED
+            elif field_presence == descriptor.FeatureSet.EXPLICIT:
+                desc.label = FieldD.LABEL_OPTIONAL
+            elif field_presence == descriptor.FeatureSet.IMPLICIT:
+                desc.label = FieldD.LABEL_OPTIONAL
+                field_options.proto3 = True
 
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
@@ -3024,6 +3035,11 @@ def main_plugin():
 
     if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_PROTO3_OPTIONAL"):
         response.supported_features = plugin_pb2.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+    if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_SUPPORTS_EDITIONS"):
+        response.supported_features |= plugin_pb2.CodeGeneratorResponse.FEATURE_SUPPORTS_EDITIONS
+        response.minimum_edition = descriptor.EDITION_PROTO2
+        response.maximum_edition = descriptor.EDITION_2024
 
     io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 
