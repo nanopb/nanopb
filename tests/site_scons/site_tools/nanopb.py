@@ -82,7 +82,8 @@ def _detect_nanopb_generator(env):
         return env['ESCAPE'](generator_cmd)
     else:
         # Source package
-        return env['PYTHON'] + " " + env['ESCAPE'](os.path.join(env['NANOPB'], 'generator', 'nanopb_generator.py'))
+        env['NANOPB_GENERATOR_SOURCE'] = os.path.join(env['NANOPB'], 'generator', 'nanopb_generator.py')
+        return env['PYTHON'] + " " + env['ESCAPE'](env['NANOPB_GENERATOR_SOURCE'])
 
 def _detect_protoc(env):
     '''Find the path to the protoc compiler.'''
@@ -160,6 +161,10 @@ def _nanopb_proto_emitter(target, source, env):
     source_extension = os.path.splitext(str(target[0]))[1]
     header_extension = '.h' + source_extension[2:]
     target.append(basename + '.pb' + header_extension)
+
+    if 'NANOPB_GENERATOR_SOURCE' in env:
+        # Regenerate if the generator source code changes
+        source.append(File(env['NANOPB_GENERATOR_SOURCE']))
 
     # This is a bit of a hack. protoc include paths work the sanest
     # when the working directory is the same as the source root directory.
