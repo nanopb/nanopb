@@ -47,7 +47,6 @@ md5_dir = os.path.join(build_dir, 'nanopb', 'md5')
 
 nanopb_protos =  env.subst(env.GetProjectOption("custom_nanopb_protos", ""))
 nanopb_plugin_options = env.GetProjectOption("custom_nanopb_options", "")
-nanopb_preserve_hierarchy = bool(env.GetProjectOption("custom_nanopb_preserve_directory_hierarchy", default=False))
 
 if not nanopb_protos:
     print("[nanopb] No generation needed.")
@@ -81,16 +80,15 @@ else:
     except FileExistsError:
         pass
 
-    if not nanopb_preserve_hierarchy:
-        # Collect include dirs based on
-        proto_include_dirs = set()
-        for proto_file in protos_files:
-            proto_file_abs = os.path.join(project_dir, proto_file)
-            proto_dir = os.path.dirname(proto_file_abs)
-            proto_include_dirs.add(proto_dir)
+    # Collect include dirs based on
+    proto_include_dirs = set()
+    for proto_file in protos_files:
+        proto_file_abs = os.path.join(project_dir, proto_file)
+        proto_dir = os.path.dirname(proto_file_abs)
+        proto_include_dirs.add(proto_dir)
 
-        for proto_include_dir in proto_include_dirs:
-            nanopb_options.extend(["--proto-path", proto_include_dir])
+    for proto_include_dir in proto_include_dirs:
+        nanopb_options.extend(["--proto-path", proto_include_dir])
 
     for proto_file in protos_files:
         proto_file_abs = os.path.join(project_dir, proto_file)
