@@ -143,8 +143,12 @@ else:
             print(f"[nanopb] Skipping '{proto_file}' ({options_info})")
         else:
             print(f"[nanopb] Processing '{proto_file}' ({options_info})")
-            cmd = [python_exe, nanopb_generator] + nanopb_options + [proto_file_basename]
-            action = SCons.Action.CommandAction(cmd)
+            if nanopb_preserve_hierarchy:
+                nanopb_options.append(proto_file)
+            else:
+                nanopb_options.append(proto_file_basename)
+            cmd = [python_exe, nanopb_generator] + nanopb_options
+            action = SCons.Action.CommandAction(cmd, chdir=project_dir)
             result = env.Execute(action)
             if result != 0:
                 print(f"[nanopb] ERROR: ({result}) processing cmd: '{cmd}'")
