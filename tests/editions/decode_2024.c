@@ -1,6 +1,5 @@
-/* Decode test message using protobuf 2024 edition
- * Prints data in a format identical to protoc --decode
- */
+// Decode test message using protobuf 2024 edition
+// Prints data in a format identical to protoc --decode
 
 #include <stdio.h>
 #include <pb_decode.h>
@@ -36,25 +35,11 @@ static void print_editionmsg(const EditionMessage *msg)
 
 int main()
 {
-    uint8_t buffer[EditionMessage_size];
-    pb_istream_t stream;
-    size_t count;
-    EditionMessage msg = EditionMessage_init_zero;
-
-    /* Read the data into buffer */
-    SET_BINARY_MODE(stdin);
-    count = fread(buffer, 1, sizeof(buffer), stdin);
-
-    if (!feof(stdin))
-    {
-        printf("Message does not fit in buffer\n");
-        return 1;
-    }
-
-    /* Construct a pb_istream_t for reading from the buffer */
-    stream = pb_istream_from_buffer(buffer, count);
+    pb_decode_ctx_t stream;
+    init_decode_ctx_for_stdio(&stream, stdin, PB_SIZE_MAX, NULL, 0);
 
     /* Decode and print out the stuff */
+    EditionMessage msg = EditionMessage_init_zero;
     if (!pb_decode(&stream, &EditionMessage_msg, &msg))
     {
         printf("Parsing failed: %s\n", PB_GET_ERROR(&stream));

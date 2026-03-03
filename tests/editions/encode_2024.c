@@ -1,4 +1,4 @@
-/* Encode test message using protobuf 2024 edition */
+// Encode test message using protobuf 2024 edition
 
 #include <stdio.h>
 #include <pb_encode.h>
@@ -8,10 +8,8 @@
 int main()
 {
     EditionMessage msg = EditionMessage_init_default;
-    uint8_t buffer[EditionMessage_size];
-    pb_ostream_t stream;
 
-    msg.has_mystring = true; /* Note: using the default value from .proto */
+    msg.has_mystring = true; // Note: using the default value from .proto
 
     msg.has_submsg = true;
     msg.submsg.has_foo = true;
@@ -21,13 +19,13 @@ int main()
     msg.optional_field = 1004;
     msg.implicit_field = 1005;
     
-    stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    // Prepare the stream, output goes directly to stdout
+    pb_encode_ctx_t stream;
+    init_encode_ctx_for_stdio(&stream, stdout, PB_SIZE_MAX, NULL, 0);
     
-    /* Now encode it and check if we succeeded. */
+    // Now encode it and check if we succeeded.
     if (pb_encode(&stream, &EditionMessage_msg, &msg))
     {
-        SET_BINARY_MODE(stdout);
-        fwrite(buffer, 1, stream.bytes_written, stdout);
         return 0;
     }
     else

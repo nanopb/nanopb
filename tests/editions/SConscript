@@ -3,6 +3,8 @@
 
 Import("env")
 
+env.SkipTestIfFlag('PB_NO_STREAM_CALLBACK')
+
 import re
 version = None
 if 'PROTOC_VERSION' in env:
@@ -12,8 +14,8 @@ if 'PROTOC_VERSION' in env:
 # Edition 2024 is supported by protoc >= 32.x
 if env.GetOption('clean') or (version and version[0] >= 32):
     env.NanopbProto("edition_2024.proto")
-    enc = env.Program(["encode_2024.c", "edition_2024.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
-    dec = env.Program(["decode_2024.c", "edition_2024.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+    enc = env.Program(["encode_2024.c", "edition_2024.pb.c", env['NANOPB_ENCODER_OBJS']])
+    dec = env.Program(["decode_2024.c", "edition_2024.pb.c", env['NANOPB_DECODER_OBJS']])
 
     env.RunTest(enc)
     env.RunTest([dec, "encode_2024.output"])
