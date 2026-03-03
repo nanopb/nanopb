@@ -9,7 +9,7 @@ changes, see [migration document](migration.md).
 
 ## Encode and decode contexts
 
-Previously used `pb_decode_ctx_t` and `pb_encode_ctx_t` types have been
+Previously used `pb_istream_t` and `pb_ostream_t` types have been
 expanded into `pb_decode_ctx_t` and `pb_encode_ctx_t`. The substream
 implementation has been modified so that it is now safe to expand
 the contexts with custom fields. The `ctx` pointer passed to callbacks
