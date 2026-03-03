@@ -1,0 +1,18 @@
+// Test case for protobuf compiler "edition 2024" syntax
+edition = "2024";
+
+// Import only custom option definitions from nanopb.proto
+import option "nanopb.proto";
+
+local message PrivateSubMsg {
+    int32 foo = 1;
+}
+
+message EditionMessage {
+    string mystring = 1 [(nanopb).max_length = 10, default = "abc"];
+    PrivateSubMsg submsg = 2;
+
+    int32 required_field = 3 [features.field_presence = LEGACY_REQUIRED];
+    int32 optional_field = 4;
+    int32 implicit_field = 5 [features.field_presence = IMPLICIT];
+}
