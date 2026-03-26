@@ -8,24 +8,24 @@ project(
 
 c_args = []
 link_with = []
-include_directories = include_directories('.')
+include_directories = include_directories('include')
 
 sources = []
 
 build_common = false
 
 if get_option('encoder').enabled()
-    sources += files('pb_encode.c')
+    sources += files('src/pb_encode.c')
     build_common = true
 endif
 
 if get_option('decoder').enabled()
-    sources += files('pb_decode.c')
+    sources += files('src/pb_decode.c')
     build_common = true
 endif
 
 if build_common
-    sources += files('pb_common.c')
+    sources += files('src/pb_common.c')
 endif
 
 nanopb_lib = static_library(
