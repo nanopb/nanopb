@@ -6,7 +6,7 @@ The options can be specified in one of two ways:
 1.  Using the `-D` switch on the C compiler command line.
 2.  Using a `#define` in a `pb_config.h` file.
 
-You can find a list of all the flags in the beginning of [pb.h](../pb.h), or in the [pb_config_example.h](../pb_config_example.h) file.
+You can find a list of all the flags in the beginning of [pb.h](../include/nanopb/pb.h), or in the [pb_config_example.h](../include/nanopb/pb_config_example.h) file.
 
 > [!NOTE]
 > You must have the same compilation options for the nanopb library and all code that
@@ -14,7 +14,7 @@ includes nanopb headers. For shared libraries, [ABI](https://en.wikipedia.org/wi
 
 ## System and configuration header names
 
-If the compiler supports `__has_include()` preprocessor directive, nanopb will automatically include a file named `pb_config.h` if it exists. There is an example [pb_config_example.h](../pb_config_example.h) that you
+If the compiler supports `__has_include()` preprocessor directive, nanopb will automatically include a file named `pb_config.h` if it exists. There is an example [pb_config_example.h](../include/nanopb/pb_config_example.h) that you
 can copy to your own project.
 
 Alternatively you can define `PB_CONFIG_HEADER_NAME` to the name of a configuration header you want to include.

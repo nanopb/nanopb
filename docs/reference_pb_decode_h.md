@@ -1,6 +1,6 @@
 # API reference: pb_decode.h
 
-Nanopb functionality related to decoding protobuf messages is provided in the [pb_decode.h](../pb_decode.h) header. It contains the definitions for the decoding context, reading from input streams and decoding the message data into C structures.
+Nanopb functionality related to decoding protobuf messages is provided in the [pb_decode.h](../include/nanopb/pb_decode.h) header. It contains the definitions for the decoding context, reading from input streams and decoding the message data into C structures.
 
 The decoding module also handles dynamic memory allocation, if it is enabled by build options.
 

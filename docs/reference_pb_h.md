@@ -1,6 +1,6 @@
 # API reference: pb.h
 
-The [pb.h](../pb.h) file contains type and macro definitions shared between nanopb components.
+The [pb.h](../include/nanopb/pb.h) file contains type and macro definitions shared between nanopb components.
 It also validates feature enables for preprocessor `#if` directives and includes the needed system headers.
 
 ## Data types
