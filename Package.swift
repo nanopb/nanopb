@@ -17,16 +17,11 @@ let package = Package(
       name: "nanopb",
       path: ".",
       sources: [
-        "pb.h",
-        "pb_common.h",
-        "pb_common.c",
-        "pb_decode.h",
-        "pb_decode.c",
-        "pb_encode.h",
-        "pb_encode.c"
+        "src",
+        "include/nanopb"
       ],
       resources: [.process("spm_resources/PrivacyInfo.xcprivacy")],
-      publicHeadersPath: "spm_headers",
+      publicHeadersPath: "include",
       cSettings: [
         .define("PB_FIELD_32BIT", to: "1"),
         .define("PB_NO_PACKED_STRUCTS", to: "1"),
@@ -38,9 +33,9 @@ let package = Package(
       dependencies: [
         "nanopb",
       ],
-      path: "spm-test/swift",
+      path: "build-tests/spm-swift",
       cSettings: [
-        .headerSearchPath("../"),
+        .headerSearchPath("include/nanopb"),
         .define("PB_FIELD_32BIT", to: "1"),
         .define("PB_NO_PACKED_STRUCTS", to: "1"),
         .define("PB_ENABLE_MALLOC", to: "1"),
@@ -51,9 +46,9 @@ let package = Package(
       dependencies: [
         "nanopb",
       ],
-      path: "spm-test/objc",
+      path: "build-tests/spm-objc",
       cSettings: [
-        .headerSearchPath("../"),
+        .headerSearchPath("include/nanopb"),
         .define("PB_FIELD_32BIT", to: "1"),
         .define("PB_NO_PACKED_STRUCTS", to: "1"),
         .define("PB_ENABLE_MALLOC", to: "1"),
