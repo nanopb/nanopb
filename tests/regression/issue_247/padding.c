@@ -1,4 +1,4 @@
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include <unittests.h>
 #include <string.h>
 #include "padding.pb.h"

@@ -1,7 +1,7 @@
 // Encode test message using protobuf 2024 edition
 
 #include <stdio.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "edition_2024.pb.h"
 #include "test_helpers.h"
 

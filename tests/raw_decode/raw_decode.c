@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "test_helpers.h"
 
 #define HISTORY_LEN 32

@@ -4,7 +4,7 @@
 // removed in version 1.0. It can still be implemented in user code like this.
 
 #include <stdio.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
 #include "framing_testdata.h"

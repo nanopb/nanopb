@@ -1,4 +1,4 @@
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <unittests.h>
 #include <malloc_wrappers.h>
 #include "repro.pb.h"

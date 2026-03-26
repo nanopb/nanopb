@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <assert.h>
 #include "oneof.pb.h"
 #include "test_helpers.h"

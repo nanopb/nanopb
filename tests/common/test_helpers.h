@@ -4,8 +4,8 @@
 #define _TEST_HELPERS_H_
 
 #include <stdio.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 
 // Set stdio stream into binary mode on Windows
 // Does nothing on other platforms

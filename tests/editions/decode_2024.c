@@ -2,7 +2,7 @@
 // Prints data in a format identical to protoc --decode
 
 #include <stdio.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "edition_2024.pb.h"
 #include "test_helpers.h"
 

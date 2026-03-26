@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <pb_decode.h>
-#include <pb_common.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_common.h>
 #include "unionproto.pb.h"
 
 /* This function reads manually the first tag from the stream and finds the

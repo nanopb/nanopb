@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "map.pb.h"
 #include "test_helpers.h"
 

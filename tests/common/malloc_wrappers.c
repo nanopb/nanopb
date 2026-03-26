@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <pb.h>
+#include <nanopb/pb.h>
 
 #define GUARD_SIZE (sizeof(size_t)*3)
 #define PREFIX_SIZE (sizeof(size_t)*2)

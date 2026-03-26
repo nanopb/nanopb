@@ -1,7 +1,7 @@
 #include "submsg_ft_callback.pb.h"
 #include <assert.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include "unittests.h"
 #include <stdio.h>
 #include <string.h>

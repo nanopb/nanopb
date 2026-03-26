@@ -17,9 +17,9 @@ opts.Append(CPPDEFINES = {
 # Build new version of core
 strict = opts.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode_minimal.o", "$NANOPB/pb_decode.c")
-strict.Object("pb_encode_minimal.o", "$NANOPB/pb_encode.c")
-strict.Object("pb_common_minimal.o", "$NANOPB/pb_common.c")
+strict.Object("pb_decode_minimal.o", "$NANOPB/src/pb_decode.c")
+strict.Object("pb_encode_minimal.o", "$NANOPB/src/pb_encode.c")
+strict.Object("pb_common_minimal.o", "$NANOPB/src/pb_common.c")
 
 # Now build and run the test normally.
 opts.NanopbProto(["alltypes", "alltypes.options"])

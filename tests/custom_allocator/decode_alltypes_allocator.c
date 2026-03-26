@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "alltypes.pb.h"
 #include "arena_allocator.h"
 #include "test_helpers.h"

@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <string.h>
 #include <stdio.h>
 #include "test_helpers.h"

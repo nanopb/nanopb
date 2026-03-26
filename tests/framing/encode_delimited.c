@@ -2,7 +2,7 @@
 // The message length is indicated by a length prefix.
 
 #include <stdio.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
 #include "framing_testdata.h"

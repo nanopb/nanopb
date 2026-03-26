@@ -7,7 +7,7 @@
 // of them it can be implemented similar to the code below.
 
 #include <stdio.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
 #include "print_person.h"

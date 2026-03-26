@@ -1,4 +1,4 @@
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>

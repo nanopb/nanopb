@@ -15,7 +15,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "callbacks.pb.h"
 #include "test_helpers.h"
 

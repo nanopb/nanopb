@@ -1,5 +1,5 @@
-#include "pb_encode.h"
-#include "pb_decode.h"
+#include "nanopb/pb_encode.h"
+#include "nanopb/pb_decode.h"
 
 #include "test.h"
 
@@ -10,20 +10,20 @@ int main(int argc, char *argv[]) {
     int status = 0;
 
     uint8_t buffer[256];
-    pb_ostream_t ostream;
-    pb_istream_t istream;
+    pb_encode_ctx_t ostream;
+    pb_decode_ctx_t istream;
     size_t written;
 
     TestMessageWithoutOptions original = TestMessageWithoutOptions_init_zero;
     original.number = 45;
 
-    ostream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+    pb_init_encode_ctx_for_buffer(&ostream, buffer, sizeof(buffer));
 
     TEST(pb_encode(&ostream, &TestMessageWithoutOptions_msg, &original));
 
     written = ostream.bytes_written;
 
-    istream = pb_istream_from_buffer(buffer, written);
+    pb_init_decode_ctx_for_buffer(&istream, buffer, written);
 
     TestMessageWithoutOptions decoded = TestMessageWithoutOptions_init_zero;
 

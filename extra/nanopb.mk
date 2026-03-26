@@ -4,8 +4,11 @@
 # Path to the nanopb root directory
 NANOPB_DIR := $(patsubst %/,%,$(dir $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))))
 
+# Nanopb include path
+NANOPB_INCLUDE = $(NANOPB_DIR)/include
+
 # Files for the nanopb core
-NANOPB_CORE = $(NANOPB_DIR)/pb_encode.c $(NANOPB_DIR)/pb_decode.c $(NANOPB_DIR)/pb_common.c
+NANOPB_CORE = $(NANOPB_DIR)/src/pb_encode.c $(NANOPB_DIR)/src/pb_decode.c $(NANOPB_DIR)/src/pb_common.c
 
 # Check if we are running on Windows
 ifdef windir

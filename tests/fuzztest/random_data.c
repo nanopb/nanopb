@@ -1,7 +1,7 @@
 #include "random_data.h"
 #include <string.h>
 #include <malloc_wrappers.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 
 #ifndef LLVMFUZZER
 

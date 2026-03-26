@@ -3,8 +3,8 @@
  */
 
 #include <stdio.h>
-#include <pb_decode.h>
-#include <pb_encode.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include "alltypes.pb.h"
 #include "test_helpers.h"
 #include "malloc_wrappers.h"

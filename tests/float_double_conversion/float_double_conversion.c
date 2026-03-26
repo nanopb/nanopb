@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#include <pb_decode.h>
-#include <pb_encode.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include "doublemsg.pb.h"
 #include "unittests.h"
 

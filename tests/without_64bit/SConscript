@@ -18,9 +18,9 @@ if 'SYSHDR' in opts:
 # Build new version of core
 strict = opts.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode_no64bit.o", "$NANOPB/pb_decode.c")
-strict.Object("pb_encode_no64bit.o", "$NANOPB/pb_encode.c")
-strict.Object("pb_common_no64bit.o", "$NANOPB/pb_common.c")
+strict.Object("pb_decode_no64bit.o", "$NANOPB/src/pb_decode.c")
+strict.Object("pb_encode_no64bit.o", "$NANOPB/src/pb_encode.c")
+strict.Object("pb_common_no64bit.o", "$NANOPB/src/pb_common.c")
 
 # Now build and run the test normally.
 enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_no64bit.o", "pb_common_no64bit.o"])

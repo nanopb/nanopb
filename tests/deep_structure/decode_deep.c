@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <stdlib.h>
 #include "deep.pb.h"
 #include "test_helpers.h"

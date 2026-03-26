@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include "simple.pb.h"
 
 int main()
@@ -22,7 +22,8 @@ int main()
         SimpleMessage message = SimpleMessage_init_zero;
         
         /* Create a stream that will write to our buffer. */
-        pb_ostream_t stream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        pb_encode_ctx_t stream;
+        pb_init_encode_ctx_for_buffer(&stream, buffer, sizeof(buffer));
         
         /* Fill in the lucky number */
         message.lucky_number = 13;
@@ -50,7 +51,8 @@ int main()
         SimpleMessage message = SimpleMessage_init_zero;
         
         /* Create a stream that reads from the buffer. */
-        pb_istream_t stream = pb_istream_from_buffer(buffer, message_length);
+        pb_decode_ctx_t stream;
+        pb_init_decode_ctx_for_buffer(&stream, buffer, message_length);
         
         /* Now we are ready to decode the message. */
         status = pb_decode(&stream, SimpleMessage_fields, &message);

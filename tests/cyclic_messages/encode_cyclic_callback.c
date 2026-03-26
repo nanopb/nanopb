@@ -6,7 +6,7 @@
  *       nor safe against buffer overflows. It is just for this test.
  */
 
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

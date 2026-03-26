@@ -3,7 +3,7 @@ include ../../extra/nanopb.mk
 
 # Compiler flags to enable all warnings & debug info
 CFLAGS = -std=c99 -Wall -Werror -g -O0
-CFLAGS += -I$(NANOPB_DIR)
+CFLAGS += -I$(NANOPB_INCLUDE)
 
 all: encode decode
 	./encode 1 | ./decode

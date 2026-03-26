@@ -7,8 +7,8 @@
  * - LLVM libFuzzer target, taking input as a function argument.
  */
 
-#include <pb_decode.h>
-#include <pb_encode.h>
+#include <nanopb/pb_decode.h>
+#include <nanopb/pb_encode.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
