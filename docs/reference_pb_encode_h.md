@@ -1,6 +1,6 @@
 # API reference: pb_encode.h
 
-Nanopb functionality related to encoding protobuf messages is provided in the [pb_encode.h](../pb_encode.h) header. It contains the definitions for the encoding context, writing to output streams and encoding the data for message fields.
+Nanopb functionality related to encoding protobuf messages is provided in the [pb_encode.h](../include/nanopb/pb_encode.h) header. It contains the definitions for the encoding context, writing to output streams and encoding the data for message fields.
 
 ## Message encoding
 

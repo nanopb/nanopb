@@ -76,7 +76,7 @@ C preprocessor macros defined in `pb.h`. It uses standard C features such as `si
 `offsetof()` to describe the data layout in the structure, so that it can be processed
 at runtime.
 
-The C code for nanopb library itself is in `pb_decode.c`, `pb_encode.c` and `pb_common.c`.
+The C code for nanopb library itself is in [src/pb_decode.c](../src/pb_decode.c), [src/pb_encode.c](../src/pb_encode.c) and [src/pb_common.c](../src/pb_common.c).
 If you only need to encode messages or only need to decode them, you can only include that
 part and the common logic. This code reads the `pb_msgdesc_t` description and serializes
 the data structures to protobuf on-the-wire encoded format.
@@ -84,10 +84,10 @@ the data structures to protobuf on-the-wire encoded format.
 So a typical project might include these files:
 
 1. Nanopb runtime library:
-    -   pb.h
-    -   pb_common.h and pb_common.c (always needed)
-    -   pb_decode.h and pb_decode.c (needed for decoding messages)
-    -   pb_encode.h and pb_encode.c (needed for encoding messages)
+    -   include/nanopb: header files
+    -   src/pb_common.c: Common utility code, always needed
+    -   src/pb_decode.c: Needed for decoding messages
+    -   src/pb_encode.c: Needed for encoding messages
 
 2. Protocol description (you can have many):
     -   my_protocol.proto (the protocol definition)
