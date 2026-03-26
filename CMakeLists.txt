@@ -132,41 +132,41 @@ endif()
 if(nanopb_BUILD_RUNTIME)
     if(BUILD_SHARED_LIBS)
         add_library(protobuf-nanopb SHARED
-            pb.h
-            pb_common.h
-            pb_common.c
-            pb_encode.h
-            pb_encode.c
-            pb_decode.h
-            pb_decode.c)
+            include/nanopb/pb.h
+            include/nanopb/pb_common.h
+            src/pb_common.c
+            include/nanopb/pb_encode.h
+            src/pb_encode.c
+            include/nanopb/pb_decode.h
+            src/pb_decode.c)
         set_target_properties(protobuf-nanopb PROPERTIES
             SOVERSION ${nanopb_SOVERSION})
         install(TARGETS protobuf-nanopb EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        target_include_directories(protobuf-nanopb INTERFACE
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/nanopb>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        target_include_directories(protobuf-nanopb PUBLIC
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         )
     endif()
 
     if(BUILD_STATIC_LIBS)
         add_library(protobuf-nanopb-static STATIC
-            pb.h
-            pb_common.h
-            pb_common.c
-            pb_encode.h
-            pb_encode.c
-            pb_decode.h
-            pb_decode.c)
+            include/nanopb/pb.h
+            include/nanopb/pb_common.h
+            src/pb_common.c
+            include/nanopb/pb_encode.h
+            src/pb_encode.c
+            include/nanopb/pb_decode.h
+            src/pb_decode.c)
         set_target_properties(protobuf-nanopb-static PROPERTIES
             OUTPUT_NAME protobuf-nanopb)
         install(TARGETS protobuf-nanopb-static EXPORT nanopb-targets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-        target_include_directories(protobuf-nanopb-static INTERFACE
-            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/nanopb>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        target_include_directories(protobuf-nanopb-static PUBLIC
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         )
     endif()
 
@@ -181,6 +181,7 @@ if(nanopb_BUILD_RUNTIME)
         ${CMAKE_CURRENT_BINARY_DIR}/nanopb-config-version.cmake
         DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
 
-    install(FILES pb.h pb_common.h pb_encode.h pb_decode.h
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nanopb)
+    install(DIRECTORY include/nanopb/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nanopb
+        FILES_MATCHING PATTERN "include/nanopb/*.h")
 endif()

@@ -31,15 +31,13 @@
 #                                     under build directory, instead of mirroring
 #                                     relative paths of source directories.
 #                                     Set to FALSE if you want to disable this behaviour.
-#   PROTOC_OPTIONS           - Pass options to protoc executable
 #
 # Defines the following variables:
 #
-#   NANOPB_FOUND - Found the nanopb library (source&header files, generator tool, protoc compiler tool)
-#   NANOPB_INCLUDE_DIRS - Include directories for Google Protocol Buffers
+#   NANOPB_FOUND - Found the nanopb library (source&header files, generator tool)
+#   NANOPB_INCLUDE_DIRS - Include directories for Google Protocol Buffers (-Iinclude)
 #
 # The following cache variables are also available to set or use:
-#   PROTOBUF_PROTOC_EXECUTABLE - The protoc compiler
 #   NANOPB_GENERATOR_SOURCE_DIR - The nanopb generator source
 #
 #  ====================================================================
@@ -133,12 +131,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 #=============================================================================
-#
-# Changes
-# 2013.01.31 - Pavlo Ilin - used Modules/FindProtobuf.cmake from cmake 2.8.10 to
-#                           write FindNanopb.cmake
-#
-#=============================================================================
 
 
 function(NANOPB_GENERATE_CPP)
@@ -151,9 +143,11 @@ function(NANOPB_GENERATE_CPP)
     list(GET NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS 1 HDRS)
     list(REMOVE_AT NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS 0 1)
   endif()
+
   if(NOT NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS)
     return()
   endif()
+
   set(NANOPB_OPTIONS_DIRS)
 
   if(MSVC)
@@ -186,25 +180,15 @@ function(NANOPB_GENERATE_CPP)
 
   list(REMOVE_DUPLICATES _nanopb_include_path)
 
-  set(GENERATOR_PATH ${CMAKE_CURRENT_BINARY_DIR}/nanopb/generator)
-
-  set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
-  if (CMAKE_HOST_WIN32)
-    set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb.bat)
-  else()
-    set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
-  endif()
-
-  set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
-  set(GENERATOR_CORE_SRC
-      ${GENERATOR_CORE_DIR}/nanopb.proto)
+  # Use nanopb_generator.py to convert .proto files (it calls protoc internally)
+  set(NANOPB_GENERATOR_EXECUTABLE ${NANOPB_GENERATOR_SOURCE_DIR}/nanopb_generator.py)
+  set(ENV{NANOPB_PB2_TEMP_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
   # Set extensions according to NANOPB_OPTIONS
   string(REGEX MATCH "--extension=[^ ]+" _gen_ext "${NANOPB_OPTIONS}")
-  string(REGEX MATCH "--header-extension=[^ ]+" _gen_hdr_ext
-               "${NANOPB_OPTIONS}")
-  string(REGEX MATCH "--source-extension=[^ ]+" _gen_src_ext
-               "${NANOPB_OPTIONS}")
+  string(REGEX MATCH "--header-extension=[^ ]+" _gen_hdr_ext "${NANOPB_OPTIONS}")
+  string(REGEX MATCH "--source-extension=[^ ]+" _gen_src_ext "${NANOPB_OPTIONS}")
+
   if(_gen_ext)
     string(REPLACE "--extension=" "" GEN_EXTENSION "${_gen_ext}")
   else()
@@ -221,43 +205,12 @@ function(NANOPB_GENERATE_CPP)
     set(GEN_SRC_EXTENSION ".c")
   endif()
 
-  # Treat the source directory as immutable.
-  #
-  # Copy the generator directory to the build directory before
-  # compiling python and proto files.  Fixes issues when using the
-  # same build directory with different python/protobuf versions
-  # as the binary build directory is discarded across builds.
-  #
-  # Notice: copy_directory does not copy the content if the directory already exists.
-  # We therefore append '/' to specify that we want to copy the content of the folder. See #847
-  #
-  add_custom_command(
-      OUTPUT ${NANOPB_GENERATOR_EXECUTABLE} ${GENERATOR_CORE_SRC}
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-      ARGS ${NANOPB_GENERATOR_SOURCE_DIR}/ ${GENERATOR_PATH}
-      VERBATIM)
-
-  set(GENERATOR_CORE_PYTHON_SRC)
-  foreach(FIL ${GENERATOR_CORE_SRC})
-      get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
-      get_filename_component(FIL_WE ${FIL} NAME_WE)
-
-      set(output "${GENERATOR_CORE_DIR}/${FIL_WE}_pb2.py")
-      set(GENERATOR_CORE_PYTHON_SRC ${GENERATOR_CORE_PYTHON_SRC} ${output})
-      add_custom_command(
-        OUTPUT ${output}
-        COMMAND ${CUSTOM_COMMAND_PREFIX} ${PROTOBUF_PROTOC_EXECUTABLE}
-        ARGS -I${GENERATOR_PATH}/proto
-          --python_out=${GENERATOR_CORE_DIR} ${ABS_FIL}
-        DEPENDS ${ABS_FIL}
-        VERBATIM)
-  endforeach()
-
   foreach(FIL ${NANOPB_GENERATE_CPP_UNPARSED_ARGUMENTS})
     get_filename_component(ABS_FIL ${FIL} ABSOLUTE)
     get_filename_component(FIL_WE ${FIL} NAME_WLE)
     get_filename_component(FIL_DIR ${ABS_FIL} PATH)
     set(FIL_PATH_REL)
+
     if(NANOPB_GENERATE_CPP_RELPATH)
       # Check that the file is under the given "RELPATH"
       string(FIND ${ABS_FIL} ${NANOPB_GENERATE_CPP_RELPATH} LOC)
@@ -267,6 +220,7 @@ function(NANOPB_GENERATE_CPP)
         file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL})
       endif()
     endif()
+
     if(NOT FIL_PATH_REL)
       set(FIL_PATH_REL ".")
     endif()
@@ -303,48 +257,24 @@ function(NANOPB_GENERATE_CPP)
         endif()
     endforeach()
 
-    if(NANOPB_OPTIONS_DIRS)
-        list(REMOVE_DUPLICATES NANOPB_OPTIONS_DIRS)
-    endif()
-
-    set(NANOPB_PLUGIN_OPTIONS)
-    foreach(options_path ${NANOPB_OPTIONS_DIRS})
-        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} -I${options_path}")
+    foreach(DIR ${NANOPB_OPTIONS_DIRS})
+      get_filename_component(ABS_PATH ${DIR} ABSOLUTE)
+      list(APPEND _nanopb_include_path "-I${ABS_PATH}")
     endforeach()
+
+    list(REMOVE_DUPLICATES _nanopb_include_path)
 
     # Remove leading space before the first -I directive
     string(STRIP "${NANOPB_PLUGIN_OPTIONS}" NANOPB_PLUGIN_OPTIONS)
 
-    if(NANOPB_OPTIONS)
-        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
-    endif()
-
-    # based on the version of protoc it might be necessary to add "/${FIL_PATH_REL}" currently dealt with in #516
-    set(NANOPB_OUT "${CMAKE_CURRENT_BINARY_DIR}")
-
-    # We need to pass the path to the option files to the nanopb plugin. There are two ways to do it.
-    # - An older hacky one using ':' as option separator in protoc args preventing the ':' to be used in path.
-    # - Or a newer one, using --nanopb_opt which requires a version of protoc >= 3.6
-    # Since nanopb 0.4.6, --nanopb_opt is the default.
-    if(DEFINED NANOPB_PROTOC_OLDER_THAN_3_6_0)
-      set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
-    else()
-      set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${NANOPB_OUT}")
-    endif()
-
     add_custom_command(
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_SRC_EXTENSION}"
              "${CMAKE_CURRENT_BINARY_DIR}/${FIL_PATH_REL}/${FIL_WE}${GEN_EXTENSION}${GEN_HDR_EXTENSION}"
-      COMMAND ${CUSTOM_COMMAND_PREFIX} ${PROTOBUF_PROTOC_EXECUTABLE}
-      ARGS ${_nanopb_include_path} -I${GENERATOR_PATH}
-           -I${GENERATOR_CORE_DIR} -I${CMAKE_CURRENT_BINARY_DIR}
-           --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
-           ${NANOPB_OPT_STRING}
-           ${PROTOC_OPTIONS}
-           ${ABS_FIL}
-      DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}
-           ${ABS_OPT_FIL} ${NANOPB_DEPENDS}
-      COMMENT "Running C++ protocol buffer compiler using nanopb plugin on ${FIL}"
+      COMMAND Python3::Interpreter ${NANOPB_GENERATOR_EXECUTABLE}
+           ${_nanopb_include_path} -I${CMAKE_CURRENT_BINARY_DIR}
+           ${NANOPB_OPTIONS} ${ABS_FIL}
+      DEPENDS ${ABS_FIL} ${ABS_OPT_FIL} ${NANOPB_DEPENDS}
+      COMMENT "Running nanopb_generator.py on ${FIL}"
       VERBATIM )
 
   endforeach()
@@ -361,10 +291,6 @@ function(NANOPB_GENERATE_CPP)
     set(NANOPB_GENERATE_CPP_STANDALONE TRUE)
   endif()
 
-  if(MSVC)
-      unset(CUSTOM_COMMAND_PREFIX)
-  endif()
-
   if(NOT NANOPB_GENERATE_CPP_TARGET)
     if (NANOPB_GENERATE_CPP_STANDALONE)
       set(${SRCS} ${${SRCS}} ${NANOPB_SRCS} PARENT_SCOPE)
@@ -376,19 +302,15 @@ function(NANOPB_GENERATE_CPP)
   endif()
 endfunction()
 
-
-
-#
+# ====================================================================
 # Main.
-#
+# ====================================================================
 
-# By default have NANOPB_GENERATE_CPP macro pass -I to protoc
-# for each directory where a proto file is referenced.
 if(NOT DEFINED NANOPB_GENERATE_CPP_APPEND_PATH)
   set(NANOPB_GENERATE_CPP_APPEND_PATH TRUE)
 endif()
 
-# Make a really good guess regarding location of NANOPB_SRC_ROOT_FOLDER
+# Make a guess regarding location of NANOPB_SRC_ROOT_FOLDER
 if(NOT DEFINED NANOPB_SRC_ROOT_FOLDER)
   get_filename_component(NANOPB_SRC_ROOT_FOLDER
                          ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
@@ -399,10 +321,13 @@ foreach(component ${Nanopb_FIND_COMPONENTS})
   list(APPEND NANOPB_OPTIONS "--${component}")
 endforeach()
 
-# Find the include directory
+# Locate Python3 to execute the script
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# Find the include directory (points to 'include' which contains 'nanopb/pb.h')
 find_path(NANOPB_INCLUDE_DIRS
-    pb.h
-    PATHS ${NANOPB_SRC_ROOT_FOLDER}
+    NAMES nanopb/pb.h
+    PATHS ${NANOPB_SRC_ROOT_FOLDER}/include
     NO_CMAKE_FIND_ROOT_PATH
 )
 mark_as_advanced(NANOPB_INCLUDE_DIRS)
@@ -413,14 +338,16 @@ set(NANOPB_HDRS)
 list(APPEND _nanopb_srcs pb_decode.c pb_encode.c pb_common.c)
 list(APPEND _nanopb_hdrs pb_decode.h pb_encode.h pb_common.h pb.h)
 
+# Search for source files strictly under 'src'
 foreach(FIL ${_nanopb_srcs})
-  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER} ${NANOPB_INCLUDE_DIRS} NO_CMAKE_FIND_ROOT_PATH)
+  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER}/src NO_CMAKE_FIND_ROOT_PATH)
   list(APPEND NANOPB_SRCS "${${FIL}__nano_pb_file}")
   mark_as_advanced(${FIL}__nano_pb_file)
 endforeach()
 
+# Search for include files strictly under 'include/nanopb'
 foreach(FIL ${_nanopb_hdrs})
-  find_file(${FIL}__nano_pb_file NAMES ${FIL} PATHS ${NANOPB_INCLUDE_DIRS} NO_CMAKE_FIND_ROOT_PATH)
+  find_file(${FIL}__nano_pb_file NAMES nanopb/${FIL} PATHS ${NANOPB_SRC_ROOT_FOLDER}/include NO_CMAKE_FIND_ROOT_PATH)
   mark_as_advanced(${FIL}__nano_pb_file)
   list(APPEND NANOPB_HDRS "${${FIL}__nano_pb_file}")
 endforeach()
@@ -429,36 +356,6 @@ endforeach()
 add_library(nanopb STATIC EXCLUDE_FROM_ALL ${NANOPB_SRCS})
 target_compile_features(nanopb PUBLIC c_std_11)
 target_include_directories(nanopb PUBLIC ${NANOPB_INCLUDE_DIRS})
-
-# Find the local protoc Executable
-find_program(PROTOBUF_PROTOC_EXECUTABLE
-    NAMES protoc
-    DOC "The Google Protocol Buffers Compiler"
-    PATHS
-    ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Release
-    ${PROTOBUF_SRC_ROOT_FOLDER}/vsprojects/Debug
-    ${NANOPB_SRC_ROOT_FOLDER}/generator-bin
-    ${NANOPB_SRC_ROOT_FOLDER}/generator
-    NO_DEFAULT_PATH
-)
-
-# Test protoc, try to get version
-execute_process(
-    COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --version
-    OUTPUT_QUIET
-    ERROR_QUIET
-    RESULT_VARIABLE ret
-)
-if(NOT ret EQUAL 0)
-    # Fallback to system protoc
-    unset(PROTOBUF_PROTOC_EXECUTABLE)
-    find_program(PROTOBUF_PROTOC_EXECUTABLE
-        NAMES protoc
-        DOC "The Google Protocol Buffers Compiler"
-    )
-endif()
-
-mark_as_advanced(PROTOBUF_PROTOC_EXECUTABLE)
 
 # Find nanopb generator source dir
 find_path(NANOPB_GENERATOR_SOURCE_DIR
@@ -472,9 +369,10 @@ find_path(NANOPB_GENERATOR_SOURCE_DIR
 mark_as_advanced(NANOPB_GENERATOR_SOURCE_DIR)
 
 include(FindPackageHandleStandardArgs)
+
 find_package_handle_standard_args(Nanopb DEFAULT_MSG
   NANOPB_INCLUDE_DIRS
   NANOPB_SRCS NANOPB_HDRS
   NANOPB_GENERATOR_SOURCE_DIR
-  PROTOBUF_PROTOC_EXECUTABLE
-  )
+  Python3_EXECUTABLE
+)
