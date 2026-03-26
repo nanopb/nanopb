@@ -1,5 +1,5 @@
 #include <string.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "unittests.h"
 #include "test_helpers.h"
 #include "test.pb.h"

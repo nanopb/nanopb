@@ -3,7 +3,7 @@
 #ifndef ARENA_ALLOCATOR_H_INCLUDED
 #define ARENA_ALLOCATOR_H_INCLUDED
 
-#include <pb.h>
+#include <nanopb/pb.h>
 
 typedef struct {
     pb_allocator_t allocator;

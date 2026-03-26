@@ -3,7 +3,7 @@
 // See: https://en.wikipedia.org/wiki/Serial_Line_Internet_Protocol
 
 #include <stdio.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
 #include "print_person.h"

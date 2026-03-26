@@ -4,7 +4,7 @@
 #ifndef FLAKYSTREAM_H
 #define FLAKYSTREAM_H
 
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 
 #if !PB_NO_STREAM_CALLBACK
 

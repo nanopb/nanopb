@@ -2,8 +2,8 @@
  * external fuzzers such as afl-fuzz.
  */
 
-#include <pb_encode.h>
-#include <pb_common.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_common.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

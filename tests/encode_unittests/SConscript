@@ -1,5 +1,7 @@
 # Build and run the stand-alone unit tests for the nanopb encoder part.
 
 Import('env')
+env = env.Clone()
+env.Append(CPPPATH = ['$NANOPB/src']) # To get nanopb source files internals
 p = env.Program(["encode_unittests.c", "$COMMON/unittestproto.pb.c", "$COMMON/malloc_wrappers.c"])
 env.RunTest(p)

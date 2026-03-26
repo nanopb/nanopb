@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "msgid_example.pb.h"
 #include "test_helpers.h"
 

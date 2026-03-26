@@ -1,6 +1,6 @@
 #include <unittests.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include <string.h>
 #include "zero_value.pb.h"
 

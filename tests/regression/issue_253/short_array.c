@@ -1,5 +1,5 @@
 #include <unittests.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "short_array.pb.h"
 
 int main()

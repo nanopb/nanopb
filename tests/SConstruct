@@ -98,8 +98,8 @@ if platform.system() == "Darwin" and 'CC' not in ARGUMENTS:
 # Add the builders defined in site_init.py
 add_nanopb_builders(env)
 
-# Path to the files shared by tests, and to the nanopb core.
-env.Append(CPPPATH = ["#../", "$COMMON"])
+# Path to the files shared by tests
+env.Append(CPPPATH = ["$COMMON"])
 
 # Path for finding nanopb.proto
 env.Append(PROTOCPATH = '#../generator')

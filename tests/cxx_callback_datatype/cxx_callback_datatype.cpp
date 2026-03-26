@@ -1,8 +1,8 @@
 // Test wrapping of a C++ class inside struct using callback_datatype option.
 #include "message.pb.hpp"
 
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 
 #include <algorithm>
 #include <cstdio>

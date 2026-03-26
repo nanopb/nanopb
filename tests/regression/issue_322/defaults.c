@@ -1,6 +1,6 @@
 #include "defaults.pb.h"
 #include <unittests.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 
 int check_defaults(const DefaultsMsg *msg)
 {

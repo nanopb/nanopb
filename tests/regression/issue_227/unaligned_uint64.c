@@ -1,5 +1,5 @@
 #include "unaligned_uint64.pb.h"
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 
 int main()
 {

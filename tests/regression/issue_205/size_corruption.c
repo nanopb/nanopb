@@ -1,5 +1,5 @@
 #include "size_corruption.pb.h"
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 
 int main()
 {

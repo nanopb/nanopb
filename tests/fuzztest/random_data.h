@@ -3,7 +3,7 @@
 #ifndef RANDOM_DATA_H
 #define RANDOM_DATA_H
 
-#include <pb.h>
+#include <nanopb/pb.h>
 
 void random_set_seed(uint32_t seed);
 uint32_t random_get_seed();

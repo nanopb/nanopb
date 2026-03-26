@@ -3,8 +3,8 @@
  */
 
 #include <stdio.h>
-#include <pb_encode.h>
-#include <pb_common.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_common.h>
 #include "unittests.h"
 #include "multifile2.pb.h"
 #include "subdir/multifile2.pb.h"

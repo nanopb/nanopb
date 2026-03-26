@@ -3,7 +3,7 @@
 
 #ifndef PB_ALLTYPES_LEGACY_H_INCLUDED
 #define PB_ALLTYPES_LEGACY_H_INCLUDED
-#include <pb.h>
+#include <nanopb/pb.h>
 
 #if PB_PROTO_HEADER_VERSION != 93
 #error Regenerate this file with the current version of nanopb generator.

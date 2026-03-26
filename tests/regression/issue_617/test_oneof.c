@@ -1,4 +1,4 @@
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <unittests.h>
 #include "oneof.pb.h"
 

@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "alltypes_legacy.h"
 #include "test_helpers.h"
 #include "unittests.h"

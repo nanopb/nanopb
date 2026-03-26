@@ -1,6 +1,6 @@
 #include "sort_by_tag.pb.h"
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include "unittests.h"
 
 int main()

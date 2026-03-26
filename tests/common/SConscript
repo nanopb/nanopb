@@ -7,7 +7,7 @@ if not env.HasFlag('PB_NO_MALLOC'):
     # Use wrappers for detecting malloc bugs
     env.Append(CPPDEFINES = {'PB_EXTRA_HEADER_NAME': 'malloc_wrappers.h'})
     malloc = env.Object("malloc_wrappers.o", "malloc_wrappers.c")
-    env.Depends("$NANOPB/pb.h", ["malloc_wrappers.h"])
+    env.Depends("$NANOPB_INCLUDE/nanopb/pb.h", ["malloc_wrappers.h"])
     malloc_objs = [malloc]
 
 # Protocol definitions for the encode/decode_unittests
@@ -17,13 +17,13 @@ env.NanopbProto("unittestproto")
 env.NanopbProto("person")
 
 #--------------------------------------------
-# Binaries of the pb_decode.c and pb_encode.c
+# Binaries of the nanopb source code files
 # These are built using more strict warning flags.
 strict = env.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
-dec = strict.Object("pb_decode.o", "$NANOPB/pb_decode.c")
-enc = strict.Object("pb_encode.o", "$NANOPB/pb_encode.c")
-common = strict.Object("pb_common.o", "$NANOPB/pb_common.c")
+dec = strict.Object("pb_decode.o", "$NANOPB/src/pb_decode.c")
+enc = strict.Object("pb_encode.o", "$NANOPB/src/pb_encode.c")
+common = strict.Object("pb_common.o", "$NANOPB/src/pb_common.c")
 
 env.Replace(NANOPB_OBJS = [dec, enc, common] + malloc_objs)
 env.Replace(NANOPB_DECODER_OBJS = [dec, common] + malloc_objs)

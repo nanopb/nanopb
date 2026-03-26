@@ -1,5 +1,7 @@
 # Test functions in pb_common.c
 
 Import('env')
+env = env.Clone()
+env.Append(CPPPATH = ['$NANOPB/src']) # To get nanopb source files internals
 p = env.Program(["common_unittests.c", "$BUILD/alltypes/alltypes.pb.c"])
 env.RunTest(p)

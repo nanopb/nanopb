@@ -1,7 +1,7 @@
 // Test usage of a field callback to catch any unknown fields in a message.
 
 #include <stdio.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "person.pb.h"
 #include "test_helpers.h"
 #include "print_person.h"

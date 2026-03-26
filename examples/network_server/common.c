@@ -3,8 +3,8 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 
 #include "common.h"
 

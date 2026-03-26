@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "variant.pb.h"
 int main(int argc,char**argv){
   int control = (argc>1 && strcmp(argv[1],"--control")==0);
@@ -18,7 +18,8 @@ int main(int argc,char**argv){
   for(i=0;i<n;i++)printf(" %02x", b[i]);
   printf("\n");
   VariantMessage msg = VariantMessage_init_zero;
-  pb_istream_t is = pb_istream_from_buffer(b,n);
+  pb_decode_ctx_t is;
+  pb_init_decode_ctx_for_buffer(&is, b, n);
   printf("[poc] calling pb_decode()...\n"); fflush(stdout);
   bool ok = pb_decode(&is, VariantMessage_fields, &msg);
   printf("[poc] pb_decode -> %d (%s) which_value=%d\n", ok, ok?"ok":PB_GET_ERROR(&is), (int)msg.which_value);

@@ -1,6 +1,6 @@
 #include "validation.h"
 #include "malloc_wrappers.h"
-#include <pb_common.h>
+#include <nanopb/pb_common.h>
 #include <assert.h>
 
 void validate_static(pb_field_iter_t *iter)

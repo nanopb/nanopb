@@ -1,6 +1,6 @@
 #include "submsg_callback.pb.h"
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include "unittests.h"
 
 bool msg_callback(pb_decode_ctx_t *stream, const pb_field_iter_t *field, void **arg)

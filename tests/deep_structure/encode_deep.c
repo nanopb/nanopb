@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pb_encode.h>
+#include <nanopb/pb_encode.h>
 #include "test_helpers.h"
 #include "deep.pb.h"
 

@@ -10,8 +10,7 @@ Basic example
 myproto = env.NanopbProto("myproto")
 
 # Link nanopb core to the program
-env.Append(CPPPATH = "$NANOB")
-myprog = env.Program(["myprog.c", myproto, "$NANOPB/pb_encode.c", "$NANOPB/pb_decode.c"])
+myprog = env.Program(["myprog.c", myproto, env['NANOPB_SRC_FILES']])
 
 Configuration options
 ---------------------
@@ -52,7 +51,7 @@ def _detect_nanopb(env):
         return env['NANOPB']
 
     p = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-    if os.path.isdir(p) and os.path.isfile(os.path.join(p, 'pb.h')):
+    if os.path.isdir(p) and os.path.isfile(os.path.join(p, 'src', 'pb_decode.c')):
         # Assume we are running under tests/site_scons/site_tools
         return p
 
@@ -193,13 +192,16 @@ def generate(env):
     '''Add Builder for nanopb protos.'''
 
     env['NANOPB'] = _detect_nanopb(env)
+    env['NANOPB_INCLUDE'] = '$NANOPB/include'
     env['PROTOC'] = _detect_protoc(env)
     env['PROTOCFLAGS'] = _detect_protocflags(env)
     env['PYTHON'] = _detect_python(env)
     env['NANOPB_GENERATOR'] = _detect_nanopb_generator(env)
+    env['NANOPB_SRC_FILES'] = ['$NANOPB/src/pb_decode.c', '$NANOPB/src/pb_encode.c', '$NANOPB/src/pb_common.c']
     env.SetDefault(NANOPBFLAGS = '')
 
     env.SetDefault(PROTOCPATH = [".", os.path.join(env['NANOPB'], 'generator', 'proto')])
+    env.Append(CPPPATH = "$NANOPB_INCLUDE")
 
     env.SetDefault(NANOPB_PROTO_CMD = '$PROTOC $PROTOCFLAGS --nanopb_out=$NANOPBFLAGS:. $SOURCES')
     env['BUILDERS']['NanopbProto'] = _nanopb_proto_builder

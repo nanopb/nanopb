@@ -17,9 +17,9 @@ opts.Append(CPPDEFINES = {'PB_NO_STREAM_CALLBACK': 1, 'PB_NO_MALLOC': 1})
 # Build new version of core
 strict = opts.Clone()
 strict.Append(CFLAGS = strict['CORECFLAGS'])
-strict.Object("pb_decode_bufonly.o", "$NANOPB/pb_decode.c")
-strict.Object("pb_encode_bufonly.o", "$NANOPB/pb_encode.c")
-strict.Object("pb_common_bufonly.o", "$NANOPB/pb_common.c")
+strict.Object("pb_decode_bufonly.o", "$NANOPB/src/pb_decode.c")
+strict.Object("pb_encode_bufonly.o", "$NANOPB/src/pb_encode.c")
+strict.Object("pb_common_bufonly.o", "$NANOPB/src/pb_common.c")
 
 # Now build and run the test normally.
 enc = opts.Program(["encode_alltypes.c", "alltypes.pb.c", "pb_encode_bufonly.o", "pb_common_bufonly.o"])

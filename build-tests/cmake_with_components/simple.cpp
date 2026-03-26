@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <pb_encode.h>
-#include <pb_decode.h>
+#include <nanopb/pb_encode.h>
+#include <nanopb/pb_decode.h>
 #include "simple.pb.h"
 
 int main()

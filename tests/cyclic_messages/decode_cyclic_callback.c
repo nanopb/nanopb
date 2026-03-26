@@ -2,7 +2,7 @@
  * using nanopb callbacks.
  */
 
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

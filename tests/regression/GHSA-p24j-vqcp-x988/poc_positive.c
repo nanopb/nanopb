@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <pb_decode.h>
+#include <nanopb/pb_decode.h>
 #include "variant.pb.h"
 
 static int fired = 0;
-static bool my_cb(pb_istream_t *s, const pb_field_t *f, void **arg) {
+static bool my_cb(pb_decode_ctx_t *s, const pb_field_iter_t *f, void **arg) {
     (void)f; (void)arg;
     pb_byte_t buf[32]; size_t n = s->bytes_left;
     if (n > sizeof buf) n = sizeof buf;
@@ -35,7 +35,8 @@ int main(void) {
     msg.value.s.funcs.decode = my_cb;          /* the legitimate registration */
     printf("[poc] funcs.decode registered at %p\n", (void*)my_cb);
 
-    pb_istream_t is = pb_istream_from_buffer(wire, sizeof wire);
+    pb_decode_ctx_t is;
+    pb_init_decode_ctx_for_buffer(&is, wire, sizeof wire);
     bool ok = pb_decode(&is, VariantMessage_fields, &msg);
     printf("[poc] pb_decode -> %d (%s)\n", ok, ok ? "ok" : PB_GET_ERROR(&is));
     printf("[poc] RESULT: callback %s\n", fired ? "FIRED (correct)" : "DID NOT FIRE (REGRESSION)");
