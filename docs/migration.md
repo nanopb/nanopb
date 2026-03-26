@@ -20,8 +20,17 @@ version that compatibility is aimed for. Use `PB_API_VERSION_v0_4` for
 nanopb-0.4 compatibility, and `PB_API_VERSION_LATEST` or
 `PB_API_VERSION_v1_0` for new code.
 
-**Required changes:** Define `PB_API_VERSION` or use the conversion tool
-**(to be done)** to update old code.
+**Required actions:** Define `PB_API_VERSION` or use [tools/nanopb_api_updater.py](../tools/nanopb_api_updater.py) to update old code.
+
+### Directory layout reorganized
+
+**Rationale:** Moving nanopb source files to a subdirectory makes build system integration easier.
+Having headers under folder `nanopb` avoids namespace conflicts when including files.
+
+**Changes:** Source files `pb_decode.c` etc. are now under `src/`. Header files `pb_decode.h` etc. are now under `include/nanopb`. Internally `#include "nanopb/pb.h"` is used to include nanopb headers.
+
+**Required actions:** Change compiler include paths as needed. User code can continue to use `#include <pb.h>` as before
+if `include/nanopb` is added to the include path.
 
 ### Streams renamed to context
 

@@ -22,9 +22,9 @@
  *    distribution.
  */
 
-#include "pb.h"
-#include "pb_decode.h"
-#include "pb_common.h"
+#include "nanopb/pb.h"
+#include "nanopb/pb_decode.h"
+#include "nanopb/pb_common.h"
 
 /* Use the GCC warn_unused_result attribute to check that all return values
  * are propagated correctly. On other compilers, gcc before 3.4.0 and iar

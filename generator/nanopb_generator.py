@@ -2698,7 +2698,7 @@ optparser.add_option("-Q", "--generated-include-format", dest="genformat",
     metavar="FORMAT", default='#include "%s"',
     help="Set format string to use for including other .pb.h files. Value can be 'quote', 'bracket' or a format string. [default: %default]")
 optparser.add_option("-L", "--library-include-format", dest="libformat",
-    metavar="FORMAT", default='#include <%s>',
+    metavar="FORMAT", default='#include <nanopb/%s>',
     help="Set format string to use for including the nanopb pb.h header. Value can be 'quote', 'bracket' or a format string. [default: %default]")
 optparser.add_option("--strip-path", dest="strip_path", action="store_true", default=False,
     help="Strip directory path from #included .pb.h file name")
@@ -2758,7 +2758,7 @@ def process_cmdline(args, is_plugin):
     if options.quiet:
         options.verbose = False
 
-    include_formats = {'quote': '#include "%s"', 'bracket': '#include <%s>'}
+    include_formats = {'quote': '#include "nanopb/%s"', 'bracket': '#include <nanopb/%s>'}
     options.libformat = include_formats.get(options.libformat, options.libformat)
     options.genformat = include_formats.get(options.genformat, options.genformat)
 
