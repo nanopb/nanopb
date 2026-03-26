@@ -6,7 +6,7 @@
 #ifndef PB_DECODE_H_INCLUDED
 #define PB_DECODE_H_INCLUDED
 
-#include "pb.h"
+#include "nanopb/pb.h"
 
 #ifdef __cplusplus
 extern "C" {

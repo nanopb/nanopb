@@ -5,7 +5,7 @@
 #ifndef PB_COMMON_H_INCLUDED
 #define PB_COMMON_H_INCLUDED
 
-#include "pb.h"
+#include "nanopb/pb.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -395,28 +395,32 @@ RERule(r'^(?P<prefix>[ \t]*#[ \t]*)ifndef\s+(?P<name>PB_NO_[A-Z_]+)' +
        r'\g<prefix>if !\g<name>\g<rest>', re.MULTILINE | re.DOTALL),
 
 # #define PB_NO_xxxx without value -> 1
-RERule(r'(?P<prefix>\s*#\s*)define\s+(?P<name>PB_NO_[A-Z_]+)\s*$',
+RERule(r'^(?P<prefix>\s*#\s*)define\s+(?P<name>PB_NO_[A-Z_]+)\s*$',
        r'\g<prefix>define \g<name> 1'),
 
 # #ifndef PB_ENABLE_MALLOC -> #if PB_NO_MALLOC
-RERule(r'(?P<prefix>\s*#\s*)ifndef\s+PB_ENABLE_MALLOC',
+RERule(r'^(?P<prefix>\s*#\s*)ifndef\s+PB_ENABLE_MALLOC',
        r'\g<prefix>if PB_NO_MALLOC'),
 
 # #ifdef PB_ENABLE_MALLOC -> #if !PB_NO_MALLOC
-RERule(r'(?P<prefix>\s*#\s*)ifdef\s+PB_ENABLE_MALLOC',
+RERule(r'^(?P<prefix>\s*#\s*)ifdef\s+PB_ENABLE_MALLOC',
        r'\g<prefix>if !PB_NO_MALLOC'),
 
 # #ifndef PB_CONVERT_DOUBLE_FLOAT -> #if !PB_CONVERT_DOUBLE_FLOAT
-RERule(r'(?P<prefix>\s*#\s*)ifndef\s+PB_CONVERT_DOUBLE_FLOAT',
+RERule(r'^(?P<prefix>\s*#\s*)ifndef\s+PB_CONVERT_DOUBLE_FLOAT',
        r'\g<prefix>if !PB_CONVERT_DOUBLE_FLOAT'),
 
 # #ifdef PB_CONVERT_DOUBLE_FLOAT -> #if PB_CONVERT_DOUBLE_FLOAT
-RERule(r'(?P<prefix>\s*#\s*)ifdef\s+PB_CONVERT_DOUBLE_FLOAT',
+RERule(r'^(?P<prefix>\s*#\s*)ifdef\s+PB_CONVERT_DOUBLE_FLOAT',
        r'\g<prefix>if PB_CONVERT_DOUBLE_FLOAT'),
 
 # defined(PB_NO_xxxx) -> PB_NO_xxxxx
 RERule(r'defined\(\s*(?P<name>PB_NO_[A-Z_]+)\s*\)',
        r'\g<name>'),
+
+# include <pb.h> => <nanopb/pb.h>
+RERule(r'^(?P<prefix>\s*#\s*include\s*[<"])(?P<name>pb\.h|pb_decode\.h|pb_encode\.h|pb_common\.h)(?P<suffix>[>"])',
+       r'\g<prefix>nanopb/\g<name>\g<suffix>'),
 
 ]
 

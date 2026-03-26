@@ -22,7 +22,7 @@
  *    distribution.
  */
 
-#include "pb_common.h"
+#include "nanopb/pb_common.h"
 
 // The order of the pb_ltype_to_wire_type_map array must match PB_LTYPE definition.
 PB_STATIC_ASSERT( \
