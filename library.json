@@ -14,28 +14,28 @@
   }],
   "export": {
     "include": [
-      "*.c",
-      "*.cpp",
-      "*.h",
+      "src/*.c",
+      "include/nanopb/*.h",
       "examples",
+      "build-tests/platformio",
       "generator"
     ],
     "exclude": [
       "generator/**/__pycache__",
-      "examples/platformio/.gitignore"
+      "build-tests/platformio/.gitignore"
     ]
   },
   "build": {
     "extraScript": "generator/platformio_generator.py",
-    "includeDir": "",
-    "srcDir": "",
+    "includeDir": "include",
+    "srcDir": "src",
     "srcFilter": [
       "+<*.c>"
     ]
   },
   "examples": [
-    "examples/platformio/platformio.ini",
-    "examples/platformio/src/*.c",
+    "build-tests/platformio/platformio.ini",
+    "build-tests/platformio/src/*.c",
     "examples/*/*.c"
   ],
   "frameworks": "*",
