@@ -1,3 +1,6 @@
+nanopb-0.4.10 (unreleased)
+ Add FT_BYTES field type option for treating submessage fields as raw bytes
+
 nanopb-0.4.9.1 (2024-12-01)
  Fix memory not released on error return from pb_decode_ex() (GHSA-xwqq-qxmw-hj5r)
  Fix deprecated MakeClass() call in generator (#1015)

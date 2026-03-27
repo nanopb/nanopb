@@ -627,6 +627,13 @@ class Field(ProtoElement):
             field_options.type = nanopb_pb2.FT_STATIC
             field_options.fixed_length = True
 
+        if field_options.type == nanopb_pb2.FT_BYTES:
+            if desc.type != FieldD.TYPE_MESSAGE:
+                raise Exception("Field '%s' uses FT_BYTES but is not a message field. "
+                                "FT_BYTES can only be applied to submessage fields." % self.name)
+            desc.type = FieldD.TYPE_BYTES
+            field_options.type = nanopb_pb2.FT_DEFAULT
+
         # Parse field options
         if field_options.HasField("max_size"):
             self.max_size = field_options.max_size

@@ -1,0 +1,32 @@
+syntax = "proto2";
+import "nanopb.proto";
+
+message InnerMessage {
+    required int32 value = 1;
+    required string name = 2 [(nanopb).max_size = 16];
+}
+
+// Static allocation via inline option
+message OuterStatic {
+    required InnerMessage sub = 1 [(nanopb).type = FT_BYTES, (nanopb).max_size = 64];
+}
+
+// Static allocation via .options file
+message OuterOptions {
+    required InnerMessage sub = 1;
+}
+
+// Pointer allocation via inline option
+message OuterPointer {
+    required InnerMessage sub = 1 [(nanopb).type = FT_BYTES];
+}
+
+// Normal submessage (for encoding reference data)
+message OuterNormal {
+    required InnerMessage sub = 1;
+}
+
+// Repeated submessage as bytes
+message OuterRepeated {
+    repeated InnerMessage subs = 1 [(nanopb).type = FT_BYTES, (nanopb).max_size = 64, (nanopb).max_count = 3];
+}

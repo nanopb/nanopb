@@ -1,0 +1,31 @@
+# Test FT_BYTES: treating submessage fields as raw bytes
+
+Import("env", "malloc_env")
+
+env.NanopbProto(["submsg_as_bytes", "submsg_as_bytes.options"])
+
+enc = env.Program(["encode_submsg.c",
+                    "submsg_as_bytes.pb.c",
+                    "$COMMON/pb_encode.o",
+                    "$COMMON/pb_common.o"])
+
+dec = env.Program(["decode_submsg.c",
+                    "submsg_as_bytes.pb.c",
+                    "$COMMON/pb_encode.o",
+                    "$COMMON/pb_decode.o",
+                    "$COMMON/pb_common.o"])
+
+# Encode reference data using normal submessage, then decode as FT_BYTES
+env.RunTest(enc)
+env.RunTest([dec, "encode_submsg.output"])
+
+# Pointer allocation test (requires malloc)
+malloc_pb = malloc_env.Object("submsg_as_bytes_malloc.o", "submsg_as_bytes.pb.c")
+dec_malloc = malloc_env.Program(["decode_submsg_pointer.c",
+                                  malloc_pb,
+                                  "$COMMON/pb_encode_with_malloc.o",
+                                  "$COMMON/pb_decode_with_malloc.o",
+                                  "$COMMON/pb_common_with_malloc.o",
+                                  "$COMMON/malloc_wrappers.o"])
+
+env.RunTest([dec_malloc, "encode_submsg.output"])

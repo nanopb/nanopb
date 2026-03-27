@@ -1,0 +1,2 @@
+OuterOptions.sub  type:FT_BYTES  max_size:64
+OuterPointer.sub  fallback_type:FT_POINTER

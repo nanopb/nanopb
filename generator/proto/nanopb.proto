@@ -23,6 +23,7 @@ enum FieldType {
     FT_STATIC = 2; // Generate a static field or raise an exception if not possible.
     FT_IGNORE = 3; // Ignore the field completely.
     FT_INLINE = 5; // Legacy option, use the separate 'fixed_length' option instead
+    FT_BYTES = 6; // Treat a submessage field as raw bytes (wire-compatible).
 }
 
 enum IntSize {
@@ -70,7 +71,8 @@ message NanoPBOptions {
   // Size for enum fields. Supported by C++11 and C23 standards.
   optional IntSize enum_intsize = 34 [default = IS_DEFAULT];
 
-  // Force type of field (callback or static allocation)
+  // Force type of field (callback or static allocation).
+  // FT_BYTES can be used on submessage fields to treat them as raw bytes.
   optional FieldType type = 3 [default = FT_DEFAULT];
   
   // Use long names for enums, i.e. EnumName_EnumValue.
