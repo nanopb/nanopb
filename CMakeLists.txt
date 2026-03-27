@@ -45,6 +45,8 @@ endif()
 if(nanopb_BUILD_GENERATOR)
     # Determine Python module installation path
     if (NOT nanopb_PYTHON_INSTDIR_OVERRIDE)
+        set(Python3_FIND_STRATEGY LOCATION)
+        set(Python3_FIND_VIRTUALENV FIRST)
         find_package(Python REQUIRED COMPONENTS Interpreter)
         file(TO_CMAKE_PATH "${Python_SITELIB}" PYTHON_INSTDIR)
     else()
