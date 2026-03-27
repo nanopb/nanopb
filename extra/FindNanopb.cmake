@@ -322,6 +322,8 @@ foreach(component ${Nanopb_FIND_COMPONENTS})
 endforeach()
 
 # Locate Python3 to execute the script
+set(Python3_FIND_STRATEGY LOCATION)
+set(Python3_FIND_VIRTUALENV FIRST)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 # Find the include directory (points to 'include' which contains 'nanopb/pb.h')
