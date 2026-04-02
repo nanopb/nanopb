@@ -8,11 +8,10 @@
   
 # API reference
 - [Library concepts](./concepts.md)
-- [Generator options](./generator.md)
+- [Build options](./reference_buildopt.md)
+- [Generator options](./reference_generator.md)
 - [Security model](./security.md)
 - [API reference](./reference.md)
-  - [Build options](./reference_buildopt.md)
-  - [Generator](./reference_generator.md)
   - [pb.h](./reference_pb_h.md)
   - [pb_encode.h](./reference_pb_encode_h.md)
   - [pb_decode.h](./reference_pb_decode_h.md)

@@ -149,13 +149,13 @@ To use the pb_syshdr.h, define `PB_SYSTEM_HEADER_NAME` as `pb_syshdr.h`.
 Examples
 --------
 
-Tutorial projects are in the `examples` folder:
+Tutorial projects are in the [examples](../examples/) folder:
 
 * [examples/simple](../examples/simple/): A basic hello-world level of example, showing the encoding and decoding of one message.
 * [examples/network_server](../examples/network_server/): More advanced example, which provides directory listings over a network connection.
 * [examples/lowlevel](../examples/lowlevel/): Example of using the low-level encoding and decoding functions for manual processing of protobuf data.
 
-In addition to the examples, the test cases under `tests` cover all nanopb features.
+In addition to the examples, the test cases under [tests](../tests/) cover all nanopb features.
 Some of the more interesting ones are:
 
 * [tests/alltypes](../tests/alltypes/): A large message type that shows every supported field type.
@@ -169,19 +169,22 @@ Some of the more interesting ones are:
 Running the test cases
 ----------------------
 
-Extensive unittests and test cases are included under the `tests`
+Extensive unittests and test cases are included under the [tests](../tests)
 folder.
 
 To build the tests, you will need the [scons](http://www.scons.org/)
-build system. The tests should be runnable on most platforms. Windows
+build system and the [nanopb generator dependencies](installation.md).
+
+The tests should be runnable on most platforms. Windows
 and Linux builds are regularly tested. The tests also support embedded
 targets: STM32 (ARM Cortex-M) and AVR builds are regularly tested.
 
-In addition to the build system, you will also need a working Google
-Protocol Buffers `protoc` compiler, and the Python bindings for Protocol
-Buffers.
-
-Easiest way to install dependencies is to use the Python package manager
+Easiest way to install scons is to use the Python package manager
 [pip](https://pypi.org/project/pip/), which works on all platforms supported by Python:
 
-    pip3 install scons protobuf grpcio-tools
+    $ cd nanopb/tests
+    $ python3 -m venv venv
+    $ venv/bin/pip install scons protobuf grpcio-tools
+    $ venv/bin/scons
+    ...
+    scons: done building targets.
