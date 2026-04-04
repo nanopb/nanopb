@@ -463,7 +463,6 @@ class Enum(ProtoElement):
         return result
 
     def auxiliary_defines(self):
-        # Define X-macro for enum values in their numeric order
         sorted_values = sorted(self.values, key = lambda x: (x[1], x[0]))
 
         unmangledName = self.protofile.manglenames.unmangle(self.names)
@@ -2339,13 +2338,13 @@ class ProtoFile:
         yield '#endif\n\n'
 
         if self.enums:
-                yield '/* Helper constants for enums */\n'
-                for enum in self.enums:
-                    yield enum.auxiliary_defines() + '\n'
+            yield '/* Helper constants for enums */\n'
+            for enum in self.enums:
+                yield enum.auxiliary_defines() + '\n'
 
-                for msg in self.messages:
-                    yield msg.enumtype_defines() + '\n'
-                yield '\n'
+            for msg in self.messages:
+                yield msg.enumtype_defines() + '\n'
+            yield '\n'
 
         if self.messages:
             yield '/* Initializer values for message structs */\n'
@@ -2373,14 +2372,14 @@ class ProtoFile:
                 yield extension.tags()
             yield '\n'
 
-            yield '/* Struct field encoding specification for nanopb */\n'
+            yield '/* X-macro definition of the message fields */\n'
             for msg in self.messages:
                 yield msg.fields_declaration(self.dependencies) + '\n'
-            for msg in self.messages:
-                yield 'extern const pb_msgdesc_t %s_msg;\n' % Globals.naming_style.type_name(msg.name)
             yield '\n'
 
-            yield '/* Defines for backwards compatibility with code written before nanopb-0.4.0 */\n'
+            yield '/* Message descriptors for use with pb_encode/pb_decode */\n'
+            for msg in self.messages:
+                yield 'extern const pb_msgdesc_t %s_msg;\n' % Globals.naming_style.type_name(msg.name)
             for msg in self.messages:
               yield '#define %s &%s_msg\n' % (
                 Globals.naming_style.define_name('%s_fields' % msg.name),
