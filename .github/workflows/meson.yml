@@ -49,4 +49,4 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           meson setup build -Dexamples=enabled
           ninja -C build/
-          "build-tests/meson_simple/simple.exe"
+          "build/build-tests/meson_simple/simple.exe"
