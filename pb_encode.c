@@ -54,9 +54,18 @@ static bool checkreturn buf_write(pb_ostream_t *stream, const pb_byte_t *buf, si
 {
     pb_byte_t *dest = (pb_byte_t*)stream->state;
     stream->state = dest + count;
-    
-    memcpy(dest, buf, count * sizeof(pb_byte_t));
-    
+
+    /* Skip the copy if buf is NULL. Callers should not invoke this with NULL,
+     * but pb_write may pass NULL for sizing passes. Some compilers
+     * (e.g. picolibc/arm-zephyr-eabi GCC 12.2) emit a -Wnonnull warning
+     * against memcpy's nonnull argument even though count would be 0 in
+     * that case. See #1141.
+     */
+    if (buf != NULL)
+    {
+        memcpy(dest, buf, count * sizeof(pb_byte_t));
+    }
+
     return true;
 }
 
