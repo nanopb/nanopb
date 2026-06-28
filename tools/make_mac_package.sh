@@ -9,6 +9,9 @@ set -e
 set -x
 
 VERSION=`git describe --always`-macosx-x86
+if [[ "$VERSION" != nanopb* ]]; then
+  VERSION="nanopb-0.0.0-$VERSION"
+fi
 DEST=dist/$VERSION
 
 rm -rf $DEST
