@@ -1,0 +1,24 @@
+Import("env")
+
+c = Copy("$TARGET", "$SOURCE")
+env.Command("timing_bufonly.c", "timing.c", c)
+env.Command("deep.pb.h", "$BUILD/deep_structure/deep.pb.h", c)
+env.Command("deep.pb.c", "$BUILD/deep_structure/deep.pb.c", c)
+
+opts = env.Clone()
+opts.Append(CPPDEFINES = {'PB_BUFFER_ONLY': 1})
+
+# Build new version of core
+strict = opts.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_bufonly.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_bufonly.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_bufonly.o", "$NANOPB/pb_common.c")
+
+
+# Now build and run the test normally.
+bufonly = opts.Program(["timing_bufonly.c", "deep.pb.c", "pb_encode_bufonly.o", "pb_common_bufonly.o"])
+normal = opts.Program(["timing.c", "deep.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+
+env.RunTest(bufonly)
+env.RunTest(normal)
