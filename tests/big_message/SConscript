@@ -1,0 +1,16 @@
+Import("env")
+
+env.NanopbProto(["big_message", "big_message.options"])
+
+enc = env.Program(["encode_big_message.c", "big_message.pb.c", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+dec = env.Program(["decode_big_message.c", "big_message.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_common.o"])
+
+# Same output is expected, no matter if stream is written
+# out directly or through a memory buffer.
+env.RunTest('encode_big_message.output0', [enc], ARGS = ['0'])
+env.RunTest('encode_big_message.output1', [enc], ARGS = ['1'])
+env.Compare(['encode_big_message.output0', 'encode_big_message.output1'])
+
+# Similarly, decoding should work the same both ways
+env.RunTest("decode_big_message.output0", [dec, 'encode_big_message.output0'], ARGS = ['0'])
+env.RunTest("decode_big_message.output1", [dec, 'encode_big_message.output1'], ARGS = ['1'])

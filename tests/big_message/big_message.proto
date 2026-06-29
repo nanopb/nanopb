@@ -1,0 +1,19 @@
+// Big (at least > 128 byte) messages with nested cases
+
+syntax = "proto2";
+
+message Three {
+    required bytes small = 1;
+    required bytes large = 2;
+}
+
+message Two {
+    required Three three = 1;
+    required bytes large = 2;
+}
+
+message One {
+    required uint32 start = 1;
+    required Two two = 2;
+    required uint32 end = 3;
+}

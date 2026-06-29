@@ -1,0 +1,2 @@
+*.small max_size:20
+*.large max_size:20000
