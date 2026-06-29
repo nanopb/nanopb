@@ -731,6 +731,69 @@ bool checkreturn pb_encode_string(pb_ostream_t *stream, const pb_byte_t *buffer,
 }
 
 bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *fields, const void *src_struct)
+#ifdef PB_BUFFER_ONLY
+{
+    /*
+     * If we're in buffer-only mode we can skip the submessage sizing step by
+     * just reserving a byte on the stream, encoding the submessage, then
+     * writing the length in afterwards.
+     *
+     * We can't do this in stream mode as we can't go back edit the reserved
+     * byte.
+     *
+     * This only works when the submessage is <= 127 bytes (max single-byte
+     * varint), otherwise we still have to re-encode.
+     */
+    size_t bytes_written = stream->bytes_written;
+    pb_byte_t *state = (pb_byte_t*)stream->state;
+    size_t submessage_len;
+
+    /* write a placeholder byte */
+
+    if (!pb_encode_varint(stream, 0))
+        return false;
+
+    /* write the submessage */
+
+    if (!pb_encode(stream, fields, src_struct))
+        return false;
+
+    /* calculate the length, bytes_written + 1 for placeholder byte */
+
+    submessage_len = stream->bytes_written - (bytes_written + 1);
+
+    /*
+     * If less than 128 (max byte-length varint), we can just write it in the
+     * placeholder byte we reserved originally and we're done.
+     */
+
+    if (submessage_len < 128)
+    {
+        *state = (pb_byte_t)submessage_len;
+        return true;
+    }
+
+    /* otherwise, reset the stream and encode normally */
+
+    stream->bytes_written = bytes_written;
+    stream->state = state;
+
+    if (!pb_encode_varint(stream, (pb_uint64_t)submessage_len))
+        return false;
+
+    bytes_written = stream->bytes_written;
+
+    if (!pb_encode(stream, fields, src_struct))
+        return false;
+
+#if !(defined(PB_NO_ENCODE_SIZE_CHECK) && PB_NO_ENCODE_SIZE_CHECK == 1)
+    if (stream->bytes_written - bytes_written != submessage_len)
+        PB_RETURN_ERROR(stream, "submsg size changed");
+#endif
+
+  return true;
+}
+#else
 {
     /* First calculate the message size using a non-writing substream. */
     pb_ostream_t substream = PB_OSTREAM_SIZING;
@@ -784,6 +847,7 @@ bool checkreturn pb_encode_submessage(pb_ostream_t *stream, const pb_msgdesc_t *
     return status;
 #endif
 }
+#endif
 
 /* Field encoders */
 
