@@ -33,8 +33,8 @@ on `rules_proto` and `rules_proto_grpc` which have been deprecated.
 * Upgrade bazel deps
   * `protobuf`: 35.1
   * `bazel_skylib`: 1.9.0
-  * `rules_cc`: 0.2.15
-  * `rules_python`: 1.6.0
+  * `rules_cc`: 0.2.17
+  * `rules_python`: 1.7.0
 * Remove `rules_proto` and `rules_proto_grpc` dependencies.
 * `cc_nanopb_proto_library` is now implemented on the `proto_common` API
   from `@protobuf`. Its interface is unchanged.
