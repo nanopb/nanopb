@@ -1,0 +1,8 @@
+# The plugin entry point is compiled into //:protoc-gen-nanopb.
+exports_files(["protoc-gen-nanopb-bazel.py"])
+
+# Toolchain type for --incompatible_enable_proto_toolchain_resolution.
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"],
+)

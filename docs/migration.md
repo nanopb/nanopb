@@ -22,6 +22,41 @@ make it work.
 **Required actions:** Upgrade to Python 3 and ensure `python-protobuf`
 is installed.
 
+### Bazel: Bazel 8 now required, WORKSPACE support removed
+
+**Rationale:** Bazel is centralizing all protobuf support in the protobuf
+module. That module today requires Bazel 8 as a minimum version, so nanopb
+also requires Bazel 8 as a minimum version. This removes the dependencies
+or `rules_proto` and `rules_proto_grpc` which have been deprecated.
+
+**Changes:**
+* Upgrade bazel deps
+  * `protobuf`: 35.1
+  * `bazel_skylib`: 1.9.0
+  * `rules_cc`: 0.2.15
+  * `rules_python`: 1.6.0
+* Remove `rules_proto` and `rules_proto_grpc` dependencies.
+* `cc_nanopb_proto_library` is now implemented on the `proto_common` API
+  from `@protobuf`. Its interface is unchanged.
+* The `@nanopb//:nanopb_plugin` `proto_plugin` target is replaced by the
+  `@nanopb//:nanopb_proto_toolchain` `proto_lang_toolchain` target.
+* The rules support `--incompatible_enable_proto_toolchain_resolution`
+  (default in Bazel 9): nanopb registers a toolchain for
+  `@nanopb//extra/bazel:toolchain_type`, which the root module can override
+  with its own `register_toolchains`.
+* The WORKSPACE helper macros `extra/bazel/nanopb_deps.bzl`,
+  `extra/bazel/nanopb_workspace.bzl` and `extra/bazel/python_deps.bzl`
+  are removed. Building nanopb with WORKSPACE is no longer supported.
+* Bazel 8.0.0 or newer is required, as protobuf 35.x requires it.
+
+**Required actions:** Use Bazel >= 8 with bzlmod. Remove any
+`rules_proto` or `rules_proto_grpc` setup that existed only for nanopb.
+Load `proto_library` from `@protobuf//bazel:proto_library.bzl`.
+Usage of `cc_nanopb_proto_library` itself is unchanged.
+
+**Error indications:** `Bazel version 7.x.x is not compatible with module
+"protobuf@35.1"`, or `Unable to find package for @@rules_proto_grpc`.
+
 Nanopb-0.4.9 (2024-09-19)
 -------------------------
 
