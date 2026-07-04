@@ -1,6 +1,9 @@
 module(
     name = "nanopb",
     version = "0.4.9",
+    # protobuf 35.x, which now provides the Bazel proto rules, requires Bazel 8.
+    # See docs/migration.md: "Bazel: Bazel 8 now required, WORKSPACE support removed".
+    bazel_compatibility = [">=8.0.0"],
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.9.0")
