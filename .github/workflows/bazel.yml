@@ -41,28 +41,3 @@ jobs:
       - name: Build
         run: |
           bazelisk build --//:nanopb_extension=${{ matrix.extension }} //...
-
-  # Bazel 7 is unsupported (protobuf 35.x requires Bazel 8). Verify it fails
-  # with the migration error documented in docs/migration.md.
-  bazel7_migration_error:
-    runs-on: ubuntu-latest
-
-    env:
-      USE_BAZEL_VERSION: "7.x"
-      BAZELISK_GITHUB_TOKEN: ${{ github.token }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Bazel 7 fails with the documented migration error
-        run: |
-          set +e
-          output=$(bazelisk build //:nanopb 2>&1)
-          exit_code=$?
-          set -e
-          echo "$output"
-          if [ "$exit_code" -eq 0 ]; then
-            echo "Expected the build to fail on Bazel 7"
-            exit 1
-          fi
-          echo "$output" | grep -F 'not compatible with module'
