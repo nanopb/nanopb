@@ -44,10 +44,13 @@ on `rules_proto` and `rules_proto_grpc` which have been deprecated.
   (default in Bazel 9): nanopb registers a toolchain for
   `@nanopb//extra/bazel:toolchain_type`, which the root module can override
   with its own `register_toolchains`.
-* The WORKSPACE helper macros `extra/bazel/nanopb_deps.bzl`,
+* Building nanopb with WORKSPACE is no longer supported. The WORKSPACE
+  helper macros `extra/bazel/nanopb_deps.bzl`,
   `extra/bazel/nanopb_workspace.bzl` and `extra/bazel/python_deps.bzl`
-  are removed. Building nanopb with WORKSPACE is no longer supported.
-* Bazel 8.0.0 or newer is required, as protobuf 35.x requires it.
+  now fail with a message pointing to this section.
+* Bazel 8.0.0 or newer is required, as protobuf 35.x requires it. nanopb
+  declares `bazel_compatibility = [">=8.0.0"]` so older Bazel versions
+  fail with a clear error.
 
 **Required actions:** Use Bazel >= 8 with bzlmod. Remove any
 `rules_proto` or `rules_proto_grpc` setup that existed only for nanopb.
@@ -55,7 +58,11 @@ Load `proto_library` from `@protobuf//bazel:proto_library.bzl`.
 Usage of `cc_nanopb_proto_library` itself is unchanged.
 
 **Error indications:** `Bazel version 7.x.x is not compatible with module
-"protobuf@35.1"`, or `Unable to find package for @@rules_proto_grpc`.
+"nanopb@..." (bazel_compatibility: [>=8.0.0])` when using an old Bazel
+version with bzlmod. `nanopb no longer supports WORKSPACE builds` when
+loading the removed WORKSPACE helper macros. `Unable to find package for
+@@rules_proto_grpc` if your own rules relied on nanopb's removed
+dependencies.
 
 Nanopb-0.4.9 (2024-09-19)
 -------------------------
