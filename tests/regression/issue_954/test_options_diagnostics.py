@@ -45,7 +45,21 @@ def expect_file_pattern():
     assert result[0][0] == "dir/file-name.proto"
 
 
+def expect_comment_markers_in_strings():
+    options_file = NamedStringIO(
+        "Message.url callback_datatype:\"http://example.com\" // trailing comment\n"
+        "Message.tag callback_datatype:\"value#tag\" # trailing comment\n"
+        "Message.block callback_datatype:\"value/*tag*/\" /* trailing comment */\n"
+    )
+    result = nanopb_generator.read_options_file(options_file)
+
+    assert result[0][1].callback_datatype == "http://example.com"
+    assert result[1][1].callback_datatype == "value#tag"
+    assert result[2][1].callback_datatype == "value/*tag*/"
+
+
 if __name__ == "__main__":
     expect_invalid_pattern()
     expect_file_pattern()
+    expect_comment_markers_in_strings()
     sys.stdout.write("ok\n")

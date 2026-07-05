@@ -3,4 +3,8 @@
 
 Import("env")
 
+import sys
+
+env = env.Clone()
+env["PYTHON"] = env["ESCAPE"](sys.executable)
 env.Command("test_options_diagnostics.output", "test_options_diagnostics.py", "$PYTHON $SOURCE > $TARGET")
