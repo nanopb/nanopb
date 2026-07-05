@@ -2408,15 +2408,27 @@ def validate_options_namemask(namemask, filename, line_number):
                          (invalid.group(0), namemask, hint))
         sys.exit(1)
 
+def strip_options_comments(data):
+    '''Remove comments from .options data without touching quoted strings.'''
+    string_or_comment = re.compile(
+        r'''(?P<string>"(?:\\.|[^"\\\r\n])*(?:"|$)|'(?:\\.|[^'\\\r\n])*(?:'|$))'''
+        r'''|(?P<comment>/\*.*?(?:\*/|\Z)|//[^\r\n]*|#[^\r\n]*)''',
+        flags = re.MULTILINE | re.DOTALL)
+
+    def strip_comment(match):
+        if match.group('string'):
+            return match.group('string')
+
+        return re.sub(r'[^\r\n]', '', match.group('comment'))
+
+    return string_or_comment.sub(strip_comment, data)
+
 def read_options_file(infile):
     '''Parse a separate options file to list:
         [(namemask, options), ...]
     '''
     results = []
-    data = infile.read()
-    data = re.sub(r'/\*.*?\*/', '', data, flags = re.MULTILINE)
-    data = re.sub(r'//.*?$', '', data, flags = re.MULTILINE)
-    data = re.sub(r'#.*?$', '', data, flags = re.MULTILINE)
+    data = strip_options_comments(infile.read())
     for i, line in enumerate(data.split('\n')):
         line = line.strip()
         if not line:
