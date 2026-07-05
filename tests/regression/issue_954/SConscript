@@ -1,0 +1,6 @@
+# Regression test for issue #954:
+# Give a clear diagnostic for stray punctuation in .options field patterns.
+
+Import("env")
+
+env.Command("test_options_diagnostics.output", "test_options_diagnostics.py", "$PYTHON $SOURCE > $TARGET")
