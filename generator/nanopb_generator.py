@@ -2390,6 +2390,24 @@ class ProtoFile:
 
 from fnmatch import fnmatchcase
 
+def validate_options_namemask(namemask, filename, line_number):
+    '''Verify that an options pattern contains only protobuf path and fnmatch characters.'''
+    # File options match .proto paths, which can contain punctuation that is
+    # not valid in field names.
+    if '/' in namemask or namemask.endswith('.proto'):
+        invalid = re.search(r'[\s:]', namemask)
+    else:
+        invalid = re.search(r'[^A-Za-z0-9_.*?\[\]!]', namemask)
+    if invalid:
+        hint = ""
+        if invalid.group(0) == ':':
+            hint = " Did you mean to separate the field pattern from options with whitespace?"
+
+        sys.stderr.write("%s:%d: " % (filename, line_number) +
+                         "Invalid character %r in option field pattern %r.%s\n" %
+                         (invalid.group(0), namemask, hint))
+        sys.exit(1)
+
 def read_options_file(infile):
     '''Parse a separate options file to list:
         [(namemask, options), ...]
@@ -2411,6 +2429,8 @@ def read_options_file(infile):
                              "Option lines should have space between field name and options. " +
                              "Skipping line: '%s'\n" % line)
             sys.exit(1)
+
+        validate_options_namemask(parts[0], infile.name, i + 1)
 
         opts = nanopb_pb2.NanoPBOptions()
 
