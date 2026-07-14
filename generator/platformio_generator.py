@@ -104,10 +104,9 @@ else:
 
         options_file = proto_file_without_ext + ".options"
         options_file_abs = os.path.join(proto_file_path_abs, options_file)
-        options_file_md5_abs = None
+        options_file_md5_abs = os.path.join(md5_dir, options_file + '.md5')
         options_file_current_md5 = None
         if pathlib.Path(options_file_abs).exists():
-            options_file_md5_abs = os.path.join(md5_dir, options_file + '.md5')
             options_file_current_md5 = hashlib.md5(pathlib.Path(options_file_abs).read_bytes()).hexdigest()
         else:
             options_file = None
@@ -136,6 +135,8 @@ else:
                     need_generate = True
             except FileNotFoundError:
                 need_generate = True
+        elif pathlib.Path(options_file_md5_abs).exists():
+            need_generate = True
 
         options_info = f"{options_file}" if options_file else "no options"
 
@@ -156,6 +157,11 @@ else:
             pathlib.Path(proto_file_md5_abs).write_text(proto_file_current_md5)
             if options_file:
                 pathlib.Path(options_file_md5_abs).write_text(options_file_current_md5)
+            else:
+                try:
+                    pathlib.Path(options_file_md5_abs).unlink()
+                except FileNotFoundError:
+                    pass
 
     # 1. Add path to the generated headers, so main.cpp can find them.
     env.Append(CPPPATH=[generated_src_dir])

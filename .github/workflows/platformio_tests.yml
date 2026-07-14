@@ -34,6 +34,9 @@ jobs:
           python3 -m venv venv
           venv/bin/pip3 install -U platformio
 
+      - name: Test PlatformIO generator cache
+        run: venv/bin/python3 -m unittest nanopb/build-tests/platformio/test_platformio_generator.py
+
       - name: Build PlatformIO package
         run: |
           source venv/bin/activate
