@@ -5,6 +5,10 @@
 
 #include "pb_common.h"
 
+#if defined(PB_DECODE_FAST) && defined(PB_DYNAMIC_DECODE_FAST)
+struct pb_decode_interface_s pb_dec_if;
+#endif
+
 static bool load_descriptor_values(pb_field_iter_t *iter)
 {
     uint32_t word0;
