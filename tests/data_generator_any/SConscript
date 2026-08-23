@@ -1,0 +1,7 @@
+Import("env")
+
+import sys
+
+env = env.Clone()
+env["PYTHON"] = env["ESCAPE"](sys.executable)
+env.Command("test_data_generator_any.output", "test_data_generator_any.py", "$PYTHON $SOURCE > $TARGET")
