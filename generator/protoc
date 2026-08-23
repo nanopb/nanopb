@@ -6,6 +6,7 @@
 import sys
 import os
 import os.path
+import tempfile
 
 # Depending on how this script is run, we may or may not have PEP366 package name
 # available for relative imports.
@@ -33,13 +34,32 @@ if __name__ == '__main__':
 
     # Add arguments for finding the generator plugins when using --nanopb_out=
     # or --nanopb-validate_out= arguments to protoc.
+    def _make_python_wrapper(target_path, name):
+        """Create an executable launcher for non-executable plugin scripts."""
+        wrapper_path = os.path.join(tempfile.gettempdir(), name + "-launcher")
+        wrapper_code = (
+            "#!/usr/bin/env python3\n"
+            "import os\n"
+            "import sys\n"
+            "os.execv(sys.executable, [sys.executable, %r] + sys.argv[1:])\n"
+        ) % target_path
+
+        with open(wrapper_path, 'w') as wrapper:
+            wrapper.write(wrapper_code)
+
+        os.chmod(wrapper_path, 0o755)
+        return wrapper_path
+
     def find_plugin(name):
         if os.path.isfile(os.path.join(mypath, name + ".exe")):
             return os.path.join(mypath, name + ".exe")
         elif os.name == 'nt':
             return os.path.join(mypath, name + ".bat")
         else:
-            return os.path.join(mypath, name)
+            plugin_path = os.path.join(mypath, name)
+            if os.path.isfile(plugin_path) and not os.access(plugin_path, os.X_OK):
+                return _make_python_wrapper(plugin_path, name)
+            return plugin_path
 
     args = sys.argv[1:]
 

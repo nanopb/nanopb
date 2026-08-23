@@ -1,9 +1,0 @@
-# Ignore any local overrides
-*.local
-
-# Ignore Docker build artifacts
-.dockerignore
-
-# Ignore any temporary files
-*.tmp
-*.log
