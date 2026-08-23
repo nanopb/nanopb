@@ -7,28 +7,28 @@ import "google/protobuf/any.proto";
 import "sub/imported_payload.proto";
 
 message NestedPayload {
-    string label = 1 [(validate.rules).string.const = "nested"];
+    string label = 1 [(validate.rules).string.const_value = "nested"];
 }
 
 message DirectPayload {
-    int32 id = 1 [(validate.rules).int32.const = 7];
+    int32 id = 1 [(validate.rules).int32.const_value = 7];
     NestedPayload nested = 2;
 }
 
 message Host {
     message NestedChoice {
-        string tag = 1 [(validate.rules).string.const = "nested-choice"];
+        string tag = 1 [(validate.rules).string.const_value = "nested-choice"];
     }
 }
 
 message Recursive {
-    int32 value = 1 [(validate.rules).int32.const = 11];
+    int32 value = 1 [(validate.rules).int32.const_value = 11];
     Recursive child = 2;
 }
 
 message ScalarOnly {
-    string name = 1 [(validate.rules).string.const = "scalar"];
-    int32 count = 2 [(validate.rules).int32.const = 4];
+    string name = 1 [(validate.rules).string.const_value = "scalar"];
+    int32 count = 2 [(validate.rules).int32.const_value = 4];
 }
 
 message Wrapper {
@@ -40,6 +40,7 @@ message Wrapper {
     DirectPayload direct = 2;
     Recursive recursive = 3;
     ScalarOnly scalar = 4;
+    importedfixture.ImportedPayload imported = 5;
 }
 
 message DisallowedAny {
