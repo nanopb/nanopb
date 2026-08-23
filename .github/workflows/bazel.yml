@@ -14,18 +14,25 @@ jobs:
   build_embedded:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         extension: [.pb, .nanopb]
         os: [ubuntu-latest, macos-latest]
+        # Track aliases resolve to the latest release of each major version.
+        bazel: ["8.x", "9.x"]
+
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+      BAZELISK_GITHUB_TOKEN: ${{ github.token }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Mount bazel cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: "/home/runner/.cache/bazel"
-          key: ${{ runner.os }}-bazel
+          key: ${{ runner.os }}-bazel-${{ matrix.bazel }}
 
       - name: Test
         run: |

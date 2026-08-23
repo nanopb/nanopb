@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: nanopb
 
@@ -33,6 +33,9 @@ jobs:
         run: |
           python3 -m venv venv
           venv/bin/pip3 install -U platformio
+
+      - name: Test PlatformIO generator cache
+        run: venv/bin/python3 -m unittest nanopb/build-tests/platformio/test_platformio_generator.py
 
       - name: Build PlatformIO package
         run: |

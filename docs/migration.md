@@ -22,6 +22,48 @@ make it work.
 **Required actions:** Upgrade to Python 3 and ensure `python-protobuf`
 is installed.
 
+### Bazel: Bazel 8 now required, WORKSPACE support removed
+
+**Rationale:** Bazel is centralizing all protobuf support in the protobuf
+module. That module today requires Bazel 8 as a minimum version, so nanopb
+also requires Bazel 8 as a minimum version. This removes the dependencies
+on `rules_proto` and `rules_proto_grpc` which have been deprecated.
+
+**Changes:**
+* Upgrade bazel deps
+  * `protobuf`: 35.1
+  * `bazel_skylib`: 1.9.0
+  * `rules_cc`: 0.2.17
+  * `rules_python`: 1.7.0
+* Remove `rules_proto` and `rules_proto_grpc` dependencies.
+* `cc_nanopb_proto_library` is now implemented on the `proto_common` API
+  from `@protobuf`. Its interface is unchanged.
+* The `@nanopb//:nanopb_plugin` `proto_plugin` target is replaced by the
+  `@nanopb//:nanopb_proto_toolchain` `proto_lang_toolchain` target.
+* The rules support `--incompatible_enable_proto_toolchain_resolution`
+  (default in Bazel 9): nanopb registers a toolchain for
+  `@nanopb//extra/bazel:toolchain_type`, which the root module can override
+  with its own `register_toolchains`.
+* Building nanopb with WORKSPACE is no longer supported. The WORKSPACE
+  helper macros `extra/bazel/nanopb_deps.bzl`,
+  `extra/bazel/nanopb_workspace.bzl` and `extra/bazel/python_deps.bzl`
+  now fail with a message pointing to this section.
+* Bazel 8.0.0 or newer is required, as protobuf 35.x requires it. nanopb
+  declares `bazel_compatibility = [">=8.0.0"]` so older Bazel versions
+  fail with a clear error.
+
+**Required actions:** Use Bazel >= 8 with bzlmod. Remove any
+`rules_proto` or `rules_proto_grpc` setup that existed only for nanopb.
+Load `proto_library` from `@protobuf//bazel:proto_library.bzl`.
+Usage of `cc_nanopb_proto_library` itself is unchanged.
+
+**Error indications:** `Bazel version 7.x.x is not compatible with module
+"nanopb@..." (bazel_compatibility: [>=8.0.0])` when using an old Bazel
+version with bzlmod. `nanopb no longer supports WORKSPACE builds` when
+loading the removed WORKSPACE helper macros. `Unable to find package for
+@@rules_proto_grpc` if your own rules relied on nanopb's removed
+dependencies.
+
 Nanopb-0.4.9 (2024-09-19)
 -------------------------
 
@@ -45,7 +87,7 @@ versions of `protoc` selected by CMake is different than installed `python-proto
 
 ### Use uint8_t for pb_byte_t when UINT8_MAX is defined
 
-**Rationale:** Previously `pb_byte_t` was always defined as `uint8_least_t`.
+**Rationale:** Previously `pb_byte_t` was always defined as `uint_least8_t`.
 This could be annoying on some platforms without this define, or when some
 compiles might warn on conversion from `uint8_t`. However not all platforms
 support `uint8_t` sized access.
@@ -83,8 +125,8 @@ git_override(
     commit = "<commit>",
 )
 ```
-noted that the name of the module has been changed to `nanopb`, to better fit the convention of bzlmod.
-If the old name `com_github_nanopb_nanopb` is preferred, can add `repo_name` parameter to indicate the repo name.
+Note that the name of the module has been changed to `nanopb`, to better fit the convention of bzlmod.
+If the old name `com_github_nanopb_nanopb` is preferred, you can add the `repo_name` parameter to indicate the repo name.
 ```py
 bazel_dep(name = "nanopb", version = "0.4.9", repo_name="com_github_nanopb_nanopb")
 ```
@@ -508,7 +550,7 @@ erroneously handled as part of the same union.
 
 **Changes:** Oneofs fields now use special `PB_DATAOFFSET_UNION`
 offset type in generated .pb.c files to distinguish whether they are the
-first or following field inside an union.
+first or following field inside a union.
 
 **Required actions:** Regenerate `.pb.c/.pb.h` files with new nanopb
 version if oneofs are used.
@@ -662,7 +704,7 @@ more complex and was inconsistent with the other types.
 **Required actions:** Only if using pointer-type fields with the bytes
 datatype. Change any access to `msg->field.size` to
 `msg->field->size`. Change any allocation to reserve space of amount
-`PB_BYTES_ARRAY_T_ALLOCSIZE(n)`. If the data pointer was begin
+`PB_BYTES_ARRAY_T_ALLOCSIZE(n)`. If the data pointer was being
 assigned from external source, implement the field using a callback
 function instead.
 
@@ -703,7 +745,7 @@ unnecessarily complex to return a pointer from callback.
 defining `PB_OLD_CALLBACK_STYLE`. Recommended action is to:
 
 -   Change the callback signatures to contain `void**` for decoders and `void * const *` for encoders.
--   Change the callback function body to use **arg` instead of `arg`.
+-   Change the callback function body to use `**arg` instead of `arg`.
 
 **Error indications:** Compiler warning: assignment from incompatible
 pointer type, when initializing `funcs.encode` or `funcs.decode`.
@@ -784,5 +826,5 @@ using the old functions. Recommended action is to replace any calls with
 the newer `pb_encode_*` equivalents.
 
 **Error indications:** Compiler warning: implicit declaration of
-function `pb_enc_string`, *pb_enc_varint,`pb_enc_submessage\` or
+function `pb_enc_string`, `pb_enc_varint`, `pb_enc_submessage` or
 similar.

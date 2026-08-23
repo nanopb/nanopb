@@ -1,14 +1,10 @@
 load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
-load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
-
-# Note: if you are still using WORKSPACE, you will need to patch this file to use the following instead
-# load("@python_3_11//:defs.bzl", "py_binary")
 load("@python_versions//3.11:defs.bzl", "py_binary")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
-load("@rules_python//python:proto.bzl", "py_proto_library")
-load("@rules_python//python/pip_install:requirements.bzl", "compile_pip_requirements")
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@protobuf//bazel/toolchains:proto_lang_toolchain.bzl", "proto_lang_toolchain")
+load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -43,29 +39,20 @@ cc_library(
     deps = [":nanopb_compilation_options"],
 )
 
-copy_file(
-    name = "protoc-gen-nanopb.py",
-    src = "generator/protoc-gen-nanopb",
-    out = "generator/protoc-gen-nanopb.py",
-    allow_symlink = True,
-)
-
 py_binary(
     name = "protoc-gen-nanopb",
     srcs = glob([
         "generator/**/*.py",
     ]) + [
-        ":protoc-gen-nanopb.py",
+        "//extra/bazel:protoc-gen-nanopb-bazel.py",
     ],
     data = glob([
         "generator/**/*.proto",
     ]),
-    env = {
-        "NANOPB_PB2_NO_REBUILD": "1",
-    },
     imports = [
         "generator",
     ],
+    main = "//extra/bazel:protoc-gen-nanopb-bazel.py",
     deps = [
         ":nanopb_py_proto",
     ],
@@ -94,27 +81,16 @@ config_setting(
     },
 )
 
-proto_plugin(
-    name = "nanopb_plugin",
-    env = {
-        "NANOPB_PB2_NO_REBUILD": "1",
-    },
-    options = [
-        "--library-include-format=quote",
-    ],
-    outputs = select({
-        ":nanopb_extension_default": [
-            "{protopath}.pb.h",
-            "{protopath}.pb.c",
-        ],
-        ":nanopb_extension_nanopb": [
-            "{protopath}.nanopb.h",
-            "{protopath}.nanopb.c",
-        ],
-    }),
-    separate_options_flag = True,
-    tool = ":protoc-gen-nanopb",
-    use_built_in_shell_environment = False,
+proto_lang_toolchain(
+    name = "nanopb_proto_toolchain",
+    command_line = "--nanopb_out=$(OUT)",
+    mnemonic = "NanopbProtoc",
+    plugin = ":protoc-gen-nanopb",
+    plugin_format_flag = "--plugin=protoc-gen-nanopb=%s",
+    progress_message = "Generating nanopb sources for %{label}",
+    runtime = ":nanopb",
+    # Also creates :nanopb_proto_toolchain_toolchain, registered in MODULE.bazel.
+    toolchain_type = "//extra/bazel:toolchain_type",
     visibility = ["//visibility:public"],
 )
 

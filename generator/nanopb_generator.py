@@ -954,7 +954,18 @@ class Field(ProtoElement):
 
         # Check field rules, i.e. required/optional/repeated.
         if field_options.HasField("label_override"):
+            # Process overrides from nanopb options
             desc.label = field_options.label_override
+        elif hasattr(desc.options, "features"):
+            # For protobuf 'editions', the field presence is set under features
+            field_presence = desc.options.features.field_presence
+            if field_presence == descriptor.FeatureSet.LEGACY_REQUIRED:
+                desc.label = FieldD.LABEL_REQUIRED
+            elif field_presence == descriptor.FeatureSet.EXPLICIT:
+                desc.label = FieldD.LABEL_OPTIONAL
+            elif field_presence == descriptor.FeatureSet.IMPLICIT:
+                desc.label = FieldD.LABEL_OPTIONAL
+                field_options.proto3 = True
 
         if desc.label == FieldD.LABEL_REPEATED:
             self.rules = 'REPEATED'
@@ -4240,6 +4251,39 @@ class ProtoFile:
 
 from fnmatch import fnmatchcase
 
+def validate_options_namemask(namemask, filename, line_number):
+    '''Verify that an options pattern contains only protobuf path and fnmatch characters.'''
+    # File options match .proto paths, which can contain punctuation that is
+    # not valid in field names.
+    if '/' in namemask or namemask.endswith('.proto'):
+        invalid = re.search(r'[\s:]', namemask)
+    else:
+        invalid = re.search(r'[^A-Za-z0-9_.*?\[\]!]', namemask)
+    if invalid:
+        hint = ""
+        if invalid.group(0) == ':':
+            hint = " Did you mean to separate the field pattern from options with whitespace?"
+
+        sys.stderr.write("%s:%d: " % (filename, line_number) +
+                         "Invalid character %r in option field pattern %r.%s\n" %
+                         (invalid.group(0), namemask, hint))
+        sys.exit(1)
+
+def strip_options_comments(data):
+    '''Remove comments from .options data without touching quoted strings.'''
+    string_or_comment = re.compile(
+        r'''(?P<string>"(?:\\.|[^"\\\r\n])*(?:"|$)|'(?:\\.|[^'\\\r\n])*(?:'|$))'''
+        r'''|(?P<comment>/\*.*?(?:\*/|\Z)|//[^\r\n]*|#[^\r\n]*)''',
+        flags = re.MULTILINE | re.DOTALL)
+
+    def strip_comment(match):
+        if match.group('string'):
+            return match.group('string')
+
+        return re.sub(r'[^\r\n]', '', match.group('comment'))
+
+    return string_or_comment.sub(strip_comment, data)
+
 def read_options_file(infile):
     """
     Parse a .options file into a list of (namemask, options) tuples.
@@ -4269,10 +4313,7 @@ def read_options_file(infile):
         SystemExit: On parse errors (malformed lines or invalid options)
     """
     results = []
-    data = infile.read()
-    data = re.sub(r'/\*.*?\*/', '', data, flags = re.MULTILINE)
-    data = re.sub(r'//.*?$', '', data, flags = re.MULTILINE)
-    data = re.sub(r'#.*?$', '', data, flags = re.MULTILINE)
+    data = strip_options_comments(infile.read())
     for i, line in enumerate(data.split('\n')):
         line = line.strip()
         if not line:
@@ -4285,6 +4326,8 @@ def read_options_file(infile):
                              "Option lines should have space between field name and options. " +
                              "Skipping line: '%s'\n" % line)
             sys.exit(1)
+
+        validate_options_namemask(parts[0], infile.name, i + 1)
 
         opts = nanopb_pb2.NanoPBOptions()
 
@@ -4816,6 +4859,11 @@ def main_plugin():
 
     if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_PROTO3_OPTIONAL"):
         response.supported_features = plugin_pb2.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
+
+    if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_SUPPORTS_EDITIONS"):
+        response.supported_features |= plugin_pb2.CodeGeneratorResponse.FEATURE_SUPPORTS_EDITIONS
+        response.minimum_edition = descriptor.EDITION_PROTO2
+        response.maximum_edition = descriptor.EDITION_2024
 
     io.open(sys.stdout.fileno(), "wb").write(response.SerializeToString())
 

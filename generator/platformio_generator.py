@@ -47,6 +47,7 @@ md5_dir = os.path.join(build_dir, 'nanopb', 'md5')
 
 nanopb_protos =  env.subst(env.GetProjectOption("custom_nanopb_protos", ""))
 nanopb_plugin_options = env.GetProjectOption("custom_nanopb_options", "")
+nanopb_preserve_hierarchy = bool(env.GetProjectOption("custom_nanopb_preserve_directory_hierarchy", default=False))
 
 if not nanopb_protos:
     print("[nanopb] No generation needed.")
@@ -80,15 +81,16 @@ else:
     except FileExistsError:
         pass
 
-    # Collect include dirs based on
-    proto_include_dirs = set()
-    for proto_file in protos_files:
-        proto_file_abs = os.path.join(project_dir, proto_file)
-        proto_dir = os.path.dirname(proto_file_abs)
-        proto_include_dirs.add(proto_dir)
+    if not nanopb_preserve_hierarchy:
+        # Collect include dirs based on
+        proto_include_dirs = set()
+        for proto_file in protos_files:
+            proto_file_abs = os.path.join(project_dir, proto_file)
+            proto_dir = os.path.dirname(proto_file_abs)
+            proto_include_dirs.add(proto_dir)
 
-    for proto_include_dir in proto_include_dirs:
-        nanopb_options.extend(["--proto-path", proto_include_dir])
+        for proto_include_dir in proto_include_dirs:
+            nanopb_options.extend(["--proto-path", proto_include_dir])
 
     for proto_file in protos_files:
         proto_file_abs = os.path.join(project_dir, proto_file)
@@ -102,10 +104,9 @@ else:
 
         options_file = proto_file_without_ext + ".options"
         options_file_abs = os.path.join(proto_file_path_abs, options_file)
-        options_file_md5_abs = None
+        options_file_md5_abs = os.path.join(md5_dir, options_file + '.md5')
         options_file_current_md5 = None
         if pathlib.Path(options_file_abs).exists():
-            options_file_md5_abs = os.path.join(md5_dir, options_file + '.md5')
             options_file_current_md5 = hashlib.md5(pathlib.Path(options_file_abs).read_bytes()).hexdigest()
         else:
             options_file = None
@@ -134,6 +135,8 @@ else:
                     need_generate = True
             except FileNotFoundError:
                 need_generate = True
+        elif pathlib.Path(options_file_md5_abs).exists():
+            need_generate = True
 
         options_info = f"{options_file}" if options_file else "no options"
 
@@ -141,8 +144,12 @@ else:
             print(f"[nanopb] Skipping '{proto_file}' ({options_info})")
         else:
             print(f"[nanopb] Processing '{proto_file}' ({options_info})")
-            cmd = [python_exe, nanopb_generator] + nanopb_options + [proto_file_basename]
-            action = SCons.Action.CommandAction(cmd)
+            if nanopb_preserve_hierarchy:
+                nanopb_options.append(proto_file)
+            else:
+                nanopb_options.append(proto_file_basename)
+            cmd = [python_exe, nanopb_generator] + nanopb_options
+            action = SCons.Action.CommandAction(cmd, chdir=project_dir)
             result = env.Execute(action)
             if result != 0:
                 print(f"[nanopb] ERROR: ({result}) processing cmd: '{cmd}'")
@@ -150,6 +157,11 @@ else:
             pathlib.Path(proto_file_md5_abs).write_text(proto_file_current_md5)
             if options_file:
                 pathlib.Path(options_file_md5_abs).write_text(options_file_current_md5)
+            else:
+                try:
+                    pathlib.Path(options_file_md5_abs).unlink()
+                except FileNotFoundError:
+                    pass
 
     # 1. Add path to the generated headers, so main.cpp can find them.
     env.Append(CPPPATH=[generated_src_dir])

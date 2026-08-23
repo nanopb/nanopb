@@ -4,7 +4,8 @@ set of plugins for the Bazel build system allowing Nanopb to be integrated
 into the build.
 
 ## Getting started
-Add the following to your MODULE.bazel file.
+Building nanopb requires Bazel 8 or newer with bzlmod. Add the following
+to your MODULE.bazel file.
 ``` py 
 # MODULE.bazel
 bazel_dep(name = "nanopb", version = "0.4.9")
@@ -21,8 +22,9 @@ To use the Nanopb rules with in your build you can use the
 ```  py
 # BUILD.bazel
 load("@nanopb//extra/bazel:nanopb_cc_proto_library.bzl", "cc_nanopb_proto_library")
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
 
-# Your native proto_library.
+# Your proto_library.
 proto_library(
     name = "descriptor",
     srcs = [

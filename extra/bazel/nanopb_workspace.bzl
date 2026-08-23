@@ -1,10 +1,8 @@
-load("@nanopb_pypi//:requirements.bzl", "install_deps")
-load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_repos", "rules_proto_grpc_toolchains")
-load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+# Apache License, Version 2.0, January 2004, http://www.apache.org/licenses/
+"""Removed: WORKSPACE builds are no longer supported by nanopb."""
 
-def nanopb_workspace():
-    install_deps()
-    rules_proto_grpc_toolchains()
-    rules_proto_grpc_repos()
-    rules_proto_dependencies()
-    rules_proto_toolchains()
+fail("nanopb no longer supports WORKSPACE builds: the nanopb Bazel rules " +
+     "are now built on the @protobuf module (protobuf 35+), which requires " +
+     "Bazel 8 and bzlmod. Add bazel_dep(name = \"nanopb\", ...) to your " +
+     "MODULE.bazel instead. See the section \"Bazel: Bazel 8 now required, " +
+     "WORKSPACE support removed\" in nanopb's docs/migration.md.")
