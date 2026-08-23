@@ -14,6 +14,16 @@
 #
 #   NANOPB_OPTIONS           - List of options passed to nanopb.
 #
+#   NANOPB_VALIDATE_OPTIONS  - If defined, additionally run the nanopb-validate
+#                              plugin, which generates <name>_validate.h and
+#                              <name>_validate.c and injects filter_udp() and
+#                              filter_tcp() into the generated .pb.h/.pb.c.
+#                              Set it to an empty string for plain validation,
+#                              or to plugin options such as
+#                              "--root-message=pkg.Packet" or
+#                              "--envelope-mode=any". NANOPB_OPTIONS are
+#                              forwarded to this plugin automatically.
+#
 #   Nanopb_FIND_COMPONENTS   - List of options to append to NANOPB_OPTIONS without the
 #                              leading '--'.  This should not manually be set, but allows
 #                              passing options to nanopb via find_package.  For example,
@@ -191,8 +201,10 @@ function(NANOPB_GENERATE_CPP)
   set(NANOPB_GENERATOR_EXECUTABLE ${GENERATOR_PATH}/nanopb_generator.py)
   if (CMAKE_HOST_WIN32)
     set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb.bat)
+    set(NANOPB_VALIDATE_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb-validate.bat)
   else()
     set(NANOPB_GENERATOR_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb)
+    set(NANOPB_VALIDATE_PLUGIN ${GENERATOR_PATH}/protoc-gen-nanopb-validate)
   endif()
 
   set(GENERATOR_CORE_DIR ${GENERATOR_PATH}/proto)
@@ -326,10 +338,37 @@ function(NANOPB_GENERATE_CPP)
     # - An older hacky one using ':' as option separator in protoc args preventing the ':' to be used in path.
     # - Or a newer one, using --nanopb_opt which requires a version of protoc >= 3.6
     # Since nanopb 0.4.6, --nanopb_opt is the default.
+    # When validation is requested, nanopb has to emit protoc insertion point
+    # markers so the nanopb-validate plugin can inject filter_udp/filter_tcp
+    # into the generated .pb.h/.pb.c.
+    set(NANOPB_VALIDATE_ARGS)
+    if(DEFINED NANOPB_VALIDATE_OPTIONS)
+        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} --protoc-insertion-points")
+        # Options affecting C naming must reach both plugins, so the shared
+        # nanopb options are forwarded to the validate plugin as well.
+        set(NANOPB_VALIDATE_PLUGIN_OPTIONS
+            "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_VALIDATE_OPTIONS}")
+        list(APPEND NANOPB_VALIDATE_ARGS
+             --plugin=protoc-gen-nanopb-validate=${NANOPB_VALIDATE_PLUGIN})
+    endif()
+
     if(DEFINED NANOPB_PROTOC_OLDER_THAN_3_6_0)
       set(NANOPB_OPT_STRING "--nanopb_out=${NANOPB_PLUGIN_OPTIONS}:${NANOPB_OUT}")
     else()
       set(NANOPB_OPT_STRING "--nanopb_opt=${NANOPB_PLUGIN_OPTIONS}" "--nanopb_out=${NANOPB_OUT}")
+    endif()
+
+    # This must come after --nanopb_out: protoc runs generators in command line
+    # order and can only insert into a file an earlier generator produced.
+    if(DEFINED NANOPB_VALIDATE_OPTIONS)
+      if(DEFINED NANOPB_PROTOC_OLDER_THAN_3_6_0)
+        list(APPEND NANOPB_VALIDATE_ARGS
+             "--nanopb-validate_out=${NANOPB_VALIDATE_PLUGIN_OPTIONS}:${NANOPB_OUT}")
+      else()
+        list(APPEND NANOPB_VALIDATE_ARGS
+             "--nanopb-validate_opt=${NANOPB_VALIDATE_PLUGIN_OPTIONS}"
+             "--nanopb-validate_out=${NANOPB_OUT}")
+      endif()
     endif()
 
     add_custom_command(
@@ -340,6 +379,7 @@ function(NANOPB_GENERATE_CPP)
            -I${GENERATOR_CORE_DIR} -I${CMAKE_CURRENT_BINARY_DIR}
            --plugin=protoc-gen-nanopb=${NANOPB_GENERATOR_PLUGIN}
            ${NANOPB_OPT_STRING}
+           ${NANOPB_VALIDATE_ARGS}
            ${PROTOC_OPTIONS}
            ${ABS_FIL}
       DEPENDS ${ABS_FIL} ${GENERATOR_CORE_PYTHON_SRC}

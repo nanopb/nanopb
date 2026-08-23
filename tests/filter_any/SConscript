@@ -9,7 +9,8 @@ test_env = env.Clone()
 # Enable validation code generation with any envelope mode
 # Also exclude validate.proto from #include list since it's only used for options
 # Specify envelope name for clarity
-test_env.Replace(NANOPBFLAGS = "--validate,--envelope-mode=any,--envelope-name=FilterAnyAllowed,-x,validate.proto")
+test_env.Replace(NANOPBFLAGS = "-x,validate.proto")
+test_env.Replace(NANOPB_VALIDATE_FLAGS = "--envelope-mode=any,--envelope-name=FilterAnyAllowed")
 
 # Remove -ansi flag since pb_validate.h requires C99 features (inline)
 # Also enable C99 for stdbool.h
@@ -27,7 +28,7 @@ test_env.Object("pb_validate.o", "$NANOPB/pb_validate.c")
 
 # Generate nanopb sources for the proto file
 # The NanopbProto builder generates .pb.c and .pb.h
-# With --validate flag, it also generates _validate.c and _validate.h
+# The nanopb-validate plugin also generates _validate.c and _validate.h
 pb_files = test_env.NanopbProto("filter_any")
 pb_sources = ["filter_any.pb.c"]
 validate_c = "filter_any_validate.c"

@@ -31,10 +31,20 @@ else
 	endif
 endif
 
+# Options appended *after* --nanopb_out. Use this for generators that inject
+# into the files nanopb produces, such as the nanopb-validate plugin: protoc
+# runs generators in command line order and can only insert into a file an
+# earlier generator already produced. For example:
+#
+#   PROTOC_OPTS += --nanopb_opt=--protoc-insertion-points
+#   PROTOC_POST_OPTS += --nanopb-validate_out=.
+#
+PROTOC_POST_OPTS ?=
+
 # Rule for building .pb.c and .pb.h
 %.pb.c %.pb.h: %.proto %.options
-	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $<
+	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $(PROTOC_POST_OPTS) $<
 
 %.pb.c %.pb.h: %.proto
-	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $<
+	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $(PROTOC_POST_OPTS) $<
 

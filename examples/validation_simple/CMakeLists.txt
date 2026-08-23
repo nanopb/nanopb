@@ -5,8 +5,11 @@ project(validation_simple C)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${CMAKE_MODULE_PATH})
 find_package(Nanopb REQUIRED)
 
-# Generate protobuf files with validation
-nanopb_generate_cpp(PROTO_SRCS PROTO_HDRS PROTO_OPTIONS "--validate"
+# Generate protobuf files with validation.
+# Defining NANOPB_VALIDATE_OPTIONS switches on the nanopb-validate plugin;
+# an empty value means "validate, with no special envelope handling".
+set(NANOPB_VALIDATE_OPTIONS "")
+nanopb_generate_cpp(PROTO_SRCS PROTO_HDRS
     validation_simple.proto)
 
 # Include directories

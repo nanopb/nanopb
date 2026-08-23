@@ -103,21 +103,6 @@ extern "C"
         ctx_var.early_exit = PB_VALIDATE_EARLY_EXIT;                     \
         if (!(msg_ptr)) return false
 
-    /* Bypass mode: collect all violations without early exit.
-     * Usage (with --bypass flag):
-     *   bool pb_validate_Foo(const Foo *msg, pb_violations_t *violations)
-     *   {
-     *       PB_VALIDATE_BEGIN_BYPASS(ctx, Foo, msg, violations);
-     *       ... field checks (will collect all violations) ...
-     *       PB_VALIDATE_END(ctx, violations);
-     *   }
-     */
-    #define PB_VALIDATE_BEGIN_BYPASS(ctx_var, MsgType, msg_ptr, violations_ptr) \
-        pb_validate_context_t ctx_var = {0};                                    \
-        ctx_var.violations = (violations_ptr);                                  \
-        ctx_var.early_exit = false;                                             \
-        if (!(msg_ptr)) return false
-
     #define PB_VALIDATE_END(ctx_var, violations_ptr) \
         (void)(ctx_var);                                \
         return !pb_violations_has_any(violations_ptr)

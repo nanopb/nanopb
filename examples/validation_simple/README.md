@@ -81,7 +81,8 @@ To use validation in your own project:
 
 1. Import `validate.proto` in your `.proto` file
 2. Add validation constraints using `(validate.rules)` options
-3. Enable validation generation with `--nanopb_opt=--validate`
+3. Enable validation generation by running the `protoc-gen-nanopb-validate`
+   plugin after `--nanopb_out` (see the Makefile and CMakeLists.txt here)
 4. Include the generated `*_validate.h` files
 5. Call `pb_validate_YourMessage()` to validate messages
 6. Check `pb_violations_t` for detailed error information

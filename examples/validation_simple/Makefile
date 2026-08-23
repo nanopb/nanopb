@@ -10,8 +10,11 @@ include $(NANOPB_DIR)/extra/nanopb.mk
 CFLAGS = -Wall -Werror -g -O0
 CFLAGS += -I$(NANOPB_DIR)
 
-# Enable validation in the generator
-PROTOC_OPTS += --nanopb_opt=--validate
+# Enable validation. nanopb must emit insertion point markers, and the
+# nanopb-validate plugin must run after --nanopb_out so that it can inject
+# into the files nanopb just produced.
+PROTOC_OPTS += --nanopb_opt=--protoc-insertion-points
+PROTOC_POST_OPTS += --nanopb-validate_out=.
 
 # Source files
 CSRC = validation_simple.c \
@@ -33,7 +36,7 @@ clean:
 
 # Generate the nanopb files with validation
 validation_simple.pb.c validation_simple.pb.h validation_simple_validate.c validation_simple_validate.h: validation_simple.proto $(VALIDATE_PROTO)
-	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. validation_simple.proto
+	$(PROTOC) $(PROTOC_OPTS) --nanopb_out=. $(PROTOC_POST_OPTS) validation_simple.proto
 
 # Build the example
 validation_simple: $(CSRC)

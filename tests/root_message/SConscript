@@ -8,7 +8,8 @@ test_env = env.Clone()
 
 # Enable validation code generation with --root-message option
 # This generates filter_tcp/filter_udp that decode directly as TestPacket
-test_env.Replace(NANOPBFLAGS = "--validate,--root-message=rootmsg.TestPacket,-x,validate.proto")
+test_env.Replace(NANOPBFLAGS = "-x,validate.proto")
+test_env.Replace(NANOPB_VALIDATE_FLAGS = "--root-message=rootmsg.TestPacket")
 
 # Remove -ansi flag since pb_validate.h requires C99 features (inline)
 # Also enable C99 for stdbool.h

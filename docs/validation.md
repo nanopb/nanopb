@@ -12,33 +12,32 @@ The validation feature allows you to:
 
 ## Enabling Validation
 
-There are three ways to enable validation:
+Validation code is produced by a separate protoc plugin,
+`protoc-gen-nanopb-validate`. Running that plugin *is* the request for
+validation - there is no `--validate` flag any more.
 
-### 1. Command Line Option
 ```bash
-protoc --nanopb_out=. --nanopb_opt=--validate message.proto
-# or
-nanopb_generator.py --validate message.pb
+protoc   --nanopb_out=--protoc-insertion-points:.   --nanopb-validate_out=.   message.proto
 ```
 
-### 2. Options File
-Create a `.options` file with:
-```
-# Enable validation for all messages
-* validate:true
+This writes the usual `message.pb.h` / `message.pb.c`, plus
+`message_validate.h` / `message_validate.c`.
 
-# Or enable for specific messages
-MyMessage validate:true
-```
+Two things are required and easy to get wrong:
 
-### 3. Proto File Option
-```protobuf
-syntax = "proto3";
-import "validate.proto";
+* `--nanopb_out` must come **before** `--nanopb-validate_out`. protoc runs
+  generators in command line order, and the validate plugin injects into the
+  files nanopb produced.
+* nanopb must be given `--protoc-insertion-points`, otherwise there are no
+  markers to inject into.
 
-// Enable validation for entire file
-option (validate.validate) = true;
-```
+Options that affect C naming (`-C`, `--custom-style`, `-s`, `-f`, `-I`, `-x`)
+must be passed to **both** plugins, since the validate plugin rebuilds nanopb's
+view of the file in order to see the same mangled type names.
+
+> **Note:** `validate.proto` declares a file-level `option (validate.validate)`
+> and a message-level `validate.message` extension. Neither is implemented by
+> the generator; only field-level `(validate.rules)` are read.
 
 ## Field-Level Constraints
 
@@ -266,36 +265,52 @@ if (!pb_validate_decode(&stream, MyMessage, &msg)) {
 
 ### Generator Options
 
-- `--validate`: Enable validation code generation
-- `--validate-consolidated`: Generate single validation file pair for all messages (future feature)
+Passed via `--nanopb-validate_opt=` (or before the `:` in
+`--nanopb-validate_out=`):
+
+- `--root-message=NAME`: Decode and validate every packet as this message type.
+- `--envelope-mode=oneof|any`: How to detect the envelope message. `oneof`
+  (default) looks for an opcode enum plus a oneof payload, or a bare oneof;
+  `any` looks for a `google.protobuf.Any` payload.
+- `--envelope-name=NAME`: Use this message as the envelope instead of
+  auto-detecting one.
 
 ## Limitations
 
 1. **No Regex Support**: Pattern matching is limited to simple string operations (contains, prefix, suffix)
-2. **Callback Fields**: Length validation doesn't work for callback-based string/bytes fields
+2. **Callback Fields**: `pb_callback_t` fields are not validated at all.
+   Validation applies to statically allocated fields (`POINTER` allocation
+   included); give strings, bytes and repeated fields a `max_size`/`max_count`
+   so they are not converted to callbacks
 3. **No Heap Usage**: All validation data structures are statically allocated
 4. **Proto3 Only**: Currently only supports proto3 syntax
 
 ## Integration with Build Systems
 
 ### Make
+`PROTOC_POST_OPTS` is appended after `--nanopb_out`, which is what keeps the
+plugin ordering correct:
+
 ```makefile
-PROTOC_OPTS += --nanopb_opt=--validate
+PROTOC_OPTS      += --nanopb_opt=--protoc-insertion-points
+PROTOC_POST_OPTS += --nanopb-validate_out=.
 ```
 
 ### CMake
+Define `NANOPB_VALIDATE_OPTIONS` to switch the plugin on. An empty string means
+"validate, with no special envelope handling"; `NANOPB_OPTIONS` are forwarded to
+the plugin automatically.
+
 ```cmake
-nanopb_generate_cpp(PROTO_SRCS PROTO_HDRS PROTO_OPTIONS "--validate" message.proto)
+set(NANOPB_VALIDATE_OPTIONS "")
+nanopb_generate_cpp(PROTO_SRCS PROTO_HDRS message.proto)
 ```
 
 ### Bazel
-```python
-nanopb_proto_library(
-    name = "message_proto",
-    protos = ["message.proto"],
-    options = ["--validate"],
-)
-```
+Not currently supported. `cc_nanopb_proto_library` builds its outputs with a
+single `proto_common.compile()` action and one plugin, so running a second
+plugin that injects into nanopb's output would need a separate toolchain plus
+declared `_validate.h`/`_validate.c` outputs.
 
 ## Performance Considerations
 

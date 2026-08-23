@@ -31,19 +31,22 @@ if __name__ == '__main__':
         env_paths.remove(mypath)
         os.environ["PATH"] = os.pathsep.join(env_paths)
 
-    # Add argument for finding the nanopb generator when using --nanopb_out=
-    # argument to protoc.
-    if os.path.isfile(os.path.join(mypath, "protoc-gen-nanopb.exe")):
-        protoc_gen_nanopb = os.path.join(mypath, "protoc-gen-nanopb.exe")
-    elif os.name == 'nt':
-        protoc_gen_nanopb = os.path.join(mypath, "protoc-gen-nanopb.bat")
-    else:
-        protoc_gen_nanopb = os.path.join(mypath, "protoc-gen-nanopb")
+    # Add arguments for finding the generator plugins when using --nanopb_out=
+    # or --nanopb-validate_out= arguments to protoc.
+    def find_plugin(name):
+        if os.path.isfile(os.path.join(mypath, name + ".exe")):
+            return os.path.join(mypath, name + ".exe")
+        elif os.name == 'nt':
+            return os.path.join(mypath, name + ".bat")
+        else:
+            return os.path.join(mypath, name)
 
     args = sys.argv[1:]
 
-    if os.path.isfile(protoc_gen_nanopb):
-         args = ['--plugin=protoc-gen-nanopb=%s' % protoc_gen_nanopb] + args
+    for plugin in ("protoc-gen-nanopb", "protoc-gen-nanopb-validate"):
+        path = find_plugin(plugin)
+        if os.path.isfile(path):
+            args = ['--plugin=%s=%s' % (plugin, path)] + args
 
     status = invoke_protoc(['protoc'] + args)
     sys.exit(status)

@@ -146,14 +146,29 @@ def _nanopb_proto_actions(source, target, env, for_signature):
     # when generating .pb.cpp sources, instead of pb.h generate .pb.hpp headers
     source_extension = os.path.splitext(str(target[0]))[1]
     header_extension = '.h' + source_extension[2:]
-    nanopb_flags = env['NANOPBFLAGS']
-    if nanopb_flags:
-      nanopb_flags = '--source-extension=%s,--header-extension=%s,%s:.' % (source_extension, header_extension, nanopb_flags)
-    else:
-      nanopb_flags = '--source-extension=%s,--header-extension=%s:.' % (source_extension, header_extension)
+    extensions = '--source-extension=%s,--header-extension=%s' % (source_extension, header_extension)
 
-    return SCons.Action.CommandAction('$PROTOC $PROTOCFLAGS %s "--nanopb_out=%s" %s' % (include_dirs, nanopb_flags, srcfile),
-                                      chdir = prefix)
+    nanopb_flags = env['NANOPBFLAGS']
+    validate_flags = env['NANOPB_VALIDATE_FLAGS']
+
+    # The validation/filter plugin injects into the .pb.h and .pb.c that nanopb
+    # generates, so nanopb has to emit insertion point markers, and its
+    # --nanopb_out must come first on the command line: protoc runs generators
+    # in order and can only insert into a file an earlier generator produced.
+    if validate_flags is not None:
+        nanopb_flags = ','.join(filter(None, [extensions, '--protoc-insertion-points', nanopb_flags]))
+    else:
+        nanopb_flags = ','.join(filter(None, [extensions, nanopb_flags]))
+
+    cmd = '$PROTOC $PROTOCFLAGS %s "--nanopb_out=%s:."' % (include_dirs, nanopb_flags)
+
+    if validate_flags is not None:
+        # Options that affect C naming must reach both plugins, so the shared
+        # NANOPBFLAGS are passed along to the validate plugin as well.
+        combined = ','.join(filter(None, [extensions, validate_flags, env['NANOPBFLAGS']]))
+        cmd += ' "--nanopb-validate_out=%s:."' % combined
+
+    return SCons.Action.CommandAction('%s %s' % (cmd, srcfile), chdir = prefix)
 
 def _nanopb_proto_emitter(target, source, env):
     basename = os.path.splitext(str(source[0]))[0]
@@ -193,6 +208,12 @@ def generate(env):
     env['PYTHON'] = _detect_python(env)
     env['NANOPB_GENERATOR'] = _detect_nanopb_generator(env)
     env.SetDefault(NANOPBFLAGS = '')
+
+    # Set to a (possibly empty) options string to also run the
+    # nanopb-validate plugin, which generates _validate.h/_validate.c and
+    # injects filter_udp/filter_tcp into the nanopb output. Left as None,
+    # only plain nanopb runs.
+    env.SetDefault(NANOPB_VALIDATE_FLAGS = None)
 
     env.SetDefault(PROTOCPATH = [".", os.path.join(env['NANOPB'], 'generator', 'proto')])
 

@@ -48,7 +48,7 @@ The development container includes:
 cd examples/validation_simple
 
 # Generate protobuf files with validation
-python ../../generator/nanopb_generator.py -I. -I../../generator/proto validation_simple.proto --validate
+protoc -I. -I../../generator/proto \n  --nanopb_out=--protoc-insertion-points:. \n  --nanopb-validate_out=. \n  validation_simple.proto
 
 # Compile the example
 gcc -I../.. -o validation_simple validation_simple.c validation_simple.pb.c ../../pb_*.c

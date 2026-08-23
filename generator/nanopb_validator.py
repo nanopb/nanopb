@@ -49,10 +49,9 @@ Code Generation Strategy
 ------------------------
 The generator produces C code that uses macros from pb_validate.h to:
 - Navigate field paths for clear error messages
-- Accumulate violations when bypass mode is enabled
-- Support early exit on first violation when bypass is disabled
+- Accumulate violations, exiting early on the first one
 - Recursively validate nested message fields
-- Handle optional fields, pointers, and callback fields appropriately
+- Handle optional fields and pointers appropriately
 """
 
 from collections import OrderedDict
@@ -129,16 +128,6 @@ RULE_ANY_NOT_IN = 'ANY_NOT_IN'
 RULE_TIMESTAMP_GT_NOW = 'TIMESTAMP_GT_NOW'
 RULE_TIMESTAMP_LT_NOW = 'TIMESTAMP_LT_NOW'
 RULE_TIMESTAMP_WITHIN = 'TIMESTAMP_WITHIN'
-
-# Rules that can be validated for callback string/bytes fields
-# The callback context stores field_data (char[256]), field_length, and field_decoded.
-# All string validation rules are supported for callback fields.
-_SUPPORTED_CALLBACK_STRING_RULES = frozenset({
-    RULE_MIN_LEN, RULE_MAX_LEN,  # Length-based rules
-    RULE_PREFIX, RULE_SUFFIX, RULE_CONTAINS, RULE_ASCII,  # Pattern rules
-    RULE_EMAIL, RULE_HOSTNAME, RULE_IP, RULE_IPV4, RULE_IPV6,  # Format rules
-    RULE_IN, RULE_NOT_IN,  # Set rules
-})
 
 
 # =============================================================================
@@ -502,7 +491,6 @@ class MessageRuleSet:
         field_rule_sets: Rules for regular fields
         oneof_rule_sets: Rules for oneof groups
         message_rules: Message-level validation rules
-        has_callback_fields: Whether the message has any callback fields
     """
     message: Any
     struct_name: str
@@ -510,7 +498,6 @@ class MessageRuleSet:
     field_rule_sets: List[FieldRuleSet] = field(default_factory=list)
     oneof_rule_sets: List[OneofRuleSet] = field(default_factory=list)
     message_rules: List[RuleIR] = field(default_factory=list)
-    has_callback_fields: bool = False
 
 
 # =============================================================================
@@ -762,13 +749,6 @@ class IRBuilder:
             ir = self.build_rule_ir(msg_rule, msg_context)
             message_rule_irs.append(ir)
         
-        # Check for callback fields
-        has_callback = any(
-            getattr(f, 'allocation', None) == 'CALLBACK'
-            for f in getattr(message, 'fields', [])
-            if not isinstance(f, OneOf)
-        )
-        
         return MessageRuleSet(
             message=message,
             struct_name=struct_name,
@@ -776,7 +756,6 @@ class IRBuilder:
             field_rule_sets=field_rule_sets,
             oneof_rule_sets=oneof_rule_sets,
             message_rules=message_rule_irs,
-            has_callback_fields=has_callback
         )
 
 
@@ -1951,7 +1930,6 @@ class ValidatorGenerator:
     Attributes:
         proto_file: The ProtoFile object being processed
         validators: OrderedDict mapping message names to MessageValidator objects
-        bypass: Whether to generate code in bypass mode
         validate_enabled: Whether validation is enabled for this proto file
     """
     
@@ -1982,14 +1960,6 @@ class ValidatorGenerator:
     }
     
     # Macros for callback string validation
-    CALLBACK_STRING_FORMAT_MACROS = {
-        RULE_EMAIL: 'PB_VALIDATE_STRING_EMAIL',
-        RULE_HOSTNAME: 'PB_VALIDATE_STRING_HOSTNAME',
-        RULE_IP: 'PB_VALIDATE_STRING_IP',
-        RULE_IPV4: 'PB_VALIDATE_STRING_IPV4',
-        RULE_IPV6: 'PB_VALIDATE_STRING_IPV6',
-    }
-    
     # Macros for normal string validation
     NORMAL_STRING_FORMAT_MACROS = {
         RULE_EMAIL: 'PB_VALIDATE_STR_EMAIL',
@@ -1999,17 +1969,15 @@ class ValidatorGenerator:
         RULE_IPV6: 'PB_VALIDATE_STR_IPV6',
     }
     
-    def __init__(self, proto_file: Any, bypass: bool = False):
+    def __init__(self, proto_file: Any):
         """
         Initialize the ValidatorGenerator.
         
         Args:
             proto_file: The ProtoFile object containing messages to validate
-            bypass: If True, generate code that collects all violations before returning
         """
         self.proto_file = proto_file
         self.validators = OrderedDict()
-        self.bypass = bypass
         
         # Pipeline components
         self.ir_builder = IRBuilder(proto_file)
@@ -2036,7 +2004,8 @@ class ValidatorGenerator:
         """
         Force add a validator for a message, even if no rules are present.
         
-        This is used when the --validate flag is specified but a message has no rules.
+        This is used when a message has no rules of its own but still needs a
+        validator function generated for it.
         We still generate a validation function that always returns true.
         
         Args:
@@ -2271,22 +2240,10 @@ class ValidatorGenerator:
             yield ' * @param msg [in] Pointer to %s instance to validate.\n' % struct_name
             yield ' * @param violations [out] Violations accumulator for collecting errors.\n'
             
-            # Check if message has callback fields - if so, add callback_ctx parameter docs
-            has_callback_fields = any(getattr(f, 'allocation', None) == 'CALLBACK' 
-                                     for f in getattr(validator.message, 'fields', []) 
-                                     if not isinstance(f, OneOf))
-            
-            if has_callback_fields:
-                yield ' * @param callback_ctx [in] Callback context with decoded callback field data.\n'
-            
             yield ' * @return true if valid, false otherwise.\n'
             yield ' */\n'
             
-            msg_type_name = Globals.naming_style.type_name(validator.message.name)
-            if has_callback_fields:
-                yield 'bool %s(const %s *msg, pb_violations_t *violations, %s_callback_ctx_t *callback_ctx);\n' % (func_name, struct_name, msg_type_name)
-            else:
-                yield 'bool %s(const %s *msg, pb_violations_t *violations);\n' % (func_name, struct_name)
+            yield 'bool %s(const %s *msg, pb_violations_t *violations);\n' % (func_name, struct_name)
             
             yield '\n'
         
@@ -2448,16 +2405,7 @@ class ValidatorGenerator:
             )
 
             # Generate validation function
-            # If message has callback fields, accept callback context parameter for validation
-            has_callback_fields = any(getattr(f, 'allocation', None) == 'CALLBACK' 
-                                     for f in getattr(validator.message, 'fields', []) 
-                                     if not isinstance(f, OneOf))
-            
-            if has_callback_fields:
-                msg_type_name = Globals.naming_style.type_name(validator.message.name)
-                yield 'bool %s(const %s *msg, pb_violations_t *violations, %s_callback_ctx_t *callback_ctx)\n' % (func_name, struct_name, msg_type_name)
-            else:
-                yield 'bool %s(const %s *msg, pb_violations_t *violations)\n' % (func_name, struct_name)
+            yield 'bool %s(const %s *msg, pb_violations_t *violations)\n' % (func_name, struct_name)
             
             yield '{\n'
             if fields_without_constraints:
@@ -2466,53 +2414,13 @@ class ValidatorGenerator:
                         yield '       - %s\n' % field
                     yield '    */\n'
                     yield '\n'
-            # Use bypass macro if bypass mode is enabled
-            if self.bypass:
-                yield '    PB_VALIDATE_BEGIN_BYPASS(ctx, %s, msg, violations);\n' % struct_name
-            else:
-                yield '    PB_VALIDATE_BEGIN(ctx, %s, msg, violations);\n' % struct_name
+            yield '    PB_VALIDATE_BEGIN(ctx, %s, msg, violations);\n' % struct_name
             yield '\n'
             
             # Generate field validations
             for field_name, field_validator in validator.field_validators.items():
                 field = field_validator.field
                 field_var_name = Globals.naming_style.var_name(field_name)
-                
-                # Handle CALLBACK fields - validate from context instead of from msg struct
-                # Callback fields (pb_callback_t) don't contain data in the struct - data is in callback context
-                allocation = getattr(field, 'allocation', None)
-                if allocation == 'CALLBACK':
-                    if has_callback_fields:
-                        # Validate from callback context
-                        yield '    /* Validate callback field %s from context */\n' % field_name
-                        yield '    PB_VALIDATE_FIELD_BEGIN(ctx, "%s");\n' % field_name
-                        
-                        # Check if field was decoded
-                        pbtype = getattr(field, 'pbtype', None)
-                        if pbtype in ['STRING', 'BYTES']:
-                            # Validate string/bytes from context
-                            yield '    if (callback_ctx->%s_decoded) {\n' % field_var_name
-                            
-                            # Generate validation for callback string rules
-                            # Note: The callback context only stores field_length and field_decoded,
-                            # NOT the actual string data. Therefore only length-based rules
-                            # (MIN_LEN, MAX_LEN) can be validated. Content-based rules (PREFIX,
-                            # SUFFIX, CONTAINS, format rules, etc.) require the callback context
-                            # structure in nanopb_generator.py to also store field_data pointer.
-                            for rule in field_validator.rules:
-                                if rule.rule_type in _SUPPORTED_CALLBACK_STRING_RULES:
-                                    yield from self._generate_callback_string_bytes_rule_check(field_var_name, rule)
-                            
-                            yield '    }\n'
-                        elif pbtype == 'MESSAGE':
-                            # Submessage was already validated during decode
-                            yield '    /* Submessage validated during decode (callback_ctx->%s_validated) */\n' % field_var_name
-                        
-                        yield '    PB_VALIDATE_FIELD_END(ctx);\n'
-                    else:
-                        # No callback context available - skip
-                        yield '    /* Field %s uses CALLBACK: validated during decode */\n' % field_name
-                    continue
                 
                 yield '    /* Validate field: %s */\n' % field_name
                 yield '    PB_VALIDATE_FIELD_BEGIN(ctx, "%s");\n' % field_name
@@ -2533,23 +2441,19 @@ class ValidatorGenerator:
                                             'protobuf' in submsg_ctype_str and 
                                             ('any' in submsg_ctype_str or 'timestamp' in submsg_ctype_str))
                         if not is_google_special:
-                            # Skip nested validation for CALLBACK fields - they're validated during decode
                             allocation = getattr(field, 'allocation', None)
-                            if allocation == 'CALLBACK':
-                                yield '    /* Field %s uses CALLBACK: validated during decode */\n' % field_name
-                            else:
-                                # Generate the nested validation function name
-                                sub_func = 'pb_validate_' + str(submsg_ctype).replace('.', '_')
-                                rules = getattr(field, 'rules', None)
+                            # Generate the nested validation function name
+                            sub_func = 'pb_validate_' + str(submsg_ctype).replace('.', '_')
+                            rules = getattr(field, 'rules', None)
                                 
-                                # Use different macros based on allocation type
-                                if allocation == 'POINTER':
-                                    yield '    PB_VALIDATE_NESTED_MSG_POINTER(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
+                            # Use different macros based on allocation type
+                            if allocation == 'POINTER':
+                                yield '    PB_VALIDATE_NESTED_MSG_POINTER(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
+                            else:
+                                if rules == 'OPTIONAL':
+                                    yield '    PB_VALIDATE_NESTED_MSG_OPTIONAL(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
                                 else:
-                                    if rules == 'OPTIONAL':
-                                        yield '    PB_VALIDATE_NESTED_MSG_OPTIONAL(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
-                                    else:
-                                        yield '    PB_VALIDATE_NESTED_MSG(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
+                                    yield '    PB_VALIDATE_NESTED_MSG(ctx, %s, msg, %s, violations);\n' % (sub_func, field_name)
                 except Exception:
                     # If field shape is unexpected, skip recursion silently to avoid crashes
                     pass
@@ -2577,11 +2481,7 @@ class ValidatorGenerator:
                     if 'google' in submsg_ctype_str and 'protobuf' in submsg_ctype_str and ('any' in submsg_ctype_str or 'timestamp' in submsg_ctype_str):
                         continue
                     
-                    # Skip nested validation for CALLBACK fields - they're validated during decode
                     allocation = getattr(f, 'allocation', None)
-                    if allocation == 'CALLBACK':
-                        # Callback fields are validated during decode, no need to validate here
-                        continue
                     
                     sub_func = 'pb_validate_' + str(submsg_ctype).replace('.', '_')
                     rules = getattr(f, 'rules', None)
@@ -2641,161 +2541,6 @@ class ValidatorGenerator:
             yield '}\n'
             yield '\n'
 
-    def _generate_callback_string_bytes_rule_check(self, field_var_name: str, rule: ValidationRule):
-        """Generate validation check for callback string/bytes field from context.
-        
-        Args:
-            field_var_name: Variable name of the field in callback context  
-            rule: ValidationRule for string/bytes validation
-            
-        Yields:
-            Lines of C code implementing the validation check on callback_ctx fields.
-            For callback fields, validation uses callback_ctx->{field}_data (const char*)
-            and callback_ctx->{field}_length (pb_size_t).
-        """
-        # Length rules - check callback_ctx->field_length
-        if rule.rule_type == RULE_MIN_LEN:
-            min_len = rule.params.get('value', 0)
-            yield '        if (callback_ctx->%s_length < %d) {\n' % (field_var_name, min_len)
-            yield '            pb_violations_add(violations, ctx.path_buffer, "%s", "String/bytes too short");\n' % rule.constraint_id
-            yield '            if (ctx.early_exit) return false;\n'
-            yield '        }\n'
-        elif rule.rule_type == RULE_MAX_LEN:
-            max_len = rule.params.get('value', 0)
-            yield '        if (callback_ctx->%s_length > %d) {\n' % (field_var_name, max_len)
-            yield '            pb_violations_add(violations, ctx.path_buffer, "%s", "String/bytes too long");\n' % rule.constraint_id
-            yield '            if (ctx.early_exit) return false;\n'
-            yield '        }\n'
-        
-        # Pattern rules - need callback_ctx->field_data (the actual string content)
-        # Check field_decoded since _data is a fixed-size array, not a pointer
-        elif rule.rule_type == RULE_PREFIX:
-            prefix = rule.params.get('value', '')
-            yield '        /* Check prefix on callback string */\n'
-            yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-            yield '            const char *__pb_prefix = "%s";\n' % self._escape_c_string(prefix)
-            yield '            size_t __pb_prefix_len = strlen(__pb_prefix);\n'
-            yield '            if (callback_ctx->%s_length < __pb_prefix_len || \n' % field_var_name
-            yield '                strncmp(callback_ctx->%s_data, __pb_prefix, __pb_prefix_len) != 0) {\n' % field_var_name
-            yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "String must start with specified prefix");\n' % rule.constraint_id
-            yield '                if (ctx.early_exit) return false;\n'
-            yield '            }\n'
-            yield '        }\n'
-        elif rule.rule_type == RULE_SUFFIX:
-            suffix = rule.params.get('value', '')
-            yield '        /* Check suffix on callback string */\n'
-            yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-            yield '            const char *__pb_suffix = "%s";\n' % self._escape_c_string(suffix)
-            yield '            size_t __pb_suffix_len = strlen(__pb_suffix);\n'
-            yield '            if (callback_ctx->%s_length >= __pb_suffix_len) {\n' % field_var_name
-            yield '                const char *__pb_end = callback_ctx->%s_data + callback_ctx->%s_length - __pb_suffix_len;\n' % (field_var_name, field_var_name)
-            yield '                if (strncmp(__pb_end, __pb_suffix, __pb_suffix_len) != 0) {\n'
-            yield '                    pb_violations_add(violations, ctx.path_buffer, "%s", "String must end with specified suffix");\n' % rule.constraint_id
-            yield '                    if (ctx.early_exit) return false;\n'
-            yield '                }\n'
-            yield '            } else {\n'
-            yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "String must end with specified suffix");\n' % rule.constraint_id
-            yield '                if (ctx.early_exit) return false;\n'
-            yield '            }\n'
-            yield '        }\n'
-        elif rule.rule_type == RULE_CONTAINS:
-            needle = rule.params.get('value', '')
-            yield '        /* Check contains on callback string */\n'
-            yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-            yield '            const char *__pb_needle = "%s";\n' % self._escape_c_string(needle)
-            yield '            /* Use a simple substring search */\n'
-            yield '            bool __pb_found = false;\n'
-            yield '            size_t __pb_needle_len = strlen(__pb_needle);\n'
-            yield '            if (__pb_needle_len <= callback_ctx->%s_length) {\n' % field_var_name
-            yield '                for (size_t i = 0; i <= callback_ctx->%s_length - __pb_needle_len; i++) {\n' % field_var_name
-            yield '                    if (strncmp(callback_ctx->%s_data + i, __pb_needle, __pb_needle_len) == 0) {\n' % field_var_name
-            yield '                        __pb_found = true; break;\n'
-            yield '                    }\n'
-            yield '                }\n'
-            yield '            }\n'
-            yield '            if (!__pb_found) {\n'
-            yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "String must contain specified substring");\n' % rule.constraint_id
-            yield '                if (ctx.early_exit) return false;\n'
-            yield '            }\n'
-            yield '        }\n'
-        
-        # ASCII rule
-        elif rule.rule_type == RULE_ASCII:
-            yield '        /* Check ASCII-only characters on callback string */\n'
-            yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-            yield '            bool __pb_is_ascii = true;\n'
-            yield '            for (pb_size_t i = 0; i < callback_ctx->%s_length; i++) {\n' % field_var_name
-            yield '                if ((unsigned char)callback_ctx->%s_data[i] > 127) {\n' % field_var_name
-            yield '                    __pb_is_ascii = false; break;\n'
-            yield '                }\n'
-            yield '            }\n'
-            yield '            if (!__pb_is_ascii) {\n'
-            yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "String must contain only ASCII characters");\n' % rule.constraint_id
-            yield '                if (ctx.early_exit) return false;\n'
-            yield '            }\n'
-            yield '        }\n'
-        
-        # Format rules (EMAIL, HOSTNAME, IP, etc.) - use pb_validate_string helper
-        elif rule.rule_type in (RULE_EMAIL, RULE_HOSTNAME, RULE_IP, RULE_IPV4, RULE_IPV6):
-            # Map rule types to C enum constants
-            format_rule_to_c_enum = {
-                RULE_EMAIL: 'PB_VALIDATE_RULE_EMAIL',
-                RULE_HOSTNAME: 'PB_VALIDATE_RULE_HOSTNAME', 
-                RULE_IP: 'PB_VALIDATE_RULE_IP',
-                RULE_IPV4: 'PB_VALIDATE_RULE_IPV4',
-                RULE_IPV6: 'PB_VALIDATE_RULE_IPV6',
-            }
-            c_enum = format_rule_to_c_enum.get(rule.rule_type)
-            if c_enum:
-                yield '        /* Check format on callback string */\n'
-                yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-                yield '            if (!pb_validate_string(callback_ctx->%s_data, callback_ctx->%s_length, NULL, %s)) {\n' % (field_var_name, field_var_name, c_enum)
-                yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "String format validation failed");\n' % rule.constraint_id
-                yield '                if (ctx.early_exit) return false;\n'
-                yield '            }\n'
-                yield '        }\n'
-        
-        # IN rule - check value is in allowed set
-        elif rule.rule_type == RULE_IN:
-            values = rule.params.get('values', [])
-            if values:
-                yield '        /* Check callback string is in allowed set */\n'
-                yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-                yield '            bool __pb_match = false;\n'
-                values_array = ', '.join('"%s"' % self._escape_c_string(v) for v in values)
-                yield '            const char *__pb_allowed[] = { %s };\n' % values_array
-                yield '            for (size_t __pb_k = 0; __pb_k < sizeof(__pb_allowed)/sizeof(__pb_allowed[0]); __pb_k++) {\n'
-                yield '                if (callback_ctx->%s_length == strlen(__pb_allowed[__pb_k]) &&\n' % field_var_name
-                yield '                    strncmp(callback_ctx->%s_data, __pb_allowed[__pb_k], callback_ctx->%s_length) == 0) {\n' % (field_var_name, field_var_name)
-                yield '                    __pb_match = true; break;\n'
-                yield '                }\n'
-                yield '            }\n'
-                yield '            if (!__pb_match) {\n'
-                yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "Value must be one of allowed set");\n' % rule.constraint_id
-                yield '                if (ctx.early_exit) return false;\n'
-                yield '            }\n'
-                yield '        }\n'
-        
-        # NOT_IN rule - check value is not in blocked set
-        elif rule.rule_type == RULE_NOT_IN:
-            values = rule.params.get('values', [])
-            if values:
-                yield '        /* Check callback string is not in blocked set */\n'
-                yield '        if (callback_ctx->%s_decoded) {\n' % field_var_name
-                yield '            bool __pb_forbidden = false;\n'
-                values_array = ', '.join('"%s"' % self._escape_c_string(v) for v in values)
-                yield '            const char *__pb_blocked[] = { %s };\n' % values_array
-                yield '            for (size_t __pb_k = 0; __pb_k < sizeof(__pb_blocked)/sizeof(__pb_blocked[0]); __pb_k++) {\n'
-                yield '                if (callback_ctx->%s_length == strlen(__pb_blocked[__pb_k]) &&\n' % field_var_name
-                yield '                    strncmp(callback_ctx->%s_data, __pb_blocked[__pb_k], callback_ctx->%s_length) == 0) {\n' % (field_var_name, field_var_name)
-                yield '                    __pb_forbidden = true; break;\n'
-                yield '                }\n'
-                yield '            }\n'
-                yield '            if (__pb_forbidden) {\n'
-                yield '                pb_violations_add(violations, ctx.path_buffer, "%s", "Value is in forbidden set");\n' % rule.constraint_id
-                yield '                if (ctx.early_exit) return false;\n'
-                yield '            }\n'
-                yield '        }\n'
     
     def _escape_c_string(self, s: str) -> str:
         """

@@ -8,7 +8,8 @@ test_env = env.Clone()
 
 # Enable validation code generation via NANOPBFLAGS
 # Also exclude validate.proto from #include list since it's only used for options
-test_env.Replace(NANOPBFLAGS = "--validate,-x,validate.proto")
+test_env.Replace(NANOPBFLAGS = "-x,validate.proto")
+test_env.Replace(NANOPB_VALIDATE_FLAGS = "")
 
 # Remove -ansi flag since pb_validate.h requires C99 features (inline)
 # Also enable C99 for stdbool.h
@@ -33,27 +34,16 @@ protos = [
     "message_rules",
     "oneof_rules",
     "bytes_rules",
-    "any_behavior"
+    "any_behavior",
+    "bypass_behavior"
 ]
 
 # Generate nanopb sources for each proto file
-# The NanopbProto builder generates .pb.c and .pb.h
-# With --validate flag, it also generates _validate.c and _validate.h
-# but we need to add _validate.c as a side effect
+# The NanopbProto builder generates .pb.c and .pb.h; the nanopb-validate
+# plugin additionally generates _validate.c and _validate.h, which have to be
+# registered as side effects.
 pb_sources = []
 validate_sources = []
-
-# Generate bypass_behavior proto with --bypass flag
-bypass_env = test_env.Clone()
-bypass_env.Replace(NANOPBFLAGS = "--validate,--bypass,-x,validate.proto")
-pb_files = bypass_env.NanopbProto("bypass_behavior")
-pb_sources.append("bypass_behavior.pb.c")
-validate_c = "bypass_behavior_validate.c"
-validate_h = "bypass_behavior_validate.h"
-bypass_env.SideEffect(validate_c, pb_files)
-bypass_env.SideEffect(validate_h, pb_files)
-validate_sources.append(validate_c)
-
 
 for proto in protos:
     pb_files = test_env.NanopbProto(proto)
@@ -92,7 +82,8 @@ test_env.RunTest(test_prog)
 nested_env = env.Clone()
 
 # Enable validation code generation
-nested_env.Replace(NANOPBFLAGS = "--validate,-x,validate.proto")
+nested_env.Replace(NANOPBFLAGS = "-x,validate.proto")
+nested_env.Replace(NANOPB_VALIDATE_FLAGS = "")
 
 # Remove -ansi flag and enable C99
 cflags = str(nested_env.get('CFLAGS', ''))
