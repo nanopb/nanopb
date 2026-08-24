@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+import "nanopb.proto";
+
+message SubMsg1
+{
+    string strvalue = 1;
+}
+
+message SubMsg2
+{
+    int32 intvalue = 1;
+}
+
+message OneOfMessage
+{
+    option (nanopb_msgopt).submsg_callback = true;
+
+    int32 prefix = 1; 
+
+    oneof value
+    {
+        SubMsg1 submsg1 = 2 [(nanopb).type = FT_CALLBACK];
+        SubMsg2 submsg2 = 3;
+    }
+
+    int32 suffix = 4;
+}
