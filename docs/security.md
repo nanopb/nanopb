@@ -78,7 +78,8 @@ consider. The following list is not comprehensive:
 1.  Stack usage may depend on the contents of the message. The message
     definition places an upper bound on how much stack will be used.
     Tests should be run with all fields present, to record the maximum
-    possible stack usage.
+    possible stack usage. For recursive messages, define
+    `PB_MESSAGE_NESTING_MAX` to limit the recursion depth.
 2.  Callbacks can do anything. The code for the callbacks must be
     carefully checked if they are used with untrusted data.
 3.  If using stream input, a maximum size should be set in

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+message MaxDepth1 {
+    MaxDepth2 submsg = 2;
+}
+
+message MaxDepth2 {
+    MaxDepth3 submsg = 3;
+}
+
+message MaxDepth3 {
+    MaxDepth4 submsg = 4;
+}
+
+message MaxDepth4 {
+    MaxDepth5 submsg = 5;
+}
+
+message MaxDepth5 {
+    MaxDepth6 submsg = 6;
+}
+
+message MaxDepth6 {
+    MaxDepth7 submsg = 7;
+}
+
+message MaxDepth7 {
+    MaxDepth8 submsg = 8;
+}
+
+message MaxDepth8 {
+    MaxDepth9 submsg = 9;
+}
+
+message MaxDepth9 {
+    MaxDepth10 submsg = 10;
+}
+
+message MaxDepth10 {
+    int32 foo = 11;
+}
+
+

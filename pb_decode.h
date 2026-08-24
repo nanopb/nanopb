@@ -54,12 +54,24 @@ struct pb_istream_s
     /* Pointer to constant (ROM) string when decoding function returns error */
     const char *errmsg;
 #endif
+
+#ifdef PB_MESSAGE_NESTING_MAX
+    pb_size_t depth;
+#endif
 };
 
-#ifndef PB_NO_ERRMSG
-#define PB_ISTREAM_EMPTY {0,0,0,0}
+#ifdef PB_MESSAGE_NESTING_MAX
+# ifndef PB_NO_ERRMSG
+#  define PB_ISTREAM_EMPTY {0,0,0,0,0}
+# else
+#  define PB_ISTREAM_EMPTY {0,0,0,0}
+# endif
 #else
-#define PB_ISTREAM_EMPTY {0,0,0}
+# ifndef PB_NO_ERRMSG
+#  define PB_ISTREAM_EMPTY {0,0,0,0}
+# else
+#  define PB_ISTREAM_EMPTY {0,0,0}
+# endif
 #endif
 
 /***************************

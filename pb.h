@@ -57,6 +57,9 @@
 /* #define PB_C99_STATIC_ASSERT 1 */
 /* #define PB_NO_STATIC_ASSERT 1 */
 
+/* Limit for depth of recursive message structure */
+/* #define PB_MESSAGE_NESTING_MAX 10 */
+
 /******************************************************************
  * You usually don't need to change anything below this line.     *
  * Feel free to look around and use the defined macros, though.   *
