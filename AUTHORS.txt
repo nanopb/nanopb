@@ -148,3 +148,20 @@ Reinis Veips <reinis.veips@atlasaero.space>
 Robin Kastberg <robin.kastberg@iar.com>
 Ted Pudlik <tpudlik@gmail.com>
 Zach Deibert <zachdeibert@gmail.com>
+Mark Schulte <mschulte@lyft.com>
+94xhn <94xhn1@gmail.com>
+aditya <aditya@rapidcircuitry.com>
+aineoae86-sys <ai.neo.ae86@gmail.com>
+Harsha Laxman <laxmanharsha.n@gmail.com>
+jarkad <jarkad@jarkad.net.eu.org>
+Jean Jacques Avril <jean@jeanavril.com>
+JeanTie <88772234+JeanTie@users.noreply.github.com>
+Jonathan Davey <jonathan.davey@skykraft.com.au>
+Josh Soref <2119212+jsoref@users.noreply.github.com>
+Michael Hordijk <hordijk@aurora.tech>
+Ofek Almog <ofekalm100@gmail.com>
+Old-Ding <35417409+Old-Ding@users.noreply.github.com>
+Przemysław Dąbrowski <57660090+Nizerlak@users.noreply.github.com>
+Red Daly <reddaly@gmail.com>
+Şan Güneş <180301198+sgunes-wirepas@users.noreply.github.com>
+weichslgartner <weichslgartner@gmail.com>
