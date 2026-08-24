@@ -772,6 +772,18 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
 
 static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field)
 {
+    /* Clear any data that may have been decoded for another oneof field
+     * that has come before this callback field.
+     */
+    if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
+    {
+        if (*(pb_size_t*)field->pSize != 0 && *(pb_size_t*)field->pSize != field->tag)
+        {
+            memset(field->pData, 0, (size_t)field->data_size);
+        }
+        *(pb_size_t*)field->pSize = field->tag;
+    }
+
     if (!field->descriptor->field_callback)
         return pb_skip_field(stream, wire_type);
 
