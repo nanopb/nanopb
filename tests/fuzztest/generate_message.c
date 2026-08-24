@@ -35,7 +35,8 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
             *((pb_size_t*)iter.pSize) %= iter.array_size;
         }
         
-        if (PB_HTYPE(iter.type) == PB_HTYPE_ONEOF)
+        if (PB_HTYPE(iter.type) == PB_HTYPE_ONEOF &&
+            PB_ATYPE(iter.type) != PB_ATYPE_CALLBACK)
         {
             /* Set the oneof to this message type with 50% chance. */
             if (rand_word() & 1)

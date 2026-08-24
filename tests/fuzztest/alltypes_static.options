@@ -6,3 +6,7 @@
 *.DescriptorSize8 descriptorsize:DS_8
 *.IntSizes.*int8 int_size:IS_8
 *.IntSizes.*int16 int_size:IS_16
+*.callback_msg type:FT_CALLBACK
+*.callback_val type:FT_CALLBACK
+CBSubMessage.* type:FT_CALLBACK
+*.oneof_msg_wcb type:FT_STATIC

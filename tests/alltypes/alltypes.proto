@@ -13,6 +13,10 @@ message SubMessage {
     optional fixed32 substuff3 = 3 [default = 3];
 }
 
+message CBSubMessage {
+    optional int32 substuff2 = 2;
+}
+
 message EmptyMessage {
 
 }
@@ -133,6 +137,10 @@ message AllTypes {
         SubMessage oneof_msg1 = 60;
         EmptyMessage oneof_msg2 = 61;
         SubMessage static_msg = 63;
+        SubMessage callback_msg = 64;
+        CBSubMessage oneof_msg_wcb = 65;
+        int64 static_val = 66;
+        int64 callback_val = 67;
     }
 
     optional NonZeroBasedEnum opt_non_zero_based_enum = 62;
