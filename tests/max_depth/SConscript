@@ -1,0 +1,20 @@
+# Test PB_MESSAGE_NESTING_MAX compilation option
+
+Import("env")
+
+# Define the compilation options
+opts = env.Clone()
+opts.Append(CPPDEFINES = {'PB_MESSAGE_NESTING_MAX': 8})
+
+# Build new version of core
+strict = opts.Clone()
+strict.Append(CFLAGS = strict['CORECFLAGS'])
+strict.Object("pb_decode_maxdepth.o", "$NANOPB/pb_decode.c")
+strict.Object("pb_encode_maxdepth.o", "$NANOPB/pb_encode.c")
+strict.Object("pb_common_maxdepth.o", "$NANOPB/pb_common.c")
+
+# Now build and run the test normally.
+opts.NanopbProto("max_depth.proto")
+test = opts.Program(["max_depth.c", "max_depth.pb.c", "pb_decode_maxdepth.o", "pb_encode_maxdepth.o", "pb_common_maxdepth.o"])
+opts.RunTest(test)
+
