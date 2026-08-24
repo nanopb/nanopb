@@ -1,0 +1,25 @@
+# Regression test for security issue GHSA-p24j-vqcp-x988
+# "Callback inside oneof can result in call to attacker-controlled function pointer"
+
+Import("env")
+
+env.NanopbProto("submsg_ft_callback.proto")
+env.NanopbProto("variant.proto")
+
+poc_master = env.Program(["poc_master.c", "submsg_ft_callback.pb.c",
+                          "$COMMON/pb_decode.o",
+                          "$COMMON/pb_common.o"])
+
+env.RunTest([poc_master])
+
+poc_release = env.Program(["poc_release.c", "variant.pb.c",
+                          "$COMMON/pb_decode.o",
+                          "$COMMON/pb_common.o"])
+
+env.RunTest([poc_release])
+
+poc_positive = env.Program(["poc_positive.c", "variant.pb.c",
+                          "$COMMON/pb_decode.o",
+                          "$COMMON/pb_common.o"])
+
+env.RunTest([poc_positive])
