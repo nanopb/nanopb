@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/cifuzz.yml
   
   binary_packages:
-    needs: [compiler_tests, simulator_tests, python2_tests, ios_swift_tests, platformio_tests, cifuzz]
+    needs: [compiler_tests, simulator_tests, ios_swift_tests, platformio_tests, cifuzz]
     uses: ./.github/workflows/binary_packages.yml
 
   pypi_publish:
