@@ -11,9 +11,6 @@ jobs:
   simulator_tests:
     uses: ./.github/workflows/simulator_tests.yml
   
-  python2_tests:
-    uses: ./.github/workflows/python2_tests.yml
-  
   ios_swift_tests:
     uses: ./.github/workflows/ios_swift_tests.yml
   
