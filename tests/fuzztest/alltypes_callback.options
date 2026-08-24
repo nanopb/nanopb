@@ -2,3 +2,7 @@
 *.oneof_* submsg_callback:true
 *.Limits.int64_min type:FT_CALLBACK
 *.DescriptorSize8 descriptorsize:DS_8
+*.callback_msg type:FT_CALLBACK
+*.callback_val type:FT_CALLBACK
+CBSubMessage.* type:FT_CALLBACK
+*.oneof_msg_wcb type:FT_STATIC

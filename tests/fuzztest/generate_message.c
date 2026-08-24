@@ -42,6 +42,13 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
             {
                 *((pb_size_t*)iter.pSize) = iter.tag;
             }
+
+            /* Make sure any callbacks are cleared */
+            if (PB_ATYPE(iter.type) == PB_ATYPE_CALLBACK &&
+                *((pb_size_t*)iter.pSize) == iter.tag)
+            {
+                memset(iter.pData, 0, iter.data_size);
+            }
         }
     }
 }
