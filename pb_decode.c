@@ -160,9 +160,6 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
 #ifndef PB_NO_ERRMSG
     stream.errmsg = NULL;
 #endif
-#ifdef PB_MESSAGE_NESTING_MAX
-    stream.depth = 0;
-#endif
     return stream;
 }
 
@@ -393,12 +390,6 @@ bool checkreturn pb_make_string_substream(pb_istream_t *stream, pb_istream_t *su
     if (substream->bytes_left < size)
         PB_RETURN_ERROR(stream, "parent stream too short");
     
-#ifdef PB_MESSAGE_NESTING_MAX
-    substream->depth++;
-    if (substream->depth > PB_MESSAGE_NESTING_MAX)
-        PB_RETURN_ERROR(stream, "max depth");
-#endif
-
     substream->bytes_left = (size_t)size;
     stream->bytes_left -= (size_t)size;
     return true;
