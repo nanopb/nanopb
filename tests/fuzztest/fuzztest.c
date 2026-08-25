@@ -9,6 +9,7 @@
 
 #include <pb_decode.h>
 #include <pb_encode.h>
+#include <pb_common.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -372,6 +373,44 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 #ifndef LLVMFUZZER
 
+/* Check that size/count fields do not exceed their max size.
+ * Otherwise we would have to loop pretty long in generate_message().
+ * Note that there may still be a few encoding errors from submessages.
+ */
+static void limit_sizes(alltypes_static_AllTypes *msg)
+{
+    pb_field_iter_t iter;
+    pb_field_iter_begin(&iter, alltypes_static_AllTypes_fields, msg);
+    while (pb_field_iter_next(&iter))
+    {
+        if (PB_LTYPE(iter.type) == PB_LTYPE_BYTES)
+        {
+            ((pb_bytes_array_t*)iter.pData)->size %= iter.data_size - PB_BYTES_ARRAY_T_ALLOCSIZE(0);
+        }
+
+        if (PB_HTYPE(iter.type) == PB_HTYPE_REPEATED)
+        {
+            *((pb_size_t*)iter.pSize) %= iter.array_size;
+        }
+
+        if (PB_HTYPE(iter.type) == PB_HTYPE_ONEOF)
+        {
+            /* Set the oneof to this message type with 50% chance. */
+            if (rand_word() & 1)
+            {
+                *((pb_size_t*)iter.pSize) = iter.tag;
+            }
+
+            /* Make sure any callbacks are cleared */
+            if (PB_ATYPE(iter.type) == PB_ATYPE_CALLBACK &&
+                *((pb_size_t*)iter.pSize) == iter.tag)
+            {
+                memset(iter.pData, 0, iter.data_size);
+            }
+        }
+    }
+}
+
 static bool generate_base_message(uint8_t *buffer, size_t *msglen)
 {
     pb_ostream_t stream;
@@ -385,6 +424,8 @@ static bool generate_base_message(uint8_t *buffer, size_t *msglen)
     /* Apply randomness to the data before encoding */
     while (rand_int(0, 7))
         rand_mess((uint8_t*)msg, sizeof(alltypes_static_AllTypes));
+
+    limit_sizes(msg);
 
     msg->extensions = NULL;
 
