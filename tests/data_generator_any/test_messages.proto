@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package anyfixture;
+
+import "validate.proto";
+import "google/protobuf/any.proto";
+import "sub/imported_payload.proto";
+
+message NestedPayload {
+    string label = 1 [(validate.rules).string.const_value = "nested"];
+}
+
+message DirectPayload {
+    int32 id = 1 [(validate.rules).int32.const_value = 7];
+    NestedPayload nested = 2;
+}
+
+message Host {
+    message NestedChoice {
+        string tag = 1 [(validate.rules).string.const_value = "nested-choice"];
+    }
+}
+
+message Recursive {
+    int32 value = 1 [(validate.rules).int32.const_value = 11];
+    Recursive child = 2;
+}
+
+message ScalarOnly {
+    string name = 1 [(validate.rules).string.const_value = "scalar"];
+    int32 count = 2 [(validate.rules).int32.const_value = 4];
+}
+
+message Wrapper {
+    google.protobuf.Any payload = 1 [
+        (validate.rules).any.in = "type.googleapis.com/anyfixture.DirectPayload",
+        (validate.rules).any.in = "type.googleapis.com/anyfixture.Host.NestedChoice",
+        (validate.rules).any.in = "type.googleapis.com/importedfixture.ImportedPayload"
+    ];
+    DirectPayload direct = 2;
+    Recursive recursive = 3;
+    ScalarOnly scalar = 4;
+    importedfixture.ImportedPayload imported = 5;
+}
+
+message DisallowedAny {
+    google.protobuf.Any payload = 1 [
+        (validate.rules).any.not_in = "type.googleapis.com/anyfixture.DirectPayload"
+    ];
+}
+
+message ImpossibleAny {
+    google.protobuf.Any payload = 1 [
+        (validate.rules).any.in = "type.googleapis.com/no.such.Message"
+    ];
+}

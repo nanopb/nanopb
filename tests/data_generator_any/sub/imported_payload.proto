@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package importedfixture;
+
+import "validate.proto";
+
+message ImportedNested {
+    int32 code = 1 [(validate.rules).int32.const_value = 99];
+}
+
+message ImportedPayload {
+    string imported_name = 1 [(validate.rules).string.const_value = "imported"];
+    ImportedNested nested = 2;
+}
