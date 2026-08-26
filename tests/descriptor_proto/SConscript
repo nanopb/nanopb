@@ -2,7 +2,8 @@
 
 Import('env')
 
-opts = env.Clone()
-opts.Append(CPPDEFINES = {'PB_FIELD_32BIT': 1})
-opts.NanopbProto('descriptor.proto')
-opts.Object('descriptor.pb.c')
+if env.get('EMBEDDED') != 'AVR':
+    opts = env.Clone()
+    opts.Append(CPPDEFINES = {'PB_FIELD_32BIT': 1})
+    opts.NanopbProto('descriptor.proto')
+    opts.Object('descriptor.pb.c')
