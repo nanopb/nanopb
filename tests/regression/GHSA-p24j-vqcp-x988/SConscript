@@ -12,5 +12,6 @@ env.RunTest([poc_master])
 poc_release = env.Program(["poc_release.c", "variant.pb.c", env['NANOPB_DECODER_OBJS']])
 env.RunTest([poc_release])
 
-poc_positive = env.Program(["poc_positive.c", "variant.pb.c", env['NANOPB_DECODER_OBJS']])
-env.RunTest([poc_positive])
+if not env.HasFlag('PB_NO_STRUCT_FIELD_CALLBACK'):
+    poc_positive = env.Program(["poc_positive.c", "variant.pb.c", env['NANOPB_DECODER_OBJS']])
+    env.RunTest([poc_positive])
