@@ -1475,6 +1475,10 @@ static pb_walk_retval_t release_oneof(pb_walk_state_t *state, pb_field_iter_t *f
     {
         field->pData = NULL;
     }
+    else
+    {
+        memset(field->pData, 0, field->data_size);
+    }
 
     return PB_WALK_NEXT_ITEM;
 }
@@ -1857,6 +1861,24 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             set_required_field_present(state);
         }
 
+#if !PB_NO_MALLOC
+        if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
+        {
+            // Release old value of the oneof field
+            pb_walk_retval_t retval = release_oneof(state, iter, false);
+            if (retval != PB_WALK_NEXT_ITEM)
+            {
+                if (retval == PB_WALK_IN)
+                {
+                    state->flags |= PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD;
+                    frame->flags |= PB_DECODE_WALK_FRAME_FLAG_END_RELEASE;
+                    frame->old_length = (pb_size_t)wire_type;
+                }
+                return retval;
+            }
+        }
+#endif
+
         if (PB_ATYPE(iter->type) == PB_ATYPE_CALLBACK)
         {
 #if !PB_NO_CALLBACKS
@@ -1905,23 +1927,6 @@ PB_WALK_CB_STATIC pb_walk_retval_t pb_decode_walk_cb(pb_walk_state_t *state)
             }
 
             iter->pSize = &frame->fixarray_count;
-        }
-        else if (PB_HTYPE(iter->type) == PB_HTYPE_ONEOF)
-        {
-            // Release old value of the oneof field
-#if !PB_NO_MALLOC
-            pb_walk_retval_t retval = release_oneof(state, iter, false);
-            if (retval != PB_WALK_NEXT_ITEM)
-            {
-                if (retval == PB_WALK_IN)
-                {
-                    state->flags |= PB_DECODE_WALK_STATE_FLAG_RELEASE_FIELD;
-                    frame->flags |= PB_DECODE_WALK_FRAME_FLAG_END_RELEASE;
-                    frame->old_length = (pb_size_t)wire_type;
-                }
-                return retval;
-            }
-#endif
         }
 
         pb_walk_retval_t retval = PB_WALK_NEXT_ITEM;

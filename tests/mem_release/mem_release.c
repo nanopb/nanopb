@@ -116,10 +116,18 @@ static bool test_TestMessage()
     return true;
 }
 
-/* Oneofs */
+static bool encode_SubMessage(pb_encode_ctx_t *ctx, const pb_field_iter_t *field, void * const *arg)
+{
+    SubMessage submsg = SubMessage_init_zero;
+    submsg.dynamic_str = "abcd";
+    return pb_encode_tag_for_field(ctx, field)
+        && pb_encode_submessage(ctx, SubMessage_fields, &submsg);
+}
+
+/* Test proper release when multiple fields of oneof occur repeatedly in a message. */
 static bool test_OneofMessage()
 {
-    uint8_t buffer[256];
+    uint8_t buffer[512];
     size_t msgsize;
 
     {
@@ -133,6 +141,34 @@ static bool test_OneofMessage()
 
             fill_TestMessage(&msg.msgs.msg1);
 
+            if (!pb_encode(&stream, OneofMessage_fields, &msg))
+            {
+                fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
+                return false;
+            }
+        }
+
+        /* Encode callback SubMessage, replacing the oneof item */
+        {
+            OneofMessage msg = OneofMessage_init_zero;
+            msg.which_msgs = OneofMessage_msg3_tag;
+
+            msg.msgs.msg3.funcs.encode = &encode_SubMessage;
+
+            if (!pb_encode(&stream, OneofMessage_fields, &msg))
+            {
+                fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
+                return false;
+            }
+        }
+
+        /* Encode again with TestMessage */
+        {
+            OneofMessage msg = OneofMessage_init_zero;
+            msg.which_msgs = OneofMessage_msg1_tag;
+
+            msg.msgs.msg1.static_req_submsg.dynamic_str = "12345";
+            
             if (!pb_encode(&stream, OneofMessage_fields, &msg))
             {
                 fprintf(stderr, "Encode failed: %s\n", PB_GET_ERROR(&stream));
@@ -177,6 +213,7 @@ static bool test_OneofMessage()
                 return false;
             }
         }
+
         msgsize = stream.bytes_written;
     }
 

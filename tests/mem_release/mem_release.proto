@@ -30,8 +30,9 @@ message OneofMessage
     {
         TestMessage msg1 = 2;
         SubMessage msg2 = 3;
+        SubMessage msg3 = 4 [(nanopb).type = FT_CALLBACK];
     }
-    required int32 last = 4;
+    required int32 last = 5;
 }
 
 message RepeatedMessage
