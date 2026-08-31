@@ -29,6 +29,7 @@ mv $DEST/generator/dist/nanopb_generator $DEST/generator-bin
 cp $DEST/generator/dist/protoc/protoc.exe $DEST/generator-bin
 
 # Include Google's descriptor.proto and nanopb.proto
+mkdir -p $DEST/generator-bin/grpc_tools/
 cp -pr $(python3 -c 'import grpc_tools, os.path; print(os.path.dirname(grpc_tools.__file__))')/_proto $DEST/generator-bin/grpc_tools/
 cp -pr $DEST/generator/proto $DEST/generator-bin/proto
 
