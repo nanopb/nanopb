@@ -403,7 +403,14 @@ PB_STATIC_ASSERT(sizeof(uint64_t) == 2 * sizeof(uint32_t), UINT64_T_WRONG_SIZE)
  * Note that actual structs used will have a different length of bytes array.
  */
 #define PB_BYTES_ARRAY_T(n) struct { pb_size_t size; pb_byte_t bytes[n]; }
-#define PB_BYTES_ARRAY_T_ALLOCSIZE(n) ((size_t)n + offsetof(pb_bytes_array_t, bytes))
+/* Size to allocate for a bytes array holding n bytes. Never less than the
+ * struct itself, so a pb_bytes_array_t pointer into the allocation stays
+ * inside it for small n (gcc -Warray-bounds complains otherwise).
+ */
+#define PB_BYTES_ARRAY_T_ALLOCSIZE(n) \
+    (((size_t)(n) + offsetof(pb_bytes_array_t, bytes)) < sizeof(pb_bytes_array_t) \
+        ? sizeof(pb_bytes_array_t) \
+        : ((size_t)(n) + offsetof(pb_bytes_array_t, bytes)))
 
 struct pb_bytes_array_s {
     pb_size_t size;

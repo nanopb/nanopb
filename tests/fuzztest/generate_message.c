@@ -27,7 +27,7 @@ static void limit_sizes(alltypes_static_AllTypes *msg)
     {
         if (PB_LTYPE(iter.type) == PB_LTYPE_BYTES)
         {
-            ((pb_bytes_array_t*)iter.pData)->size %= iter.data_size - PB_BYTES_ARRAY_T_ALLOCSIZE(0);
+            ((pb_bytes_array_t*)iter.pData)->size %= iter.data_size - offsetof(pb_bytes_array_t, bytes);
         }
         
         if (PB_HTYPE(iter.type) == PB_HTYPE_REPEATED)
