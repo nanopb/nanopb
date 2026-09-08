@@ -349,8 +349,6 @@ function(NANOPB_GENERATE_CPP)
 
   endforeach()
 
-  set_source_files_properties(${${SRCS}} ${${HDRS}} PROPERTIES GENERATED TRUE)
-
   if(NANOPB_GENERATE_CPP_TARGET)
     add_library(${NANOPB_GENERATE_CPP_TARGET} STATIC EXCLUDE_FROM_ALL ${${SRCS}} ${${HDRS}})
     target_include_directories(${NANOPB_GENERATE_CPP_TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
