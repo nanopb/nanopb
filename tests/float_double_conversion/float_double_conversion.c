@@ -29,6 +29,16 @@ static const double testvalues[] = {
 
 #define TESTVALUES_COUNT (sizeof(testvalues)/sizeof(testvalues[0]))
 
+/* NaN payloads below, at and above the float mantissa cutoff. */
+static const uint8_t nanvalues[][8] = {
+    {1, 0, 0, 0,    0, 0, 0xF0, 0x7F},
+    {1, 0, 0, 0,    0, 0, 0xF0, 0xFF},
+    {0, 0, 0, 0x10, 0, 0, 0xF0, 0x7F},
+    {0, 0, 0, 0x10, 0, 0, 0xF0, 0xFF},
+    {0, 0, 0, 0x20, 0, 0, 0xF0, 0x7F},
+    {0, 0, 0, 0x20, 0, 0, 0xF0, 0xFF}
+};
+
 int main()
 {
     uint8_t buf[16];
@@ -84,6 +94,14 @@ int main()
                 TEST(memcmp(&msg.value, &expected_double, sizeof(double)) == 0);
             }
         }
+    }
+
+    for (i = 0; i < sizeof(nanvalues) / sizeof(nanvalues[0]); i++)
+    {
+        float value;
+        pb_istream_t stream = pb_istream_from_buffer(nanvalues[i], sizeof(nanvalues[i]));
+        TEST(pb_decode_double_as_float(&stream, &value));
+        TEST(isnan(value));
     }
 
     return status;

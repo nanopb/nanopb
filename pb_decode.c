@@ -1738,6 +1738,9 @@ bool pb_decode_double_as_float(pb_istream_t *stream, float *dest)
         /* Special value */
         exponent = 128;
         mantissa >>= 1;
+        /* Preserve NaN if its payload was lost when narrowing the mantissa. */
+        if (mantissa == 0 && (uint32_t)value != 0)
+            mantissa = 1;
     }
     else
     {
