@@ -138,8 +138,13 @@ This is only supported by C++11 and C23 compilers.
 The generation used `#ifdef` to limit size option to use on C++ compilers.
 This caused binary incompatibility when project mixed C and C++ files.
 
-**Changes**: `enum_intsize` is now a separate option, and does not use `#ifdef`.
-If compiler does not support the setting, compilation will fail.
+**Changes**: `enum_intsize` is now a separate option.
+
+Since nanopb-0.4.10 the generated header contains both an `enum Foo : uint8_t`
+definition and an integer typedef fallback, selected by the compiler according
+to `__cplusplus` and `__STDC_VERSION__`. Both forms have the same size and
+signedness, so the option now works on any C or C++ compiler and C and C++
+files of the same project stay binary compatible.
 
 **Required actions:** If using the recently introduced `int_size` option on enums, update to use `enum_intsize` instead.
 

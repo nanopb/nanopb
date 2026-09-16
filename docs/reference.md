@@ -50,7 +50,10 @@ The full set of available options is defined in [nanopb.proto](https://github.co
 * `fixed_length`: Generate `bytes` fields with a constant length defined by `max_size`. A separate `.size` field will then not be generated.
 * `fixed_count`: Generate arrays with constant length defined by `max_count`.
 * `package`: Package name that applies only for nanopb generator. Defaults to name defined by `package` keyword in .proto file, which applies for all languages.
-* `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure. When used with enum types, the size of the generated enum can be specified (C++ only)
+* `int_size`: Override the integer type of a field. For example, specify `int_size = IS_8` to convert `int32` from protocol definition into `int8_t` in the structure.
+* `enum_intsize`: Override the size of a generated enum type. For example, specify `enum_intsize = IS_8` to make the enum take one byte of storage. The enum is stored in an unsigned type, so values that are negative or do not fit in the selected size are reported as an error by the generator.
+
+  The generated header defines the enum as `enum Foo : uint8_t` when compiled as C++11 or C23, and as an integer typedef with one `#define` per value otherwise. The compiler picks the form at build time using the standard version macros, so no compiler specific configuration is needed. Both forms have the same size and signedness, which keeps C and C++ translation units of the same project binary compatible. Note that the fallback form is a plain integer, so warnings such as `-Wswitch` are not available there.
 
 These options can be defined for the .proto files before they are
 converted using the nanopb-generator.py. There are three ways to define
