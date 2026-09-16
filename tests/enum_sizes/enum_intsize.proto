@@ -39,3 +39,13 @@ enum IntSizeInt64
     I64_B = 2;
     I64_C = 3;
 }
+
+
+/* Message used to check that the enum size does not affect encoding */
+message IntSizeMessage
+{
+    required IntSizeInt8 a = 1;
+    required IntSizeInt16 b = 2;
+    required IntSizeInt32 c = 3;
+    required IntSizeInt64 d = 4;
+}

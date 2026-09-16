@@ -2,6 +2,8 @@
 
 Import('env')
 
+import sys
+
 env.NanopbProto('packed_enum')
 p = env.Program(["packed_enum_unittests.c",
                  "packed_enum.pb.c",
@@ -10,13 +12,53 @@ p = env.Program(["packed_enum_unittests.c",
                  "$COMMON/pb_common.o"])
 env.RunTest(p)
 
-# Enum size specification is supported by C++11 and newer
+# Enum size specification uses "enum Foo : uint8_t" on C++11 and C23
+# compilers, and an integer typedef on older standards.
+# Test both branches to verify they result in the same layout.
+#
+# The C builds add -pedantic-errors on purpose. Compilers that accept the
+# underlying type syntax as an extension only reject it in a strict
+# conformance build, so without the flag this would pass even when the
+# header uses syntax that the selected standard does not allow.
+envc = env.Clone()
+if 'gcc' in env['CC'] or 'clang' in env['CC']:
+    envc.Append(CFLAGS = ' -pedantic-errors')
+
+env.NanopbProto('enum_intsize')
+# Object name is given explicitly to avoid clashing with the C++ build below
+p2 = envc.Program(["enum_intsize_c_unittests.c",
+                   envc.Object("enum_intsize_c.pb.o", "enum_intsize.pb.c"),
+                   "$COMMON/pb_encode.o",
+                   "$COMMON/pb_decode.o",
+                   "$COMMON/pb_common.o"])
+envc.RunTest(p2)
+
 env2 = env.Clone()
 env2.Append(CXXFLAGS = "-std=c++11")
 env2.NanopbProtoCpp('enum_intsize')
-p2 = env2.Program(["enum_intsize_unittests.cc",
+p3 = env2.Program(["enum_intsize_unittests.cc",
                    "enum_intsize.pb.cpp",
                    "$COMMON/pb_encode.o",
                    "$COMMON/pb_decode.o",
                    "$COMMON/pb_common.o"])
-env2.RunTest(p2)
+env2.RunTest(p3)
+
+# The C and the C++ compiler pick a different branch of the generated
+# header. Build one translation unit with each and link them together to
+# verify that they still agree on the layout of the structs.
+env3 = envc.Clone()
+env3.Append(CXXFLAGS = "-std=c++11")
+p4 = env3.Program(["enum_intsize_mixed_c.c",
+                   "enum_intsize_mixed_cpp.cpp",
+                   env3.Object("enum_intsize_mixed.pb.o", "enum_intsize.pb.c"),
+                   "$COMMON/pb_encode.o",
+                   "$COMMON/pb_decode.o",
+                   "$COMMON/pb_common.o"])
+env3.RunTest(p4)
+
+# Values that do not fit in the selected size would truncate silently in the
+# fallback branch of the generated header, so the generator refuses them.
+env4 = env.Clone()
+env4["PYTHON"] = env4["ESCAPE"](sys.executable)
+env4.Command("test_enum_intsize_range.output", "test_enum_intsize_range.py",
+             "$PYTHON $SOURCE > $TARGET")
