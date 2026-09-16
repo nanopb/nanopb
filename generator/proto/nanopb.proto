@@ -67,7 +67,11 @@ message NanoPBOptions {
   // full 32 bits for the value.
   optional IntSize int_size = 7 [default = IS_DEFAULT];
 
-  // Size for enum fields. Supported by C++11 and C23 standards.
+  // Size of the generated enum type. Uses the underlying type syntax on
+  // C++11 and C23 compilers, and an integer typedef with one define per
+  // value on older standards. Both forms have the same size, so C and C++
+  // files of the same project stay binary compatible. The type is unsigned,
+  // so enums with negative values cannot use this option.
   optional IntSize enum_intsize = 34 [default = IS_DEFAULT];
 
   // Force type of field (callback or static allocation)

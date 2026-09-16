@@ -436,25 +436,15 @@ class Enum(ProtoElement):
     def __repr__(self):
         return 'Enum(%s)' % self.names
 
-    def __str__(self):
+    def _enum_body(self, underlying_ctype=None):
+        '''Renders 'enum Name [: ctype] { A = 0, B = 1, ... } Name;' (no leading comment).'''
+        result = 'typedef enum %s' % Globals.naming_style.enum_name(self.names)
+        if underlying_ctype is not None:
+            result += ': ' + underlying_ctype
         leading_comment, trailing_comment = self.get_comments()
-
-        result = ''
-        if leading_comment:
-            result = '%s\n' % leading_comment
-
-        result += 'typedef enum %s' % Globals.naming_style.enum_name(self.names)
-
-        # Override the enum size if user wants to use smaller integers
-        if (FieldD.TYPE_ENUM, self.options.enum_intsize) in datatypes:
-            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.enum_intsize)]
-            result += ': ' + self.ctype
-
         result += ' {'
-
         if trailing_comment:
             result += " " + trailing_comment
-
         result += "\n"
 
         enum_length = len(self.values)
@@ -483,6 +473,84 @@ class Enum(ProtoElement):
             result += ' pb_packed'
 
         result += ' %s;' % Globals.naming_style.type_name(self.names)
+        return result
+
+    def _typedef_define_body(self, ctype):
+        '''Renders 'typedef ctype Name; #define Name_VALUE ((Name)n) ...' (no leading comment).
+        Valid under any C/C++ standard -- used as the enum_intsize fallback
+        where the 'enum : type' underlying-type syntax (C23/C++11+) isn't available.'''
+        type_name = Globals.naming_style.type_name(self.names)
+        result = 'typedef %s %s;' % (ctype, type_name)
+
+        for index, (name, value) in enumerate(self.values):
+            leading_comment, trailing_comment = self.get_member_comments(index)
+
+            if leading_comment:
+                result += '\n' + leading_comment
+
+            define_line = "\n#define %s ((%s)%d)" % (
+                Globals.naming_style.enum_entry(name), type_name, value)
+            if trailing_comment:
+                define_line += " " + trailing_comment
+
+            result += define_line
+
+        return result
+
+    def __str__(self):
+        leading_comment, trailing_comment = self.get_comments()
+
+        result = ''
+        if leading_comment:
+            result = '%s\n' % leading_comment
+
+        # Override the enum size if user wants to use smaller integers
+        if (FieldD.TYPE_ENUM, self.options.enum_intsize) in datatypes:
+            self.ctype, self.pbtype, self.enc_size, self.data_item_size = datatypes[(FieldD.TYPE_ENUM, self.options.enum_intsize)]
+
+            # The datatypes table above always maps enum_intsize to an
+            # *unsigned* C type (uint8_t/uint16_t/...), so any value that is
+            # negative or doesn't fit in that width would silently truncate
+            # in the generated '((Name)value)' casts / 'enum : type' body.
+            # Fail generation instead of producing a quietly wrong value.
+            max_value = (1 << (8 * self.data_item_size)) - 1
+            for name, value in self.values:
+                if value < 0:
+                    # A larger enum_intsize would not help here, as every
+                    # size maps to an unsigned type.
+                    raise Exception(
+                        "Enum '%s' value %s = %d is negative. The "
+                        "enum_intsize option selects an unsigned type (%s), "
+                        "so it cannot be used on enums that have negative "
+                        "values. Remove the option to keep the default "
+                        "'int' representation, or use non-negative values."
+                        % (self.names, Globals.naming_style.enum_entry(name),
+                           value, self.ctype))
+                elif value > max_value:
+                    raise Exception(
+                        "Enum '%s' value %s = %d does not fit in %s "
+                        "selected by enum_intsize (valid range is 0..%d). "
+                        "Use a larger enum_intsize, or remove the option "
+                        "to keep the default 'int' representation."
+                        % (self.names, Globals.naming_style.enum_entry(name),
+                           value, self.ctype, max_value))
+
+            # The 'enum : type' underlying-type syntax needed here is only
+            # valid in C23 and C++11+. Emit both forms guarded by an #if, so
+            # the *compiler* picks the right one at build time based on its
+            # own __STDC_VERSION__/__cplusplus -- these are mandated by the
+            # language standards themselves, so this works unmodified on any
+            # C/C++ compiler, embedded cross-compilers included. No generator
+            # flag or build-time coordination is needed.
+            result += "#if (defined(__cplusplus) && __cplusplus >= 201103L) || \\\n"
+            result += "    (!defined(__cplusplus) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L)\n"
+            result += self._enum_body(underlying_ctype=self.ctype)
+            result += "\n#else\n"
+            result += self._typedef_define_body(self.ctype)
+            result += "\n#endif"
+            return result
+
+        result += self._enum_body()
         return result
 
     def auxiliary_defines(self):
