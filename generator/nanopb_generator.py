@@ -2805,7 +2805,11 @@ def main_plugin():
     if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_PROTO3_OPTIONAL"):
         response.supported_features = plugin_pb2.CodeGeneratorResponse.FEATURE_PROTO3_OPTIONAL
 
-    if hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_SUPPORTS_EDITIONS"):
+    if (hasattr(plugin_pb2.CodeGeneratorResponse, "FEATURE_SUPPORTS_EDITIONS")
+            and hasattr(response, "minimum_edition")):
+        # Some protobuf versions expose the FEATURE_SUPPORTS_EDITIONS enum value on
+        # CodeGeneratorResponse before also adding the minimum_edition/maximum_edition
+        # fields to the same message, so the two have to be checked independently.
         response.supported_features |= plugin_pb2.CodeGeneratorResponse.FEATURE_SUPPORTS_EDITIONS
         response.minimum_edition = descriptor.EDITION_PROTO2
         response.maximum_edition = descriptor.EDITION_2024
