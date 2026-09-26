@@ -448,8 +448,21 @@ The user is expected to set the field manually using the correct field
 tag:
 
     MyMessage msg = MyMessage_init_zero;
+    memset(&msg.payload, 0, sizeof(msg.payload));
     msg.payload.msg2.value = true;
     msg.which_payload = MyMessage_msg2_tag;
+
+Include `<string.h>` for `memset()`. For an automatic (non-static) variable,
+GCC 15 and later no longer guarantee that the `{0}` initializer used by
+`MyMessage_init_zero` clears the whole `oneof` union; it initializes only the
+first union member. Clearing the union before selecting a member prevents
+unassigned fields in a larger member from retaining indeterminate data. Do
+the same when reusing a message and switching to a different `oneof` member.
+See the [GCC 15 release notes](https://gcc.gnu.org/gcc-15/changes.html) for
+the compiler change. Do not replace `MyMessage_init_zero` with a whole-message
+`memset()`, because generated initializers may set nonzero field defaults.
+After clearing the union, set any defaults required by the selected message
+before assigning its other fields.
 
 Notice that neither `which_payload` field nor the unused fields in
 `payload` will consume any space in the resulting encoded message.
