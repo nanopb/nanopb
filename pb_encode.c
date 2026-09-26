@@ -90,6 +90,51 @@ pb_ostream_t pb_ostream_from_buffer(pb_byte_t *buf, size_t bufsize)
     return stream;
 }
 
+/* Tells whether the stream is backed by a writable memory buffer, in which
+ * case the output callback is known to be buf_write() and data can be
+ * written directly into the buffer. */
+static bool stream_is_buffer(const pb_ostream_t *stream)
+{
+#ifdef PB_BUFFER_ONLY
+    /* Buffer streams have a non-NULL marker, sizing streams have NULL. */
+    return stream->callback != NULL;
+#else
+    return stream->callback == &buf_write;
+#endif
+}
+
+/* Write directly into a buffer-backed stream, bypassing the output callback
+ * call. Returns false if the stream is not a buffer stream, or if it has
+ * less than count bytes of room left; the caller must then fall back to
+ * pb_write() to get the appropriate error handling. */
+static bool checkreturn buf_write_direct(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
+{
+    pb_byte_t *dest;
+
+    if (!stream_is_buffer(stream))
+        return false;
+
+    if (stream->bytes_written > stream->max_size ||
+        count > stream->max_size - stream->bytes_written)
+    {
+        return false;
+    }
+
+    dest = (pb_byte_t*)stream->state;
+    if (count == 1)
+    {
+        *dest = *buf;
+    }
+    else
+    {
+        memcpy(dest, buf, count * sizeof(pb_byte_t));
+    }
+
+    stream->state = dest + count;
+    stream->bytes_written += count;
+    return true;
+}
+
 bool checkreturn pb_write(pb_ostream_t *stream, const pb_byte_t *buf, size_t count)
 {
     if (count > 0 && stream->callback != NULL)
@@ -187,20 +232,38 @@ static bool checkreturn encode_array(pb_ostream_t *stream, pb_field_iter_t *fiel
             return pb_write(stream, NULL, size); /* Just sizing.. */
         
         /* Write the data */
-        for (i = 0; i < count; i++)
+        if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32 || PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
         {
-            if (PB_LTYPE(field->type) == PB_LTYPE_FIXED32 || PB_LTYPE(field->type) == PB_LTYPE_FIXED64)
+#if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
+            if ((PB_LTYPE(field->type) == PB_LTYPE_FIXED32 && field->data_size == sizeof(uint32_t))
+#ifndef PB_WITHOUT_64BIT
+                || (PB_LTYPE(field->type) == PB_LTYPE_FIXED64 && field->data_size == sizeof(uint64_t))
+#endif
+                )
+            {
+                /* Array elements are contiguous and already in wire byte order,
+                 * so write them all in a single operation. */
+                if (buf_write_direct(stream, (const pb_byte_t*)field->pData, size))
+                    return true;
+            }
+#endif
+            for (i = 0; i < count; i++)
             {
                 if (!pb_enc_fixed(stream, field))
                     return false;
+
+                field->pData = (char*)field->pData + field->data_size;
             }
-            else
+        }
+        else
+        {
+            for (i = 0; i < count; i++)
             {
                 if (!pb_enc_varint(stream, field))
                     return false;
-            }
 
-            field->pData = (char*)field->pData + field->data_size;
+                field->pData = (char*)field->pData + field->data_size;
+            }
         }
     }
     else /* Unpacked fields */
@@ -583,7 +646,24 @@ static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, 
 {
     size_t i = 0;
     pb_byte_t buffer[10];
-    pb_byte_t byte = (pb_byte_t)(low & 0x7F);
+    pb_byte_t byte;
+
+    if (stream->callback == NULL)
+    {
+        /* Sizing stream: pb_write() only accumulates the byte count, so
+         * computing the encoded length avoids building the bytes at all. */
+        size_t len = 1;
+        while (low > 0x7F || high != 0)
+        {
+            low = (low >> 7) | ((high & 0x7F) << 25);
+            high >>= 7;
+            len++;
+        }
+        stream->bytes_written += len;
+        return true;
+    }
+
+    byte = (pb_byte_t)(low & 0x7F);
     low >>= 7;
 
     while (i < 4 && (low != 0 || high != 0))
@@ -610,6 +690,9 @@ static bool checkreturn pb_encode_varint_32(pb_ostream_t *stream, uint32_t low, 
 
     buffer[i++] = byte;
 
+    if (buf_write_direct(stream, buffer, i))
+        return true;
+
     return pb_write(stream, buffer, i);
 }
 
@@ -619,6 +702,8 @@ bool checkreturn pb_encode_varint(pb_ostream_t *stream, pb_uint64_t value)
     {
         /* Fast path: single byte */
         pb_byte_t byte = (pb_byte_t)value;
+        if (buf_write_direct(stream, &byte, 1))
+            return true;
         return pb_write(stream, &byte, 1);
     }
     else
@@ -647,6 +732,8 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
 {
 #if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
     /* Fast path if we know that we're on little endian */
+    if (buf_write_direct(stream, (const pb_byte_t*)value, 4))
+        return true;
     return pb_write(stream, (const pb_byte_t*)value, 4);
 #else
     uint32_t val = *(const uint32_t*)value;
@@ -655,6 +742,8 @@ bool checkreturn pb_encode_fixed32(pb_ostream_t *stream, const void *value)
     bytes[1] = (pb_byte_t)((val >> 8) & 0xFF);
     bytes[2] = (pb_byte_t)((val >> 16) & 0xFF);
     bytes[3] = (pb_byte_t)((val >> 24) & 0xFF);
+    if (buf_write_direct(stream, bytes, 4))
+        return true;
     return pb_write(stream, bytes, 4);
 #endif
 }
@@ -664,6 +753,8 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
 {
 #if defined(PB_LITTLE_ENDIAN_8BIT) && PB_LITTLE_ENDIAN_8BIT == 1
     /* Fast path if we know that we're on little endian */
+    if (buf_write_direct(stream, (const pb_byte_t*)value, 8))
+        return true;
     return pb_write(stream, (const pb_byte_t*)value, 8);
 #else
     uint64_t val = *(const uint64_t*)value;
@@ -676,6 +767,8 @@ bool checkreturn pb_encode_fixed64(pb_ostream_t *stream, const void *value)
     bytes[5] = (pb_byte_t)((val >> 40) & 0xFF);
     bytes[6] = (pb_byte_t)((val >> 48) & 0xFF);
     bytes[7] = (pb_byte_t)((val >> 56) & 0xFF);
+    if (buf_write_direct(stream, bytes, 8))
+        return true;
     return pb_write(stream, bytes, 8);
 #endif
 }
