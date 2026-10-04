@@ -26,6 +26,7 @@ if not os.getenv("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"):
 
 try:
     import google.protobuf.text_format as text_format
+    import google.protobuf.text_encoding as text_encoding
     import google.protobuf.descriptor_pb2 as descriptor
     import google.protobuf.compiler.plugin_pb2 as plugin_pb2
     import google.protobuf.descriptor
@@ -880,8 +881,9 @@ class Field(ProtoElement):
                 inner_init = '0'
         else:
             if self.pbtype == 'STRING':
-                data = codecs.escape_encode(self.default.encode('utf-8'))[0]
-                inner_init = '"' + data.decode('ascii') + '"'
+                data = text_encoding.CEscape(self.default.encode('utf-8'), False)
+                # Escape question marks to prevent C trigraph conversion.
+                inner_init = '"' + data.replace('?', r'\?') + '"'
             elif self.pbtype == 'BYTES':
                 data = codecs.escape_decode(self.default)[0]
                 data = ["0x%02x" % c for c in bytearray(data)]
