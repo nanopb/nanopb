@@ -17,6 +17,12 @@ int check_defaults(const DefaultsMsg *msg)
     TEST(msg->s1[0] == (char)0xC3 && msg->s1[1] == (char)0xA4 &&
          msg->s1[2] == (char)0xC3 && msg->s1[3] == (char)0xB6 &&
          msg->s1[4] == '\0');
+    TEST(strcmp(msg->s2, "say \"hello\"") == 0);
+    TEST(memcmp(msg->s3, "\001a\002F\0030\0007", 9) == 0);
+    TEST(strcmp(msg->s4, "slash\\quote'line\n\r\t") == 0);
+    TEST(strcmp(msg->s5, "\303\251A9f\344\270\2550") == 0);
+    TEST(msg->s6[0] == '\0');
+    TEST(strcmp(msg->s7, "\?\?/n") == 0);
     
     return status;
 }
@@ -34,7 +40,7 @@ int main()
     {
         DefaultsMsg msg = DefaultsMsg_init_zero;
         pb_istream_t empty = {0,0,0};
-        pb_decode(&empty, DefaultsMsg_fields, &msg);
+        TEST(pb_decode(&empty, DefaultsMsg_fields, &msg));
         COMMENT("Checking defaults set at runtime");
         status += check_defaults(&msg);
     }

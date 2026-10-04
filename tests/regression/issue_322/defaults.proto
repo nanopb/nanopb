@@ -6,6 +6,12 @@ message DefaultsMsg {
     optional bytes b2 = 2 [default = "\xDE\xAD\x00\xBE\xEF", (nanopb).max_size = 5];
     optional bytes b3 = 3 [default = "\xDE\xAD\000\xBE\xEF", (nanopb).max_size = 15];
     optional string s1 = 4 [default = "äö", (nanopb).max_size = 8];
+    optional string s2 = 5 [default = "say \"hello\"", (nanopb).max_size = 16];
+    optional string s3 = 6 [default = "\001a\002F\0030\0007", (nanopb).max_size = 9];
+    optional string s4 = 7 [default = "slash\\quote'line\n\r\t", (nanopb).max_size = 32];
+    optional string s5 = 8 [default = "éA9f中0", (nanopb).max_size = 10];
+    optional string s6 = 9 [default = "", (nanopb).max_size = 1];
+    optional string s7 = 10 [default = "??/n", (nanopb).max_size = 5];
 }
 
 
