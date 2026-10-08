@@ -199,12 +199,17 @@ function(NANOPB_GENERATE_CPP)
   set(GENERATOR_CORE_SRC
       ${GENERATOR_CORE_DIR}/nanopb.proto)
 
+  # NANOPB_OPTIONS may be given either as a space separated string or as a
+  # CMake list (e.g. when find_package() COMPONENTS are appended to it).
+  # The generator expects a single space separated string.
+  string(REPLACE ";" " " _nanopb_options "${NANOPB_OPTIONS}")
+
   # Set extensions according to NANOPB_OPTIONS
-  string(REGEX MATCH "--extension=[^ ]+" _gen_ext "${NANOPB_OPTIONS}")
+  string(REGEX MATCH "--extension=[^ ]+" _gen_ext "${_nanopb_options}")
   string(REGEX MATCH "--header-extension=[^ ]+" _gen_hdr_ext
-               "${NANOPB_OPTIONS}")
+               "${_nanopb_options}")
   string(REGEX MATCH "--source-extension=[^ ]+" _gen_src_ext
-               "${NANOPB_OPTIONS}")
+               "${_nanopb_options}")
   if(_gen_ext)
     string(REPLACE "--extension=" "" GEN_EXTENSION "${_gen_ext}")
   else()
@@ -315,8 +320,8 @@ function(NANOPB_GENERATE_CPP)
     # Remove leading space before the first -I directive
     string(STRIP "${NANOPB_PLUGIN_OPTIONS}" NANOPB_PLUGIN_OPTIONS)
 
-    if(NANOPB_OPTIONS)
-        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${NANOPB_OPTIONS}")
+    if(_nanopb_options)
+        set(NANOPB_PLUGIN_OPTIONS "${NANOPB_PLUGIN_OPTIONS} ${_nanopb_options}")
     endif()
 
     # based on the version of protoc it might be necessary to add "/${FIL_PATH_REL}" currently dealt with in #516
