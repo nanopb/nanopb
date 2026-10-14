@@ -2411,7 +2411,7 @@ def validate_options_namemask(namemask, filename, line_number):
     if '/' in namemask or namemask.endswith('.proto'):
         invalid = re.search(r'[\s:]', namemask)
     else:
-        invalid = re.search(r'[^A-Za-z0-9_.*?\[\]!]', namemask)
+        invalid = re.search(r'[^A-Za-z0-9_.*?\[\]!-]', namemask)
     if invalid:
         hint = ""
         if invalid.group(0) == ':':
@@ -2426,7 +2426,7 @@ def strip_options_comments(data):
     '''Remove comments from .options data without touching quoted strings.'''
     string_or_comment = re.compile(
         r'''(?P<string>"(?:\\.|[^"\\\r\n])*(?:"|$)|'(?:\\.|[^'\\\r\n])*(?:'|$))'''
-        r'''|(?P<comment>/\*.*?(?:\*/|\Z)|//[^\r\n]*|#[^\r\n]*)''',
+        r'''|(?P<comment>(?:^|(?<=\s))/\*.*?(?:\*/|\Z)|/\*[^\r\n]*?\*/|//[^\r\n]*|#[^\r\n]*)''',
         flags = re.MULTILINE | re.DOTALL)
 
     def strip_comment(match):
