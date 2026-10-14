@@ -45,6 +45,19 @@ def expect_file_pattern():
     assert result[0][0] == "dir/file-name.proto"
 
 
+def expect_fnmatch_patterns():
+    options_file = NamedStringIO(
+        "dir/*.proto long_names:false\n"
+        "Message.field[1-2] max_size:16\n"
+        "Message.other/*comment*/ max_size:8\n"
+    )
+    result = nanopb_generator.read_options_file(options_file)
+
+    assert result[0][0] == "dir/*.proto"
+    assert result[1][0] == "Message.field[1-2]"
+    assert result[2][0] == "Message.other"
+
+
 def expect_comment_markers_in_strings():
     options_file = NamedStringIO(
         "Message.url callback_datatype:\"http://example.com\" // trailing comment\n"
@@ -61,5 +74,6 @@ def expect_comment_markers_in_strings():
 if __name__ == "__main__":
     expect_invalid_pattern()
     expect_file_pattern()
+    expect_fnmatch_patterns()
     expect_comment_markers_in_strings()
     sys.stdout.write("ok\n")
