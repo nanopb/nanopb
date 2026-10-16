@@ -544,7 +544,14 @@ class Enum(ProtoElement):
 
         result += '    switch (v) {\n'
 
-        for ((enumname, _), strname) in zip(self.values, self.value_longnames):
+        seen_values = set()
+        for ((enumname, value), strname) in zip(self.values, self.value_longnames):
+            # Aliases share the value of an earlier name and would give
+            # duplicate case labels. Like protobuf, use the first name.
+            if value in seen_values:
+                continue
+            seen_values.add(value)
+
             # Just use the last part of the string value.
             result += '        case %s: return "%s";\n' % (
                 Globals.naming_style.enum_entry(enumname),
@@ -566,7 +573,12 @@ class Enum(ProtoElement):
 
         result += '    switch (v) {\n'
 
-        for (enumname, _) in self.values:
+        seen_values = set()
+        for (enumname, value) in self.values:
+            if value in seen_values:
+                continue
+            seen_values.add(value)
+
             result += '        case %s: return true;\n' % (
                 Globals.naming_style.enum_entry(enumname)
                 )

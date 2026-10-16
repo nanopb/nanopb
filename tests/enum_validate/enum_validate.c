@@ -10,6 +10,7 @@ int main()
     TEST(MyEnum_valid(MyEnum_VALUE15) == true);
     TEST(MyShortNameEnum_valid(MSNE_VALUE256) == true);
     TEST(MyShortNameEnum_valid(9999) == false);
+    TEST(MyAliasedEnum_valid(MyAliasedEnum_VALUE_B) == true);
     
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");

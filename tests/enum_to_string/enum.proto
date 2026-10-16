@@ -17,3 +17,9 @@ enum MyShortNameEnum {
     MSNE_VALUE256 = 256;
 }
 
+enum MyAliasedEnum {
+    option allow_alias = true;
+    VALUE_A = 1;
+    VALUE_B = 1;
+}
+

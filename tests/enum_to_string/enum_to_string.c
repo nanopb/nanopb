@@ -10,6 +10,7 @@ int main()
     TEST(strcmp(MyEnum_name(MyEnum_VALUE15), "VALUE15") == 0);
     TEST(strcmp(MyShortNameEnum_name(MSNE_VALUE256), "MSNE_VALUE256") == 0);
     TEST(strcmp(MyShortNameEnum_name(9999), "unknown") == 0);
+    TEST(strcmp(MyAliasedEnum_name(MyAliasedEnum_VALUE_B), "VALUE_A") == 0);
     
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
