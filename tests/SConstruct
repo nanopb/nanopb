@@ -52,11 +52,14 @@ if ARGUMENTS.get('PLATFORM'):
 # Load nanopb generator build rules from site_scons/site_tools/nanopb.py
 env.Tool("nanopb")
 
-# Limit memory usage. This is to catch problems like issue #338
+# Limit memory usage. This is to catch problems like issue #338 where
+# the generator would allocate excessive amount of RAM. But GCC also
+# uses quite a bit of memory, so currently at least 256 MB is needed.
 try:
     import resource
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-    resource.setrlimit(resource.RLIMIT_AS, (100*1024*1024, hard))
+    newlimit = ARGUMENTS.get('RLIMIT_AS', 256*1024*1024)
+    resource.setrlimit(resource.RLIMIT_AS, (newlimit, hard))
 except:
     pass
 
