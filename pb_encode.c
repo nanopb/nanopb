@@ -290,18 +290,47 @@ static bool checkreturn pb_check_proto3_default_value(const pb_field_iter_t *fie
         /* Rest is proto3 singular fields */
         if (PB_LTYPE(type) <= PB_LTYPE_LAST_PACKABLE)
         {
-            /* Simple integer / float fields */
-            pb_size_t i;
+            /* Simple integer / float fields. The value is zero when all of
+             * its bytes are zero. Compare whole words using the native width
+             * of each element; memcpy avoids alignment and aliasing issues. */
             const char *p = (const char*)field->pData;
-            for (i = 0; i < field->data_size; i++)
+            if (field->data_size == 1)
             {
-                if (p[i] != 0)
-                {
-                    return false;
-                }
+                return p[0] == 0;
             }
+            else if (field->data_size == sizeof(uint_least16_t))
+            {
+                uint_least16_t word;
+                memcpy(&word, p, sizeof(word));
+                return word == 0;
+            }
+            else if (field->data_size == sizeof(uint32_t))
+            {
+                uint32_t word;
+                memcpy(&word, p, sizeof(word));
+                return word == 0;
+            }
+#ifndef PB_WITHOUT_64BIT
+            else if (field->data_size == sizeof(uint64_t))
+            {
+                uint64_t word;
+                memcpy(&word, p, sizeof(word));
+                return word == 0;
+            }
+#endif
+            else
+            {
+                pb_size_t i;
+                for (i = 0; i < field->data_size; i++)
+                {
+                    if (p[i] != 0)
+                    {
+                        return false;
+                    }
+                }
 
-            return true;
+                return true;
+            }
         }
         else if (PB_LTYPE(type) == PB_LTYPE_BYTES)
         {
