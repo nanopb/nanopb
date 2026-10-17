@@ -1,0 +1,4 @@
+# Shared options, read first
+Msg.name max_size:10
+Msg.note max_size:10
+Msg.ids  max_count:5

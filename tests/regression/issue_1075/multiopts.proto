@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+message Msg {
+    required string name = 1;
+    required string note = 2;
+    repeated int32 ids = 3;
+}

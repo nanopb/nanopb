@@ -1,0 +1,3 @@
+SimpleMessage.name max_size:4
+SimpleMessage.value max_size:4
+SimpleMessage.note max_size:4

@@ -123,7 +123,16 @@ separately to the nanopb plugin, like:
     protoc -Isubdir --nanopb_opt=-Isubdir --nanopb_out=. message.proto
 
 If preferred, the name of the options file can be set using generator
-argument `-f`.
+argument `-f`. A `%s` in the name is replaced by the name of the .proto
+file without extension, which is how the default `%s.options` is formed.
+The argument can be given several times to read several options files,
+for example a shared file together with the per-file one:
+
+    nanopb_generator -f common.options -f %s.options message.proto
+    protoc --nanopb_opt=-fcommon.options --nanopb_opt=-f%s.options --nanopb_out=. message.proto
+
+The files are read in the order given, so options in later files override
+the ones from earlier files.
 
 ### Defining the options in the .proto file
 
@@ -190,7 +199,9 @@ For a full list of generator command line options, use `nanopb_generator.py --he
                             Set extension to use for generated source files.
                             [default: .c]
     -f FILE, --options-file=FILE
-                            Set name of a separate generator options file.
+                            Set name of a separate generator options file. Can
+                            be given multiple times, later files override
+                            options from earlier ones. [default: %s.options]
     -I DIR, --options-path=DIR, --proto-path=DIR
                             Search path for .options and .proto files. Also
                             determines relative paths for output directory
