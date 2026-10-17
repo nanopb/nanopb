@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+message SimpleMessage {
+    required string name = 1;
+    required string value = 2;
+    required string note = 3;
+}

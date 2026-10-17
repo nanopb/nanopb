@@ -1,0 +1,11 @@
+# Regression test for issue #1075:
+# Options from several --options-file arguments should all be applied.
+
+Import("env")
+
+opts = env.Clone()
+opts.Append(NANOPBFLAGS = "--options-file=global.options,--options-file=%s.options")
+
+opts.NanopbProto(["multiopts", "multiopts.options", "global.options"])
+opts.Match(["multiopts.pb.h", "multiopts.expected"])
+opts.Object("multiopts.pb.c")

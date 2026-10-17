@@ -1,0 +1,3 @@
+char name\[10\];
+char note\[20\];
+int32_t ids\[5\];

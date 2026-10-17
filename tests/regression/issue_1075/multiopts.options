@@ -1,0 +1,2 @@
+# Options for multiopts.proto, read after global.options
+Msg.note max_size:20

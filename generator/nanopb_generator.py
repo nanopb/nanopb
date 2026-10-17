@@ -2532,8 +2532,10 @@ optparser.add_option("-H", "--header-extension", dest="header_extension", metava
     help="Set extension to use for generated header files. [default: %default]")
 optparser.add_option("-S", "--source-extension", dest="source_extension", metavar="EXTENSION", default=".c",
     help="Set extension to use for generated source files. [default: %default]")
-optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE", default="%s.options",
-    help="Set name of a separate generator options file.")
+optparser.add_option("-f", "--options-file", dest="options_file", metavar="FILE",
+    action="append", default=[],
+    help="Set name of a separate generator options file. Can be given multiple times, " +
+         "later files override options from earlier ones. [default: %s.options]")
 optparser.add_option("-I", "--options-path", "--proto-path", dest="options_path", metavar="DIR",
     action="append", default = [],
     help="Search path for .options and .proto files. Also determines relative paths for output directory structure.")
@@ -2655,30 +2657,38 @@ def parse_file(filename, fdesc, options):
         data = open(filename, 'rb').read()
         fdesc = descriptor.FileDescriptorSet.FromString(data).file[0]
 
-    # Check if there is a separate .options file
-    had_abspath = False
-    try:
-        optfilename = options.options_file % os.path.splitext(filename)[0]
-    except TypeError:
-        # No %s specified, use the filename as-is
-        optfilename = options.options_file
-        had_abspath = True
+    # Check if there are separate .options files
+    optfiles = options.options_file or ['%s.options']
+    if isinstance(optfiles, str):
+        optfiles = [optfiles]
 
-    paths = ['.'] + options.options_path
-    for p in paths:
-        if os.path.isfile(os.path.join(p, optfilename)):
-            optfilename = os.path.join(p, optfilename)
-            if options.verbose:
-                sys.stderr.write('Reading options from ' + optfilename + '\n')
-            Globals.separate_options = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
-            break
-    else:
-        # If we are given a full filename and it does not exist, give an error.
-        # However, don't give error when we automatically look for .options file
-        # with the same name as .proto.
-        if options.verbose or had_abspath:
-            sys.stderr.write('Options file not found: ' + optfilename + '\n')
-        Globals.separate_options = []
+    Globals.separate_options = []
+    optfiles_read = []
+    for optfile in optfiles:
+        had_abspath = False
+        try:
+            optfilename = optfile % os.path.splitext(filename)[0]
+        except TypeError:
+            # No %s specified, use the filename as-is
+            optfilename = optfile
+            had_abspath = True
+
+        paths = ['.'] + options.options_path
+        for p in paths:
+            if os.path.isfile(os.path.join(p, optfilename)):
+                optfilename = os.path.join(p, optfilename)
+                if options.verbose:
+                    sys.stderr.write('Reading options from ' + optfilename + '\n')
+                entries = read_options_file(open(optfilename, 'r', encoding = 'utf-8'))
+                Globals.separate_options += entries
+                optfiles_read.append((optfilename, entries))
+                break
+        else:
+            # If we are given a full filename and it does not exist, give an error.
+            # However, don't give error when we automatically look for .options file
+            # with the same name as .proto.
+            if options.verbose or had_abspath:
+                sys.stderr.write('Options file not found: ' + optfilename + '\n')
 
     Globals.matched_namemasks = set()
     Globals.protoc_insertion_points = options.protoc_insertion_points
@@ -2686,7 +2696,7 @@ def parse_file(filename, fdesc, options):
     # Parse the file
     file_options = get_nanopb_suboptions(fdesc, toplevel_options, Names([filename]))
     f = ProtoFile(fdesc, file_options)
-    f.optfilename = optfilename
+    f.optfiles = optfiles_read
 
     return f
 
@@ -2734,17 +2744,18 @@ def process_file(filename, fdesc, options, other_files = {}):
     sourcedata = ''.join(f.generate_source(headerbasename, options))
 
     # Check if there were any lines in .options that did not match a member
-    unmatched = [n for n,o in Globals.separate_options if n not in Globals.matched_namemasks]
-    if unmatched:
-        if options.error_on_unmatched:
-            raise Exception("Following patterns in " + f.optfilename + " did not match any fields: "
-                            + ', '.join(unmatched));
-        elif not options.quiet:
-            sys.stderr.write("Following patterns in " + f.optfilename + " did not match any fields: "
-                            + ', '.join(unmatched) + "\n")
+    for optfilename, entries in f.optfiles:
+        unmatched = [n for n,o in entries if n not in Globals.matched_namemasks]
+        if unmatched:
+            if options.error_on_unmatched:
+                raise Exception("Following patterns in " + optfilename + " did not match any fields: "
+                                + ', '.join(unmatched));
+            elif not options.quiet:
+                sys.stderr.write("Following patterns in " + optfilename + " did not match any fields: "
+                                + ', '.join(unmatched) + "\n")
 
-            if not Globals.verbose_options:
-                sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
+                if not Globals.verbose_options:
+                    sys.stderr.write("Use  protoc --nanopb-out=-v:.   to see a list of the field names.\n")
 
     return {'headername': headername, 'headerdata': headerdata,
             'sourcename': sourcename, 'sourcedata': sourcedata}
