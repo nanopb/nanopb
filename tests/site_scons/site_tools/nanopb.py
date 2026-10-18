@@ -201,5 +201,5 @@ def generate(env):
     env['BUILDERS']['NanopbProtoCpp'] = _nanopb_proto_cpp_builder
 
 def exists(env):
-    return _detect_protoc(env) and _detect_protoc_opts(env)
+    return _detect_protoc(env)
 
