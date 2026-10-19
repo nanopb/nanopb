@@ -60,3 +60,10 @@ jobs:
           rm -rf build
           scons CC=clang CXX=clang++ CCFLAGS="-Os -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32"
 
+      - name: Test with 64-bit GCC with limited RAM
+        run: |
+          cd nanopb/tests
+          ulimit -v 536870912
+          rm -rf build
+          scons CC=gcc CXX=g++ CCFLAGS="-O3"
+
