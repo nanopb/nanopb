@@ -35,7 +35,7 @@ jobs:
       - name: Check for existence of PyPI package
         run: |
           VERSION=$(grep "^version =" nanopb/extra/poetry/build/pyproject.toml | cut -d '"' -f 2)
-          if curl --head --silent --fail https://pypi.org/project/nanopb/$VERSION/; then
+          if curl --head --silent --fail https://pypi.org/pypi/nanopb/$VERSION/json; then
             echo "pypi_exists=true" >> $GITHUB_ENV
           else
             echo "pypi_exists=false" >> $GITHUB_ENV
