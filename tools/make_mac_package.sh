@@ -8,7 +8,16 @@
 set -e
 set -x
 
-VERSION=`git describe --always`-macosx-x86
+ARCH=$(uname -m)
+case "$ARCH" in
+  arm64|x86_64) ;;
+  *)
+    echo "Unsupported macOS architecture: $ARCH" >&2
+    exit 1
+    ;;
+esac
+
+VERSION=$(git describe --always)-macosx-$ARCH
 if [[ "$VERSION" != nanopb* ]]; then
   VERSION="nanopb-0.0.0-$VERSION"
 fi
