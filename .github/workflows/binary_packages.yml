@@ -116,8 +116,16 @@ jobs:
           python3 -m SCons
 
   build_macos:
-    name: Build binary on Mac OS X 14
-    runs-on: macos-14
+    name: Build binary on macOS 15 (${{ matrix.architecture }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Check out code from GitHub
@@ -143,11 +151,17 @@ jobs:
         run: |
           openssl sha256 nanopb/dist/*.tar.gz
 
+      - name: Verify binary architecture
+        run: |
+          test "$(uname -m)" = "${{ matrix.architecture }}"
+          test "$(lipo -archs nanopb/dist/*/generator-bin/nanopb_generator)" = "${{ matrix.architecture }}"
+          test "$(lipo -archs nanopb/dist/*/generator-bin/protoc)" = "${{ matrix.architecture }}"
+
       - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
           path: nanopb/dist/*.tar.gz
-          name: nanopb-binary-macos
+          name: nanopb-binary-macos-${{ matrix.architecture }}
 
       - name: Test binary package
         run: |
