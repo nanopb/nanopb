@@ -3,5 +3,9 @@ syntax = 'proto2';
 message MyMessage
 {
     optional float myfield = 1 [default = 1.234];
+
+    // protoc stores these as 1e+06 and 1e-05
+    optional float myfield2 = 2 [default = 1000000];
+    optional float myfield3 = 3 [default = 1e-5];
 }
 

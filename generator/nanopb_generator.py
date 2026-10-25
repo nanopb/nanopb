@@ -922,7 +922,7 @@ class Field(ProtoElement):
                     inner_init = inner_init.replace('inf', 'INFINITY')
                 elif 'nan' in inner_init:
                     inner_init = inner_init.replace('nan', 'NAN')
-                elif (not '.' in inner_init) and self.pbtype == 'FLOAT':
+                elif (not '.' in inner_init) and (not 'e' in inner_init) and self.pbtype == 'FLOAT':
                     inner_init += '.0f'
                 elif self.pbtype == 'FLOAT':
                     inner_init += 'f'
