@@ -1,0 +1,12 @@
+# Check availability detection through the SCons tool interface.
+
+Import("env")
+
+import sys
+
+env = env.Clone()
+env["PYTHON"] = env["ESCAPE"](sys.executable)
+
+env.Command("test_scons_tool.output",
+            ["test_scons_tool.py", "#site_scons/site_tools/nanopb.py"],
+            '$PYTHON $SOURCES > $TARGET')
