@@ -246,6 +246,68 @@ For a full list of generator command line options, use `nanopb_generator.py --he
     Compile file.pb from file.proto by: 'protoc -ofile.pb file.proto'. Output will
     be written to file.pb.h and file.pb.c.
 
+### Callbacks inside oneof fields
+
+A `pb_callback_t` field cannot be set up from the application code when it
+lives inside a `oneof`. The `oneof` members share the same union in the
+generated structure, and `pb_decode()` clears that union with `memset` when a
+submessage or callback member starts decoding after another member has been
+decoded. A callback function pointer set up by the application is wiped by
+that `memset` before it gets used. Once the pointer is NULL, `pb_decode()`
+skips the field without reporting an error.
+
+To handle callbacks inside `oneof` fields, set the `submsg_callback` option
+on the message that contains the `oneof`:
+
+    message MyMessage
+    {
+        option (nanopb_msgopt).submsg_callback = true;
+
+        int32 prefix = 1;
+        oneof values
+        {
+            int32 intvalue = 5;
+            MySubMessage submsg = 6;
+        }
+    }
+
+The same option can be given in a `.options` file as
+`MyMessage submsg_callback:true`.
+
+With the option set, the generator adds a message level callback
+`pb_callback_t cb_values` in front of `which_values`. `funcs.decode` is called
+when the tag of the `oneof` member has been read, but before the member itself
+is decoded; `funcs.encode` is called in the same position when encoding.
+`field->tag` identifies the member, `field->pData` points to it, and
+`field->message` points to the containing message. The callback can either
+install the callbacks of the submessage fields, or decode the submessage
+completely on its own. Any data left unread when the callback returns is
+decoded normally afterwards.
+
+    static bool msg_callback(pb_istream_t *stream, const pb_field_t *field, void **arg)
+    {
+        if (field->tag == MyMessage_submsg_tag)
+        {
+            /* Set up the callbacks inside the oneof member. */
+            MySubMessage *submsg = (MySubMessage*)field->pData;
+            submsg->items.funcs.decode = decode_item;
+        }
+        return true;
+    }
+
+    ...
+    msg.cb_values.funcs.decode = msg_callback;
+    msg.cb_values.arg = NULL;
+
+The callback is stored in the message structure instead of the `oneof`
+union, so it survives the `memset`. The same mechanism is used for
+statically allocated `repeated` submessage fields, where the generator
+places a `pb_callback_t cb_<field>` in front of the `_count` field.
+
+A full example is in the
+[tests/oneof_callback](https://github.com/nanopb/nanopb/tree/master/tests/oneof_callback)
+test case.
+
 ## pb.h
 
 ### pb_byte_t
