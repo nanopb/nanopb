@@ -935,7 +935,8 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
         while (ext != NULL)
         {
             pb_field_iter_t ext_iter;
-            if (pb_field_iter_begin_extension(&ext_iter, ext))
+            if (ext->type->decode == NULL &&
+                pb_field_iter_begin_extension(&ext_iter, ext))
             {
                 ext->found = false;
                 if (!pb_message_set_to_defaults(&ext_iter))
@@ -1303,7 +1304,8 @@ static void pb_release_single_field(pb_field_iter_t *field)
         while (ext != NULL)
         {
             pb_field_iter_t ext_iter;
-            if (pb_field_iter_begin_extension(&ext_iter, ext))
+            if (ext->type->decode == NULL &&
+                pb_field_iter_begin_extension(&ext_iter, ext))
             {
                 pb_release_single_field(&ext_iter);
             }
