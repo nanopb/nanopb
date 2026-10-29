@@ -183,6 +183,31 @@ int main()
       TEST(get_alloc_count() == 0);
     }
 
+    {
+      pb_byte_t input[] = {0x12, 0x01, 'a', 0x12, 0x01, 'b', 0x12, 0x01, 'c',
+                           0x12, 0x01, 'd', 0x12, 0x01, 'e'};
+      pb_istream_t stream;
+      Message4 msg = Message4_init_zero;
+
+      COMMENT("Test wrong number of entries in pointer type fixarray");
+
+      stream = pb_istream_from_buffer(input, 0);
+      TEST(pb_decode(&stream, Message4_fields, &msg));
+      TEST(msg.strings == NULL);
+      pb_release(Message4_fields, &msg);
+      TEST(get_alloc_count() == 0);
+
+      stream = pb_istream_from_buffer(input, 3);
+      TEST(!pb_decode(&stream, Message4_fields, &msg));
+      TEST(strcmp(stream.errmsg, "wrong size for fixed count field") == 0);
+      TEST(get_alloc_count() == 0);
+
+      stream = pb_istream_from_buffer(input, 15);
+      TEST(!pb_decode(&stream, Message4_fields, &msg));
+      TEST(strcmp(stream.errmsg, "array overflow") == 0);
+      TEST(get_alloc_count() == 0);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 
