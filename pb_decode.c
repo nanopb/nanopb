@@ -764,7 +764,27 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 if (*size == PB_SIZE_MAX)
                     PB_RETURN_ERROR(stream, "too many array entries");
                 
-                if (!allocate_field(stream, field->pField, field->data_size, (size_t)(*size + 1)))
+                if (field->array_size > 1)
+                {
+                    /* Fixed count array (array_size is 1 for other pointer arrays).
+                     * There is no count field, so pb_release() frees all array_size
+                     * entries. Allocate and initialize the whole array at once. */
+                    bool new_array = (*(void**)field->pField == NULL);
+
+                    if (*size >= field->array_size)
+                        PB_RETURN_ERROR(stream, "array overflow");
+
+                    if (!allocate_field(stream, field->pField, field->data_size, field->array_size))
+                        return false;
+
+                    if (new_array)
+                    {
+                        pb_size_t i;
+                        for (i = 0; i < field->array_size; i++)
+                            initialize_pointer_field(*(char**)field->pField + field->data_size * i, field);
+                    }
+                }
+                else if (!allocate_field(stream, field->pField, field->data_size, (size_t)(*size + 1)))
                     return false;
             
                 field->pData = *(char**)field->pField + field->data_size * (*size);
@@ -1357,6 +1377,11 @@ static void pb_release_single_field(pb_field_iter_t *field)
             /* Release entries in repeated string or bytes array */
             void **pItem = *(void***)field->pField;
             pb_size_t count = *(pb_size_t*)field->pSize;
+
+            /* Fixed count arrays report array_size even if never allocated */
+            if (pItem == NULL)
+                count = 0;
+
             for (; count > 0; count--)
             {
                 pb_free(*pItem);
