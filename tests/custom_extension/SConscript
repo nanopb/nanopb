@@ -1,0 +1,19 @@
+# Test decoding of messages with custom and default extension types.
+# Hand-written descriptors, no protoc generation needed.
+
+Import("env", "malloc_env")
+
+# Custom extension type (issue #1200) and default extension regression.
+test = env.Program("custom_extension", ["custom_extension.c",
+                    "$COMMON/pb_decode.o",
+                    "$COMMON/pb_common.o"])
+env.RunTest(test)
+
+# Same test with PB_ENABLE_MALLOC, which also exercises pb_release() over the
+# extension lists.
+malloc_obj = malloc_env.Object("custom_extension_malloc.o", "custom_extension.c")
+malloc_test = malloc_env.Program("custom_extension_malloc", [malloc_obj,
+                                  "$COMMON/pb_decode_with_malloc.o",
+                                  "$COMMON/pb_common_with_malloc.o",
+                                  "$COMMON/malloc_wrappers.o"])
+env.RunTest(malloc_test)
