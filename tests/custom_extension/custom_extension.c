@@ -55,20 +55,31 @@ static int test_custom_extension(void)
 {
     /* field 1 (x) varint = 7, field 100 varint = 42 */
     static const pb_byte_t input[] = {0x08, 0x07, 0xa0, 0x06, 0x2a};
+    /* field 1 (x) only, no extension field: exercises the found reset path */
+    static const pb_byte_t input_empty[] = {0x08, 0x07};
     pb_extension_t ext = {&my_type, NULL, NULL, false};
     Msg msg;
-    pb_istream_t stream = pb_istream_from_buffer(input, sizeof input);
+    pb_istream_t stream;
     bool ok;
 
     seen = 0;
     seen_value = 0;
     memset(&msg, 0, sizeof msg);
     msg.extensions = &ext;
+    stream = pb_istream_from_buffer(input, sizeof input);
+    ok = pb_decode(&stream, &Msg_msg, &msg);
+    if (!ok || !seen || seen_value != 42 || !ext.found)
+        return 1;
+
+    /* Decoding again without the extension must reset ext->found in
+     * pb_field_set_to_default(). A custom type's arg is a free field, so it is
+     * skipped as a descriptor, but found must still be cleared. */
+    stream = pb_istream_from_buffer(input_empty, sizeof input_empty);
     ok = pb_decode(&stream, &Msg_msg, &msg);
 #ifdef PB_ENABLE_MALLOC
     pb_release(&Msg_msg, &msg);
 #endif
-    return (ok && seen && seen_value == 42) ? 0 : 1;
+    return (ok && !ext.found) ? 0 : 1;
 }
 
 /* ---- Default extension scenario (regression guard) -------------------------
