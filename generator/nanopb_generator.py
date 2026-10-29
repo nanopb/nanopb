@@ -789,6 +789,15 @@ class Field(ProtoElement):
             # Add submessage callback for statically allocated fields inside or
             # outside oneofs. This can be used for repeated fields and oneofs.
             if field_options.submsg_callback and self.allocation == 'STATIC':
+                # The callback is stored in a pb_callback_t placed in front of
+                # the field's _count (repeated) or which_ (oneof) member. Fixed
+                # count arrays have neither, so pSize points at the iterator's
+                # array_size instead and pb_dec_submessage()/pb_enc_submessage()
+                # would read the callback out of bounds.
+                if self.rules == 'FIXARRAY':
+                    raise Exception("Field '%s' sets both fixed_count and submsg_callback, "
+                                    "but submsg_callback is not supported for fixed count "
+                                    "arrays." % self.name)
                 self.pbtype = 'MSG_W_CB'
         else:
             raise NotImplementedError(desc.type)

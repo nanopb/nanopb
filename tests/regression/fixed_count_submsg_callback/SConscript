@@ -1,0 +1,13 @@
+# Regression test for the fixed_count + submsg_callback combination:
+# the generator must reject it instead of emitting an out-of-bounds
+# submessage callback access.
+
+Import("env")
+
+import sys
+
+env = env.Clone()
+env["PYTHON"] = env["ESCAPE"](sys.executable)
+env.Command("test_fixed_count_submsg_callback.output",
+            "test_fixed_count_submsg_callback.py",
+            "$PYTHON $SOURCE > $TARGET")
