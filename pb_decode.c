@@ -551,6 +551,19 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 if ((*size)++ >= field->array_size)
                     PB_RETURN_ERROR(stream, "array overflow");
 
+                if (PB_LTYPE_IS_SUBMSG(field->type))
+                {
+                    /* The entry is now counted, so pb_release() will walk it
+                     * even if decoding fails before pb_dec_submessage().
+                     * Set defaults here so that its pointers are valid. */
+                    pb_field_iter_t submsg_iter;
+                    if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
+                    {
+                        if (!pb_message_set_to_defaults(&submsg_iter))
+                            PB_RETURN_ERROR(stream, "failed to set defaults");
+                    }
+                }
+
                 return decode_basic_field(stream, wire_type, field);
             }
 
@@ -1702,9 +1715,9 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
         unsigned int flags = PB_DECODE_DELIMITED;
 
         /* Static required/optional fields are already initialized by top-level
-         * pb_decode(), no need to initialize them again. */
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
-            PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
+         * pb_decode() and repeated/oneof fields by decode_static_field(), no
+         * need to initialize them again. */
+        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
         {
             flags |= PB_DECODE_NOINIT;
         }

@@ -236,9 +236,44 @@ static bool test_Garbage()
     return true;
 }
 
+/* Decoding fails on a static repeated submessage entry before the entry has
+ * been initialized. The array contents are not cleared by pb_decode(), so the
+ * pointers in the entry must not be taken from the old memory contents. */
+static bool test_StaticRepeatedError()
+{
+    /* static_rep_submsg with wrong wire type */
+    const uint8_t wrong_type[] = {0x20, 0x00};
+    /* static_rep_submsg with length past the end of input */
+    const uint8_t truncated[] = {0x22, 0x05};
+    /* One valid entry with dynamic_str = "a", then wrong wire type */
+    const uint8_t second_entry[] = {0x22, 0x03, 0x0A, 0x01, 0x61, 0x20, 0x00};
+
+    const struct {
+        const uint8_t *data;
+        size_t size;
+    } inputs[] = {
+        {wrong_type, sizeof(wrong_type)},
+        {truncated, sizeof(truncated)},
+        {second_entry, sizeof(second_entry)}
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(inputs) / sizeof(inputs[0]); i++)
+    {
+        TestMessage msg;
+        pb_istream_t stream = pb_istream_from_buffer(inputs[i].data, inputs[i].size);
+        memset(&msg, 0xAA, sizeof(msg));
+        msg.extensions = NULL;
+        TEST(!pb_decode(&stream, TestMessage_fields, &msg));
+        TEST(get_alloc_count() == 0);
+    }
+
+    return true;
+}
+
 int main()
 {
-    if (test_TestMessage() && test_OneofMessage() && test_Garbage())
+    if (test_TestMessage() && test_OneofMessage() && test_Garbage() && test_StaticRepeatedError())
         return 0;
     else
         return 1;
