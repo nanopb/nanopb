@@ -23,6 +23,7 @@
  **************************************/
 
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
+static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof);
 static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
 static bool checkreturn decode_basic_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
 static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t wire_type, pb_field_iter_t *field);
@@ -171,13 +172,29 @@ pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
  * Helper functions *
  ********************/
 
-bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+/* Set eof only when no varint byte was available. EOF after the first byte is
+ * a truncated varint and must remain an error. */
+static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof)
 {
     pb_byte_t byte;
     uint32_t result;
+
+#ifdef PB_BUFFER_ONLY
+    (void)eof;
+#endif
     
     if (!pb_readbyte(stream, &byte))
     {
+#ifndef PB_BUFFER_ONLY
+        if (eof != NULL && stream->callback != buf_read && stream->bytes_left == 0)
+        {
+#ifndef PB_NO_ERRMSG
+            if (strcmp(stream->errmsg, "io error") == 0)
+                stream->errmsg = NULL;
+#endif
+            *eof = true;
+        }
+#endif
         return false;
     }
     
@@ -227,6 +244,11 @@ bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
    
    *dest = result;
    return true;
+}
+
+bool checkreturn pb_decode_varint32(pb_istream_t *stream, uint32_t *dest)
+{
+    return pb_decode_varint32_eof(stream, dest, NULL);
 }
 
 #ifndef PB_WITHOUT_64BIT
@@ -291,25 +313,8 @@ bool checkreturn pb_decode_tag(pb_istream_t *stream, pb_wire_type_t *wire_type, 
         return false;
     }
 
-    if (!pb_decode_varint32(stream, &temp))
+    if (!pb_decode_varint32_eof(stream, &temp, eof))
     {
-#ifndef PB_BUFFER_ONLY
-        /* Workaround for issue #1017
-         *
-         * Callback streams don't set bytes_left to 0 on eof until after being called by pb_decode_varint32,
-         * which results in "io error" being raised. This contrasts the behavior of buffer streams who raise
-         * no error on eof as bytes_left is already 0 on entry. This causes legitimate errors (e.g. missing
-         * required fields) to be incorrectly reported by callback streams.
-         */
-        if (stream->callback != buf_read && stream->bytes_left == 0)
-        {
-#ifndef PB_NO_ERRMSG
-            if (strcmp(stream->errmsg, "io error") == 0)
-                stream->errmsg = NULL;
-#endif
-            *eof = true;
-        }
-#endif
         return false;
     }
     
@@ -1047,6 +1052,24 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
  * Decode all fields *
  *********************/
 
+static bool checkreturn decode_next_tag(pb_istream_t *stream, unsigned int flags,
+    pb_wire_type_t *wire_type, uint32_t *tag, bool *eof)
+{
+    /* Length-delimited messages must consume their full advertised size. */
+    bool delimited_not_done = (flags & PB_DECODE_DELIMITED) && stream->bytes_left > 0;
+
+    if (pb_decode_tag(stream, wire_type, tag, eof))
+        return true;
+
+    if (*eof && delimited_not_done)
+    {
+        *eof = false;
+        PB_RETURN_ERROR(stream, "io error");
+    }
+
+    return false;
+}
+
 static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t *fields, void *dest_struct, unsigned int flags)
 {
     /* If the message contains extension fields, the extension handlers
@@ -1085,7 +1108,7 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
         }
     }
 
-    while (pb_decode_tag(stream, &wire_type, &tag, &eof))
+    while (decode_next_tag(stream, flags, &wire_type, &tag, &eof))
     {
         if (tag == 0)
         {
@@ -1676,14 +1699,14 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     /* Now decode the submessage contents */
     if (status && !submsg_consumed)
     {
-        unsigned int flags = 0;
+        unsigned int flags = PB_DECODE_DELIMITED;
 
         /* Static required/optional fields are already initialized by top-level
          * pb_decode(), no need to initialize them again. */
         if (PB_ATYPE(field->type) == PB_ATYPE_STATIC &&
             PB_HTYPE(field->type) != PB_HTYPE_REPEATED)
         {
-            flags = PB_DECODE_NOINIT;
+            flags |= PB_DECODE_NOINIT;
         }
 
         status = pb_decode_inner(&substream, field->submsg_desc, field->pData, flags);

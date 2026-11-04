@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+message SubMessage {
+    optional int32 a = 1;
+    optional int32 b = 2;
+}
+
+message TestMessage {
+    optional SubMessage sub = 1;
+    optional int32 c = 2;
+}
