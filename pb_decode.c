@@ -1056,7 +1056,7 @@ static bool checkreturn decode_next_tag(pb_istream_t *stream, unsigned int flags
     pb_wire_type_t *wire_type, uint32_t *tag, bool *eof)
 {
     /* Length-delimited messages must consume their full advertised size. */
-    bool delimited_not_done = (flags & PB_DECODE_DELIMITED) && stream->bytes_left > 0;
+    bool delimited_not_done = (flags & PB_DECODE_DELIMITED) != 0 && stream->bytes_left > 0;
 
     if (pb_decode_tag(stream, wire_type, tag, eof))
         return true;
