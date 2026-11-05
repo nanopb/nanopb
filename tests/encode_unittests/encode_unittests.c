@@ -36,6 +36,75 @@ bool crazyfieldcallback(pb_ostream_t *stream, const pb_field_t *field, void * co
     return pb_encode_varint(stream, *state);
 }
 
+
+/* Output callback that records bytes and can be made to fail after a chosen
+ * number of bytes, to exercise the pb_write() fallback and error paths. */
+static uint8_t callback_buffer[256];
+static size_t callback_length;
+static size_t callback_calls;
+static size_t callback_limit = SIZE_MAX;
+
+bool capture_callback(pb_ostream_t *stream, const uint8_t *buf, size_t count)
+{
+    callback_calls++;
+    if (callback_length + count > callback_limit ||
+        callback_length + count > sizeof(callback_buffer))
+    {
+        return false;
+    }
+
+    memcpy(callback_buffer + callback_length, buf, count);
+    callback_length += count;
+    return true;
+}
+
+#ifndef PB_WITHOUT_64BIT
+/* Verify that the sizing fast path reports exactly the same number of bytes
+ * as an actual encoding, for boundary values and a pseudo-random sweep. */
+static bool varint_size_consistency(void)
+{
+    uint8_t buffer[16];
+    size_t i;
+    uint64_t state = 0x0123456789abcdefULL;
+    static const uint64_t boundary[] = {
+        0, 1, 0x7F, 0x80, 0xFF, 0x100, 0x3FFF, 0x4000, 0x1FFFFF, 0x200000,
+        0x0FFFFFFF, 0x10000000, 0xFFFFFFFF, 0x100000000ULL,
+        0x7FFFFFFFFULL, 0x800000000ULL, 0x7FFFFFFFFFFFFFULL,
+        0x80000000000000ULL, 0x7FFFFFFFFFFFFFFFULL, 0x8000000000000000ULL,
+        0xFFFFFFFFFFFFFFFFULL
+    };
+
+    for (i = 0; i < sizeof(boundary) / sizeof(boundary[0]); i++)
+    {
+        pb_ostream_t sizestream = PB_OSTREAM_SIZING;
+        pb_ostream_t realstream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+
+        if (!pb_encode_varint(&sizestream, boundary[i]) ||
+            !pb_encode_varint(&realstream, boundary[i]) ||
+            sizestream.bytes_written != realstream.bytes_written)
+        {
+            return false;
+        }
+    }
+
+    for (i = 0; i < 100000; i++)
+    {
+        pb_ostream_t sizestream = PB_OSTREAM_SIZING;
+        pb_ostream_t realstream = pb_ostream_from_buffer(buffer, sizeof(buffer));
+
+        state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+        if (!pb_encode_varint(&sizestream, state) ||
+            !pb_encode_varint(&realstream, state) ||
+            sizestream.bytes_written != realstream.bytes_written)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif
+
 /* Check that expression x writes data y.
  * Y is a string, which may contain null bytes. Null terminator is ignored.
  */
@@ -422,6 +491,107 @@ int main()
         TEST(WRITES(pb_encode(&s, StringPointerContainer_fields, &msg), "\x0a\x01Z"))
     }
     
+
+    {
+        COMMENT("Test varint sizing stream consistency")
+
+#ifndef PB_WITHOUT_64BIT
+        TEST(varint_size_consistency());
+#endif
+    }
+
+    {
+        uint8_t buffer[128];
+        pb_ostream_t s;
+
+        COMMENT("Test packed fixed arrays: buffer vs callback stream, limits")
+
+        {
+            FixedArrays msg = FixedArrays_init_zero;
+            pb_ostream_t scallback = {&capture_callback, 0, SIZE_MAX, 0};
+            uint8_t callbuf[128];
+            size_t direct_len;
+            size_t callback_len;
+
+            msg.f32_count = 3;
+            msg.f32[0] = 0x11223344;
+            msg.f32[1] = 0x55667788;
+            msg.f32[2] = 0x99AABBCC;
+            msg.f64_count = 2;
+            msg.f64[0] = 0x0102030405060708ULL;
+            msg.f64[1] = 0xFFEEDDCCBBAA0099ULL;
+            msg.s32_count = 4;
+            msg.s32[0] = -1;
+            msg.s32[1] = 5;
+            msg.s32[2] = -100000;
+            msg.s32[3] = 2147483647;
+
+            /* Direct buffer path (may batch packed fixed arrays). */
+            s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+            TEST(pb_encode(&s, FixedArrays_fields, &msg));
+            direct_len = s.bytes_written;
+
+            /* Non-buffer callback stream (must fall back to pb_write). */
+            callback_length = 0;
+            callback_calls = 0;
+            callback_limit = SIZE_MAX;
+            TEST(pb_encode(&scallback, FixedArrays_fields, &msg));
+            callback_len = callback_length;
+
+            TEST(direct_len == callback_len);
+            TEST(memcmp(buffer, callback_buffer, direct_len) == 0);
+
+            /* Sizing stream must report the same length. */
+            {
+                size_t sizelen;
+                TEST(pb_get_encoded_size(&sizelen, FixedArrays_fields, &msg));
+                TEST(sizelen == direct_len);
+            }
+
+            /* Exact-fit buffer succeeds. */
+            memcpy(callbuf, buffer, direct_len);
+            s = pb_ostream_from_buffer(callbuf, direct_len);
+            TEST(pb_encode(&s, FixedArrays_fields, &msg));
+            TEST(s.bytes_written == direct_len);
+
+            /* One byte short fails without writing past max_size. */
+            memset(callbuf, 0xAA, sizeof(callbuf));
+            s = pb_ostream_from_buffer(callbuf, direct_len - 1);
+            TEST(!pb_encode(&s, FixedArrays_fields, &msg));
+            TEST(s.bytes_written <= direct_len - 1);
+            TEST(callbuf[direct_len - 1] == 0xAA);
+        }
+    }
+
+    {
+        uint8_t buffer[64];
+        pb_ostream_t s;
+        pb_ostream_t scallback = {&capture_callback, 0, SIZE_MAX, 0};
+        IntegerArray msg = {5, {1, 2, 3, 4, 5}};
+        size_t direct_len;
+
+        COMMENT("Test callback stream granularity and failure propagation")
+
+        s = pb_ostream_from_buffer(buffer, sizeof(buffer));
+        TEST(pb_encode(&s, IntegerArray_fields, &msg));
+        direct_len = s.bytes_written;
+
+        callback_length = 0;
+        callback_calls = 0;
+        callback_limit = SIZE_MAX;
+        TEST(pb_encode(&scallback, IntegerArray_fields, &msg));
+        TEST(callback_length == direct_len);
+        TEST(memcmp(buffer, callback_buffer, direct_len) == 0);
+        /* One callback invocation per pb_write: tag + length + 5 values. */
+        TEST(callback_calls == 7);
+
+        callback_length = 0;
+        callback_calls = 0;
+        callback_limit = direct_len - 1;
+        TEST(!pb_encode(&scallback, IntegerArray_fields, &msg));
+        TEST(callback_length <= direct_len - 1);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
     
