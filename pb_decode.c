@@ -460,6 +460,14 @@ static bool checkreturn decode_static_field(pb_istream_t *stream, pb_wire_type_t
                 if ((*size)++ >= iter->pos->array_size)
                     PB_RETURN_ERROR(stream, "array overflow");
 
+                if (PB_LTYPE(type) == PB_LTYPE_SUBMESSAGE)
+                {
+                    /* The entry is now counted, so pb_release() will walk it
+                     * even if decoding fails before pb_dec_submessage().
+                     * Set defaults here so that its pointers are valid. */
+                    pb_message_set_to_defaults((const pb_field_t*)iter->pos->ptr, pItem);
+                }
+
                 return func(stream, iter->pos, pItem);
             }
 
@@ -1534,12 +1542,10 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_t
     if (field->ptr == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
     
-    /* New array entries need to be initialized, while required and optional
-     * submessages have already been initialized in the top-level pb_decode. */
-    if (PB_HTYPE(field->type) == PB_HTYPE_REPEATED)
-        status = pb_decode(&substream, submsg_fields, dest);
-    else
-        status = pb_decode_noinit(&substream, submsg_fields, dest);
+    /* Static required/optional fields are already initialized by top-level
+     * pb_decode(), repeated/oneof fields by decode_static_field() and
+     * pointer fields by initialize_pointer_field(). */
+    status = pb_decode_noinit(&substream, submsg_fields, dest);
     
     if (!pb_close_string_substream(stream, &substream))
         return false;
