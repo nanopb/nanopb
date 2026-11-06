@@ -967,6 +967,26 @@ static bool pb_field_set_to_default(pb_field_iter_t *field)
              * itself also. */
             *(bool*)field->pSize = false;
         }
+        else if (PB_HTYPE(type) == PB_HTYPE_REPEATED &&
+                 field->pSize == &field->array_size &&
+                 PB_LTYPE_IS_SUBMSG(type))
+        {
+            /* Fixed count array: there is no count field, so pb_release()
+             * walks all array_size entries even if they were not decoded.
+             * Initialize all submessages so that their pointers are valid. */
+            pb_size_t i;
+            for (i = 0; i < field->array_size; i++)
+            {
+                pb_field_iter_t submsg_iter;
+                if (pb_field_iter_begin(&submsg_iter, field->submsg_desc,
+                                        (char*)field->pData + field->data_size * i))
+                {
+                    if (!pb_message_set_to_defaults(&submsg_iter))
+                        return false;
+                }
+            }
+            init_data = false;
+        }
         else if (PB_HTYPE(type) == PB_HTYPE_REPEATED ||
                  PB_HTYPE(type) == PB_HTYPE_ONEOF)
         {
