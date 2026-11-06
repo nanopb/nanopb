@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: "/home/runner/.cache/bazel"
-          key: ${{ runner.os }}-bazel-${{ matrix.bazel }}
+          key: ${{ runner.os }}-bazel-${{ matrix.bazel }}-bump20261106
 
       - name: Test
         run: |

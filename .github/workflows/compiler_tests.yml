@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install python3-protobuf protobuf-compiler scons
           sudo apt-get install clang valgrind splint cmake
-          sudo apt-get install libstdc++6:i386 libgcc-s1:i386 lib32gcc-13-dev lib32stdc++-13-dev libc6-dbg:i386 libc6-dev:i386 binutils-multiarch
+          sudo apt-get install libstdc++6:i386 libgcc-s1:i386 libc6-dbg:i386 libc6-dev:i386 gcc-multilib g++-multilib binutils-multiarch
 
       - name: Test with 64-bit GCC
         run: |
@@ -38,11 +38,13 @@ jobs:
         run: |
           cd nanopb/tests
           rm -rf build
-          scons CC=gcc CXX=g++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32"
+          # Disable valgrind because for some reason modern GCC multilib uses AVX instructions
+          # on 64-bit platforms even for 32-bit binaries, which makes valgrind crash with "Illegal opcode"
+          scons CC=gcc CXX=g++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32" NOVALGRIND=1
           rm -rf build
-          scons CC=gcc CXX=g++ CCFLAGS="-Os -flto -m32" LINKFLAGS="-m32"
+          scons CC=gcc CXX=g++ CCFLAGS="-Os -flto -m32" LINKFLAGS="-m32" NOVALGRIND=1
           rm -rf build
-          scons CC=gcc CXX=g++ CCFLAGS="-O1 -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32"
+          scons CC=gcc CXX=g++ CCFLAGS="-O1 -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32" NOVALGRIND=1
       
       - name: Test with 64-bit clang
         run: |
@@ -56,9 +58,9 @@ jobs:
         run: |
           cd nanopb/tests
           rm -rf build
-          scons CC=clang CXX=clang++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32"
+          scons CC=clang CXX=clang++ CCFLAGS="-O3 -m32" LINKFLAGS="-m32" NOVALGRIND=1
           rm -rf build
-          scons CC=clang CXX=clang++ CCFLAGS="-Os -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32"
+          scons CC=clang CXX=clang++ CCFLAGS="-Os -DPB_FIELD_32BIT=1 -m32" LINKFLAGS="-m32" NOVALGRIND=1
 
       - name: Test with 64-bit GCC with limited RAM
         run: |
