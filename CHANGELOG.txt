@@ -1,3 +1,7 @@
+nanopb-0.3.9.11 (2026-11-06)
+ Fix invalid free() with repeated submessages (GHSA-5v96-h584-4px4)
+ Python 3 fixes to generator and test cases
+
 nanopb-0.3.9.10 (2024-02-16)
  Add Apple privacy manifest
 
