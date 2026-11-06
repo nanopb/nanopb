@@ -28,3 +28,11 @@ message Message4 {
   repeated SubMessage submsgs = 1 [(nanopb).type = FT_POINTER, (nanopb).max_count = 5, (nanopb).fixed_count = true];
   repeated string strings = 2 [(nanopb).type = FT_POINTER, (nanopb).max_count = 4, (nanopb).fixed_count = true];
 }
+
+message PointerSubMessage {
+  optional string str = 1 [(nanopb).type = FT_POINTER];
+}
+
+message Message5 {
+  repeated PointerSubMessage submsgs = 1 [(nanopb).max_count = 2, (nanopb).fixed_count = true];
+}

@@ -208,6 +208,27 @@ int main()
       TEST(get_alloc_count() == 0);
     }
 
+    {
+      pb_byte_t input[] = {0x0a, 0x03, 0x0a, 0x01, 'a'};
+      pb_istream_t stream;
+      Message5 msg;
+
+      COMMENT("Test static fixarray of submessages with pointer fields");
+
+      memset(&msg, 0xAA, sizeof(msg));
+      stream = pb_istream_from_buffer(input, 0);
+      TEST(pb_decode(&stream, Message5_fields, &msg));
+      TEST(msg.submsgs[0].str == NULL && msg.submsgs[1].str == NULL);
+      pb_release(Message5_fields, &msg);
+      TEST(get_alloc_count() == 0);
+
+      memset(&msg, 0xAA, sizeof(msg));
+      stream = pb_istream_from_buffer(input, sizeof(input));
+      TEST(!pb_decode(&stream, Message5_fields, &msg));
+      TEST(strcmp(stream.errmsg, "wrong size for fixed count field") == 0);
+      TEST(get_alloc_count() == 0);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 
