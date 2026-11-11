@@ -67,7 +67,7 @@
  * Depending on message structure, this may be unsafe if decoded data
  * is untrusted. This is disabled by default since nanopb-0.4.9.3.
  * Prefer using submsg_callback, no_unions or callback_function generator
- * options instead. See GHSA-p24j-vqcp-x988 for details. */
+ * options instead. See GHSA-fmpg-qc28-5x4x for details. */
 /* #define PB_ENABLE_UNSAFE_DECODE_ONEOF_CALLBACKS 1 */
 
 /******************************************************************

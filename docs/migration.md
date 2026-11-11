@@ -64,7 +64,7 @@ loading the removed WORKSPACE helper macros. `Unable to find package for
 @@rules_proto_grpc` if your own rules relied on nanopb's removed
 dependencies.
 
-Nanopb-0.4.9.2 (2026-11-11)
+Nanopb-0.4.9.3 (2026-11-11)
 ---------------------------
 
 ### Callbacks directly inside oneofs are disabled by default
@@ -72,7 +72,7 @@ Nanopb-0.4.9.2 (2026-11-11)
 **Rationale:** Previously there was a special feature for supporting
 callback-type fields directly inside oneofs. This turned out to be a poor
 design, with inherent security problems when untrusted data is decoded.
-See [GHSA-p24j-vqcp-x988](https://github.com/nanopb/nanopb/security/advisories/GHSA-fmpg-qc28-5x4x) for details.
+See [GHSA-fmpg-qc28-5x4x](https://github.com/nanopb/nanopb/security/advisories/GHSA-fmpg-qc28-5x4x) for details.
 
 **Changes:** Callbacks directly inside oneofs are now disabled by default.
 There is a compile-time setting `PB_ENABLE_UNSAFE_DECODE_ONEOF_CALLBACKS` which can be used for legacy code if the input data is trusted.
