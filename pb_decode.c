@@ -824,7 +824,13 @@ static bool checkreturn decode_callback_field(pb_istream_t *stream, pb_wire_type
      */
     if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
     {
-        if (*(pb_size_t*)field->pSize != 0 && *(pb_size_t*)field->pSize != field->tag)
+        bool clear_data = (*(pb_size_t*)field->pSize != field->tag);
+
+#ifdef PB_ENABLE_UNSAFE_DECODE_ONEOF_CALLBACKS
+        if (*(pb_size_t*)field->pSize == 0) clear_data = false;
+#endif
+
+        if (clear_data)
         {
             memset(field->pData, 0, (size_t)field->data_size);
         }

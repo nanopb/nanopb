@@ -38,6 +38,12 @@ int main(void) {
     pb_istream_t is = pb_istream_from_buffer(wire, sizeof wire);
     bool ok = pb_decode(&is, VariantMessage_fields, &msg);
     printf("[poc] pb_decode -> %d (%s)\n", ok, ok ? "ok" : PB_GET_ERROR(&is));
+
+#ifdef PB_ENABLE_UNSAFE_DECODE_ONEOF_CALLBACKS
     printf("[poc] RESULT: callback %s\n", fired ? "FIRED (correct)" : "DID NOT FIRE (REGRESSION)");
-    return fired ? 0 : 1;
+    return (ok && fired) ? 0 : 1;
+#else
+    printf("[poc] RESULT: callback %s\n", fired ? "FIRED (correct)" : "DID NOT FIRE (because of !PB_ENABLE_UNSAFE_DECODE_ONEOF_CALLBACKS)");
+    return ok ? 0 : 1;
+#endif
 }
