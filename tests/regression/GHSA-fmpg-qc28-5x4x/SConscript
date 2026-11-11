@@ -1,0 +1,9 @@
+# Regression test for security issue GHSA-fmpg-qc28-5x4x:
+# "GHSA-p24j-vqcp-x988 fix is bypassable: callback inside oneof
+# can result in call to attacker-controlled function pointer"
+
+Import("env")
+
+env.NanopbProto("oneof.proto")
+p = env.Program(["oneof_callback_bug.c", "oneof.pb.c", "$COMMON/pb_decode.o", "$COMMON/pb_encode.o", "$COMMON/pb_common.o"])
+env.RunTest(p)
