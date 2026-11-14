@@ -229,6 +229,38 @@ int main()
       TEST(get_alloc_count() == 0);
     }
 
+    {
+      pb_byte_t input[] = {0x12, 0x01, 'a', 0x12, 0x01, 'b', 0x12, 0x01, 'c', 0x12, 0x01, 'd',
+                           0x0a, 0x02, 0x08, 0x01, 0x0a, 0x02, 0x08, 0x01, 0x0a, 0x02, 0x08, 0x01,
+                           0x0a, 0x02, 0x08, 0x01, 0x0a, 0x02, 0x08, 0x01,
+                           0x12, 0x01, 'e', 0x12, 0x01, 'f', 0x12, 0x01, 'g', 0x12, 0x01, 'h'};
+      pb_istream_t stream;
+      Message4 msg = Message4_init_zero;
+
+      COMMENT("Test pointer fixarray decoded again after another fixed count field");
+
+      stream = pb_istream_from_buffer(input, sizeof(input));
+      TEST(pb_decode(&stream, Message4_fields, &msg));
+      TEST(strcmp((*msg.strings)[0], "e") == 0 && strcmp((*msg.strings)[3], "h") == 0);
+      pb_release(Message4_fields, &msg);
+      TEST(get_alloc_count() == 0);
+    }
+
+    {
+      pb_byte_t input[] = {0x0a, 0x0a, 0x0a, 0x03, 0x0a, 0x01, 'a', 0x0a, 0x03, 0x0a, 0x01, 'b',
+                           0x0a, 0x0a, 0x0a, 0x03, 0x0a, 0x01, 'c', 0x0a, 0x03, 0x0a, 0x01, 'd'};
+      pb_istream_t stream;
+      Message6 msg = Message6_init_zero;
+
+      COMMENT("Test static fixarray of submessages in a merged submessage");
+
+      stream = pb_istream_from_buffer(input, sizeof(input));
+      TEST(pb_decode(&stream, Message6_fields, &msg));
+      TEST(strcmp(msg.msg.submsgs[0].str, "c") == 0 && strcmp(msg.msg.submsgs[1].str, "d") == 0);
+      pb_release(Message6_fields, &msg);
+      TEST(get_alloc_count() == 0);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 
