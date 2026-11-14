@@ -1238,6 +1238,18 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
                 fixed_count_field = iter.index;
                 fixed_count_size = 0;
                 fixed_count_total_size = iter.array_size;
+
+#ifdef PB_ENABLE_MALLOC
+                /* Decoding restarts from the first entry. If the field was
+                 * already decoded (it appeared before another fixed count
+                 * field, or the message is being merged), release the old
+                 * entries so that overwriting them does not leak memory. */
+                {
+                    pb_field_iter_t old_field = iter;
+                    old_field.pSize = &old_field.array_size;
+                    pb_release_single_field(&old_field);
+                }
+#endif
             }
 
             iter.pSize = &fixed_count_size;
