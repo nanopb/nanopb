@@ -36,3 +36,7 @@ message PointerSubMessage {
 message Message5 {
   repeated PointerSubMessage submsgs = 1 [(nanopb).max_count = 2, (nanopb).fixed_count = true];
 }
+
+message Message6 {
+  optional Message5 msg = 1;
+}
