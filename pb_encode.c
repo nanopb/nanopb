@@ -946,7 +946,10 @@ static bool checkreturn pb_enc_submessage(pb_ostream_t *stream, const pb_field_i
     if (field->submsg_desc == NULL)
         PB_RETURN_ERROR(stream, "invalid field descriptor");
 
-    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+    /* Required fields have no callback slot. Extension fields are always
+     * required, and for them pSize points to extension->found. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL &&
+        PB_HTYPE(field->type) != PB_HTYPE_REQUIRED)
     {
         /* Message callback is stored right before pSize. */
         pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;

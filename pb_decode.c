@@ -1772,8 +1772,10 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
     
     /* Submessages can have a separate message-level callback that is called
      * before decoding the message. Typically it is used to set callback fields
-     * inside oneofs. */
-    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL)
+     * inside oneofs. Required fields have no callback slot. Extension fields
+     * are always required, and for them pSize points to extension->found. */
+    if (PB_LTYPE(field->type) == PB_LTYPE_SUBMSG_W_CB && field->pSize != NULL &&
+        PB_HTYPE(field->type) != PB_HTYPE_REQUIRED)
     {
         /* Message callback is stored right before pSize. */
         pb_callback_t *callback = (pb_callback_t*)field->pSize - 1;

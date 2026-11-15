@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+
+message BaseMessage
+{
+    optional int32 value = 1;
+    extensions 100 to 200;
+}
+
+message ExtMessage
+{
+    optional int32 value = 1;
+}
+
+extend BaseMessage
+{
+    optional ExtMessage ext_submsg = 100 [(nanopb).submsg_callback = true];
+}
