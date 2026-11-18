@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+
+message SubMessage {
+    optional int32 a = 1;
+    optional int32 b = 2;
+    repeated int32 values = 3 [(nanopb).type = FT_POINTER];
+    optional string text = 4 [(nanopb).type = FT_POINTER];
+    optional int32 c = 5 [default = 42];
+}
+
+message TestMessage {
+    optional SubMessage opt = 1 [(nanopb).type = FT_POINTER];
+    oneof choice {
+        SubMessage sub = 2 [(nanopb).type = FT_POINTER];
+        int32 number = 3;
+    }
+}
