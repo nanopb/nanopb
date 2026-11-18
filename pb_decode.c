@@ -681,13 +681,6 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
         case PB_HTYPE_REQUIRED:
         case PB_HTYPE_OPTIONAL:
         case PB_HTYPE_ONEOF:
-            if (PB_LTYPE_IS_SUBMSG(field->type) && *(void**)field->pField != NULL)
-            {
-                /* Duplicate field, have to release the old allocation first. */
-                /* FIXME: Does this work correctly for oneofs? */
-                pb_release_single_field(field);
-            }
-        
             if (PB_HTYPE(field->type) == PB_HTYPE_ONEOF)
             {
                 *(pb_size_t*)field->pSize = field->tag;
@@ -700,6 +693,15 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 field->pData = field->pField;
                 return decode_basic_field(stream, wire_type, field);
             }
+            else if (PB_LTYPE_IS_SUBMSG(field->type) && *(void**)field->pField != NULL)
+            {
+                /* The submessage already occurred earlier in the stream.
+                 * Merge the new data into it, like for static submessages.
+                 * If a different oneof member was set before, it has already
+                 * been released by pb_release_union_field(). */
+                field->pData = *(void**)field->pField;
+                return decode_basic_field(stream, wire_type, field);
+            }
             else
             {
                 if (!allocate_field(stream, field->pField, field->data_size, 1))
@@ -707,6 +709,20 @@ static bool checkreturn decode_pointer_field(pb_istream_t *stream, pb_wire_type_
                 
                 field->pData = *(void**)field->pField;
                 initialize_pointer_field(field->pData, field);
+
+                if (PB_LTYPE_IS_SUBMSG(field->type))
+                {
+                    /* pb_dec_submessage() decodes single pointer submessages
+                     * with PB_DECODE_NOINIT so that a later occurrence can be
+                     * merged into them. Set the defaults here instead. */
+                    pb_field_iter_t submsg_iter;
+                    if (pb_field_iter_begin(&submsg_iter, field->submsg_desc, field->pData))
+                    {
+                        if (!pb_message_set_to_defaults(&submsg_iter))
+                            PB_RETURN_ERROR(stream, "failed to set defaults");
+                    }
+                }
+
                 return decode_basic_field(stream, wire_type, field);
             }
     
@@ -1767,8 +1783,12 @@ static bool checkreturn pb_dec_submessage(pb_istream_t *stream, const pb_field_i
 
         /* Static required/optional fields are already initialized by top-level
          * pb_decode() and repeated/oneof fields by decode_static_field(), no
-         * need to initialize them again. */
-        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC)
+         * need to initialize them again. Single pointer submessages are
+         * initialized by decode_pointer_field() when they are allocated, and
+         * must not be cleared when the field occurs again and is merged. */
+        if (PB_ATYPE(field->type) == PB_ATYPE_STATIC ||
+            (PB_ATYPE(field->type) == PB_ATYPE_POINTER &&
+             PB_HTYPE(field->type) != PB_HTYPE_REPEATED))
         {
             flags |= PB_DECODE_NOINIT;
         }
