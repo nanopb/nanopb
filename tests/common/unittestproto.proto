@@ -10,6 +10,12 @@ message FloatArray {
     repeated float data = 1 [(nanopb).max_count = 10];
 }
 
+message FixedArrays {
+    repeated fixed32 f32 = 1 [(nanopb).max_count = 10];
+    repeated fixed64 f64 = 2 [(nanopb).max_count = 10];
+    repeated sint32  s32 = 3 [(nanopb).max_count = 10];
+}
+
 message StringMessage {
     required string data = 1 [(nanopb).max_length = 10];
 }
