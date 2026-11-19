@@ -46,9 +46,78 @@ s = pb_ostream_from_buffer(buffer, sizeof(buffer)), \
 memcmp(buffer, y, sizeof(y) - 1) == 0 && \
 buffer[sizeof(y) - 1] == 0xAA
 
+/* White-box test for the proto3 implicit-presence zero check across all
+ * supported scalar widths, including the negative-zero float encoding. */
+static bool proto3_default_check(void)
+{
+    pb_field_iter_t iter;
+    pb_msgdesc_t desc;
+    uint8_t b1;
+    uint16_t b2;
+    uint32_t b4;
+
+    memset(&desc, 0, sizeof(desc));
+    memset(&iter, 0, sizeof(iter));
+    iter.descriptor = &desc;
+    iter.type = PB_ATYPE_STATIC | PB_HTYPE_OPTIONAL | PB_LTYPE_FIXED32;
+    iter.pSize = NULL;
+    desc.default_value = NULL;
+
+    iter.data_size = 1;
+    iter.pData = &b1;
+    b1 = 0;
+    if (!pb_check_proto3_default_value(&iter))
+        return false;
+    b1 = 1;
+    if (pb_check_proto3_default_value(&iter))
+        return false;
+
+    iter.data_size = sizeof(uint16_t);
+    iter.pData = &b2;
+    b2 = 0;
+    if (!pb_check_proto3_default_value(&iter))
+        return false;
+    b2 = 1;
+    if (pb_check_proto3_default_value(&iter))
+        return false;
+
+    iter.data_size = sizeof(uint32_t);
+    iter.pData = &b4;
+    b4 = 0;
+    if (!pb_check_proto3_default_value(&iter))
+        return false;
+    b4 = 1;
+    if (pb_check_proto3_default_value(&iter))
+        return false;
+    b4 = 0x80000000u; /* -0.0f must be treated as non-zero */
+    if (pb_check_proto3_default_value(&iter))
+        return false;
+
+#ifndef PB_WITHOUT_64BIT
+    {
+        uint64_t b8;
+        iter.data_size = sizeof(uint64_t);
+        iter.pData = &b8;
+        b8 = 0;
+        if (!pb_check_proto3_default_value(&iter))
+            return false;
+        b8 = 1;
+        if (pb_check_proto3_default_value(&iter))
+            return false;
+    }
+#endif
+
+    return true;
+}
+
 int main()
 {
     int status = 0;
+
+    {
+        COMMENT("Test proto3 default value checks");
+        TEST(proto3_default_check());
+    }
     
     {
         uint8_t buffer1[] = "foobartest1234";
