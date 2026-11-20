@@ -271,9 +271,34 @@ static bool test_StaticRepeatedError()
     return true;
 }
 
+/* Merging a delimited message with PB_DECODE_NOINIT fails already on the
+ * length prefix. The data decoded earlier must still be released. */
+static bool test_DelimitedNoinitError()
+{
+    /* Length 5, dynamic_str = "abc" */
+    const uint8_t first[] = {0x05, 0x0A, 0x03, 0x61, 0x62, 0x63};
+    /* Length 16, but only 2 bytes follow */
+    const uint8_t truncated[] = {0x10, 0x0A, 0x00};
+
+    {
+        SubMessage msg = SubMessage_init_zero;
+        pb_istream_t stream = pb_istream_from_buffer(first, sizeof(first));
+        TEST(pb_decode_ex(&stream, SubMessage_fields, &msg, PB_DECODE_DELIMITED));
+        TEST(get_alloc_count() > 0);
+
+        stream = pb_istream_from_buffer(truncated, sizeof(truncated));
+        TEST(!pb_decode_ex(&stream, SubMessage_fields, &msg, PB_DECODE_DELIMITED | PB_DECODE_NOINIT));
+        TEST(get_alloc_count() == 0);
+        TEST(msg.dynamic_str == NULL);
+    }
+
+    return true;
+}
+
 int main()
 {
-    if (test_TestMessage() && test_OneofMessage() && test_Garbage() && test_StaticRepeatedError())
+    if (test_TestMessage() && test_OneofMessage() && test_Garbage() && test_StaticRepeatedError() &&
+        test_DelimitedNoinitError())
         return 0;
     else
         return 1;
