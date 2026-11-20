@@ -1340,7 +1340,15 @@ bool checkreturn pb_decode_ex(pb_istream_t *stream, const pb_msgdesc_t *fields, 
     {
       pb_istream_t substream;
       if (!pb_make_string_substream(stream, &substream))
+      {
+#ifdef PB_ENABLE_MALLOC
+        /* With PB_DECODE_NOINIT the structure may already hold data
+         * from an earlier decode. Release it like on any other error. */
+        if (flags & PB_DECODE_NOINIT)
+          pb_release(fields, dest_struct);
+#endif
         return false;
+      }
 
       status = pb_decode_inner(&substream, fields, dest_struct, flags);
 
