@@ -261,6 +261,33 @@ int main()
       TEST(get_alloc_count() == 0);
     }
 
+    {
+      pb_byte_t input1[] = {0x0a, 0x03, 0x0a, 0x01, 'a', 0x12, 0x01, 'b'};
+      pb_byte_t input2[] = {0x0a, 0x03, 0x0a, 0x01, 'a', 0x0a, 0x03, 0x0a, 0x01, 'c'};
+      pb_byte_t input3[] = {0x12, 0x01, 'b', 0x12, 0x01, 'd'};
+      pb_istream_t stream;
+      Message7 msg = Message7_init_zero;
+
+      COMMENT("Test too many entries in pointer type fixarray of one");
+
+      stream = pb_istream_from_buffer(input1, sizeof(input1));
+      TEST(pb_decode(&stream, Message7_fields, &msg));
+      TEST(strcmp((*msg.submsgs)[0].str, "a") == 0);
+      TEST(strcmp((*msg.strings)[0], "b") == 0);
+      pb_release(Message7_fields, &msg);
+      TEST(get_alloc_count() == 0);
+
+      stream = pb_istream_from_buffer(input2, sizeof(input2));
+      TEST(!pb_decode(&stream, Message7_fields, &msg));
+      TEST(strcmp(stream.errmsg, "array overflow") == 0);
+      TEST(get_alloc_count() == 0);
+
+      stream = pb_istream_from_buffer(input3, sizeof(input3));
+      TEST(!pb_decode(&stream, Message7_fields, &msg));
+      TEST(strcmp(stream.errmsg, "array overflow") == 0);
+      TEST(get_alloc_count() == 0);
+    }
+
     if (status != 0)
         fprintf(stdout, "\n\nSome tests FAILED!\n");
 

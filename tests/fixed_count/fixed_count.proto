@@ -40,3 +40,8 @@ message Message5 {
 message Message6 {
   optional Message5 msg = 1;
 }
+
+message Message7 {
+  repeated PointerSubMessage submsgs = 1 [(nanopb).type = FT_POINTER, (nanopb).max_count = 1, (nanopb).fixed_count = true];
+  repeated string strings = 2 [(nanopb).type = FT_POINTER, (nanopb).max_count = 1, (nanopb).fixed_count = true];
+}

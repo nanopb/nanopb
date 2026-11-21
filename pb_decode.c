@@ -1271,6 +1271,19 @@ static bool checkreturn pb_decode_inner(pb_istream_t *stream, const pb_msgdesc_t
             iter.pSize = &fixed_count_size;
         }
 
+        /* Reject entries beyond the fixed count here, where the count is
+         * known. decode_pointer_field() tells fixed count arrays from
+         * growable ones by array_size > 1, so an array with max_count 1
+         * would otherwise be extended and the extra entries leaked.
+         * Only a packed array may still add zero entries. */
+        if (iter.pSize == &fixed_count_size &&
+            fixed_count_size >= fixed_count_total_size &&
+            (wire_type != PB_WT_STRING ||
+             PB_LTYPE(iter.type) > PB_LTYPE_LAST_PACKABLE))
+        {
+            PB_RETURN_ERROR(stream, "array overflow");
+        }
+
         if (PB_HTYPE(iter.type) == PB_HTYPE_REQUIRED
             && iter.required_field_index < PB_MAX_REQUIRED_FIELDS)
         {
